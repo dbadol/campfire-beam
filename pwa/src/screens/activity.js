@@ -14,6 +14,8 @@ import { screen, openSheet, primary, secondary, notice, copyText } from '../lib/
 import { formatAmount } from '../lib/amount.js';
 import { wallet, txStatusText, isContractTx, contractMoves, contractLabel, contractStatusText } from '../lib/wallet.js';
 import { txRow } from './home.js';
+import { splitDetail } from './coins_ui.js';
+import { isSplitTx } from '../lib/coins.js';
 import { noteRow, paymentExtras } from './payment_extras.js';
 import { loadContacts } from '../lib/contacts.js';
 
@@ -39,6 +41,7 @@ export default function activity(app, params = {}) {
       const t = wallet.state.txs.find((x) => x.txId === txId);
       if (!t) return [h('h2', { text: 'Payment' }), h('p', { text: 'This payment is no longer in the list.' })];
       if (isContractTx(t)) return contractDetail(app, t, close, rerender);
+      if (isSplitTx(t)) return splitDetail(app, t, close, (k, v, opts = {}) => h('div', { class: 'kv' }, h('span', { class: 'k', text: k }), opts.copy ? h('button', { class: 'v mono btn-text', onclick: () => copyText(opts.copy, `${k} copied`), text: v }) : h('span', { class: 'v', text: v })));
       const unit = wallet.label(t.asset_id || 0).unit;
       const s = Number(t.status);
       const canCancel = !t.income && (s === 0 || s === 1);

@@ -13,6 +13,8 @@
  *   - "Can I get a short name, or claim a code I was given?" -> BEAM names and Airdrop codes, on one line with
  *     dApps under the buttons, one tap each.
  *   - "Can I make my own token?" -> Tokens, at the end of that line: create one, mint more, burn.
+ *   - "Why can't I spend what I was sent privately?" -> a line under the balance says it arrived privately and
+ *     in how many hours it can be spent; "Coins" beside the balance lists each coin and splits them (screens/coins.js).
  *   - "My own node is down" -> the sync line says so, with "Use random nodes" right under it (never automatic).
  *   - "What is all this worth?" -> BEAM in dollars once allowed (asked once: CoinGecko sees the IP), a total
  *     with the tokens valued from BEAM's DEX; a token row opens its page; spam can be hidden (screens/token_ui.js).
@@ -39,6 +41,8 @@ import { rowExtra } from './payment_extras.js';
 import { loadContacts } from '../lib/contacts.js';
 import { openTokensMenu } from './minter.js';
 import { walletChip } from './wallets.js';
+import { coinsLink, privateLine, maturingParts, splitRow } from './coins_ui.js';
+import { isSplitTx } from '../lib/coins.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -99,6 +103,7 @@ function nameTokens(app, ids, s) {
 
 export function txRow(app, tx, onclick) {
   if (isContractTx(tx)) return contractRow(app, tx, onclick);
+  if (isSplitTx(tx)) return splitRow(app, tx, onclick);
   const label = app.wallet.label(tx.asset_id || 0);
   const income = Boolean(tx.income);
   const failed = Number(tx.status) === 4 || Number(tx.status) === 2;
@@ -125,16 +130,19 @@ export default function home(app) {
     const pend = [];
     if (beam.receiving > 0n) pend.push(`+${formatAmount(beam.receiving)} incoming`);
     if (beam.sending > 0n) pend.push(`−${formatAmount(beam.sending)} outgoing`);
-    if (beam.maturing > 0n) pend.push(`${formatAmount(beam.maturing)} maturing`);
+    // Private (max-privacy) coins BEAM still holds back get their own line, with when they can be spent.
+    pend.push(...maturingParts(beam, { withPrivate: false }));
     const known = Boolean(s.status) && !s.importing;
     put(balanceBox, 
       h(
         'div',
         { class: 'card balance' },
         h('div', { class: 'label', text: 'Available' }),
+        coinsLink(app),
         h('div', { class: 'amount', 'data-testid': 'balance' }, known ? formatAmount(beam.available) : '—', h('span', { class: 'unit', text: 'BEAM' })),
         tokens.fiatLine(s),
         pend.length ? h('div', { class: 'pending', text: pend.join(' · ') }) : null,
+        privateLine(app, s, 0, 'BEAM'),
         ...tokens.totalLines(s),
         syncLine(s.sync),
         h('p', { class: 'small', 'data-testid': 'sync-detail', text: s.sync.detail }),

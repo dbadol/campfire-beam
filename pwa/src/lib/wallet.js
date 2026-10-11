@@ -9,6 +9,7 @@ import { toGroth, REGULAR_FEE, OFFLINE_FEE, toJsonNumber } from './amount.js';
 import { assetLabel } from './meta.js';
 import { bindSession, unbindSession, settleApps } from './contracts.js';
 import { pickReceiveAddress } from './addresses.js';
+import { isSplitTx, splitStatusText } from './coins.js';
 
 const STATUS_EVERY_MS = 5000;
 const TXS_EVERY_MS = 20000;
@@ -40,6 +41,8 @@ export function sendModeFor(type) {
 
 /** Plain-language wording for a transaction's state. */
 export function txStatusText(tx) {
+  // Split coins: the wallet's own coins split into new ones (BEAM Campfire's "Split into coins").
+  if (isSplitTx(tx)) return splitStatusText(tx);
   const s = Number(tx.status);
   const income = Boolean(tx.income);
   if (isContractTx(tx)) {
@@ -221,6 +224,8 @@ export class Wallet {
       status: null,
       totals: new Map(),
       txs: [],
+      // The payment list has been read at least once this run (lib/payment_notice.js: the first read is history).
+      txsLoaded: false,
       progress: null,
       explorer: null,
       nodeConnected: false,
@@ -583,7 +588,8 @@ export class Wallet {
           const v = t[`${k}_str`] ?? t[k];
           return v === undefined ? 0n : toGroth(v);
         };
-        totals.set(id, { available: g('available'), receiving: g('receiving'), sending: g('sending'), maturing: g('maturing') });
+        // maturingMp: the part of maturing that is private coins BEAM still holds back (max privacy, lib/coins.js).
+        totals.set(id, { available: g('available'), receiving: g('receiving'), sending: g('sending'), maturing: g('maturing'), maturingMp: g('maturing_mp') });
       }
       if (!totals.has(0)) {
         totals.set(0, {
@@ -591,6 +597,7 @@ export class Wallet {
           receiving: toGroth(st.receiving || 0),
           sending: toGroth(st.sending || 0),
           maturing: toGroth(st.maturing || 0),
+          maturingMp: 0n,
         });
       }
       this.state.totals = totals;
@@ -630,6 +637,7 @@ export class Wallet {
       this.state.txs = (Array.isArray(txs) ? txs : [])
         .filter((t) => [0, 7, 12].includes(Number(t.tx_type)))
         .sort((a, b) => (b.create_time || 0) - (a.create_time || 0));
+      this.state.txsLoaded = true;
       this.emit();
     } catch {
       /* next round */

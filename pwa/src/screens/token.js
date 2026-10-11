@@ -27,6 +27,7 @@ import { hiddenIds, setTokenHidden, loadHidden } from '../lib/hidden_tokens.js';
 import { priceNow } from './token_ui.js';
 import { txRow } from './home.js';
 import activity from './activity.js';
+import { privateLine } from './coins_ui.js';
 
 const ZERO = { available: 0n, receiving: 0n, sending: 0n, maturing: 0n };
 
@@ -186,6 +187,7 @@ export default function token(app, params = {}) {
       kv('Incoming', t.receiving > 0n ? `+${formatAmount(t.receiving)} ${unit}` : '0', 'token-bal-incoming', t.receiving > 0n ? ' in' : ' muted'),
       kv('Outgoing', t.sending > 0n ? `−${formatAmount(t.sending)} ${unit}` : '0', 'token-bal-outgoing', t.sending > 0n ? '' : ' muted'),
       kv('Maturing', t.maturing > 0n ? `${formatAmount(t.maturing)} ${unit}` : '0', 'token-bal-maturing', t.maturing > 0n ? '' : ' muted'),
+      privateLine(app, s, id, unit),
     );
 
     const cut = s.txs.length >= RECENT;
