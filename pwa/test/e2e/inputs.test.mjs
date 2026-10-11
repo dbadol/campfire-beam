@@ -39,7 +39,7 @@ test.after(async () => {
 });
 
 /** No text field focused by itself; then tap every visible text field and type into it. */
-async function fieldsTakeTyping(where) {
+async function fieldsTakeTyping(where, { allowEmpty = false } = {}) {
   await sleep(400);
   const self = await page.evaluate(() => {
     const a = document.activeElement;
@@ -57,6 +57,7 @@ async function fieldsTakeTyping(where) {
     }
     return i;
   });
+  if (!n && allowEmpty) return console.log(`# ${where}: no text field on this wallet`);
   assert.ok(n > 0, `${where}: no text field found`);
   for (let i = 0; i < n; i++) {
     const sel = `[data-typecheck="${i}"]`;
@@ -150,6 +151,31 @@ test('sheets: Backup export, the iCloud copy (both steps), update from another a
     await fieldsTakeTyping('confirm-identity-sheet');
     await page.tap('.sheet .btn-text');
   } else console.log('# confirm-it-is-you sheet not reached from Use this node (the node check said no); covered by the payment e2e');
+});
+
+test('0.2.9 screens: pools, a pool, create a token, burn, contacts, check a proof, add a wallet', { timeout: 10 * 60000 }, async () => {
+  for (const [name, params, wait] of [
+    ['pools', null, 4000],
+    ['pool', { aid1: 0, aid2: 174, kind: 2 }, 5000],
+    ['minterCreate', null, 2500],
+    ['burn', null, 2000],
+    ['contacts', null, 1200],
+    ['checkProof', null, 800],
+    ['addWallet', null, 800],
+  ]) {
+    await go(name, params);
+    await sleep(wait);
+    await fieldsTakeTyping(name, { allowEmpty: name === 'burn' || name === 'contacts' });
+  }
+  // The contact form opens from Contacts.
+  await go('contacts');
+  const add = page.locator('button', { hasText: /Add a contact|New contact|Add contact/ }).first();
+  if (await add.count()) {
+    await add.tap();
+    await page.waitForSelector('[data-testid="contact-name"]', { timeout: 10000 });
+    await fieldsTakeTyping('contact-form');
+    await page.keyboard.press('Escape').catch(() => {});
+  } else console.log('# contacts: no add button found by its words');
 });
 
 test('unlock after Lock: the password field takes typing and does not focus itself', { timeout: 5 * 60000 }, async () => {
