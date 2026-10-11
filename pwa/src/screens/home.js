@@ -9,6 +9,7 @@
  *   - "Where did my payment go?" -> recent payments with plain status right below.
  *   - "Empty wallet, now what?" -> the primary button becomes Receive; Buy is beside it.
  *   - "How do I get BEAM?" -> Buy opens a choice: BEAM in this wallet (buybeam.my) or WBEAM on Ethereum.
+ *   - "What is this BEAM/FOMO LP?" -> a pool share's row opens its pool: your share, what it is worth, take it out.
  *   - "Can I get a short name, or claim a code I was given?" -> BEAM names and Airdrop codes, on one line with
  *     dApps under the buttons, one tap each.
  *   - "My own node is down" -> the sync line says so, with "Use random nodes" right under it (never automatic).
@@ -42,7 +43,11 @@ function contractRow(app, tx, onclick) {
   const failed = Number(tx.status) === 4 || Number(tx.status) === 2;
   const get = m.receives[0];
   const pay = m.spends[0];
-  const amt = (a, sign) => `${sign}${formatAmount(a.amount)} ${app.wallet.label(a.assetId).unit}`;
+  // A pool share is "LP" here, as in the token list: the title already names the pool move.
+  const amt = (a, sign) => {
+    const l = app.wallet.label(a.assetId);
+    return `${sign}${formatAmount(a.amount)} ${l.pool ? 'LP' : l.unit}`;
+  };
   const title = contractLabel(tx);
   const app2 = tx.appname && tx.appname !== 'BEAM Campfire' && tx.appname !== title ? ` · ${tx.appname}` : '';
   const state = Number(tx.status) === 3 ? '' : `${contractStatusText(tx)} · `;
@@ -150,9 +155,13 @@ export default function home(app) {
                 // Two held assets with one ticker (CHAD #187 and #190) show their numbers.
                 const sub = tokenSubtitle(l);
                 const shownSub = app.wallet.distinctUnit(id) !== l.unit && !sub.includes(`#${id}`) ? `${sub} · #${id}` : sub;
+                // A DEX pool share opens its pool: what it is worth, and taking it out.
+                const pool = l.pool;
                 return h(
-                  'div',
-                  { class: 'row asset-row', 'data-testid': 'token-row', 'data-asset-id': String(id) },
+                  pool ? 'button' : 'div',
+                  pool
+                    ? { class: 'row asset-row', type: 'button', 'data-testid': 'token-row', 'data-asset-id': String(id), 'data-pool': `${pool.aid1}-${pool.aid2}-${pool.kind}`, onclick: () => app.go('pool', { aid1: pool.aid1, aid2: pool.aid2, kind: pool.kind, mode: 'withdraw' }) }
+                    : { class: 'row asset-row', 'data-testid': 'token-row', 'data-asset-id': String(id) },
                   assetBadge(l),
                   h(
                     'span',
@@ -162,6 +171,7 @@ export default function home(app) {
                     warning ? h('div', { class: 'warn-line', 'data-testid': 'token-warning', text: warning }) : null,
                   ),
                   h('span', { class: 'end' }, h('div', { 'data-testid': 'token-balance', text: `${formatAmount(t.available)} ${l.pool ? 'LP' : l.symbol}` }), pending.length ? h('div', { class: 'small', text: pending.join(' · ') }) : null),
+                  pool ? h('span', { class: 'chev' }, icon('chevron')) : null,
                 );
               }),
             ),
