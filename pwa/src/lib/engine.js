@@ -582,6 +582,8 @@ export class WalletSession {
     this.pending = new Map();
     // Requests the engine has not answered yet, whether or not their caller still waits (settle()).
     this.inflight = new Set();
+    // Wallet-data exports and imports (wasm patch 0110) the engine has not answered yet.
+    this.dataCalls = 0;
     this.eventListeners = new Set();
     this.syncListeners = new Set();
     this.stopped = false;
@@ -685,6 +687,102 @@ export class WalletSession {
     });
   }
 
+  /**
+   * The wallet's data as BEAM's desktop wallet and CLI export it (wasm patch 0110:
+   * storage::ExportDataToJson): own addresses with their names, contacts, and every
+   * transaction's parameters, as JSON text. No keys and no coins. Resolves the text.
+   */
+  exportData({ timeoutMs = 120000 } = {}) {
+    return this.dataCall('exportData', [], timeoutMs, (r) => (typeof r === 'string' && r ? { ok: true, value: r } : { ok: false, code: 'export', message: 'The wallet data could not be read. Try again.' }));
+  }
+
+  /**
+   * Brings BEAM's wallet data JSON into this wallet (wasm patch 0110:
+   * storage::ImportDataFromJson). Resolves true when BEAM took every entry, false when
+   * it refused one (an address of another seed stops it there; a refused transaction is
+   * skipped and the rest go in). Entries already here are overwritten by BEAM: the caller
+   * hands over only what is new (lib/wallet_data.js).
+   */
+  importData(json, { timeoutMs = 300000 } = {}) {
+    if (typeof json !== 'string' || !json) return Promise.reject(new EngineError('import_data', 'Nothing to bring in.'));
+    return this.dataCall('importData', [json], timeoutMs, (r) => ({ ok: true, value: r === true }));
+  }
+
+  /**
+   * The same data in pages of about maxBytes (wasm patch 0111, when the engine has it): BEAM's own
+   * export holds the whole file in the engine's fixed 100 MB heap at once and runs out of memory
+   * past about 8 MB (lib/wallet_data.js). Page 0 carries the addresses; every page some payments.
+   * Resolves the pages' JSON texts, for joinPages().
+   */
+  async exportDataPages({ maxBytes = 1000000, timeoutMs = 120000 } = {}) {
+    const pages = [];
+    let from = 0;
+    for (let guard = 0; guard < 100000; guard++) {
+      const { json, next } = await this.dataCall('exportDataPage', [from, maxBytes], timeoutMs, (json, next) =>
+        typeof json === 'string' && json && Number.isSafeInteger(next) ? { ok: true, value: { json, next } } : { ok: false, code: 'export', message: 'The wallet data could not be read. Try again.' },
+      );
+      pages.push(json);
+      if (next < 0) return pages;
+      if (next <= from) throw new EngineError('export', 'The wallet data could not be read. Try again.');
+      from = next;
+    }
+    throw new EngineError('export', 'The wallet data could not be read. Try again.');
+  }
+
+  /** Whether the engine exports in pages (wasm patch 0111). */
+  get pagedExport() {
+    return Boolean(this.client) && typeof this.client.exportDataPage === 'function';
+  }
+
+  /** One wasm patch 0110/0111 call: refused while the wallet is not running; settle() waits for its answer. */
+  dataCall(fn, args, timeoutMs, accept) {
+    if (this.stopped || !this.client) return Promise.reject(new EngineError('stopped', 'The wallet is locked.'));
+    if (typeof this.client[fn] !== 'function') return Promise.reject(new EngineError('engine', 'This engine build cannot move wallet data (it needs wasm patch 0110).'));
+    let running = false;
+    try {
+      running = this.client.isRunning();
+    } catch {
+      running = false;
+    }
+    if (!running) return Promise.reject(new EngineError('stopped', 'The wallet is not running yet. Try again in a moment.'));
+    return new Promise((resolve, reject) => {
+      let done = false;
+      let offAbort = null;
+      const finish = () => {
+        done = true;
+        clearTimeout(timer);
+        if (offAbort) offAbort();
+      };
+      const fail = (code, message) => {
+        if (done) return;
+        finish();
+        reject(new EngineError(code, message));
+      };
+      const timer = setTimeout(() => fail('timeout', 'The wallet did not answer. Try again.'), timeoutMs);
+      this.dataCalls++;
+      try {
+        this.client[fn](...args, (...r) => {
+          this.dataCalls--;
+          if (done) return;
+          finish();
+          const out = accept(...r);
+          if (out.ok) resolve(out.value);
+          else reject(new EngineError(out.code, out.message));
+        });
+      } catch {
+        this.dataCalls--;
+        fail('engine', 'The wallet could not do that. Try again.');
+        return;
+      }
+      // The engine ran out of memory (or stopped otherwise): it will never answer. Say so now.
+      if (done) return;
+      offAbort = onEngineAbort(() => {
+        this.dataCalls = 0;
+        fail('aborted', 'The wallet engine stopped working in this page. Reload the page; your wallet is safe.');
+      });
+    });
+  }
+
   async stop() {
     if (this.stopped) return;
     this.stopped = true;
@@ -753,7 +851,8 @@ export class WalletSession {
     }
     const tick = () => new Promise((r) => setTimeout(r, 20));
     const t0 = Date.now();
-    while (this.inflight.size && Date.now() - t0 < timeoutMs) await tick();
+    // A wallet-data export or import (wasm patch 0110) also answers through the engine's queue.
+    while ((this.inflight.size || this.dataCalls > 0) && Date.now() - t0 < timeoutMs) await tick();
     if (this.inflight.size) console.warn(`[campfire] stopping with ${this.inflight.size} request(s) unanswered`);
     await tick();
   }
