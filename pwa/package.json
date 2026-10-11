@@ -52,7 +52,9 @@
     "e2e:payments": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/payments.test.mjs",
     "e2e:live:payments": "node tools/stage_engine.mjs && node test/e2e/live_payments.mjs",
     "e2e:dex-pools": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/dex_pools.test.mjs",
-    "e2e:live:dex": "node tools/stage_engine.mjs && node test/e2e/live_dex.mjs"
+    "e2e:live:dex": "node tools/stage_engine.mjs && node test/e2e/live_dex.mjs",
+    "e2e:minter": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/minter.test.mjs",
+    "e2e:live:minter": "node tools/stage_engine.mjs && node test/e2e/live_minter.mjs"
   },
   "devDependencies": {
     "jsqr": "1.4.0",
