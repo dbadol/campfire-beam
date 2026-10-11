@@ -1,0 +1,28 @@
+{
+  "comment": "What a scanned QR code is, for both apps (PWA pwa/src/lib/scan_recognize.js, the app lib/utilities/beam/scan_recognize.dart). kind: beam (address, amount: decimal BEAM or absent), name (canonical name), eth (to: as scanned, valueWei, token), code (airdrop code, normalised), unsupported (reason: chain | coin | link), unknown, empty.",
+  "vectors": [
+    { "in": "beam:3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477?amount=1.5", "out": { "kind": "beam", "address": "3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477", "amount": "1.5" } },
+    { "in": "BEAM://3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477", "out": { "kind": "beam", "address": "3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477" } },
+    { "in": "  3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477\nsecond line", "out": { "kind": "beam", "address": "3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477" } },
+    { "in": "2ZW8j3vpUY8PHL6nyCvWbAhqWXuAWEgWoG1b2Ek5NYrBF1Dz3aYJxTj4RdV5KYfsQ1Hq9upDQ1cN6uxxVFRgy5szBKJdMq2fZ5c", "out": { "kind": "beam", "address": "2ZW8j3vpUY8PHL6nyCvWbAhqWXuAWEgWoG1b2Ek5NYrBF1Dz3aYJxTj4RdV5KYfsQ1Hq9upDQ1cN6uxxVFRgy5szBKJdMq2fZ5c" } },
+    { "in": "beam:3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477?amount=-1", "out": { "kind": "beam", "address": "3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477" } },
+    { "in": "alice.beam", "out": { "kind": "name", "name": "alice" } },
+    { "in": "Alice.BEAM", "out": { "kind": "name", "name": "alice" } },
+    { "in": "beam:alice.beam", "out": { "kind": "name", "name": "alice" } },
+    { "in": "ab.beam", "out": { "kind": "unknown" } },
+    { "in": "0x52908400098527886E0F7030069857D2E4169EE7", "out": { "kind": "eth", "to": "0x52908400098527886E0F7030069857D2E4169EE7" } },
+    { "in": "0x52908400098527886e0f7030069857d2e4169ee7", "out": { "kind": "eth", "to": "0x52908400098527886e0f7030069857d2e4169ee7" } },
+    { "in": "ethereum:0x52908400098527886E0F7030069857D2E4169EE7?value=2.014e18", "out": { "kind": "eth", "to": "0x52908400098527886E0F7030069857D2E4169EE7", "valueWei": "2014000000000000000" } },
+    { "in": "ethereum:0x52908400098527886E0F7030069857D2E4169EE7@1?value=1000", "out": { "kind": "eth", "to": "0x52908400098527886E0F7030069857D2E4169EE7", "valueWei": "1000" } },
+    { "in": "ethereum:0x52908400098527886E0F7030069857D2E4169EE7@137?value=1000", "out": { "kind": "unsupported", "reason": "chain" } },
+    { "in": "ethereum:0x52908400098527886E0F7030069857D2E4169EE7?value=1.5", "out": { "kind": "eth", "to": "0x52908400098527886E0F7030069857D2E4169EE7" } },
+    { "in": "ethereum:0x1111111111111111111111111111111111111111/transfer?address=0x52908400098527886E0F7030069857D2E4169EE7&uint256=1e6", "out": { "kind": "eth", "to": "0x52908400098527886E0F7030069857D2E4169EE7", "token": "0x1111111111111111111111111111111111111111" } },
+    { "in": "0x5290840009852788", "out": { "kind": "unknown" } },
+    { "in": "ABCD-EFGH-JKLM-NPQR", "out": { "kind": "code", "code": "ABCDEFGHJKLMNPQR" } },
+    { "in": "abcd efgh jklm npqr", "out": { "kind": "code", "code": "ABCDEFGHJKLMNPQR" } },
+    { "in": "bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", "out": { "kind": "unsupported", "reason": "coin" } },
+    { "in": "https://example.com/pay", "out": { "kind": "unsupported", "reason": "link" } },
+    { "in": "hello world", "out": { "kind": "unknown" } },
+    { "in": "   ", "out": { "kind": "empty" } }
+  ]
+}
