@@ -58,6 +58,7 @@ import { DEX_SCREENS } from './screens/dex_screens.js';
 import { MINTER_SCREENS } from './screens/minter_screens.js';
 import { COINS_SCREENS } from './screens/coins_screens.js';
 import { installPaymentNotices } from './screens/payment_notices.js';
+import notifications from './screens/notifications.js';
 import { consentLog, contractsState } from './lib/contracts.js';
 import walletsScreen from './screens/wallets.js';
 import addWallet from './screens/add_wallet.js';
@@ -66,7 +67,7 @@ const SCREENS = {
   welcome, backup, confirmWords, restore, importWallet, setPassword, passkeySetup, ipNotice, fastStart, unlock,
   home, send, review, txStatus, receive, activity, settings, nodeSettings, ownNode, changePassword, about, deleteWallet, ownerKey, problem, install, swap, dapps,
   names, airdrop, airdropCreate, airdropBatches, airdropCodes,
-  contacts, addresses, checkProof,
+  contacts, addresses, checkProof, notifications,
   ...NAME_SCREENS,
   ...ETH_SCREENS,
   ...BUY_SCREENS,
@@ -78,7 +79,7 @@ const SCREENS = {
   addWallet,
 };
 // Screens that need an unlocked, running wallet.
-const NEEDS_WALLET = new Set(['wallets', 'home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', 'contacts', 'addresses', 'checkProof', ...Object.keys(NAME_SCREENS), ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS), ...Object.keys(TOKEN_SCREENS), ...Object.keys(DEX_SCREENS), ...Object.keys(MINTER_SCREENS), ...Object.keys(COINS_SCREENS)]);
+const NEEDS_WALLET = new Set(['wallets', 'home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', 'contacts', 'addresses', 'checkProof', 'notifications', ...Object.keys(NAME_SCREENS), ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS), ...Object.keys(TOKEN_SCREENS), ...Object.keys(DEX_SCREENS), ...Object.keys(MINTER_SCREENS), ...Object.keys(COINS_SCREENS)]);
 
 const root = document.getElementById('app');
 

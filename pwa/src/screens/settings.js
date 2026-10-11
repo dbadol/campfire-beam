@@ -30,7 +30,7 @@ import { lastCheckText } from '../lib/update.js';
 import { runUpdateCheck, openOtherAddress } from '../lib/update_ui.js';
 import { tokenSettings } from './token_ui.js';
 import { listWallets, nameOf } from '../lib/wallets.js';
-import { notificationsRow, notificationsNote } from './payment_notices.js';
+import { notificationsRow } from './notifications.js';
 
 export default function settings(app) {
   const row = (ico, title, sub, onclick, extra = {}) =>
@@ -108,7 +108,6 @@ export default function settings(app) {
       row('coins', 'Coins', 'For several payments at once', () => app.go('coins'), { 'data-testid': 'coins-row' }),
       notificationsRow(app),
     ),
-    notificationsNote(),
     h('p', { class: 'section-title', text: 'Network' }),
     h(
       'div',

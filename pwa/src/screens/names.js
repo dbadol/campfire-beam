@@ -28,6 +28,7 @@ import {
 import { isEmpty, VISIBILITY, amountsText, balanceChange } from '../lib/bans_inbox.js';
 import { nameInbox, runClaim, setNamesHint } from './names_claim.js';
 import { statusWords, pendingWords, pendingDone, priceText, needsRenewal, daysBetween, inDays } from './name_parts.js';
+import { rememberNames } from '../lib/notify.js';
 
 const PENDING_FORGET_MS = 30 * 60000;
 
@@ -373,6 +374,8 @@ export default function names(app) {
 
   function renderMine() {
     const tip = mine.tip;
+    // When each name expires, for the reminders 7 days and 1 day before (lib/notify.js).
+    if (tip) rememberNames(mine.list.map((d) => ({ name: d.name, expiresAt: dateOf(d.expireHeight, tip) })));
     const rows = [];
     for (const [pn, p] of pending) {
       if (Date.now() - p.at > PENDING_FORGET_MS) continue;

@@ -24,6 +24,7 @@ import { chainSwitch, bridgeEntry } from './eth_screens.js';
 import { payWithCoinEntry } from './near_intents_entry.js';
 import { intentsFor, openSwaps } from '../lib/intents/wiring.js';
 import { ethBadge, compactAmountText, exactText, serverProblem, activityRow } from './eth_ui.js';
+import { rememberNearSwaps } from '../lib/notify.js';
 
 const REFRESH_MS = 30000;
 const FOLLOW_MS = 4000;
@@ -35,7 +36,7 @@ export default function ethHome(app, params = {}) {
   const tokensBox = h('div');
   const activityBox = h('div');
   // NEAR Intents: nothing is asked of it here; the row reads this device's swaps under way.
-  const intentsBox = h('div', {}, payWithCoinEntry(app, { testid: 'eth-pay-other-coin', swaps: intentsFor(app).then((c) => (c ? openSwaps(c.store) : [])) }));
+  const intentsBox = h('div', {}, payWithCoinEntry(app, { testid: 'eth-pay-other-coin', swaps: intentsFor(app).then((c) => (c ? openSwaps(c.store) : [])).then((l) => (rememberNearSwaps(l), l)) }));
   let w = null;
   let off = null;
   let dead = false;

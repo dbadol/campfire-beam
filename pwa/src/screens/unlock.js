@@ -37,7 +37,7 @@ export default function unlock(app, params = {}) {
   const switched = takeSwitchNote();
   if (switched) put(msg, notice('info', `Unlock to connect through your node, ${switched}.`));
   // A bridge screen was open when it locked: say where its move was, and go back to it after unlock.
-  const follow = app.afterUnlock ? h('div', { 'data-testid': 'unlock-follow' }, notice('info', h('strong', { text: 'Unlock to follow your move. ' }), app.afterUnlock.note || 'BEAM Campfire goes back to it once the wallet is open.')) : null;
+  const follow = app.afterUnlock ? h('div', { 'data-testid': 'unlock-follow' }, notice('info', h('strong', { text: app.afterUnlock.lead || 'Unlock to follow your move. ' }), app.afterUnlock.note || 'BEAM Campfire goes back to it once the wallet is open.')) : null;
 
   const pw = h('input', { class: 'input', type: 'password', autocomplete: 'current-password', 'aria-label': 'Password', 'data-testid': 'unlock-pw', placeholder: 'Password' });
   const pwBtn = primary('Unlock', () => withPassword(), { 'data-testid': 'unlock-submit' });

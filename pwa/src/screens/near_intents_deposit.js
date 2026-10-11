@@ -24,10 +24,11 @@ import { txExplorerUrl } from '../lib/eth/hosts.js';
 import { isFinalState, OneClickError } from '../lib/intents/oneclick.js';
 import { intentsExplorerUrl } from '../lib/intents/hosts.js';
 import { withStatus, sameSwap } from '../lib/intents/store.js';
-import { intentsClient, intentsFor } from '../lib/intents/wiring.js';
+import { intentsClient, intentsFor, openSwaps } from '../lib/intents/wiring.js';
 import { statusWords, swapSteps, sendText, isWaiting, isExpired, wbeamSpend, untilText } from '../lib/intents/words.js';
 import { qrElement } from './receive.js';
 import { coinBadge } from './buy_screens.js';
+import { rememberNearSwaps } from '../lib/notify.js';
 
 const POLL_MS = 15000;
 
@@ -201,6 +202,7 @@ export default function nearIntentsDeposit(app, params = {}) {
       ctx = await intentsFor(app);
       if (!ctx) return app.go('ethStart', { from: 'buy' });
       swap = await ctx.store.get(deposit);
+      openSwaps(ctx.store).then(rememberNearSwaps); // reminders before the deposit address stops taking coins
       if (!swap) loadError = 'this device does not keep that swap.';
     } catch (e) {
       loadError = e.message;

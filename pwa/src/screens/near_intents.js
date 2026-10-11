@@ -33,6 +33,7 @@ import { durationText, feeText, problemWords, stateLine, whoSees, usd } from '..
 import { loaderBehind } from '../lib/loader.js';
 import { coinBadge } from './buy_screens.js';
 import { ethBadge } from './eth_ui.js';
+import { rememberNearSwaps } from '../lib/notify.js';
 
 const QUOTE_DELAY_MS = 600;
 
@@ -446,6 +447,7 @@ export default function nearIntents(app, params = {}) {
     if (!ctx) return app.go('ethStart', { from: 'buy' });
     prefillRefund();
     open = await openSwaps(ctx.store);
+    rememberNearSwaps(open); // reminders before a deposit address stops taking coins (lib/notify.js)
     if (!alive) return;
     changed();
   })();

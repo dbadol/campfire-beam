@@ -1,7 +1,6 @@
-// A notice when a payment arrives. A port of BEAM Campfire's
-// lib/wallets/beam/wallet/beam_payment_notice.dart and BeamWallet._announceIncoming for the
-// web wallet. Pure: which payments are news, and what the notice says. The banner and the
-// system notification are screens/payment_notices.js.
+// Which incoming payments are news, and when a run's payments start being news. A port of BEAM
+// Campfire's lib/wallets/beam/wallet/beam_payment_notice.dart and BeamWallet._announceIncoming for
+// the web wallet. Pure. What is told and how: lib/notify_rules.js and lib/notify.js.
 //
 // Rules (the app's):
 //   - only a payment that came IN and completed while this wallet was open: income, status 3,
@@ -19,11 +18,8 @@
 //     announces from its first read on; the web wallet does not, so a restore says nothing;
 //   - each payment once.
 //
-// There is no server: nothing watches the wallet while BEAM Campfire is closed, so notices come
-// only while it is open. On iPhone a web app runs only while it is on screen.
-
-import { formatAmount } from './amount.js';
-import { PRIVATE_LIMIT_HOURS } from './coins.js';
+// There is no server: nothing watches the wallet while BEAM Campfire is closed (lib/notify.js
+// says what is done instead).
 
 /** A completed incoming payment worth announcing. */
 export function isNews(tx) {
@@ -35,41 +31,6 @@ export function isNews(tx) {
   } catch {
     return false;
   }
-}
-
-/**
- * Remembers which completed incoming payments were already seen. update(txs, loaded, live) returns
- * the ones that are news; while loaded is false (the list has not been read yet) it returns
- * nothing and records nothing; the first read after that only records, and so does any read
- * while live is false (the wallet is catching up). reset() starts over (a wallet locked,
- * switched or restarted).
- */
-export function incomingWatcher() {
-  let seen = null;
-  return {
-    reset() {
-      seen = null;
-    },
-    get started() {
-      return seen !== null;
-    },
-    update(txs, loaded = true, live = true) {
-      if (!loaded) return [];
-      const done = (txs || []).filter(isNews);
-      if (seen === null || !live) {
-        if (seen === null) seen = new Set();
-        for (const t of done) seen.add(t.txId);
-        return [];
-      }
-      const fresh = [];
-      for (const t of done) {
-        if (seen.has(t.txId)) continue;
-        seen.add(t.txId);
-        fresh.push(t);
-      }
-      return fresh;
-    },
-  };
 }
 
 export const CATCH_UP_GRACE_MS = 20000;
@@ -99,27 +60,6 @@ export function catchUp(graceMs = CATCH_UP_GRACE_MS) {
   };
 }
 
-/**
- * "Received 0.5 BEAM", "Received 12 FOMO", "Received 3 of token #779". Only a verified asset is
- * named by its ticker: anyone can mint a token called "BEAM". label: wallet.label(assetId).
- */
-export function noticeTitle(tx, label) {
-  const amount = formatAmount(BigInt(tx.value || 0));
-  const id = Number(tx.asset_id) || 0;
-  if (id === 0) return `Received ${amount} BEAM`;
-  return label && label.verified && !label.pool ? `Received ${amount} ${label.symbol}` : `Received ${amount} of token #${id}`;
-}
-
-/** The line under it: how a private payment becomes spendable, or where to see it. */
-export function noticeBody(tx, { walletName = null } = {}) {
-  const where = walletName ? ` In ${walletName}.` : '';
-  if (Number(tx.tx_type) === 7 && tx.address_type === 'max_privacy') return `It arrived privately: you can spend it within ${PRIVATE_LIMIT_HOURS} hours.${where}`;
-  return `Tap to see it in Activity.${where}`;
-}
-
-/** Several at once: one notice. */
-export const severalTitle = (n) => `Received ${n} payments`;
-
 // ---------------------------------------------------------------- the browser's notifications
 
 /** 'granted' | 'denied' | 'default' | 'unsupported' (no Notification API here: an iPhone's Safari tab, an old browser). */
@@ -142,25 +82,4 @@ export function isStandalone(win = globalThis) {
   } catch {
     return false;
   }
-}
-
-export const NOTICE_TEXT = Object.freeze({
-  rowTitle: 'Payment notifications',
-  /** Said plainly, wherever the switch is. */
-  onlyWhileOpen: 'No server watches your wallet for you, so a notification comes only while BEAM Campfire is open. On iPhone that means while it is on screen.',
-  denied: "Notifications are blocked for BEAM Campfire in this browser's settings. Allow them there, then turn this on again. The banner inside the app shows each payment either way.",
-  iosHomeScreen: 'On iPhone, notifications work only in the app added to your Home Screen (Share → Add to Home Screen), and only while it is open.',
-  unsupported: "This browser can't show notifications. The banner inside the app shows each payment either way.",
-  turnedOn: 'Payment notifications are on while BEAM Campfire is open',
-  turnedOff: 'Payment notifications are off. The banner inside the app stays.',
-  bannerOnly: 'The banner inside the app shows each payment either way',
-  notAsked: "Not turned on: the browser's question was closed. Tap the switch to be asked again.",
-});
-
-/** The switch's line under its title. */
-export function rowSubtitle({ on, permission, ios = false, standalone = false }) {
-  if (permission === 'unsupported') return ios && !standalone ? 'On iPhone: add BEAM Campfire to your Home Screen first' : "This browser can't show them";
-  if (permission === 'denied') return 'Blocked in this browser’s settings';
-  if (on && permission === 'granted') return ios ? 'On, while BEAM Campfire is on screen' : 'On, while BEAM Campfire is open';
-  return 'Off. A banner in the app shows each payment';
 }

@@ -28,6 +28,7 @@ import { store } from '../lib/store.js';
 import { walletKey } from '../lib/wallet_scope.js';
 import { NameInbox, advise, claimText, namePaymentsText, isEmpty, VISIBILITY, homeShouldRead } from '../lib/bans_inbox.js';
 import { bans, nameProblemText } from './names.js';
+import { tellOther } from '../lib/notify.js';
 
 /** Per wallet (lib/wallet_scope.js): deleting the wallet deletes it. */
 export const HINT_NAME = 'namesHint';
@@ -119,6 +120,14 @@ export function namesHomeLine(app) {
   let deciding = null;
   let firstTimer = null;
   const inbox = wallet.session ? nameInbox() : null;
+  let toldAmounts; // undefined until the first read (history); then what was last seen waiting
+
+  /** New money paid to a name while BEAM Campfire is not in front: a notification (lib/notify.js); the line says it on screen. */
+  function tellNew(t) {
+    const now = t ? t.amounts : null;
+    if (toldAmounts !== undefined && now && now !== toldAmounts) tellOther(app, { kind: 'in', title: 'Money was paid to your BEAM name', body: `${t.lead}: ${now}. Claim it on Home.`, plainBody: 'Claim it on Home.', tag: 'names-inbox', url: '#open=home' });
+    toldAmounts = now;
+  }
 
   function render() {
     if (!alive) return;
@@ -129,6 +138,7 @@ export function namesHomeLine(app) {
       return;
     }
     const t = namePaymentsText(s, fmt, unit);
+    if (s) tellNew(t);
     if (!t) return put(el);
     put(
       el,

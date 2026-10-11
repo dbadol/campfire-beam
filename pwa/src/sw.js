@@ -557,3 +557,99 @@ self.addEventListener('message', (event) => {
     })(),
   );
 });
+
+// ---------------------------------------------------------------- notifications (lib/notify.js)
+//
+// Everything a notification says is worked out by the page, on this device, from the wallet's own
+// data; nothing comes from a server (there is no push subscription). Two things happen here:
+//   - a tap on a notification opens the app (or brings it to front) at the screen it names: only
+//     "#open=<screen>[&tx=<hex>]" within this app's scope, nothing else;
+//   - when the browser wakes this worker for Periodic Background Sync (Chrome / Edge, an installed
+//     app), the reminders the page left for later ('w:<id>:notify-reminders' in the app's own
+//     store) that are due are shown, if notifications are still on, and then forgotten.
+
+const OPEN_LINK = /^#open=[a-zA-Z]+(&tx=[0-9a-f]{1,128})?$/;
+const APP_DB = 'beam-campfire-app';
+const APP_STORE = 'kv';
+const REMINDERS_SUFFIX = ':notify-reminders';
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const link = typeof data.url === 'string' && OPEN_LINK.test(data.url) ? data.url : '#open=home';
+  event.waitUntil(
+    (async () => {
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const inScope = wins.filter((c) => c.url.startsWith(scopeUrl.href));
+      if (inScope.length) {
+        const c = inScope.find((w) => w.focused) || inScope[0];
+        c.postMessage({ type: 'campfire-open', url: link });
+        try {
+          await c.focus();
+        } catch {
+          /* already in front, or not allowed: the message still opens the screen */
+        }
+        return;
+      }
+      await self.clients.openWindow(new URL(link, scopeUrl).href);
+    })(),
+  );
+});
+
+/** The app's own store, opened the way the app opens it (lib/store.js), so a first open here creates it the same. */
+function appDb() {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(APP_DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(APP_STORE);
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+    r.onblocked = () => reject(new Error('blocked'));
+  });
+}
+
+const idb = (r) =>
+  new Promise((resolve, reject) => {
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+
+async function showDueReminders(now = Date.now()) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return 0;
+  const db = await appDb();
+  try {
+    const read = db.transaction(APP_STORE, 'readonly').objectStore(APP_STORE);
+    const prefs = (await idb(read.get('prefs'))) || {};
+    const n = prefs.notify || {};
+    const on = n.on === true || (n.on === undefined && prefs.paymentNotifications === true);
+    const keys = (await idb(read.getAllKeys(IDBKeyRange.bound('w:', 'w:\uffff')))).filter((k) => typeof k === 'string' && k.endsWith(REMINDERS_SUFFIX));
+    let shown = 0;
+    for (const k of keys) {
+      const list = (await idb(db.transaction(APP_STORE, 'readonly').objectStore(APP_STORE).get(k))) || [];
+      const due = list.filter((r) => r && r.at <= now);
+      if (!due.length) continue;
+      for (const r of due) {
+        const kindOn = !n.kinds || n.kinds[r.kind] !== false;
+        if (!on || !kindOn) continue;
+        await self.registration.showNotification(String(r.title).slice(0, 120), {
+          body: String(r.body || '').slice(0, 240),
+          tag: `campfire-${String(r.id).slice(0, 100)}`,
+          icon: 'icons/icon-192.png',
+          lang: 'en',
+          data: { url: OPEN_LINK.test(r.url) ? r.url : '#open=home' },
+        });
+        shown++;
+      }
+      const keep = list.filter((r) => r && r.at > now);
+      await idb(db.transaction(APP_STORE, 'readwrite').objectStore(APP_STORE).put(keep, k));
+    }
+    if (shown && self.navigator && typeof self.navigator.setAppBadge === 'function') self.navigator.setAppBadge(shown).catch(() => {});
+    return shown;
+  } finally {
+    db.close();
+  }
+}
+
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag !== 'campfire-reminders') return;
+  event.waitUntil(showDueReminders().catch(() => 0));
+});

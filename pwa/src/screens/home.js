@@ -44,6 +44,7 @@ import { walletChip } from './wallets.js';
 import { coinsLink, privateLine, maturingParts, splitRow } from './coins_ui.js';
 import { isSplitTx } from '../lib/coins.js';
 import { namesHomeLine } from './names_claim.js';
+import { awayNow, dismissAway } from '../lib/notify.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -262,12 +263,39 @@ export default function home(app) {
   // Money waiting for this wallet's names: a line under the balance, only when something waits.
   const namesLine = namesHomeLine(app);
 
+  // What happened while the person was away (lib/notify.js): one line until it is closed or seen.
+  const awayBox = h('div');
+  let awayShown = null;
+  function renderAway() {
+    const line = awayNow();
+    if (line === awayShown) return;
+    awayShown = line;
+    if (!line) return put(awayBox);
+    const close = () => {
+      dismissAway();
+      renderAway();
+    };
+    put(
+      awayBox,
+      h(
+        'div',
+        { class: 'notice info away-line', 'data-testid': 'home-away' },
+        icon('clock'),
+        h('div', { class: 'grow' }, h('span', { 'data-testid': 'home-away-text', text: line }), ' ', h('button', { class: 'btn btn-text btn-small inline', type: 'button', 'data-testid': 'home-away-open', onclick: () => (dismissAway(), app.go('activity')) }, 'See Activity')),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close', onclick: close, 'data-testid': 'home-away-close' }, icon('close')),
+      ),
+    );
+  }
+  const offAway = wallet.onChange(renderAway);
+  renderAway();
+
   const el = screen(
     // The title is the open wallet's name: a tap opens the switcher (screens/wallets.js).
     { brand: walletChip(app), tabs: 'home', app, right: h('button', { class: 'icon-btn', 'aria-label': 'Lock', onclick: () => app.lock('manual'), 'data-testid': 'lock' }, icon('lock')) },
     chainSwitch(app, 'beam'),
     bannerBox,
     balanceBox,
+    awayBox,
     namesLine.el,
     actionsBox,
     moreRow,
@@ -280,6 +308,7 @@ export default function home(app) {
       off();
       offU();
       namesLine.destroy();
+      offAway();
       clearTimeout(bannerLater);
       if (navigator.serviceWorker) navigator.serviceWorker.removeEventListener('controllerchange', onController);
     },

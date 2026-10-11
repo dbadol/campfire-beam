@@ -34,6 +34,8 @@ test.before(async () => {
   ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   // The system notifications the page makes, recorded (titles only); permission "granted".
   await ctx.addInitScript(() => {
+    // In front the whole time: the banner tells, no system notification (out of front: e2e:notify).
+    document.hasFocus = () => true;
     window.__notified = [];
     window.__asked = 0;
     function FakeNotification(title, opts) {
@@ -228,17 +230,19 @@ test('More ways to receive: off on a wallet that does not scan, with what turns 
   });
 });
 
-test('payment notifications: asked once from the switch; a banner and a notification for money in, never for money out', { timeout: 5 * 60000 }, async () => {
+test('payment notifications: asked once from the switch; in front, a banner for money in, never for money out', { timeout: 5 * 60000 }, async () => {
   await page.evaluate(() => window.__campfire.go('settings'));
   await waitScreen(page, 'settings');
   await page.locator(tid('notify-row')).scrollIntoViewIfNeeded();
+  assert.equal(await page.textContent(tid('notify-row-sub')), 'Off');
+  await page.click(tid('notify-row'));
+  await waitScreen(page, 'notifications');
   assert.match(await page.textContent(tid('notify-sub')), /^Off/);
-  assert.match(await page.textContent(tid('notify-note')), /only while BEAM Campfire is open\. On iPhone/);
+  assert.match(await page.textContent(tid('notify-note')), /until it locks itself/);
   assert.equal(await page.evaluate(() => window.__asked), 0, 'never asked by itself');
   await page.click(tid('notify-switch'));
   await page.waitForFunction(() => /^On/.test(document.querySelector('[data-testid="notify-sub"]').textContent));
   assert.equal(await page.evaluate(() => window.__asked), 1);
-  await page.locator(tid('notify-row')).scrollIntoViewIfNeeded();
   await both('coins-09-settings');
 
   await page.evaluate(() => window.__campfire.go('home'));
@@ -265,7 +269,7 @@ test('payment notifications: asked once from the switch; a banner and a notifica
   await page.waitForSelector(tid('pay-banner'));
   assert.equal(await page.textContent(tid('pay-banner-title')), 'Received 0.5 BEAM');
   const notified = await page.evaluate(() => window.__notified);
-  assert.deepEqual(notified.map((n) => n.title), ['Received 0.5 BEAM'], 'one notification, for the payment in');
+  assert.deepEqual(notified.map((n) => n.title), [], 'in front: the banner says it, no system notification');
   await both('coins-10-banner');
   // The split is named as BEAM Campfire names it, and only its fee left.
   const split = page.locator('[data-split="1"]').first();
@@ -282,7 +286,8 @@ test('payment notifications: asked once from the switch; a banner and a notifica
   // Still once: another read announces nothing new.
   await page.evaluate(async () => (await import('./lib/wallet.js')).wallet.refreshTxs());
   await sleep(500);
-  assert.equal((await page.evaluate(() => window.__notified)).length, 1);
+  assert.equal((await page.evaluate(() => window.__notified)).length, 0);
+  assert.equal(await page.locator(tid('pay-banner')).count(), 0, 'no second banner');
 });
 
 test('privacy: no host but the origin and BEAM nodes; no CSP violation; no page error', async () => {
