@@ -158,8 +158,8 @@ export default function token(app, params = {}) {
     recvBtn.prepend(icon('receive'));
     let third = null;
     if (l.pool) {
-      if (typeof app.has === 'function' && app.has('dexPool')) {
-        third = secondary(h('span', {}, 'Pool'), () => app.go('dexPool', { aid1: l.pool.aid1, aid2: l.pool.aid2, kind: l.pool.kind }), { 'data-testid': 'token-pool' });
+      if (typeof app.has === 'function' && app.has('pool')) {
+        third = secondary(h('span', {}, 'Pool'), () => app.go('pool', { aid1: l.pool.aid1, aid2: l.pool.aid2, kind: l.pool.kind }), { 'data-testid': 'token-pool' });
         third.prepend(icon('apps'));
       }
     } else {

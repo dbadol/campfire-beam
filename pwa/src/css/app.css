@@ -718,3 +718,40 @@ details.more.card { padding: 12px 16px; }
    wraps the amount, never its title one word per line. */
 .row[data-txid] .main { min-width: 42%; }
 .row[data-txid] .end { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+
+/* DEX pools (screens/pools.js, pool.js, pool_create.js, pool_status.js). */
+.swap .topbar .pools-btn { flex: none; color: var(--on-secondary); }
+.loading-line { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; color: var(--muted); padding: 16px 0; }
+.pool-card { padding: 0; overflow: hidden; }
+.pool-card .pool-open { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 12px 12px 6px 14px; background: none; border: 0; text-align: left; font: inherit; color: var(--text); cursor: pointer; }
+.pool-card .pool-open .main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pool-card .pool-open .chev { align-self: center; color: var(--subtle); }
+.pool-card .pool-open .chev svg { width: 18px; height: 18px; }
+.pool-card .line { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pool-card .warn-line, .pool-head .warn-line { font-size: 13px; color: var(--error); }
+.pool-title { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; }
+.pool-title .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pool-title.big { font-size: 18px; font-weight: 700; }
+.pool-title.big .name { flex: 1; }
+.fee-chip { flex: none; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--surface-2); color: var(--muted); }
+.mine, .kv .v.mine { font-size: 13px; font-weight: 600; color: var(--success); }
+.kv .v.mine, .kv .v .mine { font-size: inherit; }
+.pool-rate { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 40px; padding: 2px 14px 10px 66px; background: none; border: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--on-secondary); cursor: pointer; text-align: left; }
+.pool-rate svg, .rate-btn svg { width: 14px; height: 14px; flex: none; }
+.kv .rate-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 12px 0 12px 16px; margin: -12px 0; font: inherit; font-weight: 600; color: var(--on-secondary); cursor: pointer; text-align: right; }
+.pool-head { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 4px; }
+.pool-head .kvs .kv { padding: 8px 0; }
+.pool-position { padding: 4px 14px; }
+.pool-position .kv { padding: 8px 0; }
+.choices.four { grid-template-columns: repeat(4, 1fr); }
+.asset-pick.static { cursor: default; padding-right: 10px; }
+.swap-box.computed .swap-input { color: var(--text-2); }
+.pool-create .create-pair { display: flex; align-items: center; gap: 8px; }
+.pool-create .create-pair .slash { color: var(--muted); font-weight: 600; }
+.asset-pick.wide { flex: 1; max-width: none; min-height: 46px; justify-content: flex-start; padding: 8px 10px; }
+.asset-pick.wide > svg:last-child { margin-left: auto; }
+.asset-pick .muted { color: var(--muted); }
+.pool-create .card.list .row { padding: 12px 4px; }
+.pool .actions .hint, .pools .actions .hint, .pool-create .actions .hint { min-height: 0; }
+.kv .v .line { display: block; }
+.pool-head .kv .k, .pool-position .kv .k { white-space: nowrap; }

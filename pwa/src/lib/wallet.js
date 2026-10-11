@@ -7,7 +7,7 @@ import { RANDOM_NODE, poolOrder, nextInOrder } from './nodes.js';
 import { assessNodeHealth, hopAllowed } from './node_health.js';
 import { toGroth, REGULAR_FEE, OFFLINE_FEE, toJsonNumber } from './amount.js';
 import { assetLabel } from './meta.js';
-import { bindSession, unbindSession } from './contracts.js';
+import { bindSession, unbindSession, settleApps } from './contracts.js';
 import { pickReceiveAddress } from './addresses.js';
 
 const STATUS_EVERY_MS = 5000;
@@ -775,6 +775,8 @@ export class Wallet {
   }
 
   async stop() {
+    // What an app already asked the engine is answered before its handle goes (contracts.js settleApps).
+    await settleApps();
     this.endLockedRun();
     for (const t of this.timers) clearInterval(t);
     this.timers = [];

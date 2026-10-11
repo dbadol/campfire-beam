@@ -51,6 +51,7 @@ import { installConsent } from './screens/consent.js';
 import { ETH_SCREENS } from './screens/eth_screens.js';
 import { BUY_SCREENS } from './screens/buy_screens.js';
 import { TOKEN_SCREENS } from './screens/token_screens.js';
+import { DEX_SCREENS } from './screens/dex_screens.js';
 import { consentLog, contractsState } from './lib/contracts.js';
 
 const SCREENS = {
@@ -61,9 +62,10 @@ const SCREENS = {
   ...ETH_SCREENS,
   ...BUY_SCREENS,
   ...TOKEN_SCREENS,
+  ...DEX_SCREENS,
 };
 // Screens that need an unlocked, running wallet.
-const NEEDS_WALLET = new Set(['home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', 'contacts', 'addresses', 'checkProof', ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS), ...Object.keys(TOKEN_SCREENS)]);
+const NEEDS_WALLET = new Set(['home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', 'contacts', 'addresses', 'checkProof', ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS), ...Object.keys(TOKEN_SCREENS), ...Object.keys(DEX_SCREENS)]);
 
 const root = document.getElementById('app');
 

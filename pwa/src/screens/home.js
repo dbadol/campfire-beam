@@ -9,6 +9,7 @@
  *   - "Where did my payment go?" -> recent payments with plain status right below.
  *   - "Empty wallet, now what?" -> the primary button becomes Receive; Buy is beside it.
  *   - "How do I get BEAM?" -> Buy opens a choice: BEAM in this wallet (buybeam.my) or WBEAM on Ethereum.
+ *   - "What is this BEAM/FOMO LP?" -> a pool share's row opens its pool: your share, what it is worth, take it out.
  *   - "Can I get a short name, or claim a code I was given?" -> BEAM names and Airdrop codes, on one line with
  *     dApps under the buttons, one tap each.
  *   - "My own node is down" -> the sync line says so, with "Use random nodes" right under it (never automatic).
@@ -47,7 +48,11 @@ function contractRow(app, tx, onclick) {
   const failed = Number(tx.status) === 4 || Number(tx.status) === 2;
   const get = m.receives[0];
   const pay = m.spends[0];
-  const amt = (a, sign) => `${sign}${formatAmount(a.amount)} ${app.wallet.label(a.assetId).unit}`;
+  // A pool share is "LP" here, as in the token list: the title already names the pool move.
+  const amt = (a, sign) => {
+    const l = app.wallet.label(a.assetId);
+    return `${sign}${formatAmount(a.amount)} ${l.pool ? 'LP' : l.unit}`;
+  };
   const title = contractLabel(tx);
   const app2 = tx.appname && tx.appname !== 'BEAM Campfire' && tx.appname !== title ? ` · ${tx.appname}` : '';
   const state = Number(tx.status) === 3 ? '' : `${contractStatusText(tx)} · `;

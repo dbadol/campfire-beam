@@ -8,6 +8,7 @@
  *   - "Why is the button grey?" -> the reason is written right above it.
  *   - "What if the price moves?" -> more than the chosen protection (1% unless stricter) worse and the swap stops before it is shown; nothing is sent.
  *   - "A small swap eaten by the fee" -> a warning when the network fee is a quarter or more of the swap.
+ *   - "Can I earn from the pools instead?" -> "Pools" in the top bar: add coins to a pool, take them out.
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
@@ -389,6 +390,8 @@ export default function swap(app) {
         app.swapDraft = null;
         app.back('home');
       },
+      // Pools: add coins to a pool, or take them out (screens/pools.js).
+      right: h('button', { class: 'btn btn-text btn-small pools-btn', type: 'button', 'data-testid': 'swap-pools', onclick: () => app.go('pools') }, 'Pools'),
       actions: [reason, cta],
       cls: 'swap',
     },

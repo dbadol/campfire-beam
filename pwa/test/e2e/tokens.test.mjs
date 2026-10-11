@@ -293,7 +293,7 @@ test('an LP token names its pool; a copy of FOMO carries the warning; an unverif
   assert.equal(await page.textContent('.topbar h1'), 'BEAM/FOMO LP');
   assert.equal(await text(tid('token-note')), 'Your share of the BEAM/FOMO pool (1% fee).');
   assert.equal(await page.$(tid('token-swap')), null, 'no Swap for a pool share');
-  const hasPoolScreen = await page.evaluate(() => import('./app.js').then((m) => m.app.has('dexPool')));
+  const hasPoolScreen = await page.evaluate(() => import('./app.js').then((m) => m.app.has('pool')));
   assert.equal(Boolean(await page.$(tid('token-pool'))), hasPoolScreen, 'Pool only when this release has the pool screen');
   await page.waitForFunction(() => /≈/.test(document.querySelector('[data-testid="token-value"]').textContent));
   await shots('09-token-lp');
