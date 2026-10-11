@@ -13,6 +13,7 @@ import { NODES, POOL, RANDOM_NODE } from '../../src/lib/nodes.js';
 import { DEFAULT_PREFS } from '../../src/lib/store.js';
 import { connectSources, ETH_RPC_HOSTS, DEFAULT_ETH_RPC, PRICE_HOST, TX_EXPLORER, originOf, txExplorerUrl } from '../../src/lib/eth/hosts.js';
 import { buyConnectSources } from '../../src/lib/buy/hosts.js';
+import { intentsConnectSources, intentsApiBase, intentsExplorerUrl } from '../../src/lib/intents/hosts.js';
 
 const pwa = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -67,16 +68,22 @@ test('the own node is a page policy only: the loader keeps its own, the dApp fra
   assert.ok(!frameCsp({ evalAllowed: true, remoteOrigins: REMOTE_ORIGINS, nonce: 'abcdefghijklmnop' }).includes('wss:'), 'dApp frames reach no node');
 });
 
-test('connect-src: this origin, the wss nodes, the pinned dApp package directory, the Ethereum servers of lib/eth/hosts.js and buybeam.my\'s buy API only (no explorer, no other host)', () => {
+test('connect-src: this origin, the wss nodes, the pinned dApp package directory, the Ethereum servers of lib/eth/hosts.js, buybeam.my\'s buy API and NEAR Intents\' 1Click API only (no explorer, no other host)', () => {
   const connect = CSP.split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src'));
   const sources = connect.split(/\s+/).slice(1);
-  assert.deepEqual(sources, ["'self'", ...HEADER_NODES.map((n) => `wss://${n}`), DAPP_PACKAGE_SOURCE, ...connectSources(), ...buyConnectSources(), ...recoveryConnectSources()]);
+  assert.deepEqual(sources, ["'self'", ...HEADER_NODES.map((n) => `wss://${n}`), DAPP_PACKAGE_SOURCE, ...connectSources(), ...buyConnectSources(), ...intentsConnectSources(), ...recoveryConnectSources()]);
   // The snapshot on a copy without a relay: that one path of BEAM Campfire's server.
   assert.deepEqual(recoveryConnectSources(), ['https://pwa.buybeam.my/recovery/']);
   assert.ok(!sources.includes('https://pwa.buybeam.my'));
   // Buy BEAM: buybeam.my's buy API path only, never the whole host.
   assert.deepEqual(buyConnectSources(), ['https://buybeam.my/api/v1/buy/']);
   assert.ok(!sources.includes('https://buybeam.my'));
+  // Pay with BTC, ZEC or LTC: NEAR Intents' 1Click API path only (tokens, quote, status), never the whole host.
+  assert.deepEqual(intentsConnectSources(), ['https://1click.chaindefuser.com/v0/']);
+  assert.equal(intentsApiBase(), 'https://1click.chaindefuser.com/v0');
+  assert.ok(!sources.includes('https://1click.chaindefuser.com'));
+  assert.ok(!sources.some((s) => s.includes('explorer.near-intents.org')), 'its explorer is a link the person taps, never contacted by the app');
+  assert.equal(intentsExplorerUrl(), 'https://explorer.near-intents.org');
   assert.deepEqual(connectSources(), [
     'https://eth2.stackwallet.com',
     'https://ethereum-rpc.publicnode.com',

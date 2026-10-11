@@ -839,3 +839,7 @@ details.more.card { padding: 12px 16px; }
 .pay-banner .main .t { font-weight: 700; }
 .pay-banner .main .s { font-size: 13px; color: var(--muted); }
 .pay-banner .icon-btn { margin: 0; }
+/* Pay with BTC, ZEC or LTC (screens/near_intents*.js) */
+.intents-signed { color: var(--success); display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.intents-signed svg { width: 14px; height: 14px; }
+.intents .link-left.wrap { text-align: left; }
