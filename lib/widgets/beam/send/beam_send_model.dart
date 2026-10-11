@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../utilities/amount/amount.dart';
+import '../../../utilities/beam/scan_recognize.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/bans/bans_exceptions.dart';
 import '../../../wallets/beam/contracts/bans/bans_name.dart';
@@ -94,6 +95,10 @@ class BeamSendModel extends ChangeNotifier {
 
   String _recipientText = '';
   BeamRecipientInput _recipient = const BeamRecipientEmpty();
+
+  /// What the field holds when it is plainly not for BEAM: an Ethereum
+  /// address or a link of another coin, chain or the web.
+  ScanRecognition? _foreign;
   BansRecipientState? _nameState;
 
   int _assetId = 0;
@@ -250,6 +255,13 @@ class BeamSendModel extends ChangeNotifier {
           quiet: true,
         );
       case BeamRecipientInvalid(:final nameProblem):
+        final foreign = _foreign;
+        if (foreign != null) {
+          return BeamSendIssue(
+            BeamSendField.recipient,
+            describeForeign(foreign),
+          );
+        }
         return BeamSendIssue(
           BeamSendField.recipient,
           _recipientText.trim().length > 20 || nameProblem == null
@@ -284,6 +296,30 @@ class BeamSendModel extends ChangeNotifier {
           ),
         };
     }
+  }
+
+  /// [text] read by the scan rules, when it is plainly meant for something
+  /// else than BEAM: an Ethereum address or link, another coin's link, or a
+  /// web link. Null for anything BEAM's own checks should judge.
+  static ScanRecognition? foreignRecipient(String text) {
+    final r = recognizeScan(text);
+    return r.kind == ScanKind.eth || r.kind == ScanKind.unsupported ? r : null;
+  }
+
+  /// What the field says about a [foreignRecipient].
+  static String describeForeign(ScanRecognition r) {
+    if (r.kind == ScanKind.eth) {
+      return "That's an Ethereum address. BEAM can't be sent to it: pay it "
+          'from an Ethereum wallet.';
+    }
+    return switch (r.reason) {
+      ScanUnsupportedReason.link =>
+        "That's a web link, not a BEAM address. Campfire doesn't open "
+            'links.',
+      ScanUnsupportedReason.chain =>
+        "That's a payment for another network, not a BEAM address.",
+      _ => "That's a link for another coin or app, not a BEAM address.",
+    };
   }
 
   BeamSendIssue? get assetIssue {
@@ -379,9 +415,14 @@ class BeamSendModel extends ChangeNotifier {
   void setRecipient(String text) {
     if (text == _recipientText) return;
     _recipientText = text;
-    _recipient = BeamRecipientInput.classify(text);
+    // An Ethereum address or another coin's link is never looked up as a
+    // name ("0x5290…" is a valid name, and someone could register it).
+    _foreign = foreignRecipient(text);
+    _recipient = _foreign != null
+        ? const BeamRecipientInvalid(null)
+        : BeamRecipientInput.classify(text);
     _nameState = null;
-    _resolver.input(text);
+    _resolver.input(_foreign != null ? '' : text);
     if (_recipient is! BeamRecipientAddress) _addressFee = null;
     _scheduleFee();
     _notify();

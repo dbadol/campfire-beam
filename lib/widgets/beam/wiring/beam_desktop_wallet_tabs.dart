@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
+import '../send/beam_send_fill.dart';
 import '../wallet_home/beam_wallet_home.dart';
 
 /// [titles] and [children] as in CustomTabView; the tab titled "Send"
@@ -69,23 +70,34 @@ class _BeamDesktopWalletTabsState extends ConsumerState<BeamDesktopWalletTabs> {
     }
   }
 
+  /// Brings the tab titled [title] forward and the tabs into view.
+  void _show(String title) {
+    final i = widget.titles.indexOf(title);
+    if (i >= 0 && i != _selected) setState(() => _selected = i);
+    // The column may still be scrolled down to the Send button: bring the
+    // tabs back into view, or their labels sit cut off above the list.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          context,
+          duration: _duration,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    ref.listen<int>(pBeamShowHistoryRequest(widget.walletId), (_, _) {
-      final i = widget.titles.indexOf('Transactions');
-      if (i >= 0 && i != _selected) setState(() => _selected = i);
-      // The column may still be scrolled down to the Send button: bring the
-      // tabs back into view, or their labels sit cut off above the list.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        unawaited(
-          Scrollable.ensureVisible(
-            context,
-            duration: _duration,
-            alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
-          ),
-        );
-      });
+    ref.listen<int>(
+      pBeamShowHistoryRequest(widget.walletId),
+      (_, _) => _show('Transactions'),
+    );
+    // The home's Scan: Send comes forward with the scanned recipient (the
+    // Send screen fills itself in).
+    ref.listen<BeamSendFill?>(pBeamSendFill(widget.walletId), (_, next) {
+      if (next != null) _show('Send');
     });
     final colors = Theme.of(context).extension<StackColors>()!;
     final paused = ref.watch(pBeamHome(widget.walletId)).sendPausedReason;

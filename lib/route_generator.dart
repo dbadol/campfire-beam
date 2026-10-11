@@ -3052,6 +3052,22 @@ class RouteGenerator {
             },
             settings: RouteSettings(name: settings.name),
           );
+        } else if (args is ({BeamWallet wallet, String code})) {
+          // A scanned code (the home's Scan): checked on open, claimed
+          // only on the screen's own button.
+          return getRoute(
+            shouldUseMaterialRoute: useMaterialPageRoute,
+            builder: (_) {
+              final beam = BeamWalletWiring.of(args.wallet);
+              return BeamClaimVoucherView(
+                service: beam.airdrop,
+                sync: beam.sync,
+                assetNames: beam.assetNames,
+                initialCode: args.code,
+              );
+            },
+            settings: RouteSettings(name: settings.name),
+          );
         }
         return _routeError("${settings.name} invalid args: ${args.toString()}");
 
