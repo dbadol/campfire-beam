@@ -1,7 +1,7 @@
 // The running wallet as the screens see it: balances, transactions, sync
 // state, and the few actions a person can take. One instance per page.
 
-import { startWallet, nodeGuard, EngineError } from './engine.js';
+import { startWallet, nodeGuard, EngineError, currentWalletPath } from './engine.js';
 import { assessSync } from './sync.js';
 import { RANDOM_NODE, poolOrder, nextInOrder } from './nodes.js';
 import { assessNodeHealth, hopAllowed } from './node_health.js';
@@ -301,11 +301,13 @@ export class Wallet {
     this.state.scanning = Boolean(bodyRequests || recovery);
     this.state.startedAt = Date.now();
     // Kept while the wallet runs, like app.dbPass, so a hop restarts the same wallet; dropped by stop().
-    this.run = { dbPass, bodyRequests: Boolean(bodyRequests || recovery) };
+    // dbPath: which wallet's database (lib/wallets.js), fixed for this run whichever wallet is selected later.
+    this.run = { dbPass, dbPath: currentWalletPath(), bodyRequests: Boolean(bodyRequests || recovery) };
     this.resetNodeWatch();
     this.watchGuard();
     const { session, imported } = await startWallet({
       dbPass,
+      dbPath: this.run.dbPath,
       node: this.state.node,
       recovery,
       bodyRequests,
@@ -499,7 +501,7 @@ export class Wallet {
       s.connEvent = null;
       this.resetNodeWatch();
       this.watchGuard();
-      const { session } = await startWallet({ dbPass: this.run.dbPass, node: to, bodyRequests: this.run.bodyRequests });
+      const { session } = await startWallet({ dbPass: this.run.dbPass, dbPath: this.run.dbPath, node: to, bodyRequests: this.run.bodyRequests });
       if (!current()) {
         await session.stop();
         return;
@@ -755,9 +757,9 @@ export class Wallet {
     this.lockedRun = { off: this.onChange(check), timer: setInterval(check, 15000) };
   }
 
-  /** Unlocked while kept running: true, and carries on, when it is the same wallet (same database password). */
-  unlockedAgain(dbPass) {
-    if (!this.lockedRun || !this.session || !this.run || this.run.dbPass !== dbPass) return false;
+  /** Unlocked while kept running: true, and carries on, when it is the same wallet (same database file and password). */
+  unlockedAgain(dbPass, dbPath = currentWalletPath()) {
+    if (!this.lockedRun || !this.session || !this.run || this.run.dbPath !== dbPath || this.run.dbPass !== dbPass) return false;
     this.endLockedRun();
     bindSession(this.session);
     this.emit();

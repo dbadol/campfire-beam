@@ -30,6 +30,7 @@ import { loaderBehind } from '../lib/loader.js';
 import { switchToRandom } from './node.js';
 import { VERIFIED, metadataOf, tokenSubtitle, copyWarning } from '../lib/meta.js';
 import { needsPoolCheck, checkPools } from '../lib/dex_pools.js';
+import { walletChip } from './wallets.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -268,7 +269,8 @@ export default function home(app) {
   );
 
   const el = screen(
-    { brand: true, tabs: 'home', app, right: h('button', { class: 'icon-btn', 'aria-label': 'Lock', onclick: () => app.lock('manual'), 'data-testid': 'lock' }, icon('lock')) },
+    // The title is the open wallet's name: a tap opens the switcher (screens/wallets.js).
+    { brand: walletChip(app), tabs: 'home', app, right: h('button', { class: 'icon-btn', 'aria-label': 'Lock', onclick: () => app.lock('manual'), 'data-testid': 'lock' }, icon('lock')) },
     chainSwitch(app, 'beam'),
     bannerBox,
     balanceBox,
