@@ -58,7 +58,24 @@ test('iPhone, short password: a longer one for the copy, wrong and weak ones ref
     await shot(page, `cloud-01-card-${scheme}`);
   }
   await page.emulateMedia({ colorScheme: 'light' });
+  // The owner's report: in Backup's password sheet on an iPhone "I can't type, only Paste". The
+  // sheet must not focus the field by itself on a phone (no keyboard would open, and a tap then
+  // offers only Paste); a tap on it focuses it and typing works.
+  await page.click(tid('export-start'));
+  await page.waitForSelector(tid('export-pw'));
+  await sleep(300);
+  assert.notEqual(await page.evaluate(() => document.activeElement && document.activeElement.dataset.testid), 'export-pw', 'export sheet: no self-focus on a phone');
+  await page.tap(tid('export-pw'));
+  await page.keyboard.type('typed by hand');
+  assert.equal(await page.inputValue(tid('export-pw')), 'typed by hand');
+  await page.fill(tid('export-pw'), '');
+  await page.click('.sheet .btn-text');
+  await page.waitForSelector('.sheet', { state: 'detached' });
+  await page.locator(tid('cloud-card')).scrollIntoViewIfNeeded();
   await page.click(tid('cloud-start'));
+  await page.waitForSelector(tid('cloud-pw'));
+  await sleep(300);
+  assert.notEqual(await page.evaluate(() => document.activeElement && document.activeElement.dataset.testid), 'cloud-pw', 'iCloud sheet: no self-focus on a phone');
   await page.fill(tid('cloud-pw'), `${SHORT}-nope`);
   await page.click(tid('cloud-continue'));
   await page.waitForSelector('.sheet .notice.error');
