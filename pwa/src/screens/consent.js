@@ -10,6 +10,9 @@
  *     only a trusted app should be approved.
  *   - "Why can't I approve?" -> "Not enough BEAM" with how much is needed and one tap to add it.
  *   - "What if I leave?" -> closing, locking or leaving the screen is a No: nothing is sent.
+ * The wallet's own token features read as themselves: "Pay 60 BEAM and create CFBC" (with what does not
+ *   come back said above the button), "Mint 1,000 CFBC", and a burn: "Burn 5 FOMO forever", its row
+ *   "Destroyed for good" and "Nobody can undo this".
  * A move through BEAM's bridge (the wallet's own request, intent.action 'bridge') reads as one:
  *   "Confirm your move" - what leaves, the bridge fee, the network fee, what arrives on Ethereum and
  *   in which wallet, about an hour, and that it is public on both chains - with the button
@@ -62,12 +65,28 @@ function intentLabel(intent, pay, get) {
       return one(get) && !pay.length ? `Claim ${get[0]}` : null;
     case 'airdropCancel':
       return one(get) && !pay.length ? `Take back ${get[0]}` : null;
+    case 'tokenCreate':
+      return one(pay) && !get.length ? `Pay ${pay[0]} and create ${intent.ticker}` : null;
+    case 'tokenMint':
+      return one(get) && !pay.length ? `Mint ${get[0]}` : null;
+    case 'burn':
+      return one(pay) && !get.length ? `Burn ${pay[0]} forever` : null;
     default:
       return null;
   }
 }
 
-const TITLES = { nameRegister: 'Confirm your name', nameRenew: 'Confirm the renewal', namePay: 'Approve this payment', airdropCreate: 'Confirm your codes', airdropClaim: 'Confirm your claim', airdropCancel: 'Take back unclaimed codes' };
+const TITLES = { nameRegister: 'Confirm your name', nameRenew: 'Confirm the renewal', namePay: 'Approve this payment', airdropCreate: 'Confirm your codes', airdropClaim: 'Confirm your claim', airdropCancel: 'Take back unclaimed codes', tokenCreate: 'Confirm your new token', tokenMint: 'Confirm the mint', burn: 'Burn for good' };
+
+/** What the wallet's own token features say before approving: where the BEAM goes, and that a burn is forever. */
+function intentNote(intent) {
+  if (!intent) return null;
+  if (intent.action === 'tokenCreate' && intent.issueFee != null && intent.deposit != null) {
+    return notice('warn', h('strong', { text: `${formatAmount(BigInt(intent.issueFee) + BigInt(intent.deposit))} BEAM do not come back. ` }), `${formatAmount(BigInt(intent.issueFee))} BEAM go to the BEAM DAO as the issuance fee and ${formatAmount(BigInt(intent.deposit))} BEAM stay locked with the token, even if you never mint it.`);
+  }
+  if (intent.action === 'burn') return notice('error', h('strong', { text: 'Nobody can undo this. ' }), 'The tokens are locked in a contract that has no way to give anything back.');
+  return null;
+}
 
 /**
  * Which asset is short, measured against this wallet's balances: the words for
@@ -197,7 +216,7 @@ function showConsent(app, req, bridge, t) {
             : h(
                 'div',
                 { class: 'card' },
-                ...req.spends.map((a, i) => row(req.kind === 'send' ? 'You send' : 'You pay', a, `consent-pay-${i}`, '')),
+                ...req.spends.map((a, i) => row(req.kind === 'send' ? 'You send' : req.intent && req.intent.action === 'burn' ? 'Destroyed for good' : 'You pay', a, `consent-pay-${i}`, '')),
                 ...req.receives.map((a, i) => row(req.intent && req.intent.action === 'swap' ? 'You get' : 'You receive', a, `consent-get-${i}`, '')),
                 req.address ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'To' }), h('span', { class: 'v mono', text: shorten(req.address, 10, 8) })) : null,
                 req.intent && req.intent.action === 'namePay' ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'To' }), h('span', { class: 'v', 'data-testid': 'consent-to', text: `${req.intent.name}.beam` })) : null,
@@ -206,6 +225,7 @@ function showConsent(app, req, bridge, t) {
               ),
           // Said before approving; when it cannot be approved, what is missing comes first.
           bridge && bridge.kind === 'send' && enough ? h('div', { 'data-testid': 'consent-bridge-public' }, notice('info', t.PUBLIC_NOTE)) : null,
+          native && req.intent && intentNote(req.intent) ? h('div', { 'data-testid': 'consent-intent-note' }, intentNote(req.intent)) : null,
           !native && req.comment ? h('p', { class: 'small', text: `The app describes it as: “${req.comment}”` }) : null,
           notListed.length ? h('p', { class: 'small', 'data-testid': 'consent-unlisted', text: `${notListed.map((a) => `${wallet.label(a.assetId).symbol} is asset #${a.assetId}`).join('; ')}: not on BEAM Campfire's list of known assets. Check the number if the name matters to you.` }) : null,
           !native ? notice('warn', `Only approve if you trust ${req.appName}. Approving lets it move what is listed above.`) : null,

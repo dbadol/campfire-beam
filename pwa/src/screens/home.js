@@ -11,6 +11,7 @@
  *   - "How do I get BEAM?" -> Buy opens a choice: BEAM in this wallet (buybeam.my) or WBEAM on Ethereum.
  *   - "Can I get a short name, or claim a code I was given?" -> BEAM names and Airdrop codes, on one line with
  *     dApps under the buttons, one tap each.
+ *   - "Can I make my own token?" -> Tokens, at the end of that line: create one, mint more, burn.
  *   - "My own node is down" -> the sync line says so, with "Use random nodes" right under it (never automatic).
  *   - "What if this phone or this app's web address is gone?" -> a wallet imported from wallet.db has
  *     no 12 words: until it is exported once, a banner asks for a copy outside this device (one tap
@@ -30,6 +31,7 @@ import { loaderBehind } from '../lib/loader.js';
 import { switchToRandom } from './node.js';
 import { VERIFIED, metadataOf, tokenSubtitle, copyWarning } from '../lib/meta.js';
 import { needsPoolCheck, checkPools } from '../lib/dex_pools.js';
+import { openTokensMenu } from './minter.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -255,7 +257,7 @@ export default function home(app) {
   render(wallet.state);
   renderBanner();
 
-  // dApps, BEAM names and airdrop codes share one line, no taller than the dApps row it took over:
+  // dApps, BEAM names, airdrop codes and Tokens share one line, no taller than the dApps row it took over:
   // Home scrolls no further than before. Each is one tap away.
   const tile = (testid, ico, text, to, label = null) =>
     h('button', { class: 'tile', type: 'button', onclick: () => app.go(to), 'data-testid': testid, 'aria-label': label }, h('span', { class: 'ico' }, icon(ico)), h('span', { class: 't', text }));
@@ -265,6 +267,7 @@ export default function home(app) {
     tile('open-dapps', 'apps', 'dApps', 'dapps', 'dApps: Beam DEX, NFT Gallery and more'),
     tile('names', 'at', 'BEAM names', 'names'),
     tile('airdrop', 'gift', 'Airdrop codes', 'airdrop'),
+    h('button', { class: 'tile', type: 'button', onclick: () => openTokensMenu(app), 'data-testid': 'tokens-entry', 'aria-label': 'Tokens: create your own, mint more, burn' }, h('span', { class: 'ico' }, icon('coins')), h('span', { class: 't', text: 'Tokens' })),
   );
 
   const el = screen(
