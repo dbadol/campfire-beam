@@ -1,0 +1,100 @@
+Campfire wasm patch 0112: the engine refuses invoke data that raises its app's privilege (issue #73).
+
+process_invoke_data takes invoke data back from the client. When the data carries an app
+invocation to re-run later (Flags::SaveAppInvoke, written for dependent calls),
+contract_transaction.cpp re-runs that app body at vData.m_AppInvoke.m_Privilege, a value the
+client wrote (BuildTxOnce, RebuildHft: aex.set_Privilege). At privilege 1 an app body derives
+keys from the master KDF (get_PkEx, get_BlindSk, SetKernelAdv without a foreign signature): the
+keys BEAM names and every other dApp use. Stock ShadersManager::ProcessTxData starts the
+transaction whatever privilege the data names. Core patch 0002 refuses this for wallet-api
+(PrivilegeRoutingShadersManager::ProcessTxData in api_cli.cpp); the wasm client's app APIs
+(WasmWalletClient.createAppAPI -> WalletClient::IWThread_createAppShaders) use the stock
+ShadersManager, so the web wallet was protected only by its JavaScript
+(pwa/src/lib/dapps/policy.js checkContractData).
+
+With this, ShadersManager::ProcessTxData refuses invoke data whose app privilege is above 0
+unless
+  - it is not above the privilege of the manager processing it (the app API's own, chosen at
+    createAppAPI), and
+  - the app body is one this manager compiled itself at that privilege (SHA-256 of the
+    compiled body, recorded in compileAppShader), as 0002 accepts only bodies wallet-api
+    compiled from an allowlisted shader.
+The refusal goes back as the API's ContractError (-32019, "Contract call failed") with
+error.data "invoke data requests a shader privilege that was not granted (<why>)", which
+starts with the text wallet-api's 0002 sends; no transaction is created. Invoke data at
+privilege 0, and invoke data a manager produced itself (invoke_contract), are unaffected.
+The check runs where 0002's does, after the client's consent handler: the page's own
+check (policy.js) still refuses such data first, before anyone is asked.
+
+wasm tree only: in wallet-api, 0002 hands accepted privileged data to a privilege-0 stock
+manager, which this check would then refuse.
+
+--- a/wallet/core/contracts/shaders_manager.h
++++ b/wallet/core/contracts/shaders_manager.h
+@@ -16,6 +16,7 @@
+ #include "utility/logger.h"
+ #include "i_shaders_manager.h"
+ #include "bvm/ManagerStd.h"
++#include <set>
+ 
+ namespace beam::wallet {
+ 
+@@ -83,6 +84,8 @@
+         bool _logResult = true;
+         std::string _currentAppId;
+         std::string _currentAppName;
++        // Campfire (wasm patch 0112): hashes of the app bodies this manager compiled at a privilege above 0.
++        std::set<ECC::Hash::Value> _privilegedBodies;
+ 
+         beam::io::AsyncEvent::Ptr _startEvent;
+ 
+--- a/wallet/core/contracts/shaders_manager.cpp
++++ b/wallet/core/contracts/shaders_manager.cpp
+@@ -226,6 +226,15 @@
+ 
+         // this throws
+         beam::bvm2::Processor::Compile(resBuffer, shaderBlob, ManagerStd::Kind::Manager);
++
++        // Campfire (wasm patch 0112): remember the bodies that run at this manager's privilege,
++        // so that ProcessTxData can tell its own privileged invoke data from anyone else's.
++        if (m_Privilege)
++        {
++            ECC::Hash::Value hv;
++            ECC::Hash::Processor() << Blob(resBuffer) >> hv;
++            _privilegedBodies.insert(hv);
++        }
+     }
+ 
+     void ShadersManager::pushRequest(Request newReq)
+@@ -340,6 +349,31 @@
+             if (!fromByteBuffer(buffer, invokeData))
+             {
+                 throw std::runtime_error("failed to deserialize invoke data");
++            }
++
++            // Campfire (wasm patch 0112): process_invoke_data takes invoke data back from the
++            // client. When it carries an app invocation to re-run (SaveAppInvoke, dependent
++            // calls), contract_transaction.cpp re-runs that app body at the privilege the data
++            // names, so a client could ask for any privilege with any body. Accept a privilege
++            // above 0 only up to this manager's own, and only for a body this manager compiled
++            // itself at that privilege (what core patch 0002 does for wallet-api). Invoke data
++            // this manager produced itself is unaffected.
++            if (const uint32_t nAsked = invokeData.m_AppInvoke.m_Privilege; nAsked)
++            {
++                ECC::Hash::Value hv;
++                ECC::Hash::Processor() << Blob(invokeData.m_AppInvoke.m_App) >> hv;
++
++                std::string why;
++                if (nAsked > m_Privilege)
++                    why = "it asks for privilege " + std::to_string(nAsked) + ", this app runs at " + std::to_string(m_Privilege);
++                else if (!_privilegedBodies.count(hv))
++                    why = "privilege " + std::to_string(nAsked) + " for app code this app did not compile";
++
++                if (!why.empty())
++                {
++                    BEAM_LOG_WARNING() << "process_invoke_data refused for " << _currentAppId << ", " << _currentAppName << ": " << why;
++                    throw std::runtime_error("invoke data requests a shader privilege that was not granted (" + why + ")");
++                }
+             }
+ 
+             std::string sComment = invokeData.get_FullComment();

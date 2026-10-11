@@ -1,9 +1,13 @@
 import test, { beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { fakeEngine, TXID } from './helpers/fake_engine.mjs';
-import { bindSession, unbindSession, openApp, nativeApp, setConsentPresenter, consentLog, contractsState, ContractError, consentRequest, decimalToGroth, parseShaderJson, NATIVE_APP_NAME } from '../../src/lib/contracts.js';
+import { bindSession, unbindSession, openApp, nativeApp, setConsentPresenter, consentLog, contractsState, ContractError, consentRequest, decimalToGroth, parseShaderJson, NATIVE_APP_NAME, ENGINE_PRIVILEGE_REFUSAL } from '../../src/lib/contracts.js';
 
 const tick = () => new Promise((r) => setImmediate(r));
+const pwa = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 let engine;
 let unset = () => {};
@@ -53,6 +57,33 @@ test('engine errors carry the engine error object', async () => {
   engine.respond = (req, api) => api.replyError(req.id, { code: -32005, message: 'Feature is not supported' });
   const a = await openApp({ appName: 'X' });
   await assert.rejects(a.call('create_address', {}), (e) => e.code === 'rpc' && e.rpc.code === -32005);
+});
+
+test("the engine's refusal of raised app privilege (wasm patch 0112) reaches the caller as 'privileged', the engine's error kept", async () => {
+  const data = `${ENGINE_PRIVILEGE_REFUSAL} (it asks for privilege 1, this app runs at 0)`;
+  engine.respond = (req, api) => {
+    if (req.method === 'invoke_contract') return api.reply(req.id, { output: '', raw_data: [1, 2, 3] });
+    if (req.method === 'process_invoke_data') return api.replyError(req.id, { code: -32019, message: 'Contract call failed', data });
+    return api.reply(req.id, {});
+  };
+  const app = await openApp({ appName: 'Some dApp' });
+  await assert.rejects(app.call('process_invoke_data', { data: [1, 2, 3] }), (e) => e instanceof ContractError && e.code === 'privileged' && /extra privileges\. Nothing was sent\.$/.test(e.message) && e.rpc.code === -32019 && e.rpc.data === data);
+  // Any other contract error stays an rpc error.
+  engine.respond = (req, api) => api.replyError(req.id, { code: -32019, message: 'Contract call failed', data: 'failed to deserialize invoke data' });
+  await assert.rejects(app.call('process_invoke_data', { data: [1, 2, 3] }), (e) => e.code === 'rpc' && e.rpc.data === 'failed to deserialize invoke data');
+});
+
+test('engine patch 0112: in the lock, and it sends the text this module matches (the one core patch 0002 sends)', () => {
+  const lock = JSON.parse(readFileSync(join(pwa, 'engine.lock.json'), 'utf8'));
+  const p = 'scripts/beam/wasm/patches/0112-wasm-refuse-raised-app-privilege.patch';
+  assert.ok(lock.patches.includes(p));
+  const patch = readFileSync(join(pwa, '..', p), 'utf8');
+  const core = readFileSync(join(pwa, '..', 'scripts/beam/core/patches/0002-privileged-shader-allowlist.patch'), 'utf8');
+  assert.ok(patch.includes(`+                    throw std::runtime_error("${ENGINE_PRIVILEGE_REFUSAL} (" + why + ")");`));
+  assert.ok(core.includes(`std::string("${ENGINE_PRIVILEGE_REFUSAL}")`));
+  // Refused above the manager's own privilege, and for a body the manager did not compile.
+  assert.match(patch, /\+\s+if \(nAsked > m_Privilege\)/);
+  assert.match(patch, /\+\s+else if \(!_privilegedBodies\.count\(hv\)\)/);
 });
 
 test('no presenter: every spending request is rejected', async () => {
