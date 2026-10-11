@@ -270,7 +270,10 @@ test('the publicly served release (installed, with a wallet) takes this one thro
         .evaluate((l) => Boolean(navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL.endsWith(`/${l}`) && window.__campfire && window.__campfire.loaderBehind() === false && document.getElementById('app')?.dataset.screen === 'unlock'), loader)
         .catch(() => false);
       if (settled) break;
-      if (Date.now() - t0 > 60000) throw new Error(`the page did not settle under ${loader}`);
+      if (Date.now() - t0 > 60000) {
+        const why = await page.evaluate(() => ({ controller: navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL, behind: window.__campfire && window.__campfire.loaderBehind(), screen: document.getElementById('app')?.dataset.screen })).catch((e) => String(e));
+        throw new Error(`the page did not settle under ${loader}: ${JSON.stringify(why)}`);
+      }
       await sleep(250);
     }
     assert.equal(await served(), nextVersion, `the installed ${release.version} now runs ${nextVersion}`);

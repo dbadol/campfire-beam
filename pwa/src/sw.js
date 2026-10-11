@@ -91,7 +91,8 @@ const MAX_META_BYTES = 4 * 1024 * 1024; // release.json, release.sig or manifest
 // something only a newer loader does (a message, a route, a header): it is
 // part of LOADER_COMPAT, so such a release then installs only from the own
 // address, where its loader comes along.
-const LOADER_API = /*__LOADER_API__*/ 2;
+// 3: the DApp Store's dapp-store/ route (the page's store installs rely on it).
+const LOADER_API = /*__LOADER_API__*/ 3;
 // Hash of what this loader does to pages (security headers, MIME types, dApp
 // frame policy, the own-node policy, LOADER_API), filled in by the build; release.json carries the
 // same value for the release's own loader (see loaderCompatible()).
