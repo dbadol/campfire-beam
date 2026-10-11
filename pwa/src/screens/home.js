@@ -43,6 +43,7 @@ import { openTokensMenu } from './minter.js';
 import { walletChip } from './wallets.js';
 import { coinsLink, privateLine, maturingParts, splitRow } from './coins_ui.js';
 import { isSplitTx } from '../lib/coins.js';
+import { namesHomeLine } from './names_claim.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -258,12 +259,16 @@ export default function home(app) {
     h('button', { class: 'tile', type: 'button', onclick: () => openTokensMenu(app), 'data-testid': 'tokens-entry', 'aria-label': 'Tokens: create your own, mint more, burn' }, h('span', { class: 'ico' }, icon('coins')), h('span', { class: 't', text: 'Tokens' })),
   );
 
+  // Money waiting for this wallet's names: a line under the balance, only when something waits.
+  const namesLine = namesHomeLine(app);
+
   const el = screen(
     // The title is the open wallet's name: a tap opens the switcher (screens/wallets.js).
     { brand: walletChip(app), tabs: 'home', app, right: h('button', { class: 'icon-btn', 'aria-label': 'Lock', onclick: () => app.lock('manual'), 'data-testid': 'lock' }, icon('lock')) },
     chainSwitch(app, 'beam'),
     bannerBox,
     balanceBox,
+    namesLine.el,
     actionsBox,
     moreRow,
     assetsBox,
@@ -274,6 +279,7 @@ export default function home(app) {
     destroy() {
       off();
       offU();
+      namesLine.destroy();
       clearTimeout(bannerLater);
       if (navigator.serviceWorker) navigator.serviceWorker.removeEventListener('controllerchange', onController);
     },

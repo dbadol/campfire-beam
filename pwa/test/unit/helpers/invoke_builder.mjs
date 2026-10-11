@@ -26,7 +26,11 @@ const yStr = (s) => yBuf([...new TextEncoder().encode(s)]);
 export const hexBytes = (hex) => hex.match(/../g).map((x) => parseInt(x, 16));
 export const cid = (fill) => fill.toString(16).padStart(2, '0').repeat(32);
 
-export function invokeEntry({ contractId, method = 2, flags = 0, spend = {}, sigs = [], comment = '', charge = 0, args = [1, 2, 3, 4], parentHeight = 4068100 }) {
+export const FLAG_ADVANCED = 0x01;
+export const FLAG_HAS_COMMITMENT = 0x10;
+
+/** adv: an advanced entry's own part (flags must carry FLAG_ADVANCED): { minHeight, dh, fee }. */
+export function invokeEntry({ contractId, method = 2, flags = 0, spend = {}, sigs = [], comment = '', charge = 0, args = [1, 2, 3, 4], parentHeight = 4068100, adv = { minHeight: 4075100, dh: 15, fee: 1100000 } }) {
   return [
     ...(flags ? [...yu(0x80000000 + flags), ...yu(method)] : yu(method)),
     ...yBuf(args),
@@ -37,7 +41,10 @@ export function invokeEntry({ contractId, method = 2, flags = 0, spend = {}, sig
     ...yu(Object.keys(spend).length),
     ...Object.entries(spend).flatMap(([k, v]) => [...yu(k), ...ys(v)]),
     ...(contractId == null ? yBuf([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]) : hexBytes(contractId)),
+    // Advanced: HeightRange (min, max - min), fee, signature (33 + 32), key preimage hash (32).
+    ...(flags & FLAG_ADVANCED ? [...yu(adv.minHeight), ...yu(adv.dh), ...yu(adv.fee), ...new Array(65).fill(1), ...new Array(32).fill(2)] : []),
     ...(flags & FLAG_DEPENDENT ? [...yu(parentHeight), ...new Array(32).fill(0x5c)] : []),
+    ...(flags & FLAG_HAS_COMMITMENT ? new Array(33).fill(3) : []),
   ];
 }
 

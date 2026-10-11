@@ -93,6 +93,8 @@ export function isContractTx(tx) {
 const CONTRACT_KINDS = {
   [DEX_CONTRACT]: 'dex',
   af4550f1f8a6051ffeffea06e0cb978f8076fdfc2101d2273d4e62c86540bc5e: 'names',
+  // BEAM names' vault (view_params "vault"): payments to a name go in, and are claimed out of it.
+  a3385e50cf33afc9f769ee1d82d56b73046d680d343977f36d9a303d7bcdc4da: 'namesVault',
   '8737e0d39575d7015fdea259fa091e41fc293e6c3d54e80d529033c349b5b18e': 'airdrop',
   '295fe749dc12c55213d1bd16ced174dc8780c020f59cb17749e900bb0c15d868': 'minter',
   '5ab408982b148210e88f180114f10222a2235eafeede0a3a224fda0e523e17b7': 'burn',
@@ -109,7 +111,7 @@ export const BRIDGE_PIPES = new Set([
   '02fb908e55a59ab5acc5bf6f1707a8dcdb70a944d6f2a7bff3c7af18c8e278da',
 ]);
 
-/** Which known contract a contract call talked to: dex, names, airdrop, minter, burn, bridge, or other. */
+/** Which known contract a contract call talked to: dex, names, namesVault, airdrop, minter, burn, bridge, or other. */
 export function contractKind(tx) {
   for (const d of (tx && tx.invoke_data) || []) {
     const k = d && (CONTRACT_KINDS[d.contract_id] || (BRIDGE_PIPES.has(d.contract_id) ? 'bridge' : null));
@@ -133,7 +135,10 @@ export function contractLabel(tx) {
       if (inn >= 2 && out <= 1) return 'Taken from a DEX pool';
       return 'DEX';
     case 'names':
-      return 'Name payment';
+      return out || inn ? 'Name payment' : 'Name change'; // a transfer or listing moves no funds
+    case 'namesVault':
+      if (inn > 0 && out === 0) return 'Name payment claimed';
+      return 'Paid to a name';
     case 'airdrop':
       if (inn > 0 && out === 0) return 'Airdrop claim';
       if (out > 0 && inn === 0) return 'Airdrop created';

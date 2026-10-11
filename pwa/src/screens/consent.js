@@ -77,27 +77,39 @@ function intentLabel(intent, pay, get) {
       return one(get) && !pay.length ? `Mint ${get[0]}` : null;
     case 'burn':
       return one(pay) && !get.length ? `Burn ${pay[0]} forever` : null;
+    case 'nameTransfer':
+      return !pay.length && !get.length ? `Transfer ${intent.name}` : null;
+    case 'nameSell':
+      return !pay.length && !get.length ? `List ${intent.name} for sale` : null;
+    case 'nameUnlist':
+      return !pay.length && !get.length ? `Stop selling ${intent.name}` : null;
+    case 'nameBuy':
+      return one(pay) && !get.length ? `Pay ${pay[0]} and buy ${intent.name}` : null;
+    case 'nameClaim':
+      return !pay.length && get.length ? (one(get) ? `Claim ${get[0]}` : 'Claim all') : null;
     default:
       return null;
   }
 }
 
-const TITLES = { nameRegister: 'Confirm your name', nameRenew: 'Confirm the renewal', namePay: 'Approve this payment', airdropCreate: 'Confirm your codes', airdropClaim: 'Confirm your claim', airdropCancel: 'Take back unclaimed codes', poolAdd: 'Confirm your deposit', poolWithdraw: 'Confirm your withdrawal', poolCreate: 'Confirm the new pool', tokenCreate: 'Confirm your new token', tokenMint: 'Confirm the mint', burn: 'Burn for good' };
+const TITLES = { nameRegister: 'Confirm your name', nameRenew: 'Confirm the renewal', namePay: 'Approve this payment', airdropCreate: 'Confirm your codes', airdropClaim: 'Confirm your claim', airdropCancel: 'Take back unclaimed codes', poolAdd: 'Confirm your deposit', poolWithdraw: 'Confirm your withdrawal', poolCreate: 'Confirm the new pool', tokenCreate: 'Confirm your new token', tokenMint: 'Confirm the mint', burn: 'Burn for good', nameTransfer: 'Confirm the transfer', nameSell: 'Confirm the listing', nameUnlist: 'Stop selling', nameBuy: 'Confirm your purchase', nameClaim: 'Confirm your claim' };
 
 /** What the rows call what leaves and what arrives, for the wallet's own DEX pool moves. */
 const ROW_WORDS = { poolAdd: ['You add', 'You get'], poolWithdraw: ['You return', 'You get back'], poolCreate: ['Deposit (locked)', 'You receive'] };
 
 /**
  * The wallet's own features may add to the sheet (native requests only; a dApp's
- * intent is always null): rows [[label, text]] under the fee, a warning, and a
- * statement the person must tick before the approve button works.
+ * intent is always null): rows [[label, text]] under the fee, a warning, a
+ * statement the person must tick before the approve button works, and notes
+ * (plain lines under the card).
  */
 export function intentExtras(req) {
   const i = req && req.native ? req.intent : null;
   if (!i) return { rows: [], warn: null, ack: null };
   const text = (v) => (typeof v === 'string' ? v.slice(0, 300) : null);
   const rows = Array.isArray(i.rows) ? i.rows.filter((r) => Array.isArray(r) && text(r[0]) && text(r[1])).slice(0, 4).map((r) => [text(r[0]), text(r[1])]) : [];
-  return { rows, warn: text(i.warn), ack: text(i.ack) };
+  const notes = Array.isArray(i.notes) ? i.notes.map(text).filter(Boolean).slice(0, 4) : [];
+  return notes.length ? { rows, warn: text(i.warn), ack: text(i.ack), notes } : { rows, warn: text(i.warn), ack: text(i.ack) };
 }
 
 /** What the wallet's own token features say before approving: where the BEAM goes, and that a burn is forever. */
@@ -139,6 +151,7 @@ function title(req, bridge) {
   if (req.kind === 'send') return 'Approve this payment';
   if (req.intent && req.intent.action === 'swap') return 'Confirm your swap';
   if (req.intent && TITLES[req.intent.action]) return TITLES[req.intent.action];
+  if (req.native && nameTitle(req.intent)) return nameTitle(req.intent);
   return 'Approve this request';
 }
 
@@ -270,6 +283,7 @@ function showConsent(app, req, bridge, t) {
           // Said before approving; when it cannot be approved, what is missing comes first.
           bridge && bridge.kind === 'send' && enough ? h('div', { 'data-testid': 'consent-bridge-public' }, notice('info', t.PUBLIC_NOTE)) : null,
           native && req.intent && intentNote(req.intent) ? h('div', { 'data-testid': 'consent-intent-note' }, intentNote(req.intent)) : null,
+          ...(extras.notes || []).map((t, i) => h('p', { class: 'small', 'data-testid': `consent-note-${i}`, text: t })),
           !native && req.comment ? h('p', { class: 'small', text: `The app describes it as: “${req.comment}”` }) : null,
           notListed.length ? h('p', { class: 'small', 'data-testid': 'consent-unlisted', text: `${notListed.map((a) => `${wallet.label(a.assetId).symbol} is asset #${a.assetId}`).join('; ')}: not on BEAM Campfire's list of known assets. Check the number if the name matters to you.` }) : null,
           !native ? notice('warn', `Only approve if you trust ${req.appName}. Approving lets it move what is listed above.`) : null,

@@ -24,6 +24,10 @@ test('airdrop, names, minter, burn', () => {
   assert.equal(contractLabel(tx(AIRDROP, [[0, 1000]])), 'Airdrop created');
   assert.equal(contractLabel(tx(AIRDROP, [])), 'Airdrop');
   assert.equal(contractLabel(tx(NAMES, [[0, 1000]])), 'Name payment');
+  assert.equal(contractLabel(tx(NAMES, [])), 'Name change', 'a transfer or listing');
+  const VAULT = 'a3385e50cf33afc9f769ee1d82d56b73046d680d343977f36d9a303d7bcdc4da';
+  assert.equal(contractLabel(tx(VAULT, [[0, 1000]])), 'Paid to a name');
+  assert.equal(contractLabel(tx(VAULT, [[0, -250000000], [174, -5]])), 'Name payment claimed');
   assert.equal(contractLabel(tx(MINTER, [[0, 1000]])), 'Token minter');
   assert.equal(contractLabel(tx(BURN, [[0, 1000]])), 'Burn');
 });
