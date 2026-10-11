@@ -4,8 +4,8 @@
   "build_script": "scripts/beam/wasm/build_wasm.sh",
   "rules_signature_contains": "3928666-96df3f33ee02ad9e",
   "files": {
-    "wasm-client.js": "f4e61c591a1882f2129407c1ab9430dd83019910e235374c89a30af994f25e82",
-    "wasm-client.wasm": "c9efec383d71b21e63c2d57e49550453a27e4f5a8a647a82405592112a70dd22",
+    "wasm-client.js": "f7d2065bf592598d8b76fd85e0284af21f69b435c3beec17feb9cbc7759ed255",
+    "wasm-client.wasm": "f88b9dd3bca1130438451f5ea17fd0859c8e7667f2cef96849bb6b98116bd26f",
     "wasm-client.worker.js": "eff6668e83689221c3515bd0b29bf9db9a1c8067a73213be4abe142f396a4e0e"
   },
   "patches": [
@@ -16,6 +16,7 @@
     "scripts/beam/wasm/patches/0105-wasm-rekey-file-for-export.patch",
     "scripts/beam/wasm/patches/0106-wasm-export-owner-key.patch",
     "scripts/beam/wasm/patches/0107-wasm-rescan.patch",
-    "scripts/beam/wasm/patches/0108-wasm-notifications-no-recursion.patch"
+    "scripts/beam/wasm/patches/0108-wasm-notifications-no-recursion.patch",
+    "scripts/beam/wasm/patches/0110-wasm-export-import-wallet-data.patch"
   ]
 }
