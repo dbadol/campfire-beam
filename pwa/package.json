@@ -55,7 +55,9 @@
     "e2e:live:dex": "node tools/stage_engine.mjs && node test/e2e/live_dex.mjs",
     "e2e:minter": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/minter.test.mjs",
     "e2e:live:minter": "node tools/stage_engine.mjs && node test/e2e/live_minter.mjs",
-    "e2e:multiwallet": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/multiwallet.test.mjs"
+    "e2e:multiwallet": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/multiwallet.test.mjs",
+    "e2e:coins": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/coins.test.mjs",
+    "e2e:live:coins": "node tools/stage_engine.mjs && node test/e2e/live_coins.mjs"
   },
   "devDependencies": {
     "jsqr": "1.4.0",

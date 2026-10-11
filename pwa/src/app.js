@@ -55,6 +55,8 @@ import { BUY_SCREENS } from './screens/buy_screens.js';
 import { TOKEN_SCREENS } from './screens/token_screens.js';
 import { DEX_SCREENS } from './screens/dex_screens.js';
 import { MINTER_SCREENS } from './screens/minter_screens.js';
+import { COINS_SCREENS } from './screens/coins_screens.js';
+import { installPaymentNotices } from './screens/payment_notices.js';
 import { consentLog, contractsState } from './lib/contracts.js';
 import walletsScreen from './screens/wallets.js';
 import addWallet from './screens/add_wallet.js';
@@ -69,11 +71,12 @@ const SCREENS = {
   ...TOKEN_SCREENS,
   ...DEX_SCREENS,
   ...MINTER_SCREENS,
+  ...COINS_SCREENS,
   wallets: walletsScreen,
   addWallet,
 };
 // Screens that need an unlocked, running wallet.
-const NEEDS_WALLET = new Set(['wallets', 'home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', 'contacts', 'addresses', 'checkProof', ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS), ...Object.keys(TOKEN_SCREENS), ...Object.keys(DEX_SCREENS), ...Object.keys(MINTER_SCREENS)]);
+const NEEDS_WALLET = new Set(['wallets', 'home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', 'contacts', 'addresses', 'checkProof', ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS), ...Object.keys(TOKEN_SCREENS), ...Object.keys(DEX_SCREENS), ...Object.keys(MINTER_SCREENS), ...Object.keys(COINS_SCREENS)]);
 
 const root = document.getElementById('app');
 
@@ -239,6 +242,9 @@ onEngineAbort((why) => {
 
 // Every contract request that spends is shown on the approve sheet; without it, all are refused.
 installConsent(app);
+
+// A banner (and, when allowed, a system notification) when a payment arrives while the app is open.
+installPaymentNotices(app);
 
 window.addEventListener('pointerdown', () => app.touch(), { passive: true });
 window.addEventListener('keydown', () => app.touch(), { passive: true });

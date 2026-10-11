@@ -19,6 +19,7 @@ import { holdings, holdsAny, portfolio, beamEstimate, valueEstimate, tokensWord,
 import { hiddenIds, hiddenLoaded, loadHidden } from '../lib/hidden_tokens.js';
 import { fiatEstimate, fiatAllowed, fiatUnasked, currencyOf, currencyWords, FIAT_CURRENCIES } from '../lib/fiat.js';
 import { marketPricer, refreshMarket, beamPrice } from '../lib/token_market.js';
+import { maturingParts } from './coins_ui.js';
 
 /** BEAM's price to show now ({price, currency}), asking CoinGecko in the background when due and allowed. */
 export const priceNow = (app) => beamPrice(app).get();
@@ -114,7 +115,7 @@ export function homeTokens(app) {
                     const pending = [];
                     if (t.receiving > 0n) pending.push(`+${formatAmount(t.receiving)} incoming`);
                     if (t.sending > 0n) pending.push(`−${formatAmount(t.sending)} outgoing`);
-                    if (t.maturing > 0n) pending.push(`${formatAmount(t.maturing)} maturing`);
+                    pending.push(...maturingParts(t));
                     const warning = copyWarning(l);
                     // Two held assets with one ticker (CHAD #187 and #190) show their numbers.
                     const sub = tokenSubtitle(l);

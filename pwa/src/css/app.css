@@ -793,3 +793,49 @@ details.more.card { padding: 12px 16px; }
 .card.row.wallet-pick { padding: 10px 14px; border-bottom: 0; }
 .wallet-pick .chev svg { color: var(--muted); }
 .wallet-open-tag { margin-left: 8px; vertical-align: 1px; }
+
+/* Coins and Split coins, More ways to receive, the payment banner
+   (screens/coins.js, split_review.js, coins_ui.js, receive_more.js, payment_notices.js). */
+.balance { position: relative; }
+.balance .coins-link { position: absolute; top: 12px; right: 8px; width: auto; min-height: 32px; padding: 4px 4px 4px 10px; gap: 0; font-size: 14px; }
+.balance .coins-link svg { width: 16px; height: 16px; }
+.private-line { display: flex; align-items: flex-start; gap: 8px; width: 100%; margin-top: 10px; padding: 8px 10px; border: 0; border-radius: 10px; background: var(--success-bg); color: var(--success); font: inherit; font-size: 14px; font-weight: 500; line-height: 1.35; text-align: left; cursor: pointer; }
+.private-line svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+.private-line span { flex: 1; }
+.token-balances .private-line { margin: 4px 0 10px; }
+.stack.tight { gap: 6px; }
+.coins .content { gap: 12px; }
+.coins h2.title { font-size: 20px; margin-top: 0; }
+.coins .lead { font-size: 15px; }
+.split-asset, .more-ways-head { background: var(--surface); }
+.split-asset { padding: 12px 14px; border-bottom: 0; cursor: default; }
+.split-asset.tap { cursor: pointer; }
+.split-asset .chev svg { width: 18px; height: 18px; color: var(--muted); }
+.split-counts { display: flex; gap: 8px; }
+.split-counts .choice { flex: 1; min-width: 0; min-height: 44px; }
+.split-after { padding: 4px 14px; }
+.split-after .kv { padding: 8px 0; }
+.kv.total .k, .kv.total .v { font-weight: 700; color: var(--text); }
+.coin-list { padding: 2px 14px; }
+.coin-summary { padding: 10px 0 4px; }
+.coin-row { cursor: default; padding: 10px 0; }
+.coin-row .ico.private { background: var(--success-bg); color: var(--success); }
+.coin-row .main .t { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.coin-tag { background: var(--surface-2); color: var(--muted); }
+.coin-tag.private { background: var(--success-bg); color: var(--success); }
+.more-ways-wrap { margin-top: 14px; }
+.more-ways { display: flex; flex-direction: column; gap: 10px; }
+.more-ways-head { padding: 12px 14px; border-bottom: 0; }
+.more-ways-list { padding: 0 14px; }
+.type-row:disabled { cursor: not-allowed; }
+.type-row.off .main .t, .type-row.off .main .s, .type-row.off .chev svg { color: var(--subtle); }
+.sheet-qr { width: min(64vw, 240px); }
+.settings-note { margin: -4px 4px 0; }
+.pay-banner { position: fixed; top: calc(var(--safe-top) + 8px); left: 50%; transform: translateX(-50%); z-index: 85; width: min(calc(100vw - 24px), 496px); display: flex; align-items: center; gap: 2px; padding: 4px 6px 4px 4px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22); }
+.pay-banner-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.pay-banner .ico { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; background: var(--success-bg); color: var(--success); }
+.pay-banner .ico svg { width: 18px; height: 18px; }
+.pay-banner .main { display: flex; flex-direction: column; min-width: 0; }
+.pay-banner .main .t { font-weight: 700; }
+.pay-banner .main .s { font-size: 13px; color: var(--muted); }
+.pay-banner .icon-btn { margin: 0; }

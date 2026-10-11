@@ -14,6 +14,8 @@
  *   - "Why are there no dollar values?" / "Where is the token I hid?" -> Tokens and prices: the CoinGecko
  *     switch (it sees the IP address), the currency, and Hidden tokens.
  *   - "Where are the people I pay / my addresses / a proof someone sent?" -> the Payments group.
+ *   - "Can several payments go at once? Will I hear when money arrives?" -> Coins (Split coins) and Payment
+ *     notifications, in the Payments group; under it, that notices come only while the app is open.
  *   - "My balance is wrong / coins are missing" -> Rescan, for every wallet (restored, new or
  *     imported): it rebuilds the coins from BEAM's snapshot and keeps history and addresses.
  */
@@ -28,6 +30,7 @@ import { lastCheckText } from '../lib/update.js';
 import { runUpdateCheck, openOtherAddress } from '../lib/update_ui.js';
 import { tokenSettings } from './token_ui.js';
 import { listWallets, nameOf } from '../lib/wallets.js';
+import { notificationsRow, notificationsNote } from './payment_notices.js';
 
 export default function settings(app) {
   const row = (ico, title, sub, onclick, extra = {}) =>
@@ -102,7 +105,10 @@ export default function settings(app) {
       row('person', 'Contacts', 'People you pay, with their address', () => app.go('contacts'), { 'data-testid': 'contacts-row' }),
       row('receive', 'Your addresses', 'Labels, and which one Receive shows', () => app.go('addresses'), { 'data-testid': 'addresses-row' }),
       row('proof', 'Check a payment proof', 'Someone says they paid you', () => app.go('checkProof'), { 'data-testid': 'check-proof-row' }),
+      row('coins', 'Coins', 'For several payments at once', () => app.go('coins'), { 'data-testid': 'coins-row' }),
+      notificationsRow(app),
     ),
+    notificationsNote(),
     h('p', { class: 'section-title', text: 'Network' }),
     h(
       'div',
