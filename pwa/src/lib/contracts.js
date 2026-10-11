@@ -520,7 +520,7 @@ export function bindSession(session) {
   if (!session || !session.client) throw new ContractError('no_wallet', 'The wallet is not running.');
   if (bound && bound.session === session) return;
   if (bound) unbindSession();
-  const b = { session, client: session.client, M: session.M, apps: new Set(), draining: new Set(), inflight: new Map(), consents: new Set(), native: null, privileged: null, seq: 0 };
+  const b = { session, client: session.client, M: session.M, apps: new Set(), draining: new Set(), inflight: new Map(), consents: new Set(), native: null, privileged: null, opening: Promise.resolve(), seq: 0 };
   bound = b;
   b.client.setApproveContractInfoHandler((request, info, amounts, cb) => onConsent(b, 'contract', request, info, amounts, cb));
   b.client.setApproveSendHandler((request, info, cb) => onConsent(b, 'send', request, info, null, cb));
@@ -584,6 +584,19 @@ async function open({ appName, appUrl = '', appId = null, unchecked = false }, n
   if (!name) throw new ContractError('open', 'An app needs a name.');
   if (!native && name.toLowerCase().replace(/\s+/g, ' ') === NATIVE_APP_NAME.toLowerCase()) throw new ContractError('open', 'That name belongs to the wallet itself.');
   const id = appId || b.M.WasmWalletClient.GenerateAppID(name, String(appUrl || ''));
+  // One app is opened at a time: with two createAppAPI calls in flight at once, at any privilege,
+  // the engine stops the page (measured 2026-10-11: two dApps, or the wallet's two apps, opened
+  // together; nothing answered again). The next one waits for this one's answer or its timeout.
+  const turn = b.opening;
+  let release;
+  b.opening = new Promise((r) => {
+    release = r;
+  });
+  await turn;
+  if (bound !== b) {
+    release();
+    throw new ContractError('locked', 'The wallet is locked.');
+  }
   const api = await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new ContractError('timeout', 'The wallet did not open the app in time.')), OPEN_TIMEOUT_MS);
     try {
@@ -598,7 +611,7 @@ async function open({ appName, appUrl = '', appId = null, unchecked = false }, n
       clearTimeout(t);
       reject(new ContractError('open', `The app could not be opened: ${(e && e.message) || e}`));
     }
-  });
+  }).finally(() => release());
   if (bound !== b) {
     try {
       api.delete();

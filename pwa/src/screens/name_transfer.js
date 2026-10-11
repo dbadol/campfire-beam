@@ -33,8 +33,8 @@ export default function nameTransfer(app, params = {}) {
   let alive = true;
 
   const input = h('textarea', { class: 'input mono', rows: '3', autocomplete: 'off', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', placeholder: "Paste the receiving wallet's name key", 'aria-label': 'Name key of the receiving wallet', 'data-testid': 'transfer-key' });
-  const keyBox = h('div');
-  const notes = h('div');
+  const keyBox = h('div', { class: 'name-stack' });
+  const notes = h('div', { class: 'name-stack' });
   const reason = h('p', { class: 'hint center', 'data-testid': 'transfer-reason', 'aria-live': 'polite' });
   const cta = h('button', { class: 'btn btn-primary', 'data-testid': 'transfer-cta', disabled: true, onclick: transfer }, `Transfer ${name}`);
 

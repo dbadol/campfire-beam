@@ -26,12 +26,11 @@ import { formatAmount } from '../lib/amount.js';
 import { wallet } from '../lib/wallet.js';
 import { store } from '../lib/store.js';
 import { walletKey } from '../lib/wallet_scope.js';
-import { NameInbox, advise, claimText, namePaymentsText, isEmpty, VISIBILITY } from '../lib/bans_inbox.js';
+import { NameInbox, advise, claimText, namePaymentsText, isEmpty, VISIBILITY, homeShouldRead } from '../lib/bans_inbox.js';
 import { bans, nameProblemText } from './names.js';
 
 /** Per wallet (lib/wallet_scope.js): deleting the wallet deletes it. */
 export const HINT_NAME = 'namesHint';
-const RECHECK_UNOWNED_MS = 24 * 3600 * 1000;
 const FIRST_CHECK_DELAY_MS = 8000;
 
 let shared = null;
@@ -63,13 +62,6 @@ export async function setNamesHint(app, owns) {
   } catch {
     /* no wallet open, or storage refused: a missing hint only means one more check */
   }
-}
-
-/** Whether Home should read the inbox now, from the hint and how this wallet came to be (pure). */
-export function homeShouldRead({ hint, record, now = Date.now() }) {
-  if (hint) return hint.owns === true || now - hint.at > RECHECK_UNOWNED_MS;
-  // Created here from new words: it owns nothing until it registers, buys or receives a name.
-  return Boolean(record && (record.imported || record.restored));
 }
 
 const fmt = (g) => formatAmount(g);
@@ -112,7 +104,7 @@ export async function runClaim(app, inbox = nameInbox()) {
     }
     if (e && e.refusal === 'nothingToClaim') inbox.refresh({ force: true });
     const text = e && e.code === 'rejected' ? 'Cancelled. Nothing was claimed; it is still waiting for you.' : `${nameProblemText(e, 'claim')}${e && e.code !== 'refused' ? ' Your payments are still waiting for you.' : ''}`;
-    return { ok: false, code: (e && e.code) || 'error', text };
+    return { ok: false, code: (e && e.code) || 'error', text, calm: Boolean(e && (e.code === 'rejected' || e.refusal === 'nothingToClaim')) };
   }
 }
 
@@ -145,7 +137,7 @@ export function namesHomeLine(app) {
         { class: 'card names-line', 'data-testid': 'names-home-line', 'data-state': 'waiting' },
         h('span', { class: 'grow' }, h('span', { class: 'small', text: `${t.lead}: ` }), h('strong', { 'data-testid': 'names-home-amounts', text: t.amounts })),
         h('button', { class: 'btn btn-secondary btn-small', type: 'button', 'data-testid': 'names-home-claim', disabled: busy, onclick: claim }, busy ? 'Preparing…' : 'Claim'),
-        message ? h('p', { class: `small names-line-msg ${message.ok ? '' : 'bad'}`, 'data-testid': 'names-home-msg', 'data-code': message.code, text: message.text }) : null,
+        message ? h('p', { class: `small names-line-msg ${message.ok || message.calm ? '' : 'bad'}`, 'data-testid': 'names-home-msg', 'data-code': message.code, text: message.text }) : null,
       ),
     );
   }

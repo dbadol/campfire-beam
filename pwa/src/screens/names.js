@@ -99,7 +99,7 @@ export default function names(app) {
   const notes = h('div', { class: 'swap-notes' });
   const reason = h('p', { class: 'hint center', 'data-testid': 'names-reason', 'aria-live': 'polite' });
   const cta = primary('Register a name', () => primaryAction(), { disabled: true, 'data-testid': 'names-cta' });
-  const mineBox = h('div');
+  const mineBox = h('div', { class: 'names-mine-box' });
   const lead = h('p', { class: 'lead', text: 'A name lets people pay you as alice.beam instead of a long address.' });
 
   const name = () => tryName(input.value);
@@ -282,7 +282,7 @@ export default function names(app) {
     const s = inbox.latest;
     const fmt = (g) => formatAmount(g);
     const unit = (id) => wallet.label(id).unit;
-    const msg = claimMsg ? h('div', { 'data-testid': 'names-claim-msg', 'data-code': claimMsg.code }, notice(claimMsg.ok ? 'success' : claimMsg.code === 'rejected' || claimMsg.code === 'nothing' ? 'info' : 'error', claimMsg.text)) : null;
+    const msg = claimMsg ? h('div', { 'data-testid': 'names-claim-msg', 'data-code': claimMsg.code }, notice(claimMsg.ok ? 'success' : claimMsg.calm || claimMsg.code === 'nothing' ? 'info' : 'error', claimMsg.text)) : null;
     if (inbox.claiming) {
       const r = inbox.claiming.receives;
       return put(moneyBox, msg || notice('info', `Claim on its way: ${[...r.keys()].map((id) => `+${fmt(r.get(id))} ${unit(id)}`).join(', ')}. It shows in your balance once confirmed.`));

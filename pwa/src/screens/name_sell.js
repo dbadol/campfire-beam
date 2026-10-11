@@ -31,7 +31,7 @@ export default function nameSell(app, params = {}) {
 
   const input = h('input', { class: 'input', type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '0.00', 'aria-label': 'Price', 'data-testid': 'sell-amount' });
   const select = h('select', { class: 'input sell-asset', 'aria-label': 'Asset', 'data-testid': 'sell-asset' });
-  const detail = h('div');
+  const detail = h('div', { class: 'name-stack' });
   const reason = h('p', { class: 'hint center', 'data-testid': 'sell-reason', 'aria-live': 'polite' });
   const cta = h('button', { class: 'btn btn-primary', 'data-testid': 'sell-cta', disabled: true, onclick: list }, `List ${name} for sale`);
 

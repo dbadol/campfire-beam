@@ -536,6 +536,38 @@ details.more.card { padding: 12px 16px; }
 /* Names are shown exactly as registered: Inter would draw "0x4" as "0×4". */
 .names, .consent, .plain { font-feature-settings: 'calt' 0; }
 .names .row .main .s { white-space: normal; }
+/* BEAM names: a name's own screens, the money waiting for names (screens/name_*.js, names_claim.js). */
+.names-home:empty { display: none; }
+.names-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; }
+.names-line .grow { flex: 1; min-width: 0; }
+.names-line .btn { flex: none; width: auto; }
+.names-line .ico { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-2); flex: none; }
+.names-line .ico svg { width: 16px; height: 16px; }
+.names-line-msg { flex: 1 1 100%; }
+.names-line-msg.bad { color: var(--error); }
+.name-stack { display: flex; flex-direction: column; gap: 14px; }
+.name-stack:empty { display: none; }
+.names-mine-box { display: flex; flex-direction: column; gap: 8px; }
+.name-head { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; }
+.name-head .name-line { justify-content: space-between; }
+.name-title { font-size: 22px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.tone-soon { color: var(--on-secondary); }
+.tone-bad { color: var(--error); }
+.kv .v.bad { color: var(--error); }
+.check-code { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; word-break: normal; overflow-wrap: anywhere; color: var(--text); margin: 2px 0; }
+.check-card, .key-card, .names-money { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
+.key-card .qr { max-width: 220px; margin: 0 auto; }
+.key-card .mono.small { font-size: 12px; word-break: break-all; }
+.names-money .btn { align-self: flex-start; width: auto; }
+.name-row { cursor: pointer; }
+.name-row:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; border-radius: 8px; }
+.name-row .main .s.sale { color: var(--info); }
+.names-receive-link { align-self: flex-start; width: auto; padding-left: 4px; }
+.paste-btn { align-self: flex-start; width: auto; }
+.paste-btn svg { width: 16px; height: 16px; }
+.sell-fields { display: flex; gap: 8px; }
+.sell-fields .input:first-child { flex: 1; min-width: 0; }
+.sell-fields .sell-asset { width: 112px; flex: none; }
 /* Buy (screens/buy_*.js): Home's fourth action, the chooser sheet, Buy BEAM and its buys. */
 .btn-row.four { gap: 8px; }
 .btn-row.four .btn { padding: 8px 2px; font-size: 14px; }

@@ -48,10 +48,15 @@ export function fakeEngine({ respond } = {}) {
       engine.handlerSets.send++;
       engine.sendHandler = fn;
     },
-    createAppAPI(appId, appName, cb) {
+    // createAppAPI(appId, appName, cb), or (apiver, minapiver, appId, appName, cb, privilege) as wasmclient.cpp's CreateAppAPI3.
+    createAppAPI(...a) {
+      const six = a.length === 6;
+      const [appId, appName, cb] = six ? [a[2], a[3], a[4]] : a;
       const api = {
         appId,
         appName,
+        privilege: six ? a[5] : 0,
+        apiVersions: six ? [a[0], a[1]] : null,
         handler: null,
         sent: [],
         setHandler(fn) {

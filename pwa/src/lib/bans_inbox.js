@@ -142,6 +142,19 @@ export function claimText({ summary, advice, canSpend, built = null, fmt, unit }
   };
 }
 
+/** A wallet that owns no name is checked again after this long (a name can be transferred to it). */
+export const RECHECK_UNOWNED_MS = 24 * 3600 * 1000;
+
+/**
+ * Whether Home reads the inbox, from what this wallet is known to hold (hint: {owns, at} or null)
+ * and how it came to be. One created here from new words owns nothing until it registers, buys or
+ * is given a name; one restored or imported may own names from before.
+ */
+export function homeShouldRead({ hint, record, now = Date.now() }) {
+  if (hint) return hint.owns === true || now - hint.at > RECHECK_UNOWNED_MS;
+  return Boolean(record && (record.imported || record.restored));
+}
+
 /**
  * Keeps the newest summary: never two reads at once, not more often than minIntervalMs
  * unless forced. A failed read keeps the last good summary (a stale "2.5 BEAM waiting"

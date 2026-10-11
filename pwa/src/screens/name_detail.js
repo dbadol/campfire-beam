@@ -28,7 +28,8 @@ export default function nameDetail(app, params = {}) {
   let params0 = null;
   let years0 = 1;
   let busy = null; // 'renew' | 'unlist'
-  let msg = null;
+  // Back from Sell once the listing was sent: say so here.
+  let msg = typeof params.listed === 'string' ? { kind: 'success', code: 'listed', text: `${display(name)} is being listed for ${params.listed}. Anyone can buy it once the network confirms it, usually within 2 minutes.` } : null;
   let alive = true;
 
   const body = h('div', { class: 'name-stack' });
@@ -110,7 +111,8 @@ export default function nameDetail(app, params = {}) {
         'div',
         { class: 'card name-head' },
         h('div', { class: 'name-line' }, h('h2', { class: 'name-title', 'data-testid': 'name-title', text: display(name) }), h('button', { class: 'icon-btn', type: 'button', 'aria-label': `Copy ${display(name)}`, onclick: () => copyText(display(name), 'Name copied') }, icon('copy'))),
-        h('p', { class: `small tone-${p ? 'soon' : w.tone}`, 'data-testid': 'name-status', text: pendingWords(p) || w.text }),
+        // The date is in the row below; here only what needs attention, or what is on its way.
+        p || w.tone !== 'ok' ? h('p', { class: `small tone-${p ? 'soon' : w.tone}`, 'data-testid': 'name-status', text: pendingWords(p) || w.text }) : null,
       ),
       h(
         'div',
