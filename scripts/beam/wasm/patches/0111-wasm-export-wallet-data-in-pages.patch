@@ -1,0 +1,194 @@
+Campfire wasm patch 0111: export wallet data in pages (issue #55, after 0110).
+
+storage::ExportDataToJson (wasm patch 0110) builds the whole wallet data file as one
+JSON tree and one string. The WebAssembly wallet runs in a fixed 100 MB heap
+(INITIAL_MEMORY=100MB, ALLOW_MEMORY_GROWTH=0), so a wallet with a long history runs
+it out of memory and the engine aborts for the page. Measured on 2026-10-11 with the
+0110 build: an export of 7.5 MB worked, one of 10 MB aborted ("Cannot enlarge memory
+arrays ... OOM"); the LightWallet test wallet's export is 17 MB (920 transactions,
+1396 addresses). The web wallet therefore refuses an export it estimates above 6 MB.
+
+This adds storage::ExportDataPageToJson(db, firstTx, maxBytes, nextTx): the same
+transactions, the same skipping rules (deleted ones, ones without type or create
+time) and the same fields as ExportTransactionsToJson, from the firstTx-th
+exportable transaction until about maxBytes of JSON; page 0 also carries
+OwnAddresses and Contacts. Parameters are grouped by pointer, not copied. And
+WasmWalletClient.exportDataPage(firstTx, maxBytes, cb) -> cb(json, next) on the
+main thread, next = -1 after the last page, cb(null, -1) on failure, held and
+dropped like the 0110 callbacks.
+
+The web wallet uses it when it is there (WalletSession.exportDataPages, joined by
+lib/wallet_data.js joinPages into BEAM's usual file) and falls back to 0110 with the
+size check otherwise. Not built by the worker: wallet_db.cpp and wasmclient.cpp
+were only syntax-checked (native clang for wallet_db.cpp, emsdk clang for
+wasmclient.cpp, -fsyntax-only, before and after the change).
+
+--- a/wallet/core/wallet_db.h
++++ b/wallet/core/wallet_db.h
+@@ -1289,6 +1289,10 @@
+ 
+         std::string ExportDataToJson(const IWalletDB& db);
+         bool ImportDataFromJson(IWalletDB& db, const char* data, size_t size);
++        // Campfire (wasm patch 0111): ExportDataToJson in pages of about maxBytes, from the
++        // firstTx-th exportable transaction. Page 0 also carries OwnAddresses and Contacts.
++        // nextTx: where the next page starts, or -1 after the last page.
++        std::string ExportDataPageToJson(const IWalletDB& db, uint32_t firstTx, uint32_t maxBytes, int64_t& nextTx);
+ 
+         ByteBuffer ExportPaymentProof(const IWalletDB& db, const TxID& txID);
+         bool VerifyPaymentProof(const ByteBuffer& data, const IWalletDB& db);
+--- a/wallet/core/wallet_db.cpp
++++ b/wallet/core/wallet_db.cpp
+@@ -7118,7 +7118,90 @@
+             };
+             return res.dump();
+         }
++
++        // Campfire (wasm patch 0111): the WebAssembly wallet runs in a fixed 100 MB heap, and
++        // ExportDataToJson holds the whole file as one JSON tree and one string: a wallet with ~10 MB of
++        // wallet data runs out of memory (measured). The same transactions, the same skipping rules and
++        // the same fields as ExportTransactionsToJson, a page at a time; the parameters are grouped by
++        // pointer, not copied.
++        string ExportDataPageToJson(const IWalletDB& db, uint32_t firstTx, uint32_t maxBytes, int64_t& nextTx)
++        {
++            nextTx = -1;
++            const auto all = db.getAllTxParameters();
++            map<TxID, map<SubTxID, map<TxParameterID, const ByteBuffer*>>> byTx;
++            for (const auto& p : all)
++            {
++                byTx[p.m_txID][(SubTxID)p.m_subTxID].emplace((TxParameterID)p.m_paramID, &p.m_value);
++            }
+ 
++            vector<TxID> exportable;
++            exportable.reserve(byTx.size());
++            for (const auto& tx : byTx)
++            {
++                auto it = tx.second.find(kDefaultSubTxID);
++                if (it == tx.second.end())
++                {
++                    continue; // no mandatory parameters: ExportTransactionsToJson skips it too
++                }
++                const auto& params = it->second;
++                if (params.size() == 1 && params.begin()->first == TxParameterID::TransactionType) // deleted
++                {
++                    continue;
++                }
++                if (params.find(TxParameterID::TransactionType) == params.end() || params.find(TxParameterID::CreateTime) == params.end())
++                {
++                    continue;
++                }
++                exportable.push_back(tx.first);
++            }
++
++            json txParams = json::array();
++            size_t bytes = 0;
++            size_t i = firstTx;
++            for (; i < exportable.size(); ++i)
++            {
++                json one = json::array();
++                for (const auto& subTx : byTx[exportable[i]])
++                {
++                    for (const auto& p : subTx.second)
++                    {
++                        one.push_back(
++                            json
++                            {
++                                {Fields::TransactionId, exportable[i]},
++                                {Fields::SubTransactionId, subTx.first},
++                                {Fields::ParameterId, p.first},
++                                {Fields::Value, *p.second}
++                            }
++                        );
++                    }
++                }
++                const size_t size = one.dump().size();
++                if (i > firstTx && bytes + size > maxBytes)
++                {
++                    break;
++                }
++                bytes += size;
++                for (auto& v : one)
++                {
++                    txParams.push_back(std::move(v));
++                }
++            }
++            if (i < exportable.size())
++            {
++                nextTx = static_cast<int64_t>(i);
++            }
++
++            json res = json::object();
++            if (firstTx == 0)
++            {
++                res[Fields::OwnAddresses] = ExportAddressesToJson(db, true);
++                res[Fields::Contacts] = ExportAddressesToJson(db, false);
++            }
++            res[Fields::TransactionParameters] = std::move(txParams);
++            return res.dump();
++        }
++
+         bool ImportDataFromJson(IWalletDB& db, const char* data, size_t size)
+         {
+             try
+--- a/wasmclient/wasmclient.cpp
++++ b/wasmclient/wasmclient.cpp
+@@ -637,6 +637,52 @@
+         });
+     }
+ 
++    // Campfire (wasm patch 0111): exportData in pages (storage::ExportDataPageToJson), for a wallet
++    // whose whole export does not fit in the engine's fixed heap. cb(json, next) on the main thread:
++    // next is where the following page starts, -1 after the last; cb(null, -1) on failure.
++    void ExportDataPage(uint32_t firstTx, uint32_t maxBytes, val cb)
++    {
++        AssertMainThread();
++        if (!m_Client || !m_Client->isRunning())
++        {
++            cb(val::null(), -1);
++            return;
++        }
++        const uint32_t id = ++m_DataRequests;
++        m_DataCallbacks.emplace(id, std::move(cb));
++        std::weak_ptr<int> alive = m_Alive;
++        m_Client->getAsync()->makeIWTCall([client = m_Client.get(), firstTx, maxBytes]() -> boost::any
++        {
++            std::pair<std::string, int64_t> page{ std::string(), -1 };
++            try
++            {
++                auto db = client->GetWalletDB();
++                if (db)
++                    page.first = storage::ExportDataPageToJson(*db, firstTx, maxBytes, page.second);
++            }
++            catch (const std::exception&)
++            {
++                page.first.clear();
++            }
++            return boost::any(std::move(page));
++        },
++        [this, alive, id](const boost::any& res)
++        {
++            if (alive.expired())
++                return;
++            auto it = m_DataCallbacks.find(id);
++            if (it == m_DataCallbacks.end())
++                return;
++            val cb = std::move(it->second);
++            m_DataCallbacks.erase(it);
++            auto* page = boost::any_cast<std::pair<std::string, int64_t>>(&const_cast<boost::any&>(res));
++            if (page && !page->first.empty())
++                cb(page->first, static_cast<double>(page->second));
++            else
++                cb(val::null(), -1);
++        });
++    }
++
+     void ImportData(const std::string& data, val cb)
+     {
+         AssertMainThread();
+@@ -1328,6 +1374,7 @@
+         .function("exportOwnerKey", &WasmWalletClient::ExportOwnerKey) // Campfire: wasm patch 0106
+         .function("exportData", &WasmWalletClient::ExportData) // Campfire: wasm patch 0110
+         .function("importData", &WasmWalletClient::ImportData) // Campfire: wasm patch 0110
++        .function("exportDataPage", &WasmWalletClient::ExportDataPage) // Campfire: wasm patch 0111
+         .class_function("IsAppSupported", &WasmWalletClient::IsAppSupported)
+         .class_function("GenerateAppID", &WasmWalletClient::GenerateAppID)
+         .class_function("GeneratePhrase", &WasmWalletClient::GeneratePhrase)
