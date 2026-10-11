@@ -55,7 +55,7 @@ export function notificationsRow(app) {
   return h(
     'button',
     { class: 'row', type: 'button', onclick: () => app.go('notifications'), 'data-testid': 'notify-row' },
-    h('span', { class: 'ico' }, icon('receive')),
+    h('span', { class: 'ico' }, icon('bell')),
     h('span', { class: 'main' }, h('div', { class: 't', text: NOTIFY_TEXT.title }), h('div', { class: 's', 'data-testid': 'notify-row-sub', text: sub })),
     h('span', { class: 'chev' }, icon('chevron')),
   );
@@ -108,11 +108,11 @@ export default function notifications(app) {
     });
     const sub = permission === 'unsupported' ? (ios && !isStandalone() ? 'On iPhone: add BEAM Campfire to your Home Screen first' : "This browser can't show them") : permission === 'denied' ? 'Blocked in this browser’s settings' : on ? (ios ? 'On, while BEAM Campfire is open' : 'On') : 'Off. A banner in the app tells you while it is open.';
     const kindRow = (k) => {
-      const sw = h('input', { type: 'checkbox', class: 'switch', role: 'switch', 'aria-label': KIND_WORDS[k].title, 'data-testid': `notify-kind-${k}`, checked: s.kinds[k] !== false, disabled: !on });
+      const sw = h('input', { type: 'checkbox', class: 'switch', role: 'switch', 'aria-label': KIND_WORDS[k].title, 'data-testid': `notify-kind-${k}`, checked: s.kinds[k] !== false });
       sw.addEventListener('change', () => setNotify({ kinds: { [k]: sw.checked } }));
       return h('label', { class: 'row' }, h('span', { class: 'main' }, h('div', { class: 't', text: KIND_WORDS[k].title }), h('div', { class: 's wrap', text: KIND_WORDS[k].sub })), sw);
     };
-    const amounts = h('input', { type: 'checkbox', class: 'switch', role: 'switch', 'aria-label': NOTIFY_TEXT.amounts, 'data-testid': 'notify-amounts', checked: s.amounts, disabled: !on });
+    const amounts = h('input', { type: 'checkbox', class: 'switch', role: 'switch', 'aria-label': NOTIFY_TEXT.amounts, 'data-testid': 'notify-amounts', checked: s.amounts });
     amounts.addEventListener('change', () => setNotify({ amounts: amounts.checked }));
     put(
       box,
@@ -120,12 +120,13 @@ export default function notifications(app) {
       h(
         'div',
         { class: 'card list' },
-        h('label', { class: 'row', 'data-testid': 'notify-master' }, h('span', { class: 'ico' }, icon('receive')), h('span', { class: 'main' }, h('div', { class: 't', text: NOTIFY_TEXT.title }), h('div', { class: 's wrap', 'data-testid': 'notify-sub', text: sub })), master),
+        h('label', { class: 'row', 'data-testid': 'notify-master' }, h('span', { class: 'ico' }, icon('bell')), h('span', { class: 'main' }, h('div', { class: 't', text: NOTIFY_TEXT.title }), h('div', { class: 's wrap', 'data-testid': 'notify-sub', text: sub })), master),
       ),
       h('p', { class: 'small settings-note', 'data-testid': 'notify-note', text: ios ? NOTIFY_TEXT.whereIos : NOTIFY_TEXT.whereOther }),
-      h('p', { class: 'section-title', text: 'Tell me about' }),
-      h('div', { class: 'card list', 'data-testid': 'notify-kinds' }, ...KINDS.map(kindRow)),
-      h('div', { class: 'card list' }, h('label', { class: 'row' }, h('span', { class: 'main' }, h('div', { class: 't', text: NOTIFY_TEXT.amounts }), h('div', { class: 's wrap', text: NOTIFY_TEXT.amountsSub })), amounts)),
+      // What to be told about: once they are on (switches under an Off would look on).
+      on ? h('p', { class: 'section-title', text: 'Tell me about' }) : null,
+      on ? h('div', { class: 'card list', 'data-testid': 'notify-kinds' }, ...KINDS.map(kindRow)) : null,
+      on ? h('div', { class: 'card list' }, h('label', { class: 'row' }, h('span', { class: 'main' }, h('div', { class: 't', text: NOTIFY_TEXT.amounts }), h('div', { class: 's wrap', text: NOTIFY_TEXT.amountsSub })), amounts)) : null,
       on
         ? secondary(NOTIFY_TEXT.test, async () => {
             const ok = await testNotification();

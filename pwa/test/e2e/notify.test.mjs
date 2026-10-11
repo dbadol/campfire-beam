@@ -137,7 +137,7 @@ test('a new wallet, synced; Settings → Notifications: off, asked only from the
   await waitScreen(page, 'notifications');
   assert.match(await page.textContent(tid('notify-sub')), /^Off/);
   assert.match(await page.textContent(tid('notify-note')), /in the background until it locks itself/);
-  assert.equal(await page.isDisabled(tid('notify-kind-in')), true, 'kinds wait for the switch');
+  assert.equal(await page.isVisible(tid('notify-kinds')), false, 'what to be told about shows once they are on');
   assert.equal(await page.isVisible(tid('notify-test')), false);
   // The switch is on screen on a 375 x 667 phone without scrolling.
   await page.setViewportSize({ width: 375, height: 667 });

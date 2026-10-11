@@ -264,12 +264,14 @@ export default function home(app) {
   const namesLine = namesHomeLine(app);
 
   // What happened while the person was away (lib/notify.js): one line until it is closed or seen.
-  const awayBox = h('div');
+  const awayBox = h('div', { class: 'hidden' });
   let awayShown = null;
   function renderAway() {
     const line = awayNow();
     if (line === awayShown) return;
     awayShown = line;
+    // Empty, it takes no room (the screen's gap included).
+    awayBox.classList.toggle('hidden', !line);
     if (!line) return put(awayBox);
     const close = () => {
       dismissAway();

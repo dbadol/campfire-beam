@@ -188,11 +188,11 @@ test('a new wallet, synced; Home has BEAM names and airdrop codes on the dApps l
     }
     const full = await overflow();
     console.log(`# Home, every row, 390x844: ${JSON.stringify(full)}`);
-    // 0.2.9 added the total with tokens under the balance and a value on each token row: 103 to 117 px
-    // measured (it was 68 with the dApps row alone). What varies is text: the sync line wraps to two or
-    // three lines by its block number and age, and a token's value line appears once its pool is priced.
+    // 0.2.9 added the total with tokens under the balance and a value on each token row: 103 px measured
+    // (it was 68 with the dApps row alone). 117 once, when the empty "While you were away" slot still took
+    // the screen's gap: that is what this bound catches. A little room for the sync line's text.
     // The one-time price question is answered above.
-    assert.ok(full.overflow <= 130, `no further than Home with its total and values (${full.overflow} px; 103 to 117 measured)`);
+    assert.ok(full.overflow <= 110, `no further than Home with its total and values (${full.overflow} px; 103 measured)`);
     await shots('home-02-every-row');
   } finally {
     // The next tests need the empty wallet's real balance, whatever happened here.
