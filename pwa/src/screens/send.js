@@ -17,6 +17,7 @@ import { parseAmount, formatAmount, toInputString } from '../lib/amount.js';
 import { wallet, sendModeFor } from '../lib/wallet.js';
 import { classifyRecipient, describeNameProblem, canReceivePayments, display, fingerprint, dateOf, holdEndHeight, STATUS, NAME_CALL_FEE } from '../lib/bans.js';
 import { bans, day } from './names.js';
+import { hiddenIds } from '../lib/hidden_tokens.js';
 
 /** How a payment to a name goes out: through BEAM's name vault, a contract call. */
 const NAME_MODE = { fee: NAME_CALL_FEE, label: 'Name payment' };
@@ -45,7 +46,9 @@ export default function send(app) {
 
   function assets() {
     const list = [[0, wallet.state.totals.get(0) || { available: 0n }]];
-    for (const [id, t] of wallet.state.totals) if (id !== 0 && t.available > 0n) list.push([id, t]);
+    // Tokens hidden from Wallet are left out, as in the desktop's pickers, unless it is the one chosen (its page's Send).
+    const hidden = hiddenIds(app);
+    for (const [id, t] of wallet.state.totals) if (id !== 0 && t.available > 0n && (!hidden.has(id) || id === Number(draft.assetId))) list.push([id, t]);
     return list;
   }
 

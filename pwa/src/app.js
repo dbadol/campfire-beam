@@ -47,6 +47,7 @@ import airdropCodes from './screens/airdrop_codes.js';
 import { installConsent } from './screens/consent.js';
 import { ETH_SCREENS } from './screens/eth_screens.js';
 import { BUY_SCREENS } from './screens/buy_screens.js';
+import { TOKEN_SCREENS } from './screens/token_screens.js';
 import { consentLog, contractsState } from './lib/contracts.js';
 
 const SCREENS = {
@@ -55,9 +56,10 @@ const SCREENS = {
   names, airdrop, airdropCreate, airdropBatches, airdropCodes,
   ...ETH_SCREENS,
   ...BUY_SCREENS,
+  ...TOKEN_SCREENS,
 };
 // Screens that need an unlocked, running wallet.
-const NEEDS_WALLET = new Set(['home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS)]);
+const NEEDS_WALLET = new Set(['home', 'send', 'review', 'txStatus', 'receive', 'activity', 'settings', 'nodeSettings', 'ownNode', 'changePassword', 'about', 'ownerKey', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'airdropCodes', ...Object.keys(ETH_SCREENS), ...Object.keys(BUY_SCREENS), ...Object.keys(TOKEN_SCREENS)]);
 
 const root = document.getElementById('app');
 
@@ -123,6 +125,11 @@ export const app = {
     window.scrollTo(0, 0);
     const focus = root.querySelector('[data-autofocus]');
     if (focus && canAutofocus()) focus.focus();
+  },
+
+  /** Whether this release has a screen called `name` (a feature built elsewhere may not be here yet). */
+  has(name) {
+    return Object.prototype.hasOwnProperty.call(SCREENS, name);
   },
 
   /** Back to the screen the person came from, or to `fallback` when there is none (after a reload or an unlock). */

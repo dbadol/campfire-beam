@@ -11,6 +11,8 @@
  *     file and password (it has no words here, and nothing offers to rebuild it from words).
  *   - "What if this app's address dies?" -> Check for updates also asks public copies of the
  *     release, and "Update from another address" takes any copy; both say the app keeps working.
+ *   - "Why are there no dollar values?" / "Where is the token I hid?" -> Tokens and prices: the CoinGecko
+ *     switch (it sees the IP address), the currency, and Hidden tokens.
  *   - "My balance is wrong / coins are missing" -> Rescan, for every wallet (restored, new or
  *     imported): it rebuilds the coins from BEAM's snapshot and keeps history and addresses.
  */
@@ -23,6 +25,7 @@ import { passkeyAvailable } from '../lib/passkey.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
 import { lastCheckText } from '../lib/update.js';
 import { runUpdateCheck, openOtherAddress } from '../lib/update_ui.js';
+import { tokenSettings } from './token_ui.js';
 
 export default function settings(app) {
   const row = (ico, title, sub, onclick, extra = {}) =>
@@ -89,6 +92,8 @@ export default function settings(app) {
       row('shield', 'IP privacy', 'Who can see your IP address', () => app.go('ipNotice'), { 'data-testid': 'ip-privacy' }),
       row('eth', 'Ethereum wallet', 'Server, privacy, backup', () => app.go('ethSettings'), { 'data-testid': 'eth-settings-row' }),
     ),
+    // Values in the person's currency (CoinGecko, only once allowed) and the tokens hidden from Wallet.
+    tokenSettings(app),
     h('p', { class: 'section-title', text: 'App' }),
     h(
       'div',
