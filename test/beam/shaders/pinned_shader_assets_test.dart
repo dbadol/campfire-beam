@@ -24,6 +24,7 @@ import 'package:stackwallet/wallets/beam/contracts/bridge/pipe_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/burn/blackhole_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/common/asset_shader_source.dart';
 import 'package:stackwallet/wallets/beam/contracts/common/pinned_shader.dart';
+import 'package:stackwallet/wallets/beam/contracts/dapps_store/dapps_store_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/dex/dex_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/minter/minter_constants.dart';
 import 'package:stackwallet/wallets/bridge/bridge_routes.dart';
@@ -37,6 +38,7 @@ List<PinnedShader> _pinned(ShaderSource source) => [
   blackHoleAppShader(source),
   pipeAppShader(BridgeShader.forward, source),
   pipeAppShader(BridgeShader.reverse, source),
+  dappsStoreAppShader(source),
 ];
 
 /// Records which asset keys were asked for, then defers to rootBundle.
@@ -60,7 +62,7 @@ void main() {
       () => Future.wait([for (final s in _pinned(source)) s.load()]),
     );
     final shaders = _pinned(source);
-    expect(loaded, hasLength(7));
+    expect(loaded, hasLength(8));
     for (var i = 0; i < shaders.length; i++) {
       final bytes = loaded![i];
       expect(bytes.length, shaders[i].size, reason: shaders[i].name);
@@ -78,6 +80,7 @@ void main() {
       kBlackHoleAppShaderName,
       kPipeAppShaderName,
       kPipeReverseAppShaderName,
+      kDappsStoreAppShaderName,
     ]);
   });
 
