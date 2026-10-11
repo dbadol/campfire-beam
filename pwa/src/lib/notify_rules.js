@@ -16,7 +16,7 @@
 //   out       money out: a payment sent; a payment that failed
 //   underway  a payment still under way when the person leaves the app, and its reminder
 //   contracts swaps, pools, tokens, names, airdrop codes: done or failed; a name about to expire
-//   moves     the bridge, Buy BEAM, NEAR swaps: when they finish or need the person
+//   moves     the bridge, and swaps from other coins: when they finish or need the person
 
 import { formatAmount } from './amount.js';
 import { isNews } from './payment_notice.js';
@@ -27,7 +27,7 @@ export const KIND_WORDS = Object.freeze({
   out: { title: 'Money out', sub: 'Payments sent, and any that failed' },
   underway: { title: 'Payments under way', sub: 'When you leave the app while a payment still needs it' },
   contracts: { title: 'Swaps, pools, tokens and names', sub: 'Done or failed; a name about to expire' },
-  moves: { title: 'Bridge, Buy and NEAR swaps', sub: 'When they finish or need you' },
+  moves: { title: 'Bridge, and paying with other coins', sub: 'A move ready to collect or done; a deposit address about to stop taking coins' },
 });
 
 /** Defaults: everything on once notifications are on. */
