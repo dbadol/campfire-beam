@@ -35,14 +35,17 @@ test("USD and BTC from the rate recorded with a payment, as BEAM's convertAmount
   assert.equal(convertAmount(150000000, 37, 8), '0.00000056', '8 places for BTC, rounded');
   assert.equal(convertAmount(150000000, 0, 2), '');
   assert.equal(convertAmount(150000000, undefined, 2), '');
+  assert.equal(rateOf({ rates: [{ from: 0, to: 'usd', rate: 4230000 }] }, 'usd'), 4230000, 'as the engine writes it: BEAM is asset 0');
   assert.equal(rateOf({ rates: [{ from: 'beam', to: 'usd', rate: 4230000 }] }, 'usd'), 4230000);
+  assert.equal(rateOf({ asset_id: 174, rates: [{ from: 0, to: 'usd', rate: 4230000 }, { from: 174, to: 'usd', rate: 9 }] }, 'usd'), 9, "a token payment: the token's own rate");
+  assert.equal(rateOf({ asset_id: 174, rates: [{ from: 0, to: 'usd', rate: 4230000 }] }, 'usd'), 0, "never BEAM's rate for a token");
   assert.equal(rateOf({}, 'usd'), 0);
 });
 
 test('the file: payments only, newest first, proofs, quoted comments, a BOM and CRLF', () => {
   const txs = [
     tx('old', { create_time: 1700000000 }),
-    tx('new', { income: false, status_string: 'sent', value: 120000000, fee: 1100000, tx_type: 7, comment: 'rent, October', sender_identity: 'id-s', receiver_identity: 'id-r', token: 'tok', create_time: 1760000000, rates: [{ from: 'beam', to: 'usd', rate: 4230000 }] }),
+    tx('new', { income: false, status_string: 'sent', value: 120000000, fee: 1100000, tx_type: 7, comment: 'rent, October', sender_identity: 'id-s', receiver_identity: 'id-r', token: 'tok', create_time: 1760000000, rates: [{ from: 0, to: 'usd', rate: 4230000 }] }),
     tx('swap', { tx_type: 12 }),
     tx('fomo', { asset_id: 174, value: 56812970000, create_time: 1750000000, kernel: '0'.repeat(64) }),
   ];

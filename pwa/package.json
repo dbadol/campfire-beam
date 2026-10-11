@@ -64,7 +64,8 @@
     "e2e:live:wallet-data-big": "node tools/stage_engine.mjs && node tools/build.mjs && node test/e2e/live_wallet_data_big.mjs",
     "e2e:notify": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/notify.test.mjs",
     "e2e:theme": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/theme.test.mjs",
-    "e2e:tx-csv": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/tx_csv.test.mjs"
+    "e2e:tx-csv": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/tx_csv.test.mjs",
+    "e2e:live:tx-csv": "node tools/stage_engine.mjs && node test/e2e/live_tx_csv.mjs"
   },
   "devDependencies": {
     "jsqr": "1.4.0",

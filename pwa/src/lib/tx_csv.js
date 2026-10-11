@@ -61,10 +61,15 @@ export function convertAmount(groth, rate, places) {
   return `${whole}.${frac}`;
 }
 
-/** The rate the engine recorded with a payment for a currency ('usd', 'btc'), in groth units, or 0. */
+/**
+ * The rate the engine recorded with a payment (tx_list with rates: true) from the payment's own asset
+ * to a currency ('usd', 'btc'), in groth units, or 0 (TxDescription::getExchangeRate). The engine
+ * writes an asset as its number (BEAM is 0) and a currency by name.
+ */
 export function rateOf(tx, to) {
   const list = Array.isArray(tx && tx.rates) ? tx.rates : [];
-  const r = list.find((x) => x && String(x.from).toLowerCase() === 'beam' && String(x.to).toLowerCase() === to);
+  const asset = Number(tx && tx.asset_id) || 0;
+  const r = list.find((x) => x && (Number(x.from) === asset || (asset === 0 && String(x.from).toLowerCase() === 'beam')) && x.from !== '' && x.from !== null && String(x.to).toLowerCase() === to);
   return r ? r.rate : 0;
 }
 
@@ -113,7 +118,8 @@ export async function readAllTxs(session, { pageSize = 500, maxPages = 200 } = {
   const out = [];
   const seen = new Set();
   for (let i = 0; i < maxPages; i++) {
-    const page = await session.call('tx_list', { count: pageSize, skip: i * pageSize }, { timeoutMs: 60000 });
+    // rates: the exchange rates BEAM's signed broadcasts gave the wallet when each payment was made.
+    const page = await session.call('tx_list', { count: pageSize, skip: i * pageSize, rates: true }, { timeoutMs: 60000 });
     const list = Array.isArray(page) ? page : [];
     for (const t of list) {
       if (t && !seen.has(t.txId)) {
