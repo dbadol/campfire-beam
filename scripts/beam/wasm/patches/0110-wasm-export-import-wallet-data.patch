@@ -1,0 +1,131 @@
+Campfire wasm patch 0110: export and import wallet data (issue #55).
+
+The 12 words (or wallet.db) bring back the coins, but not address labels,
+notes, contacts or the transaction history. BEAM's desktop wallet and CLI
+move those with a JSON file: storage::ExportDataToJson / ImportDataFromJson
+(own addresses with labels, contacts, transaction parameters). The wasm
+client did not expose them.
+
+This adds WasmWalletClient.exportData(cb) and importData(json, cb) on a
+running wallet. Each runs on the wallet thread, which owns the database, and
+calls back on the main thread: exportData -> cb(json) or cb(null);
+importData -> cb(true|false). The callbacks are held in a map on the main
+thread (a val must not be released on another one) and dropped if the client
+object was deleted first. The file holds no keys and no coins.
+
+--- a/wasmclient/wasmclient.cpp
++++ b/wasmclient/wasmclient.cpp
+@@ -588,6 +588,95 @@
+         });
+     }
+ 
++    // Campfire (wasm patch 0110): wallet data to and from a file, as BEAM's desktop wallet and
++    // CLI do (storage::ExportDataToJson / ImportDataFromJson): own addresses with their labels,
++    // contacts, and the transaction history. No keys and no coins: the 12 words or wallet.db stay
++    // the backup; this moves names, notes and history to another wallet of the same seed.
++    // Runs on the wallet thread, which owns the database; cb on the main thread.
++    // exportData: cb(json) or cb(null). importData: cb(true|false).
++    void ExportData(val cb)
++    {
++        AssertMainThread();
++        if (!m_Client || !m_Client->isRunning())
++        {
++            cb(val::null());
++            return;
++        }
++        const uint32_t id = ++m_DataRequests;
++        m_DataCallbacks.emplace(id, std::move(cb));
++        std::weak_ptr<int> alive = m_Alive;
++        m_Client->getAsync()->makeIWTCall([client = m_Client.get()]() -> boost::any
++        {
++            std::string json;
++            try
++            {
++                auto db = client->GetWalletDB();
++                if (db)
++                    json = storage::ExportDataToJson(*db);
++            }
++            catch (const std::exception&)
++            {
++                json.clear();
++            }
++            return boost::any(std::move(json));
++        },
++        [this, alive, id](const boost::any& res)
++        {
++            if (alive.expired())
++                return;
++            auto it = m_DataCallbacks.find(id);
++            if (it == m_DataCallbacks.end())
++                return;
++            val cb = std::move(it->second);
++            m_DataCallbacks.erase(it);
++            auto* json = boost::any_cast<std::string>(&const_cast<boost::any&>(res));
++            if (json && !json->empty())
++                cb(*json);
++            else
++                cb(val::null());
++        });
++    }
++
++    void ImportData(const std::string& data, val cb)
++    {
++        AssertMainThread();
++        if (!m_Client || !m_Client->isRunning() || data.empty())
++        {
++            cb(false);
++            return;
++        }
++        const uint32_t id = ++m_DataRequests;
++        m_DataCallbacks.emplace(id, std::move(cb));
++        std::weak_ptr<int> alive = m_Alive;
++        m_Client->getAsync()->makeIWTCall([client = m_Client.get(), data]() -> boost::any
++        {
++            bool ok = false;
++            try
++            {
++                auto db = client->GetWalletDB();
++                if (db)
++                    ok = storage::ImportDataFromJson(*db, data.data(), data.size());
++            }
++            catch (const std::exception&)
++            {
++                ok = false;
++            }
++            return boost::any(ok);
++        },
++        [this, alive, id](const boost::any& res)
++        {
++            if (alive.expired())
++                return;
++            auto it = m_DataCallbacks.find(id);
++            if (it == m_DataCallbacks.end())
++                return;
++            val cb = std::move(it->second);
++            m_DataCallbacks.erase(it);
++            const bool* ok = boost::any_cast<bool>(&const_cast<boost::any&>(res));
++            cb(ok && *ok);
++        });
++    }
++
+     void ExecuteAPIRequest(const std::string& request)
+     {
+         AssertMainThread();
+@@ -1197,6 +1286,8 @@
+     // Campfire (wasm patch 0106): exportOwnerKey callbacks, main thread only.
+     std::map<uint32_t, val> m_OwnerKeyCallbacks;
+     uint32_t m_OwnerKeyRequests = 0;
++    std::map<uint32_t, val> m_DataCallbacks; // Campfire (wasm patch 0110)
++    uint32_t m_DataRequests = 0;
+     std::shared_ptr<int> m_Alive = std::make_shared<int>(0);
+ };
+ 
+@@ -1235,6 +1326,8 @@
+         .function("importRecovery", &WasmWalletClient::ImportRecovery)
+         .function("importRecoveryFromFile", &WasmWalletClient::ImportRecoveryFromFile)
+         .function("exportOwnerKey", &WasmWalletClient::ExportOwnerKey) // Campfire: wasm patch 0106
++        .function("exportData", &WasmWalletClient::ExportData) // Campfire: wasm patch 0110
++        .function("importData", &WasmWalletClient::ImportData) // Campfire: wasm patch 0110
+         .class_function("IsAppSupported", &WasmWalletClient::IsAppSupported)
+         .class_function("GenerateAppID", &WasmWalletClient::GenerateAppID)
+         .class_function("GeneratePhrase", &WasmWalletClient::GeneratePhrase)
