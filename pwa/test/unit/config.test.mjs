@@ -176,6 +176,10 @@ test('no source file reaches out to another origin', () => {
       // BEAM's explorer page of a transaction, a plain link the person taps in a payment's
       // details (the app fetches nothing from it): that one address, only in this file.
       if (f.endsWith(join('lib', 'payments.js')) && u === 'https://explorer.beam.mw/block?kernel_id=') continue;
+      // A DApp Store publisher's website and profiles, links the person taps on the publisher's
+      // page (opened outside the app; the app fetches nothing from them): the scheme put in front of
+      // a website written without one, and one profile address per network, only in this file.
+      if (f.endsWith(join('lib', 'dapps', 'store.js')) && ['https://${s}', 'https://x.com/${h}', 'https://t.me/${h}', 'https://www.instagram.com/${h}', 'https://www.linkedin.com/in/${h}'].includes(u)) continue;
       offenders.push(`${f.slice(pwa.length)}: ${u}`);
     }
   }
