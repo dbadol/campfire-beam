@@ -39,6 +39,10 @@ certutil -hashfile BEAM-Campfire-<version>-windows-x86_64.zip SHA256   # Windows
   More info → Run anyway.
 - It installs beside the original Campfire as its own app, "BEAM Campfire" (app id
   `com.vsnation.campfirebeam`), and never touches Campfire or its data.
+- **Web, any browser and iPhone:** open https://pwa.buybeam.my/ (the same signed build is also at
+  https://vsnation.github.io/beam-campfire-pwa/). On iPhone: Share → Add to Home Screen. It runs the
+  BEAM wallet on your device, checks every file against its signed release, and keeps working when
+  the site is gone. Its releases are tagged `web-v…`, with the signed files attached.
 
 ## Screenshots
 
@@ -151,7 +155,7 @@ environment through Tor, every state to delivery.
 - [ ] iOS on the App Store (runs on the iOS Simulator today)
 - [x] The BEAM core and the private node inside the app (no wallet-api or beam-node programs)
 - [x] Tor for every connection when switched on; import from wallet.db
-- [ ] iOS web app (PWA) — built and tested in the iOS Simulator; needs its own domain to go online
+- [x] Web wallet (PWA) for any browser and iPhone's Home Screen, online at pwa.buybeam.my
 
 **Release 2**
 - [x] Ethereum: ETH and ERC-20 tokens, with **WBEAM** as a default token
