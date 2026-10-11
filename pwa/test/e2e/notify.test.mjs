@@ -189,6 +189,12 @@ test('leaving the app: payments under way said at once, reminders stored; change
   });
   await page.waitForFunction(() => window.__shown.length >= 2, null, { timeout: 15000 });
   assert.deepEqual((await shown()).sort(), ['A payment to you is arriving', 'Your payment is still on its way']);
+  // Back and away again: said once per payment.
+  await page.evaluate(() => window.__setHidden(false));
+  await sleep(300);
+  await page.evaluate(() => window.__setHidden(true));
+  await sleep(1000);
+  assert.equal((await shown()).length, 2, 'not said again');
   // Stored once the private coins are read (a moment after leaving).
   await until(async () => {
     const { rawStore } = await import('./lib/store.js');
@@ -205,12 +211,20 @@ test('leaving the app: payments under way said at once, reminders stored; change
   await put({ txId: hex('b1'), status: 3 }, { txId: hex('d1'), status: 4 });
   await put({ txId: hex('c1'), status: 4 }, { txId: hex('a3'), income: true, status: 3, value: 100000000 });
   await page.waitForFunction(() => window.__shown.length >= 6, null, { timeout: 15000 });
+  // Both payments ended while away: their "still waiting" reminders are gone before the person is back.
+  await until(async () => {
+    const { rawStore } = await import('./lib/store.js');
+    const keys = (await rawStore.keys('w:')).filter((k) => k.endsWith(':notify-reminders'));
+    let n = 0;
+    for (const k of keys) n += ((await rawStore.get(k)) || []).filter((r) => r.id.startsWith('rem-arr-')).length;
+    return n === 0;
+  }, null, { label: 'the reminders of payments that ended dropped' });
   const titles = (await shown()).slice(2);
   assert.ok(titles.includes('Sent 0.2 BEAM'), titles.join(' | '));
   assert.ok(titles.includes('Received 1 BEAM'), titles.join(' | '));
   assert.ok(titles.some((t) => /: did not go through$/.test(t)), 'the contract call');
   assert.ok(titles.includes('A payment of 0.3 BEAM to you did not go through'), titles.join(' | '));
-  assert.equal(await page.evaluate(() => window.__badge), 7, 'one for the payment earlier, two on leaving, four while away');
+  assert.equal(await page.evaluate(() => window.__badge), 4, 'the four changes since the person last came back (coming back clears it)');
   // Back: the badge is cleared, reminders about payments under way go.
   await page.evaluate(() => {
     window.__front = true;

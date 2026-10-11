@@ -40,7 +40,8 @@ let bannerFn = null; // screens/payment_notices.js showBanner (the banner over a
 // not read, so the reminders stored for them earlier are kept as they are.
 let names = null;
 let near = null;
-let timers = [];
+let timers = new Map(); // reminder id -> timeout, while the page runs in the background
+let toldLeaving = new Set(); // payments already said "under way" in this run
 let unseen = 0;
 let appRef = null;
 
@@ -238,8 +239,23 @@ async function askForWakeUps() {
 }
 
 function clearTimers() {
-  for (const t of timers) clearTimeout(t);
-  timers = [];
+  for (const t of timers.values()) clearTimeout(t);
+  timers = new Map();
+}
+
+/** A payment that ended: its "still waiting" reminder goes, here and on disk. */
+async function dropPaymentReminder(app, txId) {
+  const id = `rem-arr-${txId}`;
+  if (timers.has(id)) {
+    clearTimeout(timers.get(id));
+    timers.delete(id);
+  }
+  try {
+    const list = await readReminders(app);
+    if (list.some((r) => r && r.id === id)) await rawStore.set(remindersKey(app), list.filter((r) => r && r.id !== id));
+  } catch {
+    /* sw.js shows nothing for it once the page says so on return */
+  }
 }
 
 /** While the page still runs in the background: each reminder on time, then forgotten. */
@@ -248,8 +264,10 @@ function armTimers(app, list) {
   for (const r of list) {
     const ms = r.at - Date.now();
     if (ms < 0 || ms > 2 ** 31 - 1) continue;
-    timers.push(
+    timers.set(
+      r.id,
       setTimeout(async () => {
+        timers.delete(r.id);
         if (inFront() || !allowed(app, r.kind)) return;
         if (!(await showSystem({ title: r.title, body: r.body, tag: r.id, url: r.url }))) return;
         stats.reminders++;
@@ -325,6 +343,7 @@ export function installNotify(app) {
       watch.reset();
       run.reset();
       summarised = false;
+      toldLeaving = new Set();
       names = null;
       near = null;
       away = null;
@@ -349,6 +368,7 @@ export function installNotify(app) {
     }
     const events = watch.update(s.txs, s.txsLoaded === true, live).filter((e) => !(e.type === 'sent' && isSplitTx(e.tx)));
     if (!events.length) return;
+    for (const e of events) if (e.tx) dropPaymentReminder(app, e.tx.txId);
     // In the app, the banner tells what the person did not do themselves (money in, a failure); a
     // payment they sent or a swap has its own status screen. Out of it, each is a notification,
     // and many at once are one.
@@ -370,7 +390,12 @@ export function installNotify(app) {
       }
       if (!app.dbPass || !wallet.session || !wallet.state.running) return;
       // Leaving: what still needs the app, at once; the statuses for the summary; reminders for later.
-      for (const ev of leavingEvents(wallet.state.txs)) tell(app, ev, { banner: false });
+      for (const ev of leavingEvents(wallet.state.txs)) {
+        // Once per payment and run: going back and forth does not say it again.
+        if (toldLeaving.has(ev.tx.txId)) continue;
+        toldLeaving.add(ev.tx.txId);
+        tell(app, ev, { banner: false });
+      }
       saveSnapshot(app);
       armTimers(app, await leaveReminders(app));
     });
