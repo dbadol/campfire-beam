@@ -382,8 +382,8 @@ test('a small phone (375x667): each sheet’s main button is on screen without s
   await shot(page, 'data-11-ready-375');
   await page.click('.sheet .btn-text');
 
-  // More history than the engine can export in one piece (no wasm patch 0111 in this engine): said
-  // before anything is tried, with the way that works, and the wallet keeps running.
+  // More history than the engine could export in one piece: with wasm patch 0111 (in this engine)
+  // it is saved in pages, and the file is offered; the wallet keeps running.
   const n = await page.evaluate(async () => {
     const { wallet } = await import('./lib/wallet.js');
     const s = wallet.session;
@@ -401,11 +401,11 @@ test('a small phone (375x667): each sheet’s main button is on screen without s
   await page.click(tid('data-save'));
   await page.fill(tid('auth-pw'), PASSWORD);
   await page.click(tid('auth-submit'));
-  await page.waitForSelector(tid('data-export-problem'), { timeout: 60000 });
-  assert.match(await page.textContent(tid('data-export-problem')), /more history than BEAM Campfire can put in one file on this device yet.*Export wallet\.db/);
-  await shot(page, 'data-12-too-big-375');
-  assert.equal(await page.evaluate(() => window.__campfire.running()), true, 'the engine was not asked, so it is still running');
-  await page.click('.sheet .btn-primary');
+  await page.waitForSelector(`${tid('data-save-file')}, ${tid('data-export-problem')}`, { timeout: 120000 });
+  assert.equal(await page.isVisible(tid('data-export-problem')), false, 'a long history is saved in pages (0111), not refused');
+  await shot(page, 'data-12-long-history-375');
+  assert.equal(await page.evaluate(() => window.__campfire.running()), true, 'the wallet keeps running');
+  await page.click('.sheet .btn-text').catch(() => page.keyboard.press('Escape'));
 
   // A file larger than the engine can read at once (14.7 MB stopped it, measured) goes in, in pieces.
   const base = JSON.parse(await page.evaluate(async () => (await import('./lib/wallet.js')).wallet.session.exportData()));
