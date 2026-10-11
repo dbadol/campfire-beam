@@ -191,7 +191,7 @@ export default function nameDetail(app, params = {}) {
     msg = null;
     render();
     try {
-      await bans().setPrice(name, state.res.domain.salePrice.assetId, 0n);
+      await bans().setPrice(name, state.res.domain.salePrice.assetId, 0n, { words: { rows: [['Name', display(name)], ['Price', 'Not for sale']], notes: [`Nobody can buy ${name} after this.`] } });
       if (!alive) return;
       pending.set(name, { kind: 'unlist', at: Date.now() });
       toast(`${display(name)} comes off sale once the network confirms it, usually within 2 minutes.`, 5000);

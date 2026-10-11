@@ -101,7 +101,13 @@ export default function nameSell(app, params = {}) {
     const aid = assetId;
     const price = amount;
     try {
-      await bans().setPrice(name, aid, price);
+      const until = res && res.domain ? day(dateOf(res.domain.expireHeight, res)) : null;
+      await bans().setPrice(name, aid, price, {
+        words: {
+          rows: [['Name', display(name)], ['Price', `${formatAmount(price)} ${wallet.label(aid).unit}`], until ? ['The buyer gets', `${name} until about ${until}`] : null].filter(Boolean),
+          notes: [`Anyone can buy ${name} at this price at any moment, without asking you. The payment waits for you under BEAM names, where you claim it.`],
+        },
+      });
       if (!alive) return;
       pending.set(name, { kind: 'sell', at: Date.now(), assetId: aid, amount: price });
       busy = false;

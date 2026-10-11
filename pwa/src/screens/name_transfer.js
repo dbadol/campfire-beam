@@ -1,13 +1,14 @@
 /* Transfer a name
  * Spec: ONE job: give this name to another wallet: exactly the one whose name key its owner gave you.
- *       Primary CTA: "Transfer alice" (then the approve sheet, which shows the key's 16 characters again).
- *       Taps from app open: Names (1) -> alice (2) -> Transfer (3) -> Paste (4) -> tick (5) -> "Transfer alice" (6),
- *       then approve. Long on purpose: it gives away a name worth $10-$320 a year and cannot be undone.
+ *       Primary CTA: "Transfer alice" (then the approve sheet: the key's 16 characters again, and a tick that
+ *       they were checked before its button works).
+ *       Taps from app open: Names (1) -> alice (2) -> Transfer (3) -> Paste (4) -> "Transfer alice" (5) -> tick and
+ *       approve. Long on purpose: it gives away a name worth $10-$320 a year and cannot be undone.
  * Exit-intent reasons and answers:
  *   - "Where do I get the key?" -> the first line: the receiving wallet shows it under BEAM names ->
  *     Receive a name.
  *   - "Did I paste the right thing?" -> 16 characters of the key (64 bits), large, to read out and compare
- *     with the other wallet; the button stays off until the box saying so is ticked.
+ *     with the other wallet; the approve sheet's button stays off until the box saying so is ticked.
  *   - "Can I undo it?" -> no, and that is said before the button, with what goes with it (the time left).
  *   - "What does it cost?" -> only the network fee, 0.011 BEAM.
  */
@@ -27,7 +28,6 @@ export default function nameTransfer(app, params = {}) {
   let keyError = null;
   let myKey = null;
   let res = null;
-  let checked = false;
   let busy = false;
   let msg = null;
   let alive = true;
@@ -42,7 +42,6 @@ export default function nameTransfer(app, params = {}) {
     const t = input.value.trim();
     key = null;
     keyError = null;
-    checked = false;
     msg = null;
     if (!t) return render();
     try {
@@ -62,7 +61,6 @@ export default function nameTransfer(app, params = {}) {
     if (res && (!res.domain || res.ownerKey !== myKey)) return `${display(name)} is not in this wallet.`;
     if (res && res.status === STATUS.availableAgain) return 'An expired name cannot be transferred until it is registered again.';
     if (!key) return `Paste the key of the wallet that should get ${name}.`;
-    if (!checked) return 'Tick the box once all 16 characters match.';
     if (!wallet.state.sync.canSend) return `Transferring is paused: ${wallet.state.sync.title.toLowerCase().replace(/[.…]+$/, '')}.`;
     if (wallet.available(0) < NAME_CALL_FEE) return `You need ${formatAmount(NAME_CALL_FEE)} BEAM for the network fee. You have ${formatAmount(wallet.available(0))} BEAM.`;
     return null;
@@ -87,20 +85,6 @@ export default function nameTransfer(app, params = {}) {
             h('p', { class: 'small', text: 'New owner' }),
             h('p', { class: 'check-code mono', 'data-testid': 'transfer-check', text: checkCode(key) }),
             h('p', { class: 'small', text: "Read all 16 characters to the receiving wallet's owner. Their Receive a name screen shows the same ones. If even one differs, stop: the key you pasted is not theirs." }),
-            h(
-              'label',
-              { class: 'check-row' },
-              h('input', {
-                type: 'checkbox',
-                'data-testid': 'transfer-checked',
-                checked,
-                onchange: (ev) => {
-                  checked = ev.target.checked;
-                  render();
-                },
-              }),
-              h('span', { text: 'I checked all 16 characters with the new owner' }),
-            ),
           )
         : null,
     );
@@ -130,7 +114,14 @@ export default function nameTransfer(app, params = {}) {
     msg = null;
     render();
     try {
-      await bans().setOwner(name, key);
+      const until = res && res.domain ? day(dateOf(res.domain.expireHeight, res)) : null;
+      await bans().setOwner(name, key, {
+        words: {
+          rows: [['Name', display(name)], ['New owner', checkCode(key)]],
+          warn: `This can't be undone. Only the new owner can give ${name} back.${until ? ` Its time left (until about ${until}) goes with it.` : ''}`,
+          ack: 'I checked all 16 characters with the new owner',
+        },
+      });
       if (!alive) return;
       pending.set(name, { kind: 'transfer', at: Date.now() });
       busy = false;

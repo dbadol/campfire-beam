@@ -72,6 +72,17 @@ export function amountsText(totals, fmt, unit) {
   return orderedIds(totals).map((id) => `${fmt(totals.get(id))} ${unit(id)}`).join(' + ');
 }
 
+/** What the balance gains once a claim confirms: "+2.489 BEAM", "+1,000 FOMO, −0.011 BEAM" (the fee taken from BEAM). */
+export function balanceChange(receives, fee, fmt, unit) {
+  const ids = orderedIds(receives);
+  const beamNet = (receives.get(0) || 0n) - fee;
+  const change = [];
+  if (beamNet > 0n) change.push(`+${fmt(beamNet)} BEAM`);
+  for (const id of ids) if (id !== 0) change.push(`+${fmt(receives.get(id))} ${unit(id)}`);
+  if (beamNet < 0n) change.push(`−${fmt(-beamNet)} BEAM`);
+  return change.length ? change.join(', ') : '0 BEAM';
+}
+
 /** The Home line: { lead, amounts }, or null when nothing waits or this engine cannot see it. */
 export function namePaymentsText(summary, fmt, unit) {
   if (!summary || summary.visibility !== VISIBILITY.visible || isEmpty(summary) || !summary.totals.size) return null;
@@ -95,12 +106,6 @@ export function claimText({ summary, advice, canSpend, built = null, fmt, unit }
   const feeGroth = built ? built.fee : CLAIM_FEE;
   const fee = `${fmt(feeGroth)} BEAM`;
   const beamWaiting = summary.totals.get(0) || 0n;
-  // The fee comes out of BEAM, so the BEAM line is net; gains first.
-  const beamNet = (totals.get(0) || 0n) - feeGroth;
-  const change = [];
-  if (beamNet > 0n) change.push(`+${fmt(beamNet)} BEAM`);
-  for (const id of ids) if (id !== 0) change.push(`+${fmt(totals.get(id))} ${unit(id)}`);
-  if (beamNet < 0n) change.push(`−${fmt(-beamNet)} BEAM`);
 
   let feeNote;
   if (beamWaiting >= feeGroth) feeNote = 'Pays its own fee: it comes out of the BEAM you are claiming, so this works even with an empty wallet.';
@@ -126,7 +131,8 @@ export function claimText({ summary, advice, canSpend, built = null, fmt, unit }
     receive,
     from: names.length ? names.join(', ') : null,
     fee,
-    balanceChange: change.length ? change.join(', ') : '0 BEAM',
+    // The fee comes out of BEAM, so the BEAM line is net; gains first.
+    balanceChange: balanceChange(totals, feeGroth, fmt, unit),
     feeNote,
     warning,
     blocker,

@@ -18,6 +18,8 @@
 //
 //   bindSession(session)        lib/wallet.js, once per unlocked session: registers
 //                               the engine's two approve handlers.
+//   settleApps({ timeoutMs })   lib/wallet.js, before the engine stops: refuses new calls,
+//                               withdraws consents, waits for the engine to answer what apps sent.
 //   unbindSession()             lib/wallet.js, before the engine stops: rejects every
 //                               pending consent and call, closes every app.
 //   setConsentPresenter(fn)     fn(req) -> Promise<boolean>; returns an unset function.
@@ -313,6 +315,7 @@ class App {
   /** Any wallet API method through this app. */
   call(method, params, { timeoutMs = null, expect = null, intent = null, [INTERNAL]: internal = false } = {}) {
     if (this.closed) return Promise.reject(new ContractError(bound === this.b ? 'closed' : 'locked', bound === this.b ? 'This app was closed.' : 'The wallet is locked.'));
+    if (this.b.closing) return Promise.reject(new ContractError('locked', 'The wallet is locked.'));
     // The privileged app takes only what view() and transact() send, after their checks.
     if (this.privilege && !internal) return Promise.reject(new ContractError('unexpected', 'This part of the wallet only runs BEAM names. Nothing was sent.'));
     const spend = SPEND_METHODS.has(method);
@@ -454,7 +457,7 @@ function onConsent(b, kind, request, infoText, amountsText, cb) {
     }
   };
 
-  if (bound !== b) return decide(false, 'locked');
+  if (bound !== b || b.closing) return decide(false, 'locked');
   let rpcId;
   try {
     rpcId = JSON.parse(request).id;
@@ -523,6 +526,25 @@ export function bindSession(session) {
   b.client.setApproveSendHandler((request, info, cb) => onConsent(b, 'send', request, info, null, cb));
 }
 
+/**
+ * Before the engine stops (lib/wallet.js stop): new calls through any app are refused, every
+ * pending consent is withdrawn, and this waits, at most timeoutMs, until the engine has answered
+ * every request already sent through an app. unbindSession() then releases the apps' handles.
+ * Releasing a handle while the engine still ran a request through it (a lock half a second after
+ * typing an amount on Swap or a pool, its quote in flight) made the engine's answer reach a freed
+ * handle - "Cannot read properties of undefined (reading 'refcount')" - and the next unlock never
+ * synced (measured: 1 lock in 4).
+ */
+export async function settleApps({ timeoutMs = 5000 } = {}) {
+  const b = bound;
+  if (!b) return;
+  b.closing = true;
+  for (const c of [...b.consents]) c.withdraw('locked');
+  const busy = () => [...b.apps, ...b.draining].some((a) => a.unanswered.size > 0);
+  const t0 = Date.now();
+  while (bound === b && busy() && Date.now() - t0 < timeoutMs) await new Promise((r) => setTimeout(r, 20));
+}
+
 /** Before the engine stops: every pending consent is rejected, every app closed. */
 export function unbindSession() {
   const b = bound;
@@ -557,6 +579,7 @@ function cleanName(s) {
 async function open({ appName, appUrl = '', appId = null, unchecked = false }, native, privilege = 0) {
   const b = bound;
   if (!b) throw new ContractError('no_wallet', 'Unlock the wallet first.');
+  if (b.closing) throw new ContractError('locked', 'The wallet is locked.');
   const name = cleanName(appName);
   if (!name) throw new ContractError('open', 'An app needs a name.');
   if (!native && name.toLowerCase().replace(/\s+/g, ' ') === NATIVE_APP_NAME.toLowerCase()) throw new ContractError('open', 'That name belongs to the wallet itself.');

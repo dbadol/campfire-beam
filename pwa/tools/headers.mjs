@@ -71,7 +71,10 @@ export const SECURITY_HEADERS = {
   'Content-Security-Policy': CSP,
   'Referrer-Policy': 'no-referrer',
   'X-Content-Type-Options': 'nosniff',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()',
+  // camera=(self): Send's Scan reads an address QR code with the camera (lib/qr_scan.js), in
+  // this page only; dApp frames keep camera=() (lib/dapps/frame_policy.js) and are sandboxed
+  // into an opaque origin, which 'self' never matches.
+  'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()',
 };
 
 // The loader (sw-<hash>.js) is a worker, not a page: the policy on ITS response

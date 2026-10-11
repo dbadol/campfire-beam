@@ -654,7 +654,7 @@ export function createBans(deps) {
      * Gives `name` to the wallet whose name key is `newOwnerKey`. Owner only; no
      * funds move, only the network fee. The kernel must name this key and this name.
      */
-    async setOwner(name, newOwnerKey, { onBuilt = null } = {}) {
+    async setOwner(name, newOwnerKey, { words = {}, onBuilt = null } = {}) {
       checkedName(name);
       const to = requireKey(newOwnerKey);
       const { key } = await ownedNow(name, 'transferred');
@@ -662,7 +662,7 @@ export function createBans(deps) {
       const a = args.setOwner(name, to);
       let built = null;
       const txId = await svc.transact(a, {
-        intent: { action: 'nameTransfer', name, newOwnerKey: to, checkCode: checkCode(to) },
+        intent: { ...words, action: 'nameTransfer', name, newOwnerKey: to, checkCode: checkCode(to) },
         inspect: (raw) => {
           const d = readContractTx(raw);
           const e = singleEntry(d, BANS_CID, METHOD.setOwner, fail);
@@ -682,7 +682,7 @@ export function createBans(deps) {
      * Lists `name` for `amount` of `assetId`; 0 takes it off sale. Owner only; no
      * funds move. Anyone can then buy it at that price at once.
      */
-    async setPrice(name, assetId, amount, { onBuilt = null } = {}) {
+    async setPrice(name, assetId, amount, { words = {}, onBuilt = null } = {}) {
       checkedName(name);
       const price = BigInt(amount);
       const { res } = await ownedNow(name, price === 0n ? 'taken off sale' : 'sold');
@@ -692,7 +692,7 @@ export function createBans(deps) {
       const a = args.setPrice(name, assetId, price);
       let built = null;
       const txId = await svc.transact(a, {
-        intent: price === 0n ? { action: 'nameUnlist', name } : { action: 'nameSell', name, assetId, amount: price },
+        intent: price === 0n ? { ...words, action: 'nameUnlist', name } : { ...words, action: 'nameSell', name, assetId, amount: price },
         inspect: (raw) => {
           const d = readContractTx(raw);
           const e = singleEntry(d, BANS_CID, METHOD.setPrice, fail);
@@ -714,7 +714,7 @@ export function createBans(deps) {
      * (expectedPrice {assetId, amount}); the name moves to this wallet's key with
      * the time left on it. A price changed since then is refused before signing.
      */
-    async buy(name, { expectedPrice = null, untilText = null, onBuilt = null } = {}) {
+    async buy(name, { expectedPrice = null, words = {}, onBuilt = null } = {}) {
       checkedName(name);
       const res = await svc.resolve(name);
       const key = await svc.myKey();
@@ -727,7 +727,7 @@ export function createBans(deps) {
       const a = args.buy(name);
       let built = null;
       const txId = await svc.transact(a, {
-        intent: { action: 'nameBuy', name, untilText },
+        intent: { ...words, action: 'nameBuy', name },
         inspect: (raw) => {
           const d = readContractTx(raw);
           const e = singleEntry(d, BANS_CID, METHOD.buy, fail);
@@ -751,20 +751,23 @@ export function createBans(deps) {
 
     /**
      * Claims up to 30 waiting payments and sale proceeds in one transaction
-     * (privilege 1). intent: extra words for the approve sheet (names, notes).
+     * (privilege 1). words(built): the approve sheet's extra words, from what was
+     * built (rows, notes: screens/consent.js intentExtras), or a plain object.
      */
-    async claimAll({ intent = {}, onBuilt = null } = {}) {
+    async claimAll({ words = null, onBuilt = null } = {}) {
       if (!deps.transactPrivileged) throw unsupported();
       const p = await svc.params();
       const key = await svc.myKey();
       let built = null;
+      const intent = { action: 'nameClaim' };
       const txId = await svc.transact(args.receiveAll(), {
         privileged: true,
-        intent: { ...intent, action: 'nameClaim' },
+        intent,
         inspect: (raw) => {
           const d = readContractTx(raw, { allowAdvanced: true });
           claimEntries(d, p.vaultCid, key);
           built = { pays: d.pays, receives: d.receives, fee: d.fee, count: d.entries.length };
+          Object.assign(intent, typeof words === 'function' ? words(built) : words || {}, { action: 'nameClaim' });
           if (onBuilt) onBuilt(built);
         },
         expect: consentExpectation(() => built),
@@ -776,16 +779,18 @@ export function createBans(deps) {
      * Claims what names this wallet sold earned in `assetId` (privilege 0: works
      * where the inbox cannot be read). A shader "no funds" means nothing waits.
      */
-    async claimSaleProceeds(assetId, { intent = {}, onBuilt = null } = {}) {
+    async claimSaleProceeds(assetId, { words = null, onBuilt = null } = {}) {
       const p = await svc.params();
       const key = await svc.myKey();
       let built = null;
+      const intent = { action: 'nameClaim' };
       const txId = await svc.transact(args.receive({ assetId }), {
-        intent: { ...intent, action: 'nameClaim' },
+        intent,
         inspect: (raw) => {
           const d = readContractTx(raw, { allowAdvanced: true });
           claimEntries(d, p.vaultCid, key);
           built = { pays: d.pays, receives: d.receives, fee: d.fee, count: d.entries.length };
+          Object.assign(intent, typeof words === 'function' ? words(built) : words || {}, { action: 'nameClaim' });
           if (onBuilt) onBuilt(built);
         },
         expect: consentExpectation(() => built),

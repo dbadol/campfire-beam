@@ -18,6 +18,7 @@ import { icon } from '../lib/icons.js';
 import { notice, secondary, textButton } from '../lib/ui.js';
 import { wallet } from '../lib/wallet.js';
 import { store } from '../lib/store.js';
+import { walletStore } from '../lib/wallet_scope.js';
 import { ethWallet, ethPrefs, forgetEthWallet } from '../lib/eth/wallet.js';
 import { withEthKey } from '../lib/eth/vault.js';
 import { EthPipe } from '../lib/bridge/eth_pipe.js';
@@ -94,7 +95,8 @@ export async function bridgeOf(app) {
       beam: beamSide({ pipe: new BeamPipe(), wallet }),
       eth,
       prices,
-      store: bridgeStoreFor(app, store),
+      // Bound to this wallet: a write that lands after a switch still goes to its own crossings.
+      store: bridgeStoreFor(app, walletStore(app.record)),
       beamWalletId: app.record.id,
       ethWalletId: w.ethId,
     });

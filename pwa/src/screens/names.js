@@ -25,7 +25,7 @@ import {
   bansFor, tryName, normaliseName, nameProblem, describeNameProblem, usdPerPeriod, priceEstimate, STATUS, canRegister, holdEndHeight, dateOf, display,
   maxExtendPeriods, expiryAfterRegister, expiryAfterExtend, NAME_CALL_FEE, NAME_MAX, MAX_PERIODS,
 } from '../lib/bans.js';
-import { isEmpty, VISIBILITY, amountsText } from '../lib/bans_inbox.js';
+import { isEmpty, VISIBILITY, amountsText, balanceChange } from '../lib/bans_inbox.js';
 import { nameInbox, runClaim, setNamesHint } from './names_claim.js';
 import { statusWords, pendingWords, pendingDone, priceText, needsRenewal, daysBetween, inDays } from './name_parts.js';
 
@@ -343,7 +343,12 @@ export default function names(app) {
     let done = { ok: false, code: 'nothing', text: 'Nothing from a name sale is waiting for this wallet.' };
     for (const aid of assets) {
       try {
-        await bans().claimSaleProceeds(aid);
+        await bans().claimSaleProceeds(aid, {
+          words: (b) => ({
+            rows: [['From', 'A name you sold'], ['Your balance changes by', balanceChange(b.receives, b.fee, (g) => formatAmount(g), (id) => wallet.label(id).unit)]],
+            notes: [aid === 0 ? 'Pays its own fee: it comes out of the BEAM you are claiming.' : "The fee is paid from this wallet's BEAM."],
+          }),
+        });
         done = { ok: true, code: 'sent', text: 'Claim sent. It shows in your balance once the network confirms it, usually within a few minutes.' };
         wallet.refreshTxs();
         break;
@@ -532,7 +537,10 @@ export default function names(app) {
     result = null;
     render();
     try {
-      await bans().buy(n, { expectedPrice: price, untilText: `about ${until}` });
+      await bans().buy(n, {
+        expectedPrice: price,
+        words: { rows: [['Name', display(n)], ['Yours until', `about ${until}`]], notes: ['Buying does not renew the name: you get the time left on it. Renew it under BEAM names to keep it longer.'] },
+      });
       if (!alive) return;
       pending.set(n, { kind: 'buy', at: Date.now() });
       setNamesHint(app, true);

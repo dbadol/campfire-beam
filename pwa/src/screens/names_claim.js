@@ -25,10 +25,12 @@ import { toast } from '../lib/ui.js';
 import { formatAmount } from '../lib/amount.js';
 import { wallet } from '../lib/wallet.js';
 import { store } from '../lib/store.js';
+import { walletKey } from '../lib/wallet_scope.js';
 import { NameInbox, advise, claimText, namePaymentsText, isEmpty, VISIBILITY } from '../lib/bans_inbox.js';
 import { bans, nameProblemText } from './names.js';
 
-export const HINT_KEY = 'namesHint';
+/** Per wallet (lib/wallet_scope.js): deleting the wallet deletes it. */
+export const HINT_NAME = 'namesHint';
 const RECHECK_UNOWNED_MS = 24 * 3600 * 1000;
 const FIRST_CHECK_DELAY_MS = 8000;
 
@@ -47,8 +49,8 @@ export function nameInbox() {
 /** {owns: true|false, at} for this wallet, or null when never decided. */
 export async function namesHint(app) {
   try {
-    const v = await store.get(HINT_KEY);
-    return v && app.record && v.walletId === app.record.id ? v : null;
+    const v = await store.get(walletKey(app, HINT_NAME));
+    return v && typeof v.owns === 'boolean' && Number.isFinite(v.at) ? v : null;
   } catch {
     return null;
   }
@@ -56,11 +58,10 @@ export async function namesHint(app) {
 
 /** Remembers whether this wallet holds names (or had money waiting for them). */
 export async function setNamesHint(app, owns) {
-  if (!app.record) return;
   try {
-    await store.set(HINT_KEY, { walletId: app.record.id, owns: Boolean(owns), at: Date.now() });
+    await store.set(walletKey(app, HINT_NAME), { owns: Boolean(owns), at: Date.now() });
   } catch {
-    /* a missing hint only means one more check */
+    /* no wallet open, or storage refused: a missing hint only means one more check */
   }
 }
 
@@ -74,6 +75,17 @@ export function homeShouldRead({ hint, record, now = Date.now() }) {
 const fmt = (g) => formatAmount(g);
 const unit = (id) => wallet.label(id).unit;
 
+/** The approve sheet's words for a claim the engine built (screens/consent.js intentExtras). */
+export function claimWords({ summary, advice, canSpend, built }) {
+  const t = claimText({ summary, advice, canSpend, built, fmt, unit });
+  return {
+    names: summary.names,
+    rows: [['Sent to', t.from], ['Your balance changes by', t.balanceChange]],
+    warn: t.warning,
+    notes: [t.feeNote, t.batches, t.privacyNote].filter(Boolean),
+  };
+}
+
 /**
  * Builds the claim of everything waiting (up to 30 entries) and hands it to the approve sheet,
  * with the words for it. Resolves { ok, text, code }: what to tell the person.
@@ -86,9 +98,7 @@ export async function runClaim(app, inbox = nameInbox()) {
   const t = claimText({ summary, advice, canSpend, fmt, unit });
   if (!canSpend) return { ok: false, code: 'paused', text: t.blocker };
   try {
-    const r = await bans().claimAll({
-      intent: { names: summary.names, headline: t.headline, from: t.from, notes: [t.feeNote, t.warning, t.batches, t.privacyNote].filter(Boolean) },
-    });
+    const r = await bans().claimAll({ words: (built) => claimWords({ summary, advice, canSpend, built }) });
     const done = claimText({ summary, advice, canSpend, built: r, fmt, unit });
     inbox.markClaiming(r.receives);
     wallet.refreshTxs();
