@@ -17,6 +17,7 @@ import { wallet } from '../lib/wallet.js';
 import { dexApp, loadPools } from '../lib/dex_pools.js';
 import { DEX_CALL_FEE, DEFAULT_RECEIVE, KINDS, PROTECTION_BPS, PROTECTIONS, receivable, tradable, bestQuote, tradeArgs, swapExpectation, priceImpactBps, IMPACT_WARN_BPS, feeIsLarge, swapValue, feeShareBps, bpsText, DexError } from '../lib/dex.js';
 import { shortAmount } from './consent.js';
+import { hiddenIds } from '../lib/hidden_tokens.js';
 
 /** Plain words for whatever stopped a quote or a swap. */
 function problemText(e, payUnit, getUnit) {
@@ -287,6 +288,8 @@ export default function swap(app) {
     } else {
       ids = receivable(pools, draft.pay);
     }
+    // Tokens hidden from Wallet are left out (the desktop's dexTradableAssets), except the one already chosen.
+    ids = ids.filter((id) => id === 0 || !hiddenIds(app).has(id) || id === (paySide ? draft.pay : draft.receive));
     openSheet((close, rerender) => {
       const search = h('input', { class: 'input', type: 'search', placeholder: 'Search by name or number', 'aria-label': 'Search', autocomplete: 'off', 'data-testid': 'picker-search' });
       const list = h('div', { class: 'card list picker-list' });

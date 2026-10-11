@@ -12,13 +12,15 @@
  *   - "Can I get a short name, or claim a code I was given?" -> BEAM names and Airdrop codes, on one line with
  *     dApps under the buttons, one tap each.
  *   - "My own node is down" -> the sync line says so, with "Use random nodes" right under it (never automatic).
+ *   - "What is all this worth?" -> BEAM in dollars once allowed (asked once: CoinGecko sees the IP), a total
+ *     with the tokens valued from BEAM's DEX; a token row opens its page; spam can be hidden (screens/token_ui.js).
  *   - "What if this phone or this app's web address is gone?" -> a wallet imported from wallet.db has
  *     no 12 words: until it is exported once, a banner asks for a copy outside this device (one tap
  *     to Backup; "Later" for a week).
  */
 import { h, fmtDate, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, notice, primary, secondary, assetBadge } from '../lib/ui.js';
+import { screen, notice, primary, secondary } from '../lib/ui.js';
 import { formatAmount } from '../lib/amount.js';
 import { wallet, txStatusText, isPendingTx, isContractTx, contractMoves, contractLabel, contractStatusText } from '../lib/wallet.js';
 import { needsBackupPrompt } from '../lib/session.js';
@@ -28,8 +30,9 @@ import { chainSwitch } from './eth_screens.js';
 import { openBuyChooser } from './buy_screens.js';
 import { loaderBehind } from '../lib/loader.js';
 import { switchToRandom } from './node.js';
-import { VERIFIED, metadataOf, tokenSubtitle, copyWarning } from '../lib/meta.js';
+import { VERIFIED, metadataOf } from '../lib/meta.js';
 import { needsPoolCheck, checkPools } from '../lib/dex_pools.js';
+import { homeTokens } from './token_ui.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -101,7 +104,8 @@ export function txRow(app, tx, onclick) {
 
 export default function home(app) {
   const balanceBox = h('div');
-  const assetsBox = h('div');
+  const tokens = homeTokens(app);
+  const assetsBox = tokens.el;
   const txBox = h('div');
   const bannerBox = h('div');
   const actionsBox = h('div', { class: 'actions' });
@@ -119,7 +123,9 @@ export default function home(app) {
         { class: 'card balance' },
         h('div', { class: 'label', text: 'Available' }),
         h('div', { class: 'amount', 'data-testid': 'balance' }, known ? formatAmount(beam.available) : '—', h('span', { class: 'unit', text: 'BEAM' })),
+        tokens.fiatLine(s),
         pend.length ? h('div', { class: 'pending', text: pend.join(' · ') }) : null,
+        ...tokens.totalLines(s),
         syncLine(s.sync),
         h('p', { class: 'small', 'data-testid': 'sync-detail', text: s.sync.detail }),
         s.sync.state === 'offline' && s.sync.ownNode
@@ -128,46 +134,10 @@ export default function home(app) {
       ),
     );
 
-    // Every other asset this wallet has anything of: available, on its way, or maturing.
-    // Named and drawn as the desktop app's asset list does (lib/meta.js).
-    const others = [...s.totals.entries()]
-      .filter(([id, t]) => id !== 0 && (t.available > 0n || t.receiving > 0n || t.sending > 0n || t.maturing > 0n))
-      .map(([id, t]) => [id, t, app.wallet.label(id)])
-      .sort(([a, , la], [b, , lb]) => (la.verified === lb.verified ? a - b : la.verified ? -1 : 1));
-    put(assetsBox,
-      ...(others.length
-        ? [
-            h('p', { class: 'section-title', text: 'Tokens' }),
-            h(
-              'div',
-              { class: 'card list', 'data-testid': 'tokens' },
-              ...others.map(([id, t, l]) => {
-                const pending = [];
-                if (t.receiving > 0n) pending.push(`+${formatAmount(t.receiving)} incoming`);
-                if (t.sending > 0n) pending.push(`−${formatAmount(t.sending)} outgoing`);
-                if (t.maturing > 0n) pending.push(`${formatAmount(t.maturing)} maturing`);
-                const warning = copyWarning(l);
-                // Two held assets with one ticker (CHAD #187 and #190) show their numbers.
-                const sub = tokenSubtitle(l);
-                const shownSub = app.wallet.distinctUnit(id) !== l.unit && !sub.includes(`#${id}`) ? `${sub} · #${id}` : sub;
-                return h(
-                  'div',
-                  { class: 'row asset-row', 'data-testid': 'token-row', 'data-asset-id': String(id) },
-                  assetBadge(l),
-                  h(
-                    'span',
-                    { class: 'main' },
-                    h('div', { class: 't', 'data-testid': 'token-name', text: l.name }),
-                    h('div', { class: 's', 'data-testid': 'token-sub', text: shownSub }),
-                    warning ? h('div', { class: 'warn-line', 'data-testid': 'token-warning', text: warning }) : null,
-                  ),
-                  h('span', { class: 'end' }, h('div', { 'data-testid': 'token-balance', text: `${formatAmount(t.available)} ${l.pool ? 'LP' : l.symbol}` }), pending.length ? h('div', { class: 'small', text: pending.join(' · ') }) : null),
-                );
-              }),
-            ),
-          ]
-        : []),
-    );
+    // Every other asset this wallet has anything of, named and drawn as the desktop app's asset
+    // list does (lib/meta.js), valued from the DEX; each opens its page (screens/token_ui.js).
+    tokens.render(s);
+    const others = [...s.totals.entries()].filter(([id, t]) => id !== 0 && (t.available > 0n || t.receiving > 0n || t.sending > 0n || t.maturing > 0n));
     nameTokens(app, others.map(([id]) => id), s);
 
     const recent = s.txs.slice(0, 5);

@@ -21,7 +21,9 @@ export function qrElement(text) {
   return svg('svg', { viewBox: `0 0 ${n} ${n}`, 'shape-rendering': 'crispEdges', role: 'img', 'aria-label': 'QR code of the address' }, svg('rect', { width: n, height: n, fill: '#ffffff' }), svg('path', { d: qrSvgPath(qr, 4), fill: '#000000' }));
 }
 
-export default function receive(app) {
+export default function receive(app, params = {}) {
+  // From a token's page: the same address, named for that token.
+  const token = Number(params.assetId) > 0 ? wallet.label(params.assetId) : null;
   const qrBox = h('div', { class: 'qr' }, h('div', { class: 'spinner' }));
   const addrText = h('p', { class: 'mono', 'data-testid': 'receive-address' });
   const msg = h('div');
@@ -71,9 +73,10 @@ export default function receive(app) {
 
   load(false);
   const el = screen(
-    { title: 'Receive BEAM', back: () => app.back('home'), actions: [shareBtn, copyBtn, textButton('Make a new address', () => load(true), { 'data-testid': 'new-address' })] },
+    { title: token ? `Receive ${token.label}` : 'Receive BEAM', back: () => app.back('home'), actions: [shareBtn, copyBtn, textButton('Make a new address', () => load(true), { 'data-testid': 'new-address' })] },
     qrBox,
     h('div', { class: 'address-box' }, addrText),
+    token ? h('p', { class: 'small', 'data-testid': 'receive-token', text: `${token.label} arrives at your BEAM address, the same one you use for BEAM.` }) : null,
     h('div', { 'data-testid': 'receive-online' }, notice('info', 'A BEAM payment finishes only while both wallets are online. Keep BEAM Campfire open until it arrives. Paying from another app on this phone? Send, come back here, then open that app once more.')),
     msg,
   );
