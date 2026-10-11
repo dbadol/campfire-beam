@@ -340,7 +340,7 @@ export function dappPublishers(app) {
       return h(
         'div',
         { class: 'row' },
-        h('button', { class: 'main btn-text', type: 'button', onclick: () => app.go('dappPublisher', { key: p.key }) }, h('div', { class: 't', text: p.name }), h('div', { class: 's', text: `${p.dapps.length === 1 ? '1 dApp' : `${p.dapps.length} dApps`} · ${shortKey(p.key)}` })),
+        h('button', { class: 'main row-link', type: 'button', 'data-testid': 'publishers-open', onclick: () => app.go('dappPublisher', { key: p.key }) }, h('div', { class: 't', text: p.name }), h('div', { class: 's', text: `${p.dapps.length === 1 ? '1 dApp' : `${p.dapps.length} dApps`} · ${shortKey(p.key)}` })),
         sw,
       );
     };

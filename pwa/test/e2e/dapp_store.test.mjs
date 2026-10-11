@@ -116,6 +116,10 @@ test("a publisher's page: who they are, their key, their dApps; hidden, their dA
   await page.click(tid('store-publishers'));
   await waitScreen(page, 'dappPublishers');
   await page.waitForSelector(tid('publishers-list'));
+  await both('store-02b-publishers');
+  const box = await page.locator(tid('publishers-open')).first().boundingBox();
+  const row = await page.locator(`${tid('publishers-list')} .row`).first().boundingBox();
+  assert.ok(box && row && box.x - row.x < 40, 'the name starts at the row, as a row reads');
   const sw = page.locator(`${tid('publishers-switch')}:not(:checked)`);
   assert.equal(await sw.count(), 1);
   await sw.click();
