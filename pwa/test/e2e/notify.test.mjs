@@ -330,6 +330,38 @@ test('other parts tell through the same notifier: on screen a banner that opens 
   await page.evaluate(() => window.__campfire.go('home'));
 });
 
+test('an address that expires: Extend in Your addresses, and a reminder 3 days before it expires', { timeout: 3 * 60000 }, async () => {
+  const address = await page.evaluate(async () => {
+    const { wallet } = await import('./lib/wallet.js');
+    const a = await wallet.session.call('create_address', { type: 'regular', expiration: '24h', comment: 'From Alex' }, { timeoutMs: 20000 });
+    await wallet.persistNow();
+    return a;
+  });
+  await page.evaluate(() => window.__campfire.go('addresses'));
+  await waitScreen(page, 'addresses');
+  const tile = page.locator(`[data-address="${address}"]`);
+  await tile.waitFor();
+  const day = (ms) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  assert.match(await tile.locator(tid('address-life')).textContent(), new RegExp(`Expires ${day(Date.now() + 86400000)}`));
+  await tile.locator(tid('address-extend')).click();
+  await page.waitForFunction(([a, d]) => document.querySelector(`[data-address="${a}"] [data-testid="address-life"]`)?.textContent.includes(`Expires ${d}`), [address, day(Date.now() + 61 * 86400000)], { timeout: 20000 });
+  await shot(page, 'notify-04-address-extended');
+  // Leaving: a reminder 3 days before it now expires, its label named (amounts are shown).
+  await page.evaluate(() => window.__setHidden(true));
+  await until(async (a) => {
+    const { rawStore } = await import('./lib/store.js');
+    const keys = (await rawStore.keys('w:')).filter((k) => k.endsWith(':notify-reminders'));
+    for (const k of keys) if (((await rawStore.get(k)) || []).some((r) => r.id === `rem-addr-${a.slice(0, 16)}`)) return true;
+    return false;
+  }, address, { label: 'the address reminder stored' });
+  const r = (await reminders()).find((x) => x.id === `rem-addr-${address.slice(0, 16)}`);
+  assert.equal(r.title, 'An address of yours (From Alex) expires in 3 days');
+  assert.equal(r.url, '#open=addresses');
+  const days = (r.at - Date.now()) / 86400000;
+  assert.ok(days > 57.9 && days < 58.1, `58 days from now (${days.toFixed(2)})`);
+  await page.evaluate(() => window.__setHidden(false));
+});
+
 test('app closed: the service worker shows the reminders that are due when the browser wakes it', { timeout: 3 * 60000 }, async () => {
   // Two reminders left for later: one due now, one not.
   await page.evaluate(async () => {

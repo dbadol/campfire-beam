@@ -132,3 +132,18 @@ test('other parts of the app: their own words, without amounts when the person s
   assert.equal(wordsFor(ev, { amounts: false }).body, 'Claim it on Home.');
   assert.equal(wordsFor({ type: 'free', title: 'Your coins reached your Ethereum wallet', body: 'The bridge paid them.', url: '#open=bridgeList' }, { walletName: 'Savings' }).body, 'The bridge paid them. In Savings.');
 });
+
+test('an address about to expire: 3 days before, the nearest few, one reminder a day, its label only when allowed', async () => {
+  const { ADDRESS_REMINDERS } = await import('../../src/lib/notify_rules.js');
+  const now = 1_700_000_000_000;
+  const addr = (n, days, label = '') => ({ address: `${String(n).padStart(2, '0')}${'ab'.repeat(30)}`, expiresAt: now + days * DAY_MS, label });
+  const list = remindersFor({ now, wallet: 'w1', addresses: [addr(1, 10, 'From Alex'), addr(2, 2), addr(3, 20), addr(4, 20.2), { ...addr(5, 30), expired: true }] });
+  assert.deepEqual(list.map((r) => [r.id.slice(0, 11), Math.round((r.at - now) / DAY_MS)]), [['rem-addr-01', 7], ['rem-addr-03', 17]], 'expiring in 2 days is too late for a 3-day notice; 20 and 20.2 share a day');
+  assert.equal(list[0].title, 'An address of yours expires in 3 days', 'no label unless allowed');
+  assert.equal(list[1].title, '2 of your addresses expire in 3 days');
+  assert.equal(list[0].url, '#open=addresses');
+  assert.equal(list[0].kind, 'in');
+  assert.equal(remindersFor({ now, addresses: [addr(1, 10, 'From Alex')], labels: true })[0].title, 'An address of yours (From Alex) expires in 3 days');
+  const many = remindersFor({ now, addresses: Array.from({ length: 12 }, (_, i) => addr(i, 5 + i)) });
+  assert.equal(many.length, ADDRESS_REMINDERS, 'the nearest few only');
+});
