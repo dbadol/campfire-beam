@@ -14,9 +14,9 @@ import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/constants.dart';
 import '../../../utilities/text_styles.dart';
-import '../../../utilities/util.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../rounded_container.dart';
+import '../airdrop/beam_layout.dart';
 import '../assets/beam_asset_logo.dart';
 
 /// Which layout the BEAM send screens use below this widget. The app never
@@ -31,9 +31,11 @@ class BeamSendLayout extends InheritedWidget {
 
   final bool desktop;
 
+  /// Falls back to the other BEAM screens' [BeamLayoutScope] (which the
+  /// app does not set either), then to the platform.
   static bool isDesktop(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<BeamSendLayout>()?.desktop ??
-      Util.isDesktop;
+      BeamLayoutScope.isDesktop(context);
 
   @override
   bool updateShouldNotify(BeamSendLayout oldWidget) =>

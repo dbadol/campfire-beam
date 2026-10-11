@@ -38,6 +38,7 @@ import 'package:stackwallet/wallets/beam/models/beam_wallet_status.dart';
 import 'package:stackwallet/wallets/beam/rpc/fake_transport.dart';
 import 'package:stackwallet/wallets/beam/sync/beam_sync_state.dart';
 import 'package:stackwallet/widgets/beam/names/names_deps.dart';
+import 'package:stackwallet/widgets/beam/scan/beam_qr_reader.dart';
 
 import '../contracts/bans/bans_fixtures.dart';
 
@@ -380,6 +381,7 @@ BeamNamesDeps makeDeps(
   bool desktop = false,
   FakeGate? gate,
   VoidCallback? onAddFunds,
+  BeamQrReader? qrReader,
 }) {
   final g = gate ?? FakeGate();
   return BeamNamesDeps(
@@ -392,6 +394,7 @@ BeamNamesDeps makeDeps(
     authenticate: g.call,
     onAddFunds: onAddFunds,
     isDesktop: desktop,
+    qrReader: qrReader,
   );
 }
 

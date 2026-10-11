@@ -13,7 +13,8 @@
 // 2. Primary CTA: "Transfer alice" (then the confirmation, a tick that the
 //    key was checked, and the PIN).
 // 3. Taps from app open: Names (1) → alice (2) → Transfer (3) → paste (4)
-//    → Transfer alice (5) → tick + Transfer alice (6) → PIN. Long on
+//    → Transfer alice (5) → tick + Transfer alice (6) → PIN. Scan reads
+//    the key from the other wallet's QR code instead of pasting it. Long on
 //    purpose: it gives away a name worth $10–$320 a year and cannot be
 //    undone, which is when a confirmation step is worth it.
 //
@@ -28,6 +29,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../themes/stack_colors.dart';
+import '../../../utilities/beam/scan_recognize.dart';
 import '../../../utilities/constants.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/bans/bans_exceptions.dart';
@@ -126,6 +128,19 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
     await _onChanged(text);
   }
 
+  /// Reads the key from the QR code the receiving wallet shows (Names →
+  /// Receive a name). The key is checked as if pasted.
+  Future<void> _scan() async {
+    final reader = deps.qrReader;
+    if (reader == null) return;
+    final text = scanFirstLine(
+      await reader.read(context, desktop: deps.desktop),
+    );
+    if (text.isEmpty || !mounted) return;
+    _controller.text = text;
+    await _onChanged(text);
+  }
+
   Future<void> _transfer() async {
     final name = BansName(_name);
     final key = _key!;
@@ -206,14 +221,25 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
             ),
           ),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SecondaryButton(
-              label: 'Paste',
-              width: 120,
-              buttonHeight: deps.desktop ? ButtonHeight.s : ButtonHeight.l,
-              onPressed: _paste,
-            ),
+          Row(
+            children: [
+              SecondaryButton(
+                label: 'Paste',
+                width: 120,
+                buttonHeight: deps.desktop ? ButtonHeight.s : ButtonHeight.l,
+                onPressed: _paste,
+              ),
+              if (deps.qrReader != null) ...[
+                const SizedBox(width: 12),
+                SecondaryButton(
+                  key: const Key('names-transfer-scan'),
+                  label: 'Scan',
+                  width: 120,
+                  buttonHeight: deps.desktop ? ButtonHeight.s : ButtonHeight.l,
+                  onPressed: _scan,
+                ),
+              ],
+            ],
           ),
           if (_keyError != null) ...[
             const SizedBox(height: 8),

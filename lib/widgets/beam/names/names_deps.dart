@@ -18,6 +18,7 @@ import '../../../wallets/beam/contracts/bans/bans_service.dart';
 import '../../../wallets/beam/models/beam_asset_info.dart';
 import '../../../wallets/beam/models/beam_wallet_status.dart';
 import '../../../wallets/beam/sync/beam_sync_state.dart';
+import '../scan/beam_qr_reader.dart';
 import 'names_auth_gate.dart';
 
 /// Asks the user to prove it is them before anything is signed (Campfire's
@@ -46,6 +47,7 @@ class BeamNamesDeps {
     this.onAddFunds,
     this.inboxMonitor,
     this.isDesktop,
+    this.qrReader,
     BansPendingNames? pending,
   }) : pending = pending ?? BansPendingNames();
 
@@ -75,6 +77,9 @@ class BeamNamesDeps {
 
   /// Forces the desktop or mobile layout; null follows the platform.
   final bool? isDesktop;
+
+  /// Reads a QR code (a name key shown by another wallet); null hides Scan.
+  final BeamQrReader? qrReader;
 
   /// Names on their way after a transaction this session.
   final BansPendingNames pending;

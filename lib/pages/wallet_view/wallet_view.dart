@@ -67,6 +67,7 @@ import '../../wallets/wallet/wallet_mixin_interfaces/sign_verify_interface.dart'
 import '../../wallets/wallet/wallet_mixin_interfaces/spark_interface.dart';
 import '../../wallets/wallet/wallet_mixin_interfaces/view_only_option_interface.dart';
 import '../../widgets/background.dart';
+import '../../widgets/beam/scan/beam_scan.dart';
 import '../../widgets/beam/wallet_home/beam_wallet_home.dart';
 import '../../wallets/wallet/impl/ethereum_wallet.dart';
 import '../../widgets/beam/wiring/beam_features.dart';
@@ -618,6 +619,19 @@ class _WalletViewState extends ConsumerState<WalletView> {
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: SmallTorIcon(),
+                        ),
+                      ),
+                    // BEAM: scan a QR code and open where it belongs.
+                    if (wallet is BeamWallet)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: 10,
+                          bottom: 10,
+                          right: 10,
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: BeamHomeScanButton(walletId: walletId),
                         ),
                       ),
                     Padding(

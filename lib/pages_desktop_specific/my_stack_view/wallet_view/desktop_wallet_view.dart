@@ -50,6 +50,7 @@ import '../../../wallets/wallet/impl/firo_wallet.dart';
 import '../../../wallets/wallet/wallet.dart';
 import '../../../wallets/wallet/wallet_mixin_interfaces/mweb_interface.dart';
 import '../../../wallets/wallet/wallet_mixin_interfaces/view_only_option_interface.dart';
+import '../../../widgets/beam/scan/beam_scan.dart';
 import '../../../widgets/beam/wiring/beam_desktop_wallet_page.dart';
 import '../../../widgets/custom_buttons/app_bar_icon_button.dart';
 import '../../../widgets/custom_buttons/blue_text_button.dart';
@@ -305,6 +306,9 @@ class _DesktopWalletViewState extends ConsumerState<DesktopWalletView> {
               const Spacer(),
               Row(
                 children: [
+                  // BEAM: scan a QR code and open where it belongs.
+                  if (wallet is BeamWallet)
+                    BeamDesktopScanButton(walletId: widget.walletId),
                   NetworkInfoButton(
                     walletId: widget.walletId,
                     eventBus: eventBus,

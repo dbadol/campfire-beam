@@ -15,10 +15,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../themes/stack_colors.dart';
-import '../../../utilities/address_utils.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../utilities/amount/amount_input_formatter.dart';
 import '../../../utilities/assets.dart';
+import '../../../utilities/beam/scan_recognize.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/constants.dart';
 import '../../../utilities/text_styles.dart';
@@ -155,22 +155,42 @@ class BeamSendFormState extends State<BeamSendForm> {
     }
   }
 
-  /// A pasted or scanned `beam:` payment link fills address and amount.
+  /// Puts [recipient] (and [amount] in BEAM, "1.5") into the form, as a
+  /// scan from the wallet home does on desktop.
+  void fill(String recipient, {String? amount}) {
+    _setRecipient(recipient, amount: amount);
+    setState(() {});
+  }
+
+  /// Pasted or scanned text, read by the same rules as the home's Scan
+  /// (scan_recognize.dart): a `beam:` payment link fills address and
+  /// amount, "alice.beam" the name. Anything else goes in as it is, so the
+  /// field says what it is (an Ethereum address, a bare name, a typo).
   void _applyText(String raw) {
-    var content = raw.trim();
-    if (content.contains('\n')) {
-      content = content.substring(0, content.indexOf('\n')).trim();
+    final r = recognizeScan(raw);
+    switch (r.kind) {
+      case ScanKind.beam:
+        _setRecipient(r.address!, amount: r.amount);
+      case ScanKind.name:
+        _setRecipient('${r.name}.beam');
+      default:
+        _setRecipient(_beamLinkPath(raw) ?? scanFirstLine(raw));
     }
-    PaymentUriData? uri;
+  }
+
+  /// The address part of a `beam:` link the rules did not take as an
+  /// address or a name ("beam:alice" is the name alice to this field).
+  static String? _beamLinkPath(String raw) {
+    final m = RegExp(
+      r'^beam:(?:\/\/)?([^?#]*)',
+      caseSensitive: false,
+    ).firstMatch(scanFirstLine(raw));
+    if (m == null) return null;
+    final path = m.group(1)!;
     try {
-      uri = AddressUtils.parsePaymentUri(content);
+      return Uri.decodeComponent(path).trim();
     } catch (_) {
-      uri = null;
-    }
-    if (uri != null && uri.scheme?.toLowerCase() == 'beam') {
-      _setRecipient(uri.address.trim(), amount: uri.amount);
-    } else {
-      _setRecipient(content);
+      return path.trim();
     }
   }
 

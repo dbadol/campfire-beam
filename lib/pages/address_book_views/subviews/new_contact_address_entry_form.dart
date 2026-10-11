@@ -25,12 +25,14 @@ import '../../../themes/stack_colors.dart';
 import '../../../utilities/address_utils.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/barcode_scanner_interface.dart';
+import '../../../utilities/beam/scan_recognize.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/constants.dart';
 import '../../../utilities/logger.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../utilities/util.dart';
 import '../../../wallets/crypto_currency/crypto_currency.dart';
+import '../../../widgets/desktop/qr_code_scanner_dialog.dart';
 import '../../../widgets/icon_widgets/clipboard_icon.dart';
 import '../../../widgets/icon_widgets/qrcode_icon.dart';
 import '../../../widgets/icon_widgets/x_icon.dart';
@@ -64,14 +66,45 @@ class _NewContactAddressEntryFormState
 
   List<CryptoCurrency> coins = [];
 
+  static String? _beamOrEthereumAddress(CryptoCurrency? coin, String raw) {
+    final r = recognizeScan(raw);
+    return switch (coin) {
+      Beam() when r.kind == ScanKind.beam => r.address,
+      Ethereum() when r.kind == ScanKind.eth && r.token == null => r.to,
+      _ => null,
+    };
+  }
+
   void _onQrTapped() async {
     try {
       // ref
       //     .read(shouldShowLockscreenOnResumeStateProvider
       //         .state)
       //     .state = false;
-      final qrResult = await ref.read(pBarcodeScanner).scan(context: context);
+      // Campfire for BEAM: desktop scans too, with Campfire's scanner dialog
+      // (camera or a picture of the code), as its Send screens do.
+      final qrResult = Util.isDesktop
+          ? ScanResult(
+              rawContent: await showDialog<String>(
+                context: context,
+                builder: (_) => const QrCodeScannerDialog(),
+              ),
+            )
+          : await ref.read(pBarcodeScanner).scan(context: context);
       if (qrResult.rawContent == null) return;
+
+      // Campfire for BEAM: a BEAM or Ethereum code is read by the rules of
+      // the wallet's own Scan (a beam: or ethereum: link, a token payment's
+      // recipient is not taken as the address to save).
+      final known = _beamOrEthereumAddress(
+        ref.read(addressEntryDataProvider(widget.id)).coin,
+        qrResult.rawContent!,
+      );
+      if (known != null) {
+        addressController.text = known;
+        ref.read(addressEntryDataProvider(widget.id)).address = known;
+        return;
+      }
 
       // Future<void>.delayed(
       //   const Duration(seconds: 2),
@@ -475,13 +508,12 @@ class _NewContactAddressEntryFormState
                             },
                             child: const ClipboardIcon(),
                           ),
-                        if (!Util.isDesktop &&
-                            ref.watch(
-                                  addressEntryDataProvider(
-                                    widget.id,
-                                  ).select((value) => value.address),
-                                ) ==
-                                null)
+                        if (ref.watch(
+                              addressEntryDataProvider(
+                                widget.id,
+                              ).select((value) => value.address),
+                            ) ==
+                            null)
                           TextFieldIconButton(
                             key: const Key(
                               "addAddressBookEntryScanQrButtonKey",

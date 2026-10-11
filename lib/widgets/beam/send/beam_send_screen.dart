@@ -25,6 +25,9 @@
 //   * "What will it cost?" → the fee is shown before the next screen; a
 //     name payment says it is at least 0.011 BEAM, exact on confirm.
 //   * "Is my comment public?" → the hint under it says who sees it.
+//   * "I scanned an Ethereum address and it says invalid" → the scan (and
+//     the field) say what it is and offer that wallet's Send
+//     (lib/widgets/beam/scan/beam_scan.dart).
 
 import 'dart:async';
 
@@ -38,12 +41,12 @@ import '../../../pages/send_view/confirm_transaction_view.dart';
 import '../../../pages/send_view/sub_widgets/building_transaction_dialog.dart';
 import '../../../pages_desktop_specific/desktop_home_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/address_book_address_chooser/address_book_address_chooser.dart';
-import '../../../providers/global/barcode_scanner_provider.dart';
 import '../../../providers/global/locale_provider.dart';
 import '../../../providers/global/wallets_provider.dart';
 import '../../../route_generator.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/amount/amount.dart';
+import '../../../utilities/beam/scan_route.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/logger.dart';
 import '../../../utilities/text_styles.dart';
@@ -56,12 +59,14 @@ import '../../background.dart';
 import '../../desktop/desktop_dialog.dart';
 import '../../desktop/desktop_dialog_close_button.dart';
 import '../../desktop/primary_button.dart';
-import '../../desktop/qr_code_scanner_dialog.dart';
 import '../../stack_dialog.dart';
+import '../scan/beam_qr_reader.dart';
+import '../scan/beam_scan.dart';
 import '../wiring/beam_features.dart';
 import '../wiring/beam_wallet_listenables.dart';
 import 'beam_confirm_content.dart';
 import 'beam_send_backend.dart';
+import 'beam_send_fill.dart';
 import 'beam_send_form.dart';
 import 'beam_send_format.dart';
 import 'beam_send_model.dart';
@@ -96,6 +101,11 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
     super.initState();
     _wallet = ref.read(pWallets).getWallet(widget.walletId) as BeamWallet;
     _backend = BeamWalletSendBackend(_wallet);
+    final fill = ref.read(pBeamSendFill(widget.walletId));
+    if (fill != null) {
+      _initialFill = fill;
+      _taken(fill);
+    }
   }
 
   @override
@@ -104,20 +114,31 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
     super.dispose();
   }
 
+  /// The field's scan, read by the same rules as the home's Scan: a BEAM
+  /// address, link or name goes into the field (returned); anything else
+  /// (an Ethereum address, an airdrop code, a web link) gets the sheet that
+  /// says what it is and offers where it belongs.
   Future<String?> _scan(BuildContext context) async {
-    try {
-      if (BeamSendLayout.isDesktop(context)) {
-        return await showDialog<String>(
-          context: context,
-          builder: (_) => const QrCodeScannerDialog(),
-        );
-      }
-      final r = await ref.read(pBarcodeScanner).scan(context: context);
-      return r.rawContent;
-    } catch (e, s) {
-      Logging.instance.w('BEAM send: QR scan failed', error: e, stackTrace: s);
-      return null;
-    }
+    final desktop = BeamSendLayout.isDesktop(context);
+    final text = await ref.read(pBeamQrReader).read(context, desktop: desktop);
+    if (text == null || !context.mounted) return null;
+    final to = beamScanDestinationFor(ref, text, from: ScanFrom.beamSend);
+    if (to is ScanToBeamSend) return text;
+    await beamScanOpen(context, ref, _wallet, to, desktop: desktop);
+    return null;
+  }
+
+  /// A recipient sent from the home's Scan (desktop: Send is a tab).
+  BeamSendFill? _initialFill;
+  final _page = GlobalKey<BeamSendPageState>();
+
+  /// Clears [fill] once taken, unless a newer one came in meanwhile.
+  void _taken(BeamSendFill fill) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final waiting = ref.read(pBeamSendFill(widget.walletId).notifier);
+      if (waiting.state?.serial == fill.serial) waiting.state = null;
+    });
   }
 
   Future<String?> _addressBook(BuildContext context) async {
@@ -178,8 +199,15 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
   Widget build(BuildContext context) {
     // Balances live in Campfire's wallet cache; any change re-reads them.
     ref.listen(pWalletInfo(widget.walletId), (_, _) => _balances.tick());
+    ref.listen<BeamSendFill?>(pBeamSendFill(widget.walletId), (_, fill) {
+      if (fill == null) return;
+      _page.currentState?.fill(fill.recipient, amount: fill.amount);
+      _taken(fill);
+    });
     final auto = widget.autoFillData;
+    final fill = _initialFill;
     return BeamSendPage(
+      key: _page,
       backend: _backend,
       coin: _wallet.cryptoCurrency,
       walletName: ref.watch(pWalletName(widget.walletId)),
@@ -194,11 +222,28 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
       assetWorth: _worth,
       onSplitCoins: (context, assetId) =>
           unawaited(openBeamSplit(context, _wallet, assetId: assetId)),
-      initialRecipient: auto?.address,
-      initialAmount: auto?.amount == null
-          ? null
-          : Amount.fromDecimal(auto!.amount!, fractionDigits: 8).raw,
+      initialRecipient: fill?.recipient ?? auto?.address,
+      initialAmount: _initialAmount(),
     );
+  }
+
+  /// The amount a scan (desktop) or the opener (phone) filled in, in groth.
+  BigInt? _initialAmount() {
+    final fill = _initialFill;
+    if (fill != null) {
+      final a = fill.amount;
+      return a == null
+          ? null
+          : Amount.tryParseCanonicalAmount(
+              a,
+              fractionDigits: 8,
+              truncateOverprecision: true,
+            )?.raw;
+    }
+    final auto = widget.autoFillData?.amount;
+    return auto == null
+        ? null
+        : Amount.fromDecimal(auto, fractionDigits: 8).raw;
   }
 }
 
@@ -279,6 +324,10 @@ class BeamSendPageState extends State<BeamSendPage> {
   }
 
   bool _desktop(BuildContext context) => BeamSendLayout.isDesktop(context);
+
+  /// Puts [recipient] (and [amount] in BEAM) into the form.
+  void fill(String recipient, {String? amount}) =>
+      _form.currentState?.fill(recipient, amount: amount);
 
   /// Set synchronously by the first tap and cleared when the confirmation
   /// closes: a second activation that lands first (same frame, a held key)

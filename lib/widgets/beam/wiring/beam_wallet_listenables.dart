@@ -46,6 +46,7 @@ import '../dex/dex_auth_gate.dart';
 import '../dex/dex_deps.dart';
 import '../names/names_deps.dart';
 import '../receive/beam_receive_panel.dart';
+import '../scan/beam_qr_reader.dart';
 import 'beam_features.dart';
 
 /// What the BEAM screens of one wallet share, built from the wallet itself.
@@ -268,6 +269,7 @@ class BeamWalletWiring {
     onAddFunds: onAddFunds,
     inboxMonitor: services.bansInbox,
     isDesktop: debugDesktopLayout,
+    qrReader: const BeamScopedQrReader(),
   );
 
   /// Airdrops, with the secure voucher store attached.
