@@ -33,6 +33,9 @@
 //   Buy BEAM asks buybeam.my's buy API (src/lib/buy/hosts.js,
 //   buyConnectSources()): that one path, not the whole host, and only once the
 //   person opens Buy BEAM.
+//   "Pay with BTC, ZEC or LTC" asks NEAR Intents' 1Click API
+//   (src/lib/intents/hosts.js, intentsConnectSources()): that one path, not
+//   the whole host, and only once the person opens that screen.
 //   BEAM's recovery snapshot, on a copy hosted without a relay, comes from
 //   BEAM Campfire's own server (src/lib/recovery.js,
 //   recoveryConnectSources()): that one path.
@@ -40,6 +43,7 @@
 import { SOURCE_HOST, SOURCE_COMMIT } from '../src/lib/dapps/catalogue.js';
 import { connectSources as ethConnectSources } from '../src/lib/eth/hosts.js';
 import { buyConnectSources } from '../src/lib/buy/hosts.js';
+import { intentsConnectSources } from '../src/lib/intents/hosts.js';
 import { recoveryConnectSources } from '../src/lib/recovery.js';
 import { NODES as POOL_NODES } from '../src/lib/nodes.js';
 import { cspWithNode } from '../src/lib/node_address.js';
@@ -53,7 +57,7 @@ export const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
   "worker-src 'self'",
-  `connect-src 'self' ${NODES.map((n) => `wss://${n}`).join(' ')} ${DAPP_PACKAGE_SOURCE} ${ethConnectSources().join(' ')} ${buyConnectSources().join(' ')} ${recoveryConnectSources().join(' ')}`,
+  `connect-src 'self' ${NODES.map((n) => `wss://${n}`).join(' ')} ${DAPP_PACKAGE_SOURCE} ${ethConnectSources().join(' ')} ${buyConnectSources().join(' ')} ${intentsConnectSources().join(' ')} ${recoveryConnectSources().join(' ')}`,
   "img-src 'self' data: blob:",
   "style-src 'self'",
   "font-src 'self'",
