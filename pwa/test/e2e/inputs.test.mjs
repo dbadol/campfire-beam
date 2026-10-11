@@ -13,7 +13,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startServer, launch, recordedPage, waitScreen, sleep, PWA } from './harness.mjs';
-import { waitHome } from './flows.mjs';
+import { waitHome, waitSynced } from './flows.mjs';
 
 const PORT = 8824;
 const tid = (id) => `[data-testid="${id}"]`;
@@ -26,7 +26,8 @@ const checked = [];
 test.before(async () => {
   tmp = mkdtempSync(join(tmpdir(), 'campfire-inputs-'));
   execFileSync(process.execPath, [join(PWA, 'tools', 'build.mjs'), '--out', join(tmp, 'dist'), '--quiet'], { cwd: PWA });
-  srv = await startServer({ root: join(tmp, 'dist'), port: PORT });
+  // A local copy of BEAM's snapshot when given (BEAM_RECOVERY_FILE): the restored wallet syncs, so pools load.
+  srv = await startServer({ root: join(tmp, 'dist'), port: PORT, extra: process.env.BEAM_RECOVERY_FILE ? ['--recovery-file', process.env.BEAM_RECOVERY_FILE] : [] });
   browser = await launch();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, userAgent: IPHONE, hasTouch: true, isMobile: true });
   ({ page } = await recordedPage(ctx, { label: 'inputs' }));
@@ -104,10 +105,11 @@ test('setup: restore and password fields take typing; nothing focuses itself', {
   await page.waitForFunction(() => ['passkeySetup', 'fastStart'].includes(window.__campfire.screen()), null, { timeout: 30000 });
   if ((await page.evaluate(() => window.__campfire.screen())) === 'passkeySetup') await page.tap(tid('passkey-skip'));
   await waitScreen(page, 'fastStart');
-  await page.waitForSelector(tid('fast-skip'));
-  await page.tap(tid('fast-skip'));
-  // Scanning from genesis (skipped snapshot): Home, not "synced", is enough for the fields.
-  await waitHome(page, { timeout: 5 * 60000 });
+  await page.waitForSelector(tid('fast-download'));
+  await page.tap(tid('fast-download'));
+  // With the snapshot the wallet syncs, so the screens that need the chain (pools) fill in.
+  await waitHome(page, { timeout: 15 * 60000 });
+  await waitSynced(page, 10 * 60000);
 });
 
 test('screens: Send, names, airdrop codes, Swap, Buy, change password, delete, own node, owner key', { timeout: 10 * 60000 }, async () => {
@@ -165,7 +167,9 @@ test('0.2.9 screens: pools, a pool, create a token, burn, contacts, check a proo
   ]) {
     await go(name, params);
     await sleep(wait);
-    await fieldsTakeTyping(name, { allowEmpty: name === 'burn' || name === 'contacts' });
+    if (name === 'pools') await page.waitForSelector('[data-testid="pools-search"]', { timeout: 60000 });
+    if (name === 'pool') await page.waitForSelector('[data-testid="pool-add-1"]', { timeout: 60000 }).catch(() => {});
+    await fieldsTakeTyping(name, { allowEmpty: name === 'burn' || name === 'contacts' || name === 'pool' });
   }
   // The contact form opens from Contacts.
   await go('contacts');

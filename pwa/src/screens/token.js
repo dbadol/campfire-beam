@@ -160,7 +160,7 @@ export default function token(app, params = {}) {
     let third = null;
     if (l.pool) {
       if (typeof app.has === 'function' && app.has('pool')) {
-        third = secondary(h('span', {}, 'Pool'), () => app.go('pool', { aid1: l.pool.aid1, aid2: l.pool.aid2, kind: l.pool.kind }), { 'data-testid': 'token-pool' });
+        third = secondary(h('span', {}, 'Pool'), () => app.go('pool', { aid1: l.pool.aid1, aid2: l.pool.aid2, kind: l.pool.kind, mode: 'withdraw' }), { 'data-testid': 'token-pool' });
         third.prepend(icon('apps'));
       }
     } else {

@@ -85,7 +85,7 @@ test('a new wallet, synced', { timeout: 15 * 60000 }, async () => {
   assert.equal(loads, 0, 'the pool screens load only when one is opened');
 });
 
-test('Home: a pool share is a row that opens its pool', { timeout: 5 * 60000 }, async () => {
+test('Home: a pool share is a row that opens its page, which leads to its pool', { timeout: 5 * 60000 }, async () => {
   // The screen is shown 12 BEAM, 100,000 FOMO and 1 BEAM/FOMO LP; the engine holds nothing.
   await page.evaluate(async ([fomo, lp]) => {
     const { wallet } = await import('./lib/wallet.js');
@@ -102,8 +102,8 @@ test('Home: a pool share is a row that opens its pool', { timeout: 5 * 60000 }, 
   }, [FOMO, LP]);
   const row = page.locator(`[data-testid="token-row"][data-asset-id="${LP}"]`);
   await row.waitFor({ timeout: 30000 });
+  // Every token row opens its token page (screens/token.js); an LP token's page has Pool.
   assert.equal(await row.evaluate((el) => el.tagName), 'BUTTON');
-  assert.equal(await row.getAttribute('data-pool'), '0-174-2');
   assert.match(await row.locator(tid('token-name')).textContent(), /^BEAM\/FOMO LP$/);
   await row.scrollIntoViewIfNeeded();
   await shots('pools-00-home-lp-row');
@@ -345,14 +345,16 @@ test('the new-pool sheet with enough BEAM: approving needs the tick first', { ti
   assert.equal(await shown, false);
 });
 
-test('Home: the LP row opens its pool on the Withdraw tab', { timeout: 2 * 60000 }, async () => {
+test('Home: the LP row opens its page, and Pool opens the pool on the Withdraw tab', { timeout: 2 * 60000 }, async () => {
   await page.evaluate(() => window.__campfire.go('home'));
   await waitScreen(page, 'home');
   await page.click(`[data-testid="token-row"][data-asset-id="${LP}"]`);
+  await waitScreen(page, 'token');
+  await page.click(tid('token-pool'));
   await waitScreen(page, 'pool');
   await page.waitForSelector(tid('pool-withdraw-form'), { state: 'visible', timeout: 60000 });
   assert.equal(await page.getAttribute(tid('pool-mode-withdraw'), 'aria-pressed'), 'true');
-  assert.equal(await page.evaluate(() => window.__campfire.backStack()).then((s) => s.at(-1)), 'home');
+  assert.equal(await page.evaluate(() => window.__campfire.backStack()).then((s) => s.at(-1)), 'token', 'Back returns to the token page');
 });
 
 test('lock closes every app; nothing pending', { timeout: 120000 }, async () => {

@@ -17,7 +17,10 @@ let market = { session: null, pools: null, pricer: null, at: 0, loading: null, f
 
 /** The pricer for this session's last pool read, or null before the first one. */
 export function marketPricer() {
-  return market.session && market.session === wallet.session ? market.pricer : null;
+  // A pricer that knows no BEAM pool (an empty or failed read) is "prices not known yet", not
+  // "no price": otherwise every row said "No price" until the pools came in.
+  const p = market.session && market.session === wallet.session ? market.pricer : null;
+  return p && p.beamPools && p.beamPools.size ? p : null;
 }
 
 /** The pools behind marketPricer() (lib/dex.js parsePools rows), or null. */

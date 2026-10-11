@@ -65,11 +65,14 @@ async function pretendBalance(tokens) {
 }
 
 /** The token list as shown: per row its name, subtitle, warning, balance, and the pictures drawn. */
+// Queried and measured in one go: Home re-renders its rows often (prices, pools), and rows taken
+// in one step and read in a later one ($$eval) can already be detached.
 const readRows = () =>
-  page.$$eval('[data-testid="token-row"]', (rows) =>
-    rows.map((r) => {
+  page.evaluate(() =>
+    [...document.querySelectorAll('[data-testid="token-row"]')].map((r) => {
       const text = (id) => r.querySelector(`[data-testid="${id}"]`)?.textContent ?? null;
-      const badge = r.querySelector('.asset-badge');
+      // The row's own badge (a direct child); the row may hold other, hidden badges.
+      const badge = r.querySelector(':scope > .asset-badge') || r.querySelector('.asset-badge');
       return {
         id: Number(r.dataset.assetId),
         name: text('token-name'),
