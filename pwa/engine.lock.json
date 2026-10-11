@@ -4,8 +4,8 @@
   "build_script": "scripts/beam/wasm/build_wasm.sh",
   "rules_signature_contains": "3928666-96df3f33ee02ad9e",
   "files": {
-    "wasm-client.js": "60bd3c8bcb34a04a1508017b2f4d1d75a739220be542d8ae5f8730a5dfebc982",
-    "wasm-client.wasm": "84ac5d999f2db59dd98c20adb69567d4b9a62b7ecb4d3448f04cf2de7a1f5163",
+    "wasm-client.js": "b3d47b7ce7a18a6400de02f103e2982dd511ce2e5f3815a8e9cd1661d7ab97f0",
+    "wasm-client.wasm": "a0410ea3ab28486847e48434ba68125c09bf1986acb801daec82fc5a5d3f482b",
     "wasm-client.worker.js": "eff6668e83689221c3515bd0b29bf9db9a1c8067a73213be4abe142f396a4e0e"
   },
   "patches": [
@@ -18,6 +18,7 @@
     "scripts/beam/wasm/patches/0107-wasm-rescan.patch",
     "scripts/beam/wasm/patches/0108-wasm-notifications-no-recursion.patch",
     "scripts/beam/wasm/patches/0110-wasm-export-import-wallet-data.patch",
-    "scripts/beam/wasm/patches/0111-wasm-export-wallet-data-in-pages.patch"
+    "scripts/beam/wasm/patches/0111-wasm-export-wallet-data-in-pages.patch",
+    "scripts/beam/wasm/patches/0112-wasm-refuse-raised-app-privilege.patch"
   ]
 }
