@@ -48,7 +48,9 @@
     "e2e:inputs": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/inputs.test.mjs",
     "e2e:asset-icons": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/asset_icons.test.mjs",
     "e2e:tokens": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/tokens.test.mjs",
-    "e2e:live:tokens": "node tools/stage_engine.mjs && node test/e2e/live_tokens.mjs"
+    "e2e:live:tokens": "node tools/stage_engine.mjs && node test/e2e/live_tokens.mjs",
+    "e2e:payments": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/payments.test.mjs",
+    "e2e:live:payments": "node tools/stage_engine.mjs && node test/e2e/live_payments.mjs"
   },
   "devDependencies": {
     "jsqr": "1.4.0",

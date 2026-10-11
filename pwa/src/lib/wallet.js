@@ -8,6 +8,7 @@ import { assessNodeHealth, hopAllowed } from './node_health.js';
 import { toGroth, REGULAR_FEE, OFFLINE_FEE, toJsonNumber } from './amount.js';
 import { assetLabel } from './meta.js';
 import { bindSession, unbindSession } from './contracts.js';
+import { pickReceiveAddress } from './addresses.js';
 
 const STATUS_EVERY_MS = 5000;
 const TXS_EVERY_MS = 20000;
@@ -690,21 +691,22 @@ export class Wallet {
     return this.session.call('validate_address', { address }, { timeoutMs: 15000 });
   }
 
-  async receiveAddress({ fresh = false } = {}) {
+  /** preferred: the address the person chose to show (Your addresses), used while it can be paid. */
+  async receiveAddress({ fresh = false, preferred = null } = {}) {
     if (!fresh) {
       const list = await this.session.call('addr_list', { own: true }, { timeoutMs: 20000 });
-      const mine = (list || [])
-        .filter((a) => a.own && !a.expired && a.type === 'regular' && a.comment === ADDRESS_COMMENT)
-        .sort((a, b) => (b.create_time || 0) - (a.create_time || 0));
-      if (mine.length) return mine[0].address;
+      const picked = pickReceiveAddress(list, { preferred, label: ADDRESS_COMMENT });
+      if (picked) return picked;
     }
     const addr = await this.session.call('create_address', { type: 'regular', expiration: 'never', comment: ADDRESS_COMMENT }, { timeoutMs: 20000 });
     await this.persistNow();
     return addr;
   }
 
-  async send({ address, amount, assetId = 0, mode }) {
+  /** comment: the person's note, kept with the payment in this wallet only (lib/payments.js). */
+  async send({ address, amount, assetId = 0, mode, comment = '' }) {
     const params = { address, value: toJsonNumber(amount), fee: toJsonNumber(mode.fee) };
+    if (comment) params.comment = comment;
     if (Number(assetId) !== 0) params.asset_id = Number(assetId);
     if (mode.offline) params.offline = true;
     const r = await this.session.call('tx_send', params, { timeoutMs: 60000 });

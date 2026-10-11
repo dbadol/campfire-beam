@@ -9,6 +9,10 @@
  *   - "How much will it cost?" -> the network fee is shown under the amount, before review.
  *   - "Max leaves dust / fails" -> Max = available minus the fee, exactly.
  *   - "Why is the button grey?" -> the reason is always written next to it.
+ *   - "I don't want to paste it again" -> Contacts picks a saved one (its address shown), Scan reads
+ *     a QR code with the camera; a checked new address can be saved as a contact. An address that
+ *     only looks like a contact's is called out.
+ *   - "What was this for?" -> an optional note, kept with the payment in this wallet only.
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
@@ -18,12 +22,13 @@ import { wallet, sendModeFor } from '../lib/wallet.js';
 import { classifyRecipient, describeNameProblem, canReceivePayments, display, fingerprint, dateOf, holdEndHeight, STATUS, NAME_CALL_FEE } from '../lib/bans.js';
 import { bans, day } from './names.js';
 import { hiddenIds } from '../lib/hidden_tokens.js';
+import { recipientButtons, contactLine, noteField, scannedAmount } from './send_extras.js';
 
 /** How a payment to a name goes out: through BEAM's name vault, a contract call. */
 const NAME_MODE = { fee: NAME_CALL_FEE, label: 'Name payment' };
 
 export default function send(app) {
-  const draft = (app.sendDraft = app.sendDraft || { address: '', amount: '', assetId: 0 });
+  const draft = (app.sendDraft = app.sendDraft || { address: '', amount: '', assetId: 0, note: '' });
   let check = { state: 'empty' }; // empty | checking | ok | bad
   let checkSeq = 0;
 
@@ -31,6 +36,17 @@ export default function send(app) {
   addr.value = draft.address;
   const pasteBtn = h('button', { class: 'btn btn-secondary btn-small', type: 'button', 'data-testid': 'paste' }, icon('paste'), 'Paste');
   const addrHint = h('p', { class: 'hint', 'data-testid': 'address-hint' });
+  const contactInfo = contactLine(app);
+  const note = noteField(draft);
+  const pickBtns = recipientButtons(app, {
+    fill: (r) => {
+      addr.value = r.address;
+      const a = scannedAmount(r);
+      if (a) amount.value = draft.amount = a;
+      validate();
+    },
+    paste: () => pasteBtn.click(),
+  });
 
   const assetSel = h('select', { class: 'input', 'aria-label': 'Asset', 'data-testid': 'send-asset' });
   const assetField = h('label', { class: 'field' }, 'Asset', assetSel);
@@ -133,6 +149,8 @@ export default function send(app) {
 
     const sync = wallet.state.sync;
     put(syncMsg, sync.canSend ? null : notice('warn', `${sync.title}. ${sync.detail}`));
+    contactInfo.update(addr.value.trim(), { ok: check.state === 'ok' && !check.name, name: Boolean(check.name) });
+    note.setToName(Boolean(check.state === 'ok' && check.name) || classifyRecipient(addr.value).kind === 'name');
     const ok = check.state === 'ok' && amt != null && !amtErr && sync.canSend;
     cta.disabled = !ok;
     return ok ? { amount: amt, fee, assetId: id } : null;
@@ -229,7 +247,7 @@ export default function send(app) {
     const ok = evaluate();
     if (!ok) return;
     if (check.name) return app.go('review', { kind: 'name', name: check.name, ownerKey: check.ownerKey, amount: ok.amount, fee: ok.fee, assetId: ok.assetId });
-    app.go('review', { address: draft.address, amount: ok.amount, fee: ok.fee, assetId: ok.assetId, type: check.type });
+    app.go('review', { address: draft.address, amount: ok.amount, fee: ok.fee, assetId: ok.assetId, type: check.type, note: note.value() });
   }
 
   fillAssets();
@@ -247,12 +265,14 @@ export default function send(app) {
       actions: [cta],
       cls: 'plain',
     },
-    h('label', { class: 'field' }, h('span', { class: 'banner' }, h('span', { class: 'grow', text: 'To' }), pasteBtn), addr),
+    h('label', { class: 'field' }, h('span', { class: 'banner' }, h('span', { class: 'grow', text: 'To' }), ...pickBtns, pasteBtn), addr),
     addrHint,
+    contactInfo.el,
     assetField,
     h('label', { class: 'field' }, h('span', { class: 'banner' }, h('span', { class: 'grow', text: 'Amount' }), unitLabel), h('div', { class: 'input-wrap' }, amount, maxBtn)),
     amountHint,
     h('div', { class: 'card flat' }, feeLine),
+    note.el,
     syncMsg,
   );
   return { el, destroy: () => off() };

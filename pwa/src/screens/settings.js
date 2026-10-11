@@ -13,6 +13,7 @@
  *     release, and "Update from another address" takes any copy; both say the app keeps working.
  *   - "Why are there no dollar values?" / "Where is the token I hid?" -> Tokens and prices: the CoinGecko
  *     switch (it sees the IP address), the currency, and Hidden tokens.
+ *   - "Where are the people I pay / my addresses / a proof someone sent?" -> the Payments group.
  *   - "My balance is wrong / coins are missing" -> Rescan, for every wallet (restored, new or
  *     imported): it rebuilds the coins from BEAM's snapshot and keeps history and addresses.
  */
@@ -83,6 +84,14 @@ export default function settings(app) {
       faceRowBox,
       row('key', 'Change password', null, () => app.go('changePassword'), { 'data-testid': 'change-password' }),
       row('file', 'Backup', isImported(app) ? 'The wallet.db file and its password' : 'Your 12 words', () => app.go('backup'), { 'data-testid': 'backup-row' }),
+    ),
+    h('p', { class: 'section-title', text: 'Payments' }),
+    h(
+      'div',
+      { class: 'card list' },
+      row('person', 'Contacts', 'People you pay, with their address', () => app.go('contacts'), { 'data-testid': 'contacts-row' }),
+      row('receive', 'Your addresses', 'Labels, and which one Receive shows', () => app.go('addresses'), { 'data-testid': 'addresses-row' }),
+      row('proof', 'Check a payment proof', 'Someone says they paid you', () => app.go('checkProof'), { 'data-testid': 'check-proof-row' }),
     ),
     h('p', { class: 'section-title', text: 'Network' }),
     h(

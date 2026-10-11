@@ -33,6 +33,8 @@ import { switchToRandom } from './node.js';
 import { VERIFIED, metadataOf } from '../lib/meta.js';
 import { needsPoolCheck, checkPools } from '../lib/dex_pools.js';
 import { homeTokens } from './token_ui.js';
+import { rowExtra } from './payment_extras.js';
+import { loadContacts } from '../lib/contacts.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -97,7 +99,7 @@ export function txRow(app, tx, onclick) {
     'button',
     { class: 'row', onclick, 'data-txid': tx.txId },
     h('span', { class: `ico ${failed ? 'fail' : income ? 'in' : 'out'}` }, icon(isPendingTx(tx) ? 'clock' : income ? 'receive' : 'send')),
-    h('span', { class: 'main' }, h('div', { class: 't', text: txStatusText(tx) }), h('div', { class: 's', text: fmtDate(tx.create_time) })),
+    h('span', { class: 'main' }, h('div', { class: 't', text: txStatusText(tx) }), h('div', { class: 's', text: [fmtDate(tx.create_time), rowExtra(tx)].filter(Boolean).join(' · ') })),
     h('span', { class: `end${income && !failed ? ' in' : ''}`, text: `${income ? '+' : '−'}${formatAmount(value)} ${label.unit}` }),
   );
 }
@@ -224,6 +226,8 @@ export default function home(app) {
   import('../lib/buy/wiring.js').then((m) => m.followBuys(app)).catch(() => {});
   render(wallet.state);
   renderBanner();
+  // Contact names on the payment rows (sealed per wallet; read once per unlock).
+  loadContacts(app).then(() => render(wallet.state), () => {});
 
   // dApps, BEAM names and airdrop codes share one line, no taller than the dApps row it took over:
   // Home scrolls no further than before. Each is one tap away.
