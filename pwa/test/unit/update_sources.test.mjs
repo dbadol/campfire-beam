@@ -331,7 +331,8 @@ test('the build signs the loader, its compat value and the sources into release.
     const c = build('--loader-note', 'test build');
     assert.notEqual(c.loader, a.loader, 'other loader bytes, other name');
     assert.equal(c.release.loader_compat, a.release.loader_compat, '... serving pages the same way');
-    const d = build('--loader-api', '3');
+    // One above the loader's own (sw.js LOADER_API, 3 since the DApp Store's route).
+    const d = build('--loader-api', '4');
     assert.notEqual(d.release.loader_compat, a.release.loader_compat, 'another page <-> loader contract: another compat value');
     assert.throws(() => build('--mirrors', 'http://insecure.test/'));
   } finally {
