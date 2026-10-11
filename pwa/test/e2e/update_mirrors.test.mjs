@@ -247,8 +247,10 @@ before(async () => {
   build('n4', V(4));
   build('n5', V(5));
   build('n6c', V(6), ['--loader-note', 'a loader that differs only in its bytes']);
-  build('n7x', V(7), ['--loader-api', '3']);
-  build('n8y', V(8), ['--loader-api', '4']);
+  // Releases whose pages need a newer loader: one and two above this source's own LOADER_API.
+  const api = Number(readFileSync(join(PWA, 'src', 'sw.js'), 'utf8').match(/const LOADER_API = \/\*__LOADER_API__\*\/ (\d+);/)[1]);
+  build('n7x', V(7), ['--loader-api', String(api + 1)]);
+  build('n8y', V(8), ['--loader-api', String(api + 2)]);
   assert.equal(L.n1, L.n0, 'ordinary releases keep the loader');
   assert.notEqual(L.n6c, L.n0);
   assert.notEqual(L.n7x, L.n6c);
