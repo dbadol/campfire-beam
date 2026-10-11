@@ -327,3 +327,37 @@ test('engine wrapper: pages (wasm patch 0111) are read until the engine says the
   await assert.rejects(stuck.exportDataPages(), (e) => e.code === 'export', 'a page that does not move on is not read forever');
   assert.equal(new WalletSession({ FS: {} }, fakeClient()).pagedExport, false);
 });
+
+test('security: only transactions that are over come in; one still under way would be signed at the next start, unasked', () => {
+  // [type, amount, time] without a status, then with each status as BEAM writes it (0x80 + TxStatus).
+  const base = (n) => [param(n, 0, [1, 12]), param(n, 2, [4, 0, 225, 245, 5]), param(n, 10, [4, 143, 70, 203, 106])];
+  const withStatus = (n, v, sub = 1) => [...base(n), param(n, 151, v, sub)];
+  const txs = [
+    withStatus(1, [130]), // cancelled
+    withStatus(2, [131]), // completed
+    withStatus(3, [132]), // failed
+    withStatus(4, [128]), // pending
+    withStatus(5, [129]), // in progress: a contract call BEAM would build and sign
+    withStatus(6, [133]), // registering
+    withStatus(7, [134]), // confirming
+    base(8), // no status: BEAM takes it as pending
+    withStatus(9, [3]), // not how BEAM writes it
+    withStatus(10, [1, 3]),
+    [...withStatus(11, [131]), param(11, 151, [129], 2)], // completed on sub 1, in progress on another
+    [...withStatus(12, [131]), param(12, 151, [129])], // two status rows, one under way
+  ];
+  const parsed = D.parseWalletData(file({ txs }));
+  assert.equal(parsed.ok, true);
+  const plan = D.planImport(parsed.data, { ids: new Set(), tokens: new Set(), txIds: new Set() });
+  assert.deepEqual(plan.txs.map((t) => Number.parseInt(t.id.slice(0, 2), 16)).sort((a, b) => a - b), [1, 2, 3], 'cancelled, completed, failed');
+  assert.equal(plan.unfinished, 9);
+  assert.equal(plan.counts.txs, 3);
+  assert.match(D.unfinishedText(9), /^Left out: 9 payments still under way in that file\. Only the wallet that started a payment can finish it/);
+  assert.equal(D.unfinishedText(0), null);
+  assert.equal(D.statusValue([131]), 3);
+  assert.equal(D.statusValue([3]), null);
+  assert.equal(D.statusValue([0x87]), null);
+  // What reaches the engine is built from the plan only.
+  const sent = D.importChunks(plan).filter((c) => c.kind === 'txs').map((c) => JSON.parse(c.json).TransactionParameters).flat();
+  assert.ok(sent.length > 0 && sent.every((p) => [1, 2, 3].includes(p.TransactionId[0])), 'nothing unfinished in what the engine receives');
+});

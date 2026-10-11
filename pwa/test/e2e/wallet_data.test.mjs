@@ -343,6 +343,29 @@ test('B: the same 12 words in a fresh browser: garbage and another wallet’s fi
   await page.click(tid('data-done'));
   assert.ok((await snapshot(page)).own.includes(CLI_LABEL));
 
+  // A crafted file: A's, plus a copy of its payment made a contract call that is still "in progress".
+  // BEAM resumes such a transaction at the next start and builds and signs it from the file, unasked;
+  // it is left out, said in the preview, and never reaches the engine (lib/wallet_data.js).
+  const evilFile = join(tmp, 'evil.dat');
+  {
+    const j = JSON.parse(readFileSync(s.fileA, 'utf8'));
+    const copy = j.TransactionParameters.filter((p) => hex(p.TransactionId) === s.txId).map((p) => ({ ...p, TransactionId: [0xee, ...p.TransactionId.slice(1)] }));
+    for (const p of copy) {
+      if (p.ParameterId === 151) p.Value = [129]; // in progress
+      if (p.ParameterId === 0 && p.SubTransactionId === 1) p.Value = [1, 12]; // a contract call
+    }
+    j.TransactionParameters.push(...copy);
+    writeFileSync(evilFile, JSON.stringify(j));
+    s.evilId = hex(copy[0].TransactionId);
+  }
+  await pick(page, evilFile);
+  await page.waitForSelector(tid('data-unfinished'), { timeout: 60000 });
+  assert.match(await page.textContent(tid('data-unfinished')), /^Left out: 1 payment still under way in that file\./);
+  assert.equal(await page.isVisible(tid('data-all-here')), true, 'the rest is already here: nothing to bring in');
+  await shot(page, 'data-09b-unfinished-left-out');
+  await page.click(tid('data-done'));
+  assert.ok(!(await snapshot(page)).txs.some((x) => x.txId === s.evilId), 'never reached the wallet');
+
   // Saved in the browser's storage: a reload and unlock still has it.
   await page.reload();
   await waitScreen(page, 'unlock', 60000);
@@ -354,6 +377,7 @@ test('B: the same 12 words in a fresh browser: garbage and another wallet’s fi
   const reloaded = await snapshot(page);
   assert.ok(reloaded.own.includes(LABEL) && reloaded.own.includes(CLI_LABEL));
   assert.ok(reloaded.txs.some((x) => x.txId === s.txId && x.comment === NOTE));
+  assert.ok(!reloaded.txs.some((x) => x.txId === s.evilId), 'nothing was resumed at the next start');
   assert.deepEqual(rec.errors, []);
   await ctx.close();
 });
