@@ -30,6 +30,7 @@ import { loaderBehind } from '../lib/loader.js';
 import { switchToRandom } from './node.js';
 import { VERIFIED, metadataOf, tokenSubtitle, copyWarning } from '../lib/meta.js';
 import { needsPoolCheck, checkPools } from '../lib/dex_pools.js';
+import { namesHomeLine } from './names_claim.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -267,11 +268,15 @@ export default function home(app) {
     tile('airdrop', 'gift', 'Airdrop codes', 'airdrop'),
   );
 
+  // Money waiting for this wallet's names: a line under the balance, only when something waits.
+  const namesLine = namesHomeLine(app);
+
   const el = screen(
     { brand: true, tabs: 'home', app, right: h('button', { class: 'icon-btn', 'aria-label': 'Lock', onclick: () => app.lock('manual'), 'data-testid': 'lock' }, icon('lock')) },
     chainSwitch(app, 'beam'),
     bannerBox,
     balanceBox,
+    namesLine.el,
     actionsBox,
     moreRow,
     assetsBox,
@@ -282,6 +287,7 @@ export default function home(app) {
     destroy() {
       off();
       offU();
+      namesLine.destroy();
       clearTimeout(bannerLater);
       if (navigator.serviceWorker) navigator.serviceWorker.removeEventListener('controllerchange', onController);
     },

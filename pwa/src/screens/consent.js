@@ -22,6 +22,7 @@ import { openSheet, notice, assetBadge, toast } from '../lib/ui.js';
 import { formatAmount } from '../lib/amount.js';
 import { setConsentPresenter, NATIVE_APP_NAME } from '../lib/contracts.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
+import { nameTitle, nameLabel, nameRows, nameNotes } from './name_consent.js';
 
 /** "371.76" for the button; the rows above it carry every digit. */
 export function shortAmount(groth) {
@@ -63,7 +64,8 @@ function intentLabel(intent, pay, get) {
     case 'airdropCancel':
       return one(get) && !pay.length ? `Take back ${get[0]}` : null;
     default:
-      return null;
+      // BEAM names: transfer, sell, stop selling, buy, claim (screens/name_consent.js).
+      return nameLabel(intent, pay, get);
   }
 }
 
@@ -98,6 +100,7 @@ function title(req, bridge) {
   if (req.kind === 'send') return 'Approve this payment';
   if (req.intent && req.intent.action === 'swap') return 'Confirm your swap';
   if (req.intent && TITLES[req.intent.action]) return TITLES[req.intent.action];
+  if (req.native && nameTitle(req.intent)) return nameTitle(req.intent);
   return 'Approve this request';
 }
 
@@ -201,11 +204,13 @@ function showConsent(app, req, bridge, t) {
                 ...req.receives.map((a, i) => row(req.intent && req.intent.action === 'swap' ? 'You get' : 'You receive', a, `consent-get-${i}`, '')),
                 req.address ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'To' }), h('span', { class: 'v mono', text: shorten(req.address, 10, 8) })) : null,
                 req.intent && req.intent.action === 'namePay' ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'To' }), h('span', { class: 'v', 'data-testid': 'consent-to', text: `${req.intent.name}.beam` })) : null,
+                ...(native ? nameRows(req, unit) : []),
                 h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Network fee' }), h('span', { class: 'v', 'data-testid': 'consent-fee', text: `${formatAmount(req.fee)} BEAM` })),
                 showTotal ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Total BEAM out' }), h('span', { class: 'v', 'data-testid': 'consent-total', text: `${formatAmount(beamOut)} BEAM` })) : null,
               ),
           // Said before approving; when it cannot be approved, what is missing comes first.
           bridge && bridge.kind === 'send' && enough ? h('div', { 'data-testid': 'consent-bridge-public' }, notice('info', t.PUBLIC_NOTE)) : null,
+          ...(native ? nameNotes(req) : []),
           !native && req.comment ? h('p', { class: 'small', text: `The app describes it as: “${req.comment}”` }) : null,
           notListed.length ? h('p', { class: 'small', 'data-testid': 'consent-unlisted', text: `${notListed.map((a) => `${wallet.label(a.assetId).symbol} is asset #${a.assetId}`).join('; ')}: not on BEAM Campfire's list of known assets. Check the number if the name matters to you.` }) : null,
           !native ? notice('warn', `Only approve if you trust ${req.appName}. Approving lets it move what is listed above.`) : null,
