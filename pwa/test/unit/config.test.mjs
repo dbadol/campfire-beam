@@ -166,6 +166,9 @@ test('no source file reaches out to another origin', () => {
       // BEAM's snapshot through BEAM Campfire's server, for a copy hosted without a relay:
       // that one file (and the CSP path naming it), only in this file.
       if (f.endsWith(join('lib', 'recovery.js')) && (u === 'https://${RECOVERY_FALLBACK_HOST}/recovery/mainnet_recovery.bin' || u === 'https://${RECOVERY_FALLBACK_HOST}/recovery/')) continue;
+      // BEAM's explorer page of a transaction, a plain link the person taps in a payment's
+      // details (the app fetches nothing from it): that one address, only in this file.
+      if (f.endsWith(join('lib', 'payments.js')) && u === 'https://explorer.beam.mw/block?kernel_id=') continue;
       offenders.push(`${f.slice(pwa.length)}: ${u}`);
     }
   }

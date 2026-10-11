@@ -28,7 +28,7 @@ import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { screen, primary, notice, openSheet, toast, focusSoon } from '../lib/ui.js';
 import { generatePhrase } from '../lib/engine.js';
-import { isImported, openWithPasswordFor, markExported } from '../lib/session.js';
+import { isImported, openWithPasswordFor, markExported, isAdding } from '../lib/session.js';
 import { prepareExport, deliverExport, cloudPlatform, CLOUD_MIN_PASSWORD } from '../lib/export.js';
 import { NO_PHRASE_NOTICE, formatFileSize } from '../lib/wallet_file.js';
 import { OWNER_KEY_TEXT } from '../lib/owner_key.js';
@@ -53,8 +53,10 @@ export function wordReveal(onReveal) {
 }
 
 export default function backup(app) {
-  // A wallet already lives on this device: never make new words here.
-  if (app.record) return existingBackup(app);
+  // A wallet already lives on this device: never make new words here, unless another is being made
+  // (Add a wallet -> Create a new wallet).
+  const adding = isAdding(app) && app.setup.mode === 'create';
+  if (app.record && !adding) return existingBackup(app);
   const cta = primary('I wrote them down', () => app.go('confirmWords'), { disabled: true, 'data-testid': 'wrote-down' });
   const reveal = wordReveal(() => (cta.disabled = false));
   const status = h('p', { class: 'small', text: 'Making your words…' });
@@ -75,7 +77,7 @@ export default function backup(app) {
       title: 'Your 12 words',
       back: () => {
         app.setup = null;
-        app.go('welcome');
+        app.go(adding ? 'addWallet' : 'welcome');
       },
       actions: [cta],
     },

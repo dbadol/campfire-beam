@@ -170,7 +170,7 @@ test('a new wallet, synced; Home has BEAM names and airdrop codes on the dApps l
     });
   const empty = await overflow();
   console.log(`# Home, empty wallet, 390x844: ${JSON.stringify(empty)}`);
-  assert.deepEqual(empty.tiles, ['dApps', 'BEAM names', 'Airdrop codes']);
+  assert.deepEqual(empty.tiles, ['dApps', 'BEAM names', 'Airdrop codes', 'Tokens']); // Tokens: test/e2e/minter.test.mjs
   assert.ok(empty.rowHeight <= 64, `the line is ${empty.rowHeight} px`);
   assert.equal(empty.overflow, 0, "an empty wallet's Home fits a 390x844 phone");
   await shots('home-01-empty');
