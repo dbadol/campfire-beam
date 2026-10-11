@@ -1,6 +1,6 @@
 // The tokens the person hid from Home, kept per wallet (the desktop app keeps
 // them in that wallet's WalletInfo.otherData, beam_hidden_assets.dart): the app
-// store key `hiddenTokens:<wallet record id>`, a sorted list of asset ids. Nothing
+// store key `w:<wallet record id>:hiddenTokens`, a sorted list of asset ids. Nothing
 // secret. Deleting the wallet removes it with the wallet's other keys.
 //
 // Screens read the list synchronously (hiddenIds); it is read from the store once
@@ -10,9 +10,11 @@
 import { store } from './store.js';
 import { wallet } from './wallet.js';
 import { parseHidden, withHidden } from './tokens.js';
+import { prefixOf } from './wallet_scope.js';
 
 /** The store key of a wallet's hidden list. */
-export const hiddenKey = (recordId) => `hiddenTokens:${recordId}`;
+// 'w:<id>:hiddenTokens' (lib/wallet_scope.js walletKey): deleting the wallet removes it with every key under its prefix.
+export const hiddenKey = (recordId) => `${prefixOf(recordId)}hiddenTokens`;
 
 let cache = { id: null, ids: null, loading: null };
 

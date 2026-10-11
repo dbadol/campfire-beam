@@ -238,30 +238,30 @@ test('the hidden list: positive whole ids, sorted, BEAM never', () => {
   assert.deepEqual(withHidden(undefined, 'x', true), []);
 });
 
-test('the hidden list is kept per wallet, under hiddenTokens:<wallet id>', async () => {
+test('the hidden list is kept per wallet, under w:<wallet id>:hiddenTokens', async () => {
   const kv = new Map();
   const realGet = store.get;
   const realSet = store.set;
   store.get = async (k) => kv.get(k);
   store.set = async (k, v) => void kv.set(k, v);
   try {
-    assert.equal(hiddenKey('w1'), 'hiddenTokens:w1');
-    const a = { record: { id: 'w1' } };
-    const b = { record: { id: 'w2' } };
-    kv.set('hiddenTokens:w1', [174, 0, 'x']);
+    assert.equal(hiddenKey('a1a1a1a1a1a1a1a1'), 'w:a1a1a1a1a1a1a1a1:hiddenTokens');
+    const a = { record: { id: 'a1a1a1a1a1a1a1a1' } };
+    const b = { record: { id: 'b2b2b2b2b2b2b2b2' } };
+    kv.set('w:a1a1a1a1a1a1a1a1:hiddenTokens', [174, 0, 'x']);
     assert.deepEqual([...(await loadHidden(a))], [174]);
     assert.equal(hiddenLoaded(a), true);
     await setTokenHidden(a, 999, true);
-    assert.deepEqual(kv.get('hiddenTokens:w1'), [174, 999]);
+    assert.deepEqual(kv.get('w:a1a1a1a1a1a1a1a1:hiddenTokens'), [174, 999]);
     assert.deepEqual([...hiddenIds(a)], [174, 999]);
     // Another wallet on this device has its own list.
     await loadHidden(b);
     assert.deepEqual([...hiddenIds(b)], []);
     await setTokenHidden(b, 7, true);
-    assert.deepEqual(kv.get('hiddenTokens:w2'), [7]);
-    assert.deepEqual(kv.get('hiddenTokens:w1'), [174, 999], 'untouched');
+    assert.deepEqual(kv.get('w:b2b2b2b2b2b2b2b2:hiddenTokens'), [7]);
+    assert.deepEqual(kv.get('w:a1a1a1a1a1a1a1a1:hiddenTokens'), [174, 999], 'untouched');
     await setTokenHidden(b, 7, false);
-    assert.deepEqual(kv.get('hiddenTokens:w2'), []);
+    assert.deepEqual(kv.get('w:b2b2b2b2b2b2b2b2:hiddenTokens'), []);
     assert.deepEqual([...hiddenIds({ record: null })], [], 'no wallet open: nothing hidden');
   } finally {
     store.get = realGet;

@@ -27,6 +27,7 @@ import { confirmIdentity } from '../lib/auth_ui.js';
 import { lastCheckText } from '../lib/update.js';
 import { runUpdateCheck, openOtherAddress } from '../lib/update_ui.js';
 import { tokenSettings } from './token_ui.js';
+import { listWallets, nameOf } from '../lib/wallets.js';
 
 export default function settings(app) {
   const row = (ico, title, sub, onclick, extra = {}) =>
@@ -73,8 +74,17 @@ export default function settings(app) {
   }
   const offU = app.updates.onChange(setUpdSub);
 
+  // Several wallets (screens/wallets.js): which one is open, and the way to the others.
+  const walletsRow = row('wallet', 'Wallets', `${nameOf(app.record)} is open`, () => app.go('wallets'), { 'data-testid': 'wallets-row' });
+  listWallets().then((l) => {
+    const sub = walletsRow.querySelector('.s');
+    if (sub && l.length > 1) sub.textContent = `${nameOf(app.record)} is open · ${l.length} on this device`;
+    else if (sub) sub.textContent = `${nameOf(app.record)} is open · add another`;
+  }, () => {});
+
   const el = screen(
     { title: 'Settings', tabs: 'settings', app, cls: 'settings' },
+    h('div', { class: 'card list' }, walletsRow),
     h('p', { class: 'section-title', text: 'Security' }),
     h(
       'div',

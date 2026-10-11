@@ -23,7 +23,7 @@ test('names and addresses as they are kept', () => {
   assert.equal(C.looksLikeAddress(A1), true);
   assert.equal(C.looksLikeAddress('short'), false);
   assert.equal(C.looksLikeAddress(`${A1}<`), false);
-  assert.equal(C.paymentsKey('w1'), 'payments:w1', 'one record per wallet');
+  assert.equal(C.paymentsKey('a1a1a1a1a1a1a1a1'), 'w:a1a1a1a1a1a1a1a1:payments', 'one record per wallet');
 });
 
 test('checkContact: a name, a real-looking address, no duplicate address', () => {
@@ -54,18 +54,18 @@ for (const imported of [false, true]) {
   test(`the sealed record round-trips (${imported ? 'imported wallet: PBKDF2' : 'created wallet: HKDF'}), per wallet, and keeps Receive's address`, async () => {
     const kv = memKv();
     const dbPass = imported ? 'a chosen password' : newDbPassword();
-    const v = new C.PaymentsVault({ kv, walletId: 'w1', imported, dbPass });
+    const v = new C.PaymentsVault({ kv, walletId: 'a1a1a1a1a1a1a1a1', imported, dbPass });
     assert.deepEqual(await v.contacts(), []);
     const a = await v.add({ name: 'Alice', address: A1 }, 1000);
     await v.add({ name: 'Bob', address: A2 }, 2000);
     await assert.rejects(v.add({ name: 'Eve', address: A1 }), (e) => e.code === 'duplicate');
     await v.setReceiveAddress(A2);
-    assert.deepEqual([...kv.m.keys()], ['payments:w1']);
-    const env = kv.m.get('payments:w1');
+    assert.deepEqual([...kv.m.keys()], ['w:a1a1a1a1a1a1a1a1:payments']);
+    const env = kv.m.get('w:a1a1a1a1a1a1a1a1:payments');
     assert.equal(env.kdf, imported ? C.KDF_PBKDF2 : C.KDF_HKDF);
     if (imported) assert.equal(env.iterations, 600000);
     assert.ok(!JSON.stringify(env).includes('Alice') && !JSON.stringify(env).includes(A1.slice(10, 30)), 'nothing in the clear');
-    const again = new C.PaymentsVault({ kv, walletId: 'w1', imported, dbPass });
+    const again = new C.PaymentsVault({ kv, walletId: 'a1a1a1a1a1a1a1a1', imported, dbPass });
     const list = await again.contacts();
     assert.deepEqual(list.map((c) => [c.name, c.address]), [['Alice', A1], ['Bob', A2]]);
     assert.equal(await again.receiveAddress(), A2);
@@ -81,39 +81,39 @@ for (const imported of [false, true]) {
 test('another key, another wallet or an edited record: refused, and nothing is written over', async () => {
   const kv = memKv();
   const dbPass = newDbPassword();
-  const v = new C.PaymentsVault({ kv, walletId: 'w1', imported: false, dbPass });
+  const v = new C.PaymentsVault({ kv, walletId: 'a1a1a1a1a1a1a1a1', imported: false, dbPass });
   await v.add({ name: 'Alice', address: A1 });
-  const before = JSON.stringify(kv.m.get('payments:w1'));
-  const wrong = new C.PaymentsVault({ kv, walletId: 'w1', imported: false, dbPass: newDbPassword() });
+  const before = JSON.stringify(kv.m.get('w:a1a1a1a1a1a1a1a1:payments'));
+  const wrong = new C.PaymentsVault({ kv, walletId: 'a1a1a1a1a1a1a1a1', imported: false, dbPass: newDbPassword() });
   await assert.rejects(wrong.contacts(), (e) => e.code === 'wrong_secret');
   await assert.rejects(wrong.add({ name: 'Mallory', address: A2 }), (e) => e.code === 'wrong_secret');
-  assert.equal(JSON.stringify(kv.m.get('payments:w1')), before, 'not written over');
+  assert.equal(JSON.stringify(kv.m.get('w:a1a1a1a1a1a1a1a1:payments')), before, 'not written over');
   // The same record placed under another wallet's key.
-  kv.m.set('payments:w2', kv.m.get('payments:w1'));
-  await assert.rejects(new C.PaymentsVault({ kv, walletId: 'w2', imported: false, dbPass }).contacts(), (e) => e.code === 'wrong_secret');
+  kv.m.set('w:b2b2b2b2b2b2b2b2:payments', kv.m.get('w:a1a1a1a1a1a1a1a1:payments'));
+  await assert.rejects(new C.PaymentsVault({ kv, walletId: 'b2b2b2b2b2b2b2b2', imported: false, dbPass }).contacts(), (e) => e.code === 'wrong_secret');
   // Someone swaps a byte of the sealed contacts: it does not open (no silent change).
-  const env = structuredClone(kv.m.get('payments:w1'));
+  const env = structuredClone(kv.m.get('w:a1a1a1a1a1a1a1a1:payments'));
   const ct = Buffer.from(env.ct, 'base64');
   ct[5] ^= 1;
   env.ct = ct.toString('base64');
-  kv.m.set('payments:w1', env);
-  await assert.rejects(new C.PaymentsVault({ kv, walletId: 'w1', imported: false, dbPass }).contacts(), (e) => e.code === 'wrong_secret');
+  kv.m.set('w:a1a1a1a1a1a1a1a1:payments', env);
+  await assert.rejects(new C.PaymentsVault({ kv, walletId: 'a1a1a1a1a1a1a1a1', imported: false, dbPass }).contacts(), (e) => e.code === 'wrong_secret');
   // A lowered round count or a swapped key derivation is refused before any key is made.
   const kv2 = memKv();
-  const v2 = new C.PaymentsVault({ kv: kv2, walletId: 'w3', imported: true, dbPass: 'pw' });
+  const v2 = new C.PaymentsVault({ kv: kv2, walletId: 'c3c3c3c3c3c3c3c3', imported: true, dbPass: 'pw' });
   await v2.add({ name: 'A', address: A1 });
-  const e2 = structuredClone(kv2.m.get('payments:w3'));
-  kv2.m.set('payments:w3', { ...e2, iterations: 1000 });
-  await assert.rejects(new C.PaymentsVault({ kv: kv2, walletId: 'w3', imported: true, dbPass: 'pw' }).contacts(), (e) => e.code === 'weak');
-  kv2.m.set('payments:w3', { ...e2, kdf: C.KDF_HKDF });
-  await assert.rejects(new C.PaymentsVault({ kv: kv2, walletId: 'w3', imported: true, dbPass: 'pw' }).contacts(), (e) => e.code === 'weak');
-  kv2.m.set('payments:w3', { ...e2, salt: Buffer.alloc(16, 7).toString('base64') });
-  await assert.rejects(new C.PaymentsVault({ kv: kv2, walletId: 'w3', imported: true, dbPass: 'pw' }).contacts(), (e) => e.code === 'wrong_secret');
+  const e2 = structuredClone(kv2.m.get('w:c3c3c3c3c3c3c3c3:payments'));
+  kv2.m.set('w:c3c3c3c3c3c3c3c3:payments', { ...e2, iterations: 1000 });
+  await assert.rejects(new C.PaymentsVault({ kv: kv2, walletId: 'c3c3c3c3c3c3c3c3', imported: true, dbPass: 'pw' }).contacts(), (e) => e.code === 'weak');
+  kv2.m.set('w:c3c3c3c3c3c3c3c3:payments', { ...e2, kdf: C.KDF_HKDF });
+  await assert.rejects(new C.PaymentsVault({ kv: kv2, walletId: 'c3c3c3c3c3c3c3c3', imported: true, dbPass: 'pw' }).contacts(), (e) => e.code === 'weak');
+  kv2.m.set('w:c3c3c3c3c3c3c3c3:payments', { ...e2, salt: Buffer.alloc(16, 7).toString('base64') });
+  await assert.rejects(new C.PaymentsVault({ kv: kv2, walletId: 'c3c3c3c3c3c3c3c3', imported: true, dbPass: 'pw' }).contacts(), (e) => e.code === 'wrong_secret');
 });
 
 test('vaultFor: one vault per unlocked wallet; a lock forgets it; locked or no wallet refused', async () => {
   const kv = memKv();
-  const app = { record: { id: 'w9', imported: false }, dbPass: newDbPassword(), lockHooks: new Set() };
+  const app = { record: { id: 'd9d9d9d9d9d9d9d9', imported: false }, dbPass: newDbPassword(), lockHooks: new Set() };
   const v1 = await C.vaultFor(app, kv);
   assert.equal(await C.vaultFor(app, kv), v1);
   await v1.add({ name: 'Alice', address: A1 });
@@ -124,6 +124,6 @@ test('vaultFor: one vault per unlocked wallet; a lock forgets it; locked or no w
   assert.equal(C.cachedContacts(), null);
   assert.equal(C.contactNameFor(A1), null);
   assert.notEqual(await C.vaultFor(app, kv), v1);
-  await assert.rejects(C.vaultFor({ record: { id: 'w9' }, dbPass: null }, kv), (e) => e.code === 'locked');
+  await assert.rejects(C.vaultFor({ record: { id: 'd9d9d9d9d9d9d9d9' }, dbPass: null }, kv), (e) => e.code === 'locked');
   await assert.rejects(C.vaultFor({ record: null, dbPass: 'x' }, kv), (e) => e.code === 'missing');
 });

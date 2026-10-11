@@ -1,6 +1,6 @@
 // The address book (contacts: a name and a BEAM address) and the address Receive
 // shows, kept for ONE wallet in the app's IndexedDB (lib/store.js) under the key
-// `payments:<wallet id>`, sealed, and deleted with the wallet (wipeWallet clears
+// `w:<wallet id>:payments`, sealed, and deleted with the wallet (wipeWallet clears
 // the whole store).
 //
 // Why sealed: a contact is who you pay, which in a privacy wallet is nobody
@@ -19,6 +19,7 @@
 
 import { PBKDF2_MIN_ITERATIONS, randomBytes, toHex, b64, unb64 } from './envelope.js';
 import { store as appStore } from './store.js';
+import { prefixOf } from './wallet_scope.js';
 
 export const PAYMENTS_DATA_INFO = 'beam-campfire-payments-v1';
 export const KDF_HKDF = 'hkdf-sha256';
@@ -33,7 +34,8 @@ export const ADDRESS_MAX = 1024;
 export const CONTACTS_MAX = 500;
 
 /** The store key of a wallet's record. */
-export const paymentsKey = (walletId) => `payments:${walletId}`;
+// 'w:<id>:payments' (lib/wallet_scope.js walletKey): deleting the wallet removes it with every key under its prefix.
+export const paymentsKey = (walletId) => `${prefixOf(walletId)}payments`;
 
 export class ContactsError extends Error {
   constructor(code, message) {

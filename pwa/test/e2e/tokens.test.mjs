@@ -322,8 +322,8 @@ test('Hide: off Home, its total and Send; one tap back on its page or in Setting
   await page.waitForSelector(tid('token-hidden-note'));
   await shots('11-token-hidden');
   const rid = await page.evaluate(() => import('./lib/store.js').then((m) => m.getWalletRecord()).then((r) => r.id));
-  const stored = await page.evaluate((k) => import('./lib/store.js').then((m) => m.store.get(k)), `hiddenTokens:${rid}`);
-  assert.deepEqual(stored, [94], 'kept under hiddenTokens:<wallet id>');
+  const stored = await page.evaluate((k) => import('./lib/store.js').then((m) => m.store.get(k)), `w:${rid}:hiddenTokens`);
+  assert.deepEqual(stored, [94], 'kept under w:<wallet id>:hiddenTokens');
   assert.equal((await page.evaluate(() => import('./lib/store.js').then((m) => m.getPrefs()))).hiddenAssets, undefined, 'not app-wide');
 
   await page.click('.topbar .icon-btn');
@@ -356,7 +356,7 @@ test('Hide: off Home, its total and Send; one tap back on its page or in Setting
   await page.click(tid('hidden-token-show'));
   await page.waitForSelector(tid('hidden-tokens-empty'));
   await shots('14-hidden-tokens-empty');
-  assert.deepEqual(await page.evaluate((k) => import('./lib/store.js').then((m) => m.store.get(k)), `hiddenTokens:${rid}`), []);
+  assert.deepEqual(await page.evaluate((k) => import('./lib/store.js').then((m) => m.store.get(k)), `w:${rid}:hiddenTokens`), []);
   await page.click(tid('hidden-tokens-home'));
   await waitScreen(page, 'home');
   await page.waitForSelector(rowSel(94));

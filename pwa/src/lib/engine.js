@@ -15,6 +15,43 @@
 const ENGINE_SCRIPT = 'vendor/engine/wasm-client.js';
 export const DB_DIR = '/beam_wallet';
 export const DB_PATH = '/beam_wallet/wallet.db';
+
+// Several wallets (lib/wallets.js): the wallet in the first slot keeps /beam_wallet/wallet.db (where a
+// single-wallet version keeps it); every other wallet has its own folder, /beam_wallet/<id>/wallet.db,
+// in the same IDBFS mount. The functions below work on the selected wallet's file unless given a path.
+let walletPath = DB_PATH;
+
+/** The database every function below uses by default (lib/wallets.js sets it with the selected wallet). */
+export function useWalletPath(p) {
+  walletPath = typeof p === 'string' && p ? p : DB_PATH;
+}
+
+export function currentWalletPath() {
+  return walletPath;
+}
+
+/** A wallet database path this app may touch: the first slot's, or <DB_DIR>/<16 hex>/wallet.db. */
+export function isWalletPath(p) {
+  return p === DB_PATH || new RegExp(`^${DB_DIR}/[0-9a-f]{16}/wallet\\.db$`).test(String(p));
+}
+
+function dirOf(p) {
+  return p.slice(0, p.lastIndexOf('/'));
+}
+
+function ensureDir(M, dir) {
+  if (dir === DB_DIR) return;
+  try {
+    M.FS.mkdir(dir);
+  } catch {
+    /* already there */
+  }
+}
+
+function checkPath(p) {
+  if (!isWalletPath(p)) throw new EngineError('path', 'Not a wallet file of this app.');
+  return p;
+}
 const RECOVERY_FS_PATH = '/recovery.bin'; // MEMFS root: never persisted to IndexedDB
 
 export class EngineError extends Error {
@@ -237,19 +274,43 @@ export function syncFS(M) {
 }
 
 // ---------------------------------------------------------------- wallet ops
-export async function walletExists() {
+export async function walletExists(path = walletPath) {
   const M = await loadEngine();
-  return Boolean(M.WasmWalletClient.IsInitialized(DB_PATH));
+  return Boolean(M.WasmWalletClient.IsInitialized(checkPath(path)));
 }
 
-/** File names in the wallet directory (names only: for the e2e and the self-test). */
+/**
+ * File names in the wallet directory, and in each wallet's folder as "<id>/<name>" (names only:
+ * for the e2e and the self-test).
+ */
 export async function walletFiles() {
   const M = await loadEngine();
+  const out = [];
+  let names = [];
   try {
-    return M.FS.readdir(DB_DIR).filter((n) => n !== '.' && n !== '..').sort();
+    names = M.FS.readdir(DB_DIR);
   } catch {
     return [];
   }
+  for (const n of names) {
+    if (n === '.' || n === '..') continue;
+    let dir = false;
+    try {
+      dir = M.FS.isDir(M.FS.stat(`${DB_DIR}/${n}`).mode);
+    } catch {
+      /* gone */
+    }
+    if (!dir) {
+      out.push(n);
+      continue;
+    }
+    try {
+      for (const f of M.FS.readdir(`${DB_DIR}/${n}`)) if (f !== '.' && f !== '..') out.push(`${n}/${f}`);
+    } catch {
+      /* gone */
+    }
+  }
+  return out.sort();
 }
 
 export async function generatePhrase() {
@@ -267,39 +328,88 @@ export async function isValidPhrase(words) {
   return Boolean(M.WasmWalletClient.IsValidPhrase(words.join(' ')));
 }
 
-export async function createWalletDb(words, dbPass) {
+export async function createWalletDb(words, dbPass, path = walletPath) {
   const M = await loadEngine();
-  if (M.WasmWalletClient.IsInitialized(DB_PATH)) throw new EngineError('exists', 'A wallet already exists on this device.');
+  checkPath(path);
+  if (M.WasmWalletClient.IsInitialized(path)) throw new EngineError('exists', 'A wallet already exists on this device.');
+  ensureDir(M, dirOf(path));
   try {
-    M.WasmWalletClient.CreateWallet(words.join(';'), DB_PATH, dbPass);
+    M.WasmWalletClient.CreateWallet(words.join(';'), path, dbPass);
   } catch (e) {
     throw new EngineError('create', 'The wallet could not be created: ' + (e && e.message));
   }
-  if (!M.WasmWalletClient.IsInitialized(DB_PATH)) throw new EngineError('create', 'The wallet could not be created.');
+  if (!M.WasmWalletClient.IsInitialized(path)) throw new EngineError('create', 'The wallet could not be created.');
   await syncFS(M);
 }
 
-/** Removes wallet.db and its sqlite side files, then flushes to IndexedDB. */
-export async function deleteWalletDb() {
+/**
+ * Removes one wallet's database and its sqlite side files, then flushes to IndexedDB. The first
+ * slot's (/beam_wallet/wallet.db): every plain file in /beam_wallet, as a single-wallet version
+ * did, and never a folder (each other wallet is a folder). Any other wallet's: its own folder.
+ * Nothing else is touched.
+ */
+export async function deleteWalletDb(path = walletPath) {
   const M = await loadEngine();
+  removeWalletFiles(M.FS, checkPath(path));
+  await syncFS(M);
+  if (M.WasmWalletClient.IsInitialized(path)) throw new EngineError('delete', 'The wallet file could not be removed.');
+}
+
+/**
+ * A first-slot wallet.db (and its sqlite side files) left without a record by an interrupted
+ * setup: it cannot be opened (its database password is gone). Only those files: a staged
+ * import.db beside them stays.
+ */
+export async function removeStrayDb() {
+  const M = await loadEngine();
+  let names = [];
   try {
-    if (M.WasmWalletClient.IsInitialized(DB_PATH)) M.WasmWalletClient.DeleteWallet(DB_PATH);
+    names = M.FS.readdir(DB_DIR);
   } catch {
-    /* removed below */
+    return;
   }
-  try {
-    for (const name of M.FS.readdir(DB_DIR)) {
-      if (name === '.' || name === '..') continue;
-      try {
-        M.FS.unlink(`${DB_DIR}/${name}`);
-      } catch {
-        /* not a file */
-      }
+  for (const name of names) {
+    if (name !== 'wallet.db' && !name.startsWith('wallet.db-')) continue;
+    try {
+      M.FS.unlink(`${DB_DIR}/${name}`);
+    } catch {
+      /* gone */
     }
-  } catch {
-    /* empty */
   }
   await syncFS(M);
+}
+
+/** The file part of deleteWalletDb (an Emscripten FS, or a stand-in in the unit tests). Returns the paths removed. */
+export function removeWalletFiles(FS, path) {
+  checkPath(path);
+  const dir = dirOf(path);
+  const removed = [];
+  let names = [];
+  try {
+    names = FS.readdir(dir);
+  } catch {
+    /* already gone */
+  }
+  for (const name of names) {
+    if (name === '.' || name === '..') continue;
+    const full = `${dir}/${name}`;
+    try {
+      if (FS.isDir(FS.stat(full).mode)) continue;
+      FS.unlink(full);
+      removed.push(full);
+    } catch {
+      /* not a file, or gone */
+    }
+  }
+  if (dir !== DB_DIR) {
+    try {
+      FS.rmdir(dir);
+      removed.push(dir);
+    } catch {
+      /* not there, or not empty */
+    }
+  }
+  return removed;
 }
 
 // ---------------------------------------------------------------- import a wallet.db
@@ -370,18 +480,27 @@ export async function checkImportPassword(password, { timeoutMs = 180000 } = {})
   });
 }
 
-/** The checked file becomes this device's wallet.db, and is saved to IndexedDB. */
-export async function adoptImport() {
+/** The checked file becomes the wallet's database at `path` (the same mount: a rename), and is saved to IndexedDB. */
+export async function adoptImport(path = walletPath) {
   const M = await loadEngine();
-  if (M.WasmWalletClient.IsInitialized(DB_PATH)) throw new EngineError('exists', 'A wallet already exists on this device.');
+  checkPath(path);
+  if (M.WasmWalletClient.IsInitialized(path)) throw new EngineError('exists', 'A wallet already exists on this device.');
   if (!M.WasmWalletClient.IsInitialized(IMPORT_PATH)) throw new EngineError('missing', 'No file to import.');
   removeImportFiles(M, { sideFilesOnly: true });
-  M.FS.rename(IMPORT_PATH, DB_PATH);
+  ensureDir(M, dirOf(path));
+  M.FS.rename(IMPORT_PATH, path);
   if (!(await syncFS(M))) {
     try {
-      M.FS.unlink(DB_PATH);
+      M.FS.unlink(path);
     } catch {
       /* not there */
+    }
+    if (dirOf(path) !== DB_DIR) {
+      try {
+        M.FS.rmdir(dirOf(path));
+      } catch {
+        /* not empty */
+      }
     }
     await syncFS(M);
     throw new EngineError('save', 'The wallet could not be saved on this device.');
@@ -402,10 +521,10 @@ export async function discardImport() {
 const EXPORT_PATH = '/campfire-export.db'; // MEMFS root: never flushed to IndexedDB
 
 /** wallet.db's bytes. The caller stops the wallet first. */
-export async function readWalletDb() {
+export async function readWalletDb(path = walletPath) {
   const M = await loadEngine();
-  if (!M.WasmWalletClient.IsInitialized(DB_PATH)) throw new EngineError('missing', 'There is no wallet on this device.');
-  return M.FS.readFile(DB_PATH); // a copy
+  if (!M.WasmWalletClient.IsInitialized(checkPath(path))) throw new EngineError('missing', 'There is no wallet on this device.');
+  return M.FS.readFile(path); // a copy
 }
 
 /** A re-keyed copy of `bytes` (opened with oldPass) that opens with newPass. */
@@ -652,12 +771,12 @@ export class WalletSession {
  * again from the snapshot; if the snapshot cannot be read nothing changes.
  * @returns {Promise<{session: WalletSession, imported: Promise<void>|null}>}
  */
-export async function startWallet({ dbPass, node, recovery = null, onImport = null, bodyRequests = true, rescan = false }) {
+export async function startWallet({ dbPass, node, recovery = null, onImport = null, bodyRequests = true, rescan = false, dbPath = walletPath }) {
   const M = await loadEngine();
   if (abortedWhy) throw new EngineError('aborted', 'The wallet engine stopped working in this page. Reload to start it again.');
-  if (!M.WasmWalletClient.IsInitialized(DB_PATH)) throw new EngineError('missing', 'There is no wallet on this device.');
+  if (!M.WasmWalletClient.IsInitialized(checkPath(dbPath))) throw new EngineError('missing', 'There is no wallet on this device.');
   nodeGuard.setAllowed(node);
-  const client = new M.WasmWalletClient(DB_PATH, dbPass, node);
+  const client = new M.WasmWalletClient(dbPath, dbPass, node);
   if (typeof client.setBodyRequests === 'function') client.setBodyRequests(Boolean(bodyRequests || recovery));
   else if (!bodyRequests && !recovery) throw new EngineError('engine', 'This engine build cannot start a wallet without scanning (needs patch 0102).');
   if (rescan) {

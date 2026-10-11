@@ -229,7 +229,7 @@ test('Contacts: add with the wallet’s own check, refuse a duplicate and own ad
   const stored = await page.evaluate(async () => {
     const { store } = await import('./lib/store.js');
     const rec = await store.get('wallet');
-    const env = await store.get(`payments:${rec.id}`);
+    const env = await store.get(`w:${rec.id}:payments`);
     return { keyOk: Boolean(env), json: JSON.stringify(env) };
   });
   assert.ok(stored.keyOk, 'kept under payments:<wallet id>');
