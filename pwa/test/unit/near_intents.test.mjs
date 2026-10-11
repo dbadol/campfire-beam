@@ -395,11 +395,14 @@ test('refusals in plain words, each with its one fix; nothing blames the person'
 test('where a swap is: its line, its notice and its three steps', () => {
   const s = swapOf();
   assert.equal(sendText(s), '0.00012 BTC');
-  assert.equal(stateLine(s), 'Waiting for your 0.00012 BTC');
+  // A fixed clock before the recorded quote's deadline (the real one passes, a few days after recording).
+  const before = s.quote.sendBefore - 60000;
+  assert.equal(stateLine(s, before), 'Waiting for your 0.00012 BTC');
+  assert.equal(stateLine(s, s.quote.sendBefore + 60000), 'No BTC arrived in time');
   const at = (state, out) => withStatus(s, readStatus({ status: state, swapDetails: out ? { amountOut: out } : {} }), 1);
   assert.equal(stateLine(at('PROCESSING')), 'Swapping your 0.00012 BTC into ETH…');
   assert.equal(stateLine(at('INCOMPLETE_DEPOSIT')), 'Less than 0.00012 BTC arrived');
-  assert.equal(statusWords(s).key, 'waiting');
+  assert.equal(statusWords(s, { now: before }).key, 'waiting');
   assert.equal(statusWords(at('KNOWN_DEPOSIT_TX')).key, 'seen');
   assert.equal(statusWords(at('PROCESSING')).key, 'processing');
   assert.equal(statusWords(at('SUCCESS', '1000'), { got: 1000n, ethText: (w) => `${w} wei` }).title, '1000 wei arrived in this wallet.');

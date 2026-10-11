@@ -178,9 +178,18 @@ test('a new wallet, synced; Home has BEAM names and airdrop codes on the dApps l
   // Every row Home can have: the chain switcher, balance, actions, dApps, this line, tokens, payments.
   await pretendBalance(123456789000n, { 174: 250000000000n, 7: 1200000000n });
   await page.waitForSelector(tid('tokens'));
+  // The one-time "Show values in dollars?" card (screens/token_ui.js) is answered first, as people do;
+  // it leaves Home after that.
+  const notNow = page.locator('button', { hasText: 'Not now' }).first();
+  if (await notNow.count()) {
+    await notNow.click();
+    await sleep(500);
+  }
   const full = await overflow();
   console.log(`# Home, every row, 390x844: ${JSON.stringify(full)}`);
-  assert.ok(full.overflow <= 68, 'no further than the same Home with the dApps row alone (68 px measured)');
+  // 0.2.9 added the total with tokens under the balance and a value on each token row: 103 px measured
+  // (it was 68 with the dApps row alone). The one-time price question is answered above.
+  assert.ok(full.overflow <= 110, `no further than Home with its total and values (${full.overflow} px; 103 measured)`);
   await shots('home-02-every-row');
   await realBalance();
 });

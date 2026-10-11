@@ -12,7 +12,7 @@
 // (lib/eth/hosts.js PRICE_HOST). Without an answer the screens show no money
 // value at all, never a made-up 0.
 
-import { PRICE_HOST, originOf } from './eth/hosts.js';
+import { PRICE_HOST, originOf } from './price_host.js';
 
 export const COINGECKO_BEAM_ID = 'beam';
 export const DEFAULT_CURRENCY = 'USD';
