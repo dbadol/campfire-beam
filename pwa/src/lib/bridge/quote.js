@@ -193,7 +193,7 @@ export function quoteToEthereum({ route, amount: raw, cond, balances: bal, ethAd
       Object.freeze({
         code: 'gasHigh',
         title: 'Ethereum is unusually busy right now',
-        detail: 'Its network fee is many times its usual level, so BEAM Campfire pays the bridge a capped fee and no more. The bridge pays out once Ethereum gets cheaper, which can take hours. Moving later, when it is quieter, costs less.',
+        detail: 'Its network fee is many times its usual level, so BEAM Campfire pays the bridge a capped fee and no more. The bridge pays out once Ethereum gets cheaper, which can take hours or days. Moving later, when it is quieter, costs less.',
       }),
     );
   }

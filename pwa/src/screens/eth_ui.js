@@ -70,19 +70,35 @@ export function shortAddress(address) {
  * switches by itself: another server is another party that sees the IP
  * address with the Ethereum address.
  */
+/**
+ * A network fee walletFees() refused (lib/eth/rpc.js 'bad_fees'), in words: {title, detail}. Far
+ * above what BEAM Campfire pays ('high': Ethereum has been that dear, for minutes), or figures that
+ * cannot be right ('jump'). Either way nothing was signed.
+ */
+export function badFeesWords(error, serverName) {
+  if (error && error.data && error.data.problem === 'high') {
+    return {
+      title: 'The network fee is far above anything BEAM Campfire will pay. ',
+      detail: `${serverName}'s Ethereum server says Ethereum is that expensive right now. It has been, but only for minutes at a time. Nothing was sent, and nothing was paid. Try again in a few minutes, or use another server.`,
+    };
+  }
+  return { title: `${serverName}'s Ethereum server gave a network fee that can't be right. `, detail: 'Nothing was sent, and nothing was paid. Try again in a minute, or use another server.' };
+}
+
 export function serverProblem(app, error, { retry, switched }) {
   const cur = ethPrefs(app).host;
   const alt = ETH_RPC_HOSTS.find((x) => x.id === (cur.id === DEFAULT_ETH_RPC ? 'publicnode' : DEFAULT_ETH_RPC));
-  // Network fee figures Ethereum cannot have (lib/eth/rpc.js walletFees): refused, never paid.
+  // Network fee figures refused (lib/eth/rpc.js walletFees): never paid.
   const badFees = Boolean(error && error.code === 'bad_fees');
+  const fees = badFees ? badFeesWords(error, cur.name) : null;
   // The server's own words (HTTP codes and the like) stay out of sight, for whoever debugs it.
   return h(
     'div',
     { 'data-testid': 'eth-server-problem', 'data-code': badFees ? 'bad_fees' : null, title: error && error.message ? error.message : '' },
     notice(
       'error',
-      h('strong', { text: badFees ? `${cur.name}'s Ethereum server gave a network fee that can't be right. ` : `${cur.name}'s Ethereum server didn't answer. ` }),
-      badFees ? 'Nothing was sent, and nothing was paid. Try again in a minute, or use another server.' : 'Your coins are safe on Ethereum; only this view is out of date.',
+      h('strong', { text: fees ? fees.title : `${cur.name}'s Ethereum server didn't answer. ` }),
+      fees ? fees.detail : 'Your coins are safe on Ethereum; only this view is out of date.',
       h(
         'div',
         { class: 'btn-row prompt-actions' },

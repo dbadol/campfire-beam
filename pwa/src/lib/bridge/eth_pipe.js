@@ -35,7 +35,7 @@ import { BridgeError, checkKey } from './beam_pipe.js';
 import { encodeCall, abiEncode, abiDecode, selector, addressTopic } from '../eth/abi.js';
 import { keccak256, normAddress } from '../eth/crypto.js';
 import { bytesToHex, hexToBytes, toBytes, bytesToBigInt, equalBytes } from '../eth/hex.js';
-import { EthRpcError, walletFees, gasWithHeadroom, baseFeeProblem } from '../eth/rpc.js';
+import { EthRpcError, walletFees, gasWithHeadroom, baseFeeProblem, baseFeeKind } from '../eth/rpc.js';
 import { signTransaction, parseSignedTransaction, MAINNET_CHAIN_ID } from '../eth/tx.js';
 
 export const SEND_FUNDS_SELECTOR = '0x4d5dd2bc';
@@ -382,8 +382,8 @@ export class EthPipe {
 
   /**
    * The relayer's gas price: eth_feeHistory(0xa, latest, [50]) → fees.js relayerGas. Base fees
-   * Ethereum cannot have produced (rpc.js baseFeeProblem: too high, or jumping between blocks)
-   * are no price: the bridge fee follows them, and the relayer keeps what is paid above its minimum.
+   * far above what BEAM Campfire pays, or that Ethereum cannot have produced (rpc.js
+   * baseFeeProblem: too high, or jumping between blocks) are no price: the bridge fee follows them, and the relayer keeps what is paid above its minimum.
    */
   async relayerGas() {
     let history;
@@ -395,7 +395,9 @@ export class EthPipe {
       // No gas price, so no quote.
       throw new BridgeError('noPrice', `Could not read the Ethereum gas price (${e && e.message}).`);
     }
-    const problem = baseFeeProblem(history.baseFeePerGas.map((b) => (b === '0x' ? 0n : BigInt(b))));
+    const bases = history.baseFeePerGas.map((b) => (b === '0x' ? 0n : BigInt(b)));
+    const problem = baseFeeProblem(bases);
+    if (problem && baseFeeKind(bases) === 'high') throw new BridgeError('noPrice', `Your Ethereum server says Ethereum's gas price is ${problem}, far above anything BEAM Campfire will pay.`);
     if (problem) throw new BridgeError('noPrice', `Your Ethereum server's gas price cannot be Ethereum's (${problem}).`);
     return gas;
   }

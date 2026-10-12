@@ -25,7 +25,11 @@ export const MIN_TIP_WEI = 10000000n;
 export const EASY_TIP_WEI = 3n * GWEI;
 /** Never a higher tip than this, whatever the server says: 20 gwei. */
 export const MAX_TIP_WEI = 20n * GWEI;
-/** A base fee above this is not believed: 1,000 gwei, far above anything Ethereum has charged for years. */
+/**
+ * A base fee above this is not paid: 1,000 gwei, far above anything Ethereum has charged for years.
+ * Ethereum has passed it (over 8,000 gwei for a few blocks on 2022-05-01), so it is said as more than
+ * BEAM Campfire will pay, not as impossible: a wait of minutes, never a loss.
+ */
 export const MAX_BASE_FEE_WEI = 1000n * GWEI;
 /** Default widest eth_getLogs window; wider requests are refused before they are sent. */
 export const MAX_LOG_RANGE = 10000;
@@ -415,6 +419,16 @@ export function baseFeeProblem(bases) {
 }
 
 /**
+ * What baseFeeProblem() found: 'high' (above MAX_BASE_FEE_WEI: Ethereum can charge it, for minutes,
+ * and BEAM Campfire will not pay it), 'jump' (moves Ethereum does not allow between blocks), or null.
+ */
+export function baseFeeKind(bases) {
+  const p = baseFeeProblem(bases);
+  if (!p) return null;
+  return bases.some((b) => b > MAX_BASE_FEE_WEI) && /^a base fee of/.test(p) ? 'high' : 'jump';
+}
+
+/**
  * EIP-1559 fees for a transaction this wallet sends, as the desktop app's
  * walletFees(): eth_feeHistory(5, latest, [50]); the next block's base fee
  * (the last entry), the median of the five 50th-percentile tips (at least
@@ -432,7 +446,11 @@ export async function walletFees(rpc) {
   const bases = r.baseFeePerGas.map((b) => quantityResult(b, 'baseFeePerGas'));
   if (!bases.length) throw new EthRpcError('bad_response', 'eth_feeHistory: no base fees.');
   const problem = baseFeeProblem(bases);
-  if (problem) throw new EthRpcError('bad_fees', `${rpc.host ? rpc.host.name : 'The Ethereum server'} gave network fee figures Ethereum cannot have (${problem}).`);
+  if (problem) {
+    const who = rpc.host ? rpc.host.name : 'The Ethereum server';
+    const kind = baseFeeKind(bases);
+    throw new EthRpcError('bad_fees', kind === 'high' ? `${who} says Ethereum's network fee is ${problem}, far above anything BEAM Campfire will pay.` : `${who} gave network fee figures Ethereum cannot have (${problem}).`, { problem: kind });
+  }
   const next = bases[bases.length - 1];
   const tips = (Array.isArray(r.reward) ? r.reward : [])
     .filter((row) => Array.isArray(row) && row.length > 0)

@@ -6,7 +6,7 @@
 // (lib/bridge/fees.js cappedGas). The audit's proof of concept is the first test, as it was.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { walletFees, baseFeeProblem, EthRpcError, EASY_TIP_WEI, MAX_TIP_WEI, MAX_BASE_FEE_WEI, MIN_TIP_WEI } from '../../src/lib/eth/rpc.js';
+import { baseFeeKind, walletFees, baseFeeProblem, EthRpcError, EASY_TIP_WEI, MAX_TIP_WEI, MAX_BASE_FEE_WEI, MIN_TIP_WEI } from '../../src/lib/eth/rpc.js';
 import { prepareSend, feeShare, isHighFee, HIGH_FEE_SHARE } from '../../src/lib/eth/send.js';
 import { ETH, WBEAM } from '../../src/lib/eth/tokens.js';
 import { relayerGas, b2eRelayerFeeGroth, cappedGas, MAX_FEE_GAS_PRICE } from '../../src/lib/bridge/fees.js';
@@ -73,8 +73,17 @@ test('base fees Ethereum cannot have produced are refused, not paid: too high, o
     const e = await walletFees(server(bases, [GWEI])).catch((x) => x);
     assert.ok(e instanceof EthRpcError && e.code === 'bad_fees', `${bases.map((b) => b / GWEI)}: ${e}`);
     assert.match(e.message, /Test server gave network fee figures Ethereum cannot have/);
+    assert.equal(e.data.problem, 'jump');
   };
-  await refused(Array(6).fill(5000n * GWEI)); // the bridge proof of concept's base fee
+  // BM-6: too high is a fee Ethereum has charged (over 8,000 gwei for a few blocks on 2022-05-01): said
+  // as more than BEAM Campfire pays, not as impossible.
+  const high = await walletFees(server(Array(6).fill(5000n * GWEI), [GWEI])).catch((x) => x); // the bridge proof of concept's base fee
+  assert.ok(high instanceof EthRpcError && high.code === 'bad_fees');
+  assert.equal(high.data.problem, 'high');
+  assert.equal(high.message, 'Test server says Ethereum\'s network fee is a base fee of 5000 gwei, far above anything BEAM Campfire will pay.');
+  assert.equal(baseFeeKind(Array(6).fill(5000n * GWEI)), 'high');
+  assert.equal(baseFeeKind([...Array(5).fill(GWEI), 2n * GWEI]), 'jump');
+  assert.equal(baseFeeKind([GWEI, GWEI]), null);
   await refused([...Array(5).fill(GWEI), 2n * GWEI]); // doubled in one block
   await refused([10n * GWEI, 10n * GWEI, 6n * GWEI]); // dropped by 40%
   // Ethereum's own steps (at most an eighth either way) pass, and so does twice that.
@@ -139,8 +148,20 @@ test('to Ethereum: a gas price above the cap is said ("Ethereum is unusually bus
   assert.ok(w, JSON.stringify(q.warnings));
   assert.equal(w.title, 'Ethereum is unusually busy right now');
   assert.match(w.detail, /capped fee and no more/);
+  assert.match(w.detail, /which can take hours or days\./, 'BM-7: sustained high gas has lasted days');
   assert.doesNotMatch(w.detail, /gwei/, 'no jargon');
   const calm = await readConditions({ route: beam, direction: 'toEthereum', eth: eth(1n), prices, now });
   assert.equal(calm.gasCapped, false);
   assert.equal(quoteToEthereum({ route: beam, amount: 100000n * 10n ** 8n, cond: calm, balances: { source: 10n ** 15n, beam: 10n ** 15n, eth: 0n }, ethAddress: TO, now }).warnings.some((x) => x.code === 'gasHigh'), false);
+});
+
+test('BM-6: the words for a fee BEAM Campfire will not pay, and for figures that cannot be right', async () => {
+  const { badFeesWords } = await import('../../src/screens/eth_ui.js');
+  const high = badFeesWords({ code: 'bad_fees', data: { problem: 'high' } }, 'Stack Wallet');
+  assert.equal(high.title, 'The network fee is far above anything BEAM Campfire will pay. ');
+  assert.equal(high.detail, "Stack Wallet's Ethereum server says Ethereum is that expensive right now. It has been, but only for minutes at a time. Nothing was sent, and nothing was paid. Try again in a few minutes, or use another server.");
+  assert.doesNotMatch(high.detail, /gwei|cannot have/);
+  const jump = badFeesWords({ code: 'bad_fees', data: { problem: 'jump' } }, 'PublicNode');
+  assert.equal(jump.title, "PublicNode's Ethereum server gave a network fee that can't be right. ");
+  assert.equal(jump.detail, 'Nothing was sent, and nothing was paid. Try again in a minute, or use another server.');
 });

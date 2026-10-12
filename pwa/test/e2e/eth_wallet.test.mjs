@@ -49,7 +49,7 @@ const SECP_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd036414
 const KEY_WARNING = 'This wallet has no recovery words. The private key is the only way back to it: keep it somewhere safe and never share it.';
 
 let srv, browser, ctx, page, rec;
-let mode = 'fork'; // 'fork' | 'down' | 'refuse' (eth_sendRawTransaction refused, the rest from the fork)
+let mode = 'fork'; // 'fork' | 'down' | 'refuse' (eth_sendRawTransaction refused, the rest from the fork) | 'dear' (fee history: 5,000 gwei)
 const rpcMethods = [];
 // More rows for the history index (/export), for a test that needs it to show a transaction mined.
 const indexExtra = [];
@@ -75,6 +75,11 @@ async function stackRoute(route) {
     for (const m of [].concat(j)) rpcMethods.push(m.method);
   } catch {
     /* not JSON: anvil says so */
+  }
+  // Ethereum far dearer than BEAM Campfire pays (as on 2022-05-01, above 8,000 gwei for a few blocks).
+  if (mode === 'dear' && j && !Array.isArray(j) && j.method === 'eth_feeHistory') {
+    const base = `0x${(5000n * 10n ** 9n).toString(16)}`;
+    return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: j.id, result: { oldestBlock: '0x1', baseFeePerGas: Array(6).fill(base), gasUsedRatio: Array(5).fill(0.5), reward: Array(5).fill(['0x3b9aca00']) } }) });
   }
   // A server that refuses the bytes (it may still have passed them on): "Not sent yet".
   if (mode === 'refuse' && j && !Array.isArray(j) && j.method === 'eth_sendRawTransaction') {
@@ -702,6 +707,25 @@ test('BM-2: a swap "Not sent" is the server\'s word too, with Etherscan in it', 
   assert.match(await page.textContent(tid('eth-not-sent')), /That is the server's word, not Ethereum's\..*The server said: transaction underpriced/);
   assert.equal(await page.getAttribute(tid('eth-not-sent-explorer'), 'href'), `https://etherscan.io/tx/${swapLost.hash}`);
   await shots4('33-swap-not-sent');
+  await page.evaluate(() => window.__campfire.go('ethHome'));
+  await ethHomeReady();
+});
+
+test('BM-6: a fee far above what BEAM Campfire pays is said as such, not as impossible; nothing is signed', { skip: skip || false, timeout: 2 * 60000 }, async () => {
+  await page.evaluate(() => window.__campfire.go('ethHome'));
+  await ethHomeReady();
+  mode = 'dear';
+  try {
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(`${tid('eth-server-problem')}[data-code="bad_fees"]`, { timeout: 30000 });
+    const said = await page.textContent(tid('eth-server-problem'));
+    assert.match(said, /^The network fee is far above anything BEAM Campfire will pay\. Stack Wallet's Ethereum server says Ethereum is that expensive right now\. It has been, but only for minutes at a time\. Nothing was sent, and nothing was paid\./);
+    assert.doesNotMatch(said, /can't be right|cannot have|gwei/);
+    await shots4('31-send-fee-too-high');
+  } finally {
+    mode = 'fork';
+  }
   await page.evaluate(() => window.__campfire.go('ethHome'));
   await ethHomeReady();
 });
