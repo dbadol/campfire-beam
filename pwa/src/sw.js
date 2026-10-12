@@ -22,10 +22,11 @@
  * which only the Update button sends.
  *
  * Update sources (lib/update_sources.js, inlined below): this app's own
- * address first, then the public copies the installed release names, then an
- * address the person added. The first that answers with a valid signed release
- * decides; the rest are never contacted. Files from any source go into this
- * app's own cache under its own scope URLs, each only after its hash matched.
+ * address, the public copies the installed release names, and an address the
+ * person added. A tapped check asks all of them at once and keeps the newest
+ * signed release (on a tie, the own address's), so an address that keeps
+ * serving an old release cannot hide a newer one. Files from any source go into
+ * this app's own cache under its own scope URLs, each only after its hash matched.
  * A release from anywhere but the own address must run under THIS loader (a
  * service worker comes only from its own address), so it is staged only when
  * it ships this loader or one that serves pages the same way (loader_compat).
@@ -201,8 +202,10 @@ async function readCapped(r, max, tooBig) {
 
 /**
  * One file of a release from base (this app's folder or another copy).
- * Another copy gets no cookies and no referrer; it must send CORS headers,
- * or the browser hands nothing over (reported as unreachable).
+ * No cookies and no referrer, wherever it is: the app sets no cookies, and one
+ * set for the parent domain by any site under it (a large one makes the CDN
+ * refuse the request) must not ride along and stop updates. Another copy must
+ * send CORS headers, or the browser hands nothing over (reported as unreachable).
  */
 async function fetchBytes(base, path, { signal = null, timeoutMs = FILE_TIMEOUT_MS, max = Infinity, tooBig = null } = {}) {
   const url = new URL(path, base);
@@ -218,7 +221,7 @@ async function fetchBytes(base, path, { signal = null, timeoutMs = FILE_TIMEOUT_
   try {
     let r;
     try {
-      r = await fetch(url.href, { cache: 'no-store', credentials: own ? 'same-origin' : 'omit', referrerPolicy: 'no-referrer', signal: ctl.signal });
+      r = await fetch(url.href, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', signal: ctl.signal });
     } catch {
       throw new ReleaseError('unreachable', `Could not download ${path}${where}.`);
     }
@@ -312,6 +315,7 @@ async function stageRelease({ release, manifest }, { base = scopeUrl, signal = n
     cache: cacheName,
     files: map,
     manifestSha: release.manifest_sha256,
+    created: createdOf(release), // the release's signed date, for "released ..." and the age warning
     verifiedAt: Date.now(),
     // Where the next check looks, from the signed release; the loader that ships with it; and
     // what that loader does to pages (see loaderCompatible()).
@@ -457,9 +461,10 @@ self.addEventListener('fetch', (event) => {
 });
 
 /**
- * "Check for updates": asks the sources in order (findUpdate in
- * lib/update_sources.js) and stages the first newer release it may install.
- * added: addresses the person added. progress(p) gets {step, host, own, ...}.
+ * "Check for updates": asks every source (findUpdate in lib/update_sources.js)
+ * and stages the newest release it may install. added: addresses the person
+ * added. progress(p) gets {step: 'asking', total, answered} while the sources
+ * answer, then {step: 'downloading', host, own, version, done, total}.
  */
 async function checkUpdate({ added = [], progress = null } = {}) {
   const st = await readState();
@@ -469,12 +474,14 @@ async function checkUpdate({ added = [], progress = null } = {}) {
   };
   const sources = updateSources({ own: scopeUrl.href, builtins: Array.isArray(st.current.sources) ? st.current.sources : BUILTIN_SOURCES, added });
   const ownFrom = { host: scopeUrl.host, own: true };
+  let answered = 0;
+  say({ step: 'asking', total: sources.length, answered });
   const r = await findUpdate({
     sources,
-    installed: { version: st.current.version, manifestSha: st.current.manifestSha },
+    installed: { version: st.current.version, manifestSha: st.current.manifestSha, created: st.current.created || null },
     pending: st.pending ? { version: st.pending.version, manifestSha: st.pending.manifestSha, from: st.pending.from || ownFrom } : null,
     loader: { name: LOADER_NAME, compat: LOADER_COMPAT },
-    onSource: (src) => say({ step: 'checking', host: src.host, own: src.own }),
+    onAnswer: () => say({ step: 'asking', total: sources.length, answered: ++answered }),
     fetchRelease: (src) => fetchVerifiedRelease(src.url, { timeoutMs: PROBE_TIMEOUT_MS }),
     stage: async (src, rel) => {
       const staged = await stageRelease(rel, {
@@ -551,8 +558,10 @@ self.addEventListener('message', (event) => {
             compat: LOADER_COMPAT,
             current: st.current && st.current.version,
             currentFrom: (st.current && st.current.from) || null,
+            currentCreated: (st.current && st.current.created) || null,
             pending: st.pending && st.pending.version,
             pendingFrom: (st.pending && st.pending.from) || null,
+            pendingCreated: (st.pending && st.pending.created) || null,
             currentFiles: st.current ? Object.keys(st.current.files).length : 0,
             releaseLoader: releaseLoaderOf(st.current),
             sources: st.current ? updateSources({ own: scopeUrl.href, builtins: Array.isArray(st.current.sources) ? st.current.sources : BUILTIN_SOURCES }).map((x) => ({ host: x.host, kind: x.kind })) : [],
@@ -600,12 +609,15 @@ self.addEventListener('message', (event) => {
 //     "#open=<screen>[&tx=<hex>]" within this app's scope, nothing else;
 //   - when the browser wakes this worker for Periodic Background Sync (Chrome / Edge, an installed
 //     app), the reminders the page left for later ('w:<id>:notify-reminders' in the app's own
-//     store) that are due are shown, if notifications are still on, and then forgotten.
+//     store) that are due are shown, if notifications and "Reminders when BEAM Campfire is closed"
+//     (prefs.notify.wakeUps) are still on, and then forgotten. With that switch off (the
+//     default), a wake-up shows nothing and asks the browser for no more of them.
 
 const OPEN_LINK = /^#open=[a-zA-Z]+(&tx=[0-9a-f]{1,128})?$/;
 const APP_DB = 'beam-campfire-app';
 const APP_STORE = 'kv';
 const REMINDERS_SUFFIX = ':notify-reminders';
+const SYNC_TAG = 'campfire-reminders'; // lib/notify.js SYNC_TAG
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -655,6 +667,11 @@ async function showDueReminders(now = Date.now()) {
     const prefs = (await idb(read.get('prefs'))) || {};
     const n = prefs.notify || {};
     const on = n.on === true || (n.on === undefined && prefs.paymentNotifications === true);
+    if (n.wakeUps !== true || !on) {
+      // Not turned on (an earlier release asked for wake-ups by itself), or notifications are off: no more of them.
+      if (self.registration.periodicSync) await self.registration.periodicSync.unregister(SYNC_TAG).catch(() => {});
+      return 0;
+    }
     const keys = (await idb(read.getAllKeys(IDBKeyRange.bound('w:', 'w:\uffff')))).filter((k) => typeof k === 'string' && k.endsWith(REMINDERS_SUFFIX));
     let shown = 0;
     for (const k of keys) {
@@ -684,6 +701,6 @@ async function showDueReminders(now = Date.now()) {
 }
 
 self.addEventListener('periodicsync', (event) => {
-  if (event.tag !== 'campfire-reminders') return;
+  if (event.tag !== SYNC_TAG) return;
   event.waitUntil(showDueReminders().catch(() => 0));
 });

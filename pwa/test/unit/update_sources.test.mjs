@@ -8,9 +8,9 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BUILTIN_SOURCES, normalizeSource, updateSources, releaseSources, loaderCompatible, readRelease, findUpdate, MAX_ADDED_SOURCES } from '../../src/lib/update_sources.js';
+import { BUILTIN_SOURCES, normalizeSource, updateSources, releaseSources, loaderCompatible, readRelease, findUpdate, createdOf, MAX_ADDED_SOURCES } from '../../src/lib/update_sources.js';
 import { ReleaseError, RELEASE_APP_ID, verifyFile } from '../../src/lib/release.js';
-import { lastCheckText, refusalText } from '../../src/lib/update.js';
+import { lastCheckText, refusalText, releaseDate, staleRelease, ownServesInstalled } from '../../src/lib/update.js';
 import { progressText, triedText } from '../../src/lib/update_ui.js';
 
 const OWN = 'https://wallet.example.org/';
@@ -184,25 +184,82 @@ function world(answers, { stageFails = {} } = {}) {
 
 const run = (w, extra = {}) => findUpdate({ sources: w.sources, installed: INSTALLED, loader: ME, fetchRelease: w.fetchRelease, stage: w.stage, ...extra });
 
-test('the own address answers: it decides, and no copy is asked', async () => {
-  for (const [answer, result] of [[rel('1.0.1'), 'ready'], [rel('1.0.0'), 'none']]) {
-    const w = world({ 'wallet.example.org': answer, 'm1.example': rel('9.0.0') });
-    const r = await run(w);
-    assert.equal(r.result, result);
-    assert.deepEqual(w.asked, ['wallet.example.org'], 'only the own address was contacted');
-    assert.deepEqual(r.from, { host: 'wallet.example.org', own: true });
-  }
+test('every source is asked; the newest signed release wins, and on a tie the own address', async () => {
+  // A tie: the own address's copy, even though a copy answered too.
+  const tie = world({ 'wallet.example.org': rel('1.0.1'), 'm1.example': rel('1.0.1') });
+  const r = await run(tie);
+  assert.equal(r.result, 'ready');
+  assert.deepEqual(r.from, { host: 'wallet.example.org', own: true });
+  assert.deepEqual(tie.asked, ['wallet.example.org', 'm1.example', 'm2.example', 'added.example'], 'all of them, in order');
+  assert.deepEqual(tie.staged, [['wallet.example.org', '1.0.1']]);
+  assert.deepEqual(r.tried.map((t) => [t.host, t.outcome]), [['wallet.example.org', 'ready'], ['m1.example', 'not_needed'], ['m2.example', 'unreachable'], ['added.example', 'unreachable']]);
+  // Up to date everywhere: "none", confirmed by the own address.
+  const current = world({ 'wallet.example.org': rel('1.0.0'), 'm1.example': rel('1.0.0') });
+  const r2 = await run(current);
+  assert.equal(r2.result, 'none');
+  assert.deepEqual(r2.from, { host: 'wallet.example.org', own: true });
+  assert.equal(r2.ownVersion, '1.0.0');
+  // Newer at a copy than at the own address: the copy's (a frozen address cannot hold the app back).
+  const frozen = world({ 'wallet.example.org': rel('1.0.0'), 'm1.example': rel('1.0.1'), 'm2.example': rel('1.0.2') });
+  const r3 = await run(frozen);
+  assert.equal(r3.result, 'ready');
+  assert.equal(r3.version, '1.0.2');
+  assert.deepEqual(r3.from, { host: 'm2.example', own: false });
+  assert.deepEqual(frozen.staged, [['m2.example', '1.0.2']]);
+  assert.equal(r3.ownVersion, '1.0.0', 'what the own address served is reported');
 });
 
-test('the own address is gone: the first copy with a newer signed release is used', async () => {
+test('the own address is gone: the newest signed release among the copies is used', async () => {
   const w = world({ 'm1.example': rel('1.0.1'), 'm2.example': rel('1.0.2') });
   const r = await run(w);
   assert.equal(r.result, 'ready');
-  assert.equal(r.version, '1.0.1');
+  assert.equal(r.version, '1.0.2');
+  assert.deepEqual(r.from, { host: 'm2.example', own: false });
+  assert.deepEqual(w.asked, ['wallet.example.org', 'm1.example', 'm2.example', 'added.example']);
+  assert.deepEqual(w.staged, [['m2.example', '1.0.2']]);
+  assert.deepEqual(r.tried.map((t) => [t.host, t.outcome]), [['wallet.example.org', 'unreachable'], ['m1.example', 'not_needed'], ['m2.example', 'ready'], ['added.example', 'unreachable']]);
+  // The newest cannot be had intact anywhere: the next newer one is still an update.
+  const broken = new ReleaseError('file_mismatch', 'A file in this update (app.js) is not the one that was signed.');
+  const w2 = world({ 'm1.example': rel('1.0.1'), 'm2.example': rel('1.0.2') }, { stageFails: { 'm2.example': broken } });
+  const r2 = await run(w2);
+  assert.equal(r2.result, 'ready');
+  assert.equal(r2.version, '1.0.1');
+  assert.equal(r2.tried[2].outcome, 'refused');
+});
+
+test('a newer release that cannot be had intact is not "up to date", even when the own address confirms the installed one', async () => {
+  const broken = new ReleaseError('file_mismatch', 'A file in this update (app.js) is not the one that was signed.');
+  const w = world({ 'wallet.example.org': rel('1.0.0'), 'm1.example': rel('1.0.1') }, { stageFails: { 'm1.example': broken } });
+  const r = await run(w);
+  assert.equal(r.result, 'refused');
   assert.deepEqual(r.from, { host: 'm1.example', own: false });
-  assert.deepEqual(w.asked, ['wallet.example.org', 'm1.example'], 'stops at the first that answers');
-  assert.deepEqual(w.staged, [['m1.example', '1.0.1']]);
-  assert.deepEqual(r.tried.map((t) => [t.host, t.outcome]), [['wallet.example.org', 'unreachable'], ['m1.example', 'ready']]);
+  assert.equal(r.ownVersion, '1.0.0');
+  // A copy that sends something unsigned does not override a confirmed "up to date".
+  const forged = world({ 'wallet.example.org': rel('1.0.0'), 'm1.example': new ReleaseError('bad_signature', 'This update is not signed with the Campfire release key.') });
+  assert.equal((await run(forged)).result, 'none');
+});
+
+test('release dates: the newest signed release anyone knows of, with its date', async () => {
+  const dated = (v, created) => {
+    const r = rel(v);
+    r.release.created = created;
+    return r;
+  };
+  const w = world({ 'wallet.example.org': dated('1.0.0', '2026-01-02T00:00:00.000Z'), 'm1.example': dated('0.9.0', '2025-06-01T00:00:00.000Z') });
+  const r = await findUpdate({ sources: w.sources, installed: { ...INSTALLED, created: null }, loader: ME, fetchRelease: w.fetchRelease, stage: w.stage });
+  assert.equal(r.result, 'none');
+  assert.deepEqual(r.newest, { version: '1.0.0', created: '2026-01-02T00:00:00.000Z' });
+  // Nothing answered: what the installed copy knows.
+  const r2 = await findUpdate({ sources: world({}).sources, installed: { ...INSTALLED, created: '2025-12-01T00:00:00.000Z' }, loader: ME, fetchRelease: world({}).fetchRelease, stage: async () => {} });
+  assert.deepEqual(r2.newest, { version: '1.0.0', created: '2025-12-01T00:00:00.000Z' });
+  // A newer one staged: its date.
+  const w3 = world({ 'm1.example': dated('1.0.1', '2026-03-01T00:00:00.000Z') });
+  const r3 = await run(w3);
+  assert.equal(r3.created, '2026-03-01T00:00:00.000Z');
+  assert.deepEqual(r3.newest, { version: '1.0.1', created: '2026-03-01T00:00:00.000Z' });
+  // Not a date: ignored.
+  assert.equal(createdOf({ created: 'now' }), null);
+  assert.equal(createdOf({}), null);
 });
 
 test('no CORS, no release, another app, a broken signature: noted, and the next source is asked', async () => {
@@ -238,7 +295,7 @@ test('downgrades and look-alikes are never staged: older is "up to date", the sa
   const w = world({ 'm1.example': rel('0.9.9'), 'm2.example': rel('1.0.0') });
   const r = await run(w);
   assert.equal(r.result, 'none', 'the same version: up to date');
-  assert.deepEqual(r.tried.map((t) => t.outcome), ['unreachable', 'older', 'same']);
+  assert.deepEqual(r.tried.map((t) => t.outcome), ['unreachable', 'older', 'same', 'unreachable']);
   const older = world({ 'wallet.example.org': rel('0.1.0'), 'm1.example': rel('0.9.0') });
   const r2 = await run(older);
   assert.equal(r2.result, 'none', 'only older releases anywhere: nothing newer, up to date');
@@ -276,6 +333,27 @@ test('a release whose loader the running one cannot stand in for comes only from
   // A refusal elsewhere does not hide that a newer release exists.
   const mixed = world({ 'm1.example': new ReleaseError('bad_signature', 'x'), 'm2.example': newLoader });
   assert.equal((await run(mixed)).result, 'needs_own_address');
+  // The own address still serves the installed release: newer exists, only from there; and the page may move to its loader.
+  const lagging = world({ 'wallet.example.org': rel('1.0.0'), 'm1.example': newLoader });
+  const r3 = await run(lagging);
+  assert.equal(r3.result, 'needs_own_address');
+  assert.equal(r3.ownVersion, '1.0.0');
+  assert.equal(ownServesInstalled(r3), true);
+  assert.equal(ownServesInstalled(await run(world({ 'm1.example': rel('1.0.0') }))), false, 'only a copy confirmed it');
+});
+
+test('dates and age, in words', () => {
+  assert.equal(releaseDate('2026-10-12T13:37:18.197Z'), '12 Oct 2026');
+  assert.equal(releaseDate('soon'), null);
+  const now = Date.parse('2026-10-12T00:00:00.000Z');
+  assert.equal(staleRelease('2026-06-01T00:00:00.000Z', now), null, 'four months: fine');
+  assert.deepEqual(staleRelease('2026-01-02T00:00:00.000Z', now), { date: '2 Jan 2026', months: 9 });
+  assert.equal(staleRelease(null, now), null);
+  assert.equal(lastCheckText({ at: now, result: 'none', created: '2026-10-12T13:37:18.197Z' }, now), 'Last checked just now: you have the latest version, released 12 Oct 2026.');
+  assert.equal(lastCheckText({ at: now, result: 'none' }, now), 'Last checked just now: you have the latest version.');
+  assert.equal(progressText({ step: 'asking', total: 4, answered: 0 }), 'Looking for the newest version in 4 places…');
+  assert.equal(progressText({ step: 'asking', total: 4, answered: 2 }), 'Looking for the newest version: 2 of 4 places checked');
+  assert.equal(progressText({ step: 'asking', total: 1, answered: 0 }), "Asking this app's address…");
 });
 
 test('an update already verified is offered again without a download', async () => {

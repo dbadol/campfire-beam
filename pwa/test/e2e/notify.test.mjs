@@ -147,6 +147,10 @@ test('a new wallet, synced; Settings → Notifications: off, asked only from the
   await page.click(tid('notify-switch'));
   await page.waitForFunction(() => /^On/.test(document.querySelector('[data-testid="notify-sub"]').textContent));
   for (const k of ['in', 'out', 'underway', 'contracts', 'moves']) assert.equal(await page.isChecked(tid(`notify-kind-${k}`)), true, k);
+  // Reminders while the app is closed (Chrome's Periodic Background Sync): off unless turned on.
+  assert.equal(await page.isVisible(tid('notify-wakeups')), true, 'offered in Chrome');
+  assert.equal(await page.isChecked(tid('notify-wakeups')), false, 'off by default');
+  assert.match(await page.textContent(tid('notify-wakeups-sub')), /with no BEAM Campfire screen open to warn you/);
   // No amounts on the lock screen unless asked for; this suite turns them on to read them.
   assert.equal(await page.isChecked(tid('notify-amounts')), false, 'off by default');
   await page.click(tid('notify-amounts'));
@@ -381,7 +385,7 @@ test('an address that expires: Extend in Your addresses, and a reminder 3 days b
   await page.evaluate(() => window.__setHidden(false));
 });
 
-test('app closed: the service worker shows the reminders that are due when the browser wakes it', { timeout: 3 * 60000 }, async () => {
+test('app closed: a wake-up shows nothing until "Reminders when BEAM Campfire is closed" is on; then the due reminders', { timeout: 3 * 60000 }, async () => {
   // Two reminders left for later: one due now, one not.
   await page.evaluate(async () => {
     const { rawStore } = await import('./lib/store.js');
@@ -401,7 +405,23 @@ test('app closed: the service worker shows the reminders that are due when the b
   await sleep(1000);
   const reg = [...regs.values()].find((r) => r.scopeURL.startsWith(srv.url) && !r.isDeleted);
   assert.ok(reg, 'the app has a service worker');
-  await cdp.send('ServiceWorker.dispatchPeriodicSyncEvent', { origin: new URL(srv.url).origin, registrationId: reg.registrationId, tag: 'campfire-reminders' });
+  const wake = () => cdp.send('ServiceWorker.dispatchPeriodicSyncEvent', { origin: new URL(srv.url).origin, registrationId: reg.registrationId, tag: 'campfire-reminders' });
+  const swShown = () => page.evaluate(async () => (await (await navigator.serviceWorker.getRegistration()).getNotifications()).map((n) => n.title));
+  // Off (the default): the wake-up shows nothing, keeps the reminders, and asks for no more wake-ups.
+  await wake();
+  await sleep(3000);
+  assert.deepEqual((await reminders()).map((r) => r.id).sort(), ['rem-test-due', 'rem-test-later']);
+  assert.ok(!(await swShown()).includes('A private payment can now be spent'), 'nothing shown while the switch is off');
+  assert.deepEqual(await page.evaluate(async () => (await (await navigator.serviceWorker.getRegistration()).periodicSync.getTags())), [], 'no wake-ups asked for');
+  // Turned on in Settings -> Notifications.
+  await page.evaluate(() => window.__campfire.go('notifications'));
+  await waitScreen(page, 'notifications');
+  await page.click(tid('notify-wakeups'));
+  await until(async () => (await (await import('./lib/store.js')).rawStore.get('prefs')).notify.wakeUps === true, null, { label: 'the switch saved' });
+  await page.evaluate(() => document.querySelector('[data-testid="notify-wakeups"]').scrollIntoView({ block: 'center' }));
+  await both('notify-05-wakeups-on');
+  await page.evaluate(() => window.__campfire.go('home'));
+  await wake();
   await until(async () => {
     const { rawStore } = await import('./lib/store.js');
     const keys = (await rawStore.keys('w:')).filter((k) => k.endsWith(':notify-reminders'));

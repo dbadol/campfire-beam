@@ -10,8 +10,11 @@
 //     so they name nothing: "A payment is still waiting"), with the payment list's statuses
 //     ('w:<id>:notify-snapshot', sealed under the wallet's secret: which payments are this wallet's
 //     is its private history) for the summary on return. Both go when the wallet is deleted.
-//   - Later, with the app closed: the service worker (sw.js) shows the reminders that are due when
-//     the browser wakes it (Periodic Background Sync: Chrome / Edge, an installed app). While the
+//   - Later, with the app closed, only when the person turned "Reminders when BEAM Campfire is
+//     closed" on (prefs.notify.wakeUps): the service worker (sw.js) shows the reminders that are due
+//     when the browser wakes it (Periodic Background Sync: Chrome / Edge, an installed app). Off by
+//     default, because each wake-up is also a moment the browser checks the loader for new bytes
+//     while no BEAM Campfire page is open to notice a change it did not sign (lib/loader.js). While the
 //     page itself still runs in the background, it shows them on time. iPhone runs no web app in
 //     the background: there notifications come while the app is open, and Home says what happened
 //     while it was not.
@@ -239,12 +242,23 @@ async function leaveReminders(app) {
   } catch {
     /* kept in this page only */
   }
-  if (mine.length) await askForWakeUps();
+  if (mine.length) await askForWakeUps(app);
   return mine;
 }
 
-/** Periodic Background Sync (Chrome / Edge, an installed app): sw.js shows due reminders when woken. */
-async function askForWakeUps() {
+/** Whether the person turned on reminders while BEAM Campfire is closed (Settings -> Notifications). Off by default. */
+export const wakeUpsOn = (prefs) => Boolean(prefs && prefs.notify && prefs.notify.wakeUps === true);
+/** Wake-ups are asked for only with that switch and notifications both on. */
+const wakeUpsWanted = (prefs) => wakeUpsOn(prefs) && settingsOf(prefs).on;
+
+/** Whether this browser can wake an installed app for them (Periodic Background Sync: Chrome / Edge). */
+export function wakeUpsSupported() {
+  return typeof window !== 'undefined' && 'PeriodicSyncManager' in window && typeof navigator !== 'undefined' && Boolean(navigator.serviceWorker);
+}
+
+/** Periodic Background Sync, only when turned on: sw.js shows due reminders when woken. */
+async function askForWakeUps(app) {
+  if (!wakeUpsWanted(app && app.prefs)) return dropWakeUps();
   try {
     const reg = await navigator.serviceWorker.getRegistration();
     if (!reg || !reg.periodicSync) return false;
@@ -257,6 +271,22 @@ async function askForWakeUps() {
   } catch {
     return false;
   }
+}
+
+/** No more wake-ups (turned off, or never turned on: an earlier release asked for them by itself). */
+async function dropWakeUps() {
+  try {
+    const reg = typeof navigator !== 'undefined' && navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg && reg.periodicSync) await reg.periodicSync.unregister(SYNC_TAG);
+  } catch {
+    /* none asked for */
+  }
+  return false;
+}
+
+/** Settings -> Notifications: after "Reminders when BEAM Campfire is closed" or the main switch changed (and was saved). */
+export function applyWakeUps(app) {
+  return askForWakeUps(app);
 }
 
 function clearTimers() {
@@ -451,6 +481,11 @@ export function installNotify(app) {
   appRef = app;
   if (typeof indexedDB !== 'undefined') forgetPlainNotes().catch(() => {});
   if (app.lockHooks) app.lockHooks.add(forgetSnapshotKeys);
+  // An earlier release asked for wake-ups by itself; now only the switch does.
+  rawStore
+    .get('prefs')
+    .then((p) => (wakeUpsWanted(p) ? null : dropWakeUps()))
+    .catch(() => {});
   const watch = txWatcher();
   const run = catchUp();
   let summarised = false;

@@ -28,15 +28,16 @@
 //    --loader-note adds a comment to the loader (a release whose loader differs
 //    only in its bytes) and --loader-api builds another contract level (a
 //    release the older loader cannot run): tests use them, releases do not.
-// 4. Writes _headers for static hosts, and fails if deploy/_headers or
-//    deploy/nginx.conf disagree with tools/headers.mjs.
+// 4. Writes _headers for static hosts, and fails if deploy/_headers,
+//    deploy/nginx.conf or deploy/Caddyfile disagree with tools/headers.mjs.
 // The private key never enters the output and is never printed.
 import { webcrypto, createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir, rm, readdir, copyFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, dirname, relative, sep, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SECURITY_HEADERS, MIME, LOADER_CSP, nginxHeaderLines } from './headers.mjs';
+import { SECURITY_HEADERS, LOADER_CSP, nginxHeaderLines, caddyHeaderLines } from './headers.mjs';
+import { loaderSource } from './loader_source.mjs';
 import { BUILTIN_SOURCES, normalizeSource } from '../src/lib/update_sources.js';
 import { SHADER_DIR } from '../src/lib/shaders.js';
 import { checkShaders } from './shader_check.mjs';
@@ -106,36 +107,10 @@ async function walk(dir) {
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 const srcDir = join(root, 'src');
-const releaseJs = (await readFile(join(srcDir, 'lib', 'release.js'), 'utf8')).replace(/^export /gm, '');
-const framePolicyJs = (await readFile(join(srcDir, 'lib', 'dapps', 'frame_policy.js'), 'utf8')).replace(/^export /gm, '');
-if (/^import /m.test(framePolicyJs)) throw new Error('lib/dapps/frame_policy.js must not import anything: it is inlined into the service worker');
-// Inlined after release.js, whose names it imports: that one import line goes.
-const updateSourcesJs = (await readFile(join(srcDir, 'lib', 'update_sources.js'), 'utf8')).replace(/^import \{[^}]*\} from '\.\/release\.js';\n/m, '').replace(/^export /gm, '');
-if (/^import /m.test(updateSourcesJs)) throw new Error('lib/update_sources.js may import only from ./release.js: it is inlined into the service worker');
-const nodeAddressJs = (await readFile(join(srcDir, 'lib', 'node_address.js'), 'utf8')).replace(/^export /gm, '');
-if (/^import /m.test(nodeAddressJs)) throw new Error('lib/node_address.js must not import anything: it is inlined into the service worker');
 const engineLockForApp = { beam_tag: lock.beam_tag, files: lock.files, rules_signature_contains: lock.rules_signature_contains };
 
-// The loader first: its name goes into lib/version.js.
-const swRaw = await readFile(join(srcDir, 'sw.js'), 'utf8');
-const apiMatch = swRaw.match(/const LOADER_API = \/\*__LOADER_API__\*\/ (\d+);/);
-if (!apiMatch) throw new Error('sw.js: LOADER_API placeholder not found');
-const loaderApi = Number(arg('loader-api', apiMatch[1]));
-if (!Number.isSafeInteger(loaderApi) || loaderApi < 1) throw new Error('--loader-api must be a positive integer');
-// What the loader does to the pages it serves. Equal values: a page of one release runs the same under either loader.
-const loaderCompat = sha256(Buffer.from(JSON.stringify({ api: loaderApi, headers: SECURITY_HEADERS, mime: MIME, frame: framePolicyJs, node: nodeAddressJs })));
-let swSrc = swRaw
-  .replace(apiMatch[0], `const LOADER_API = ${loaderApi};`)
-  .replace('/*__LOADER_COMPAT__*/ null', JSON.stringify(loaderCompat))
-  .replace('/*__RELEASE_PUBLIC_JWK__*/ null', JSON.stringify(pub))
-  .replace('/*__SECURITY_HEADERS__*/ {}', JSON.stringify(SECURITY_HEADERS))
-  .replace('/*__MIME__*/ {}', JSON.stringify(MIME))
-  .replace('/*__INLINE_RELEASE_JS__*/', () => `// ---- inlined from lib/release.js\n${releaseJs}\n// ---- end of lib/release.js`)
-  .replace('/*__INLINE_UPDATE_SOURCES_JS__*/', () => `// ---- inlined from lib/update_sources.js\n${updateSourcesJs}\n// ---- end of lib/update_sources.js`)
-  .replace('/*__INLINE_FRAME_POLICY_JS__*/', () => `// ---- inlined from lib/dapps/frame_policy.js\n${framePolicyJs}\n// ---- end of lib/dapps/frame_policy.js`)
-  .replace('/*__INLINE_NODE_ADDRESS_JS__*/', () => `// ---- inlined from lib/node_address.js\n${nodeAddressJs}\n// ---- end of lib/node_address.js`);
-if (loaderNote !== null) swSrc += `// ${loaderNote}\n`;
-if (/__[A-Z_]+__/.test(swSrc.replace(/__campfire_(state|install|node)/g, ''))) throw new Error('sw.js: a placeholder was not filled');
+// The loader first: its name goes into lib/version.js (tools/loader_source.mjs fills it in).
+const { source: swSrc, loaderCompat } = await loaderSource({ srcDir, pub, loaderApi: arg('loader-api', null), note: loaderNote });
 const LOADER_NAME = `sw-${sha256(Buffer.from(swSrc)).slice(0, 16)}.js`;
 await writeFile(join(out, LOADER_NAME), swSrc);
 
@@ -205,6 +180,10 @@ if (committed !== headersText) {
 const nginx = await readFile(join(root, 'deploy', 'nginx.conf'), 'utf8').catch(() => '');
 for (const line of nginxHeaderLines()) {
   if (!nginx.includes(line)) throw new Error(`deploy/nginx.conf is missing: ${line}`);
+}
+const caddy = await readFile(join(root, 'deploy', 'Caddyfile'), 'utf8').catch(() => '');
+for (const line of caddyHeaderLines()) {
+  if (!caddy.includes(line)) throw new Error(`deploy/Caddyfile is missing: ${line.trim()}`);
 }
 
 let total = 0;

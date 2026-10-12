@@ -79,6 +79,12 @@ export const SECURITY_HEADERS = {
   // this page only; dApp frames keep camera=() (lib/dapps/frame_policy.js) and are sandboxed
   // into an opaque origin, which 'self' never matches.
   'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()',
+  // HSTS: after one visit the browser goes straight to https for a year, so a first http:// link
+  // or typed address on a hostile network cannot be answered with an imitation that asks for the
+  // recovery words. This host only: includeSubDomains or preload would bind every site under the
+  // parent domain (the owner's decision, not this file's). A response the loader builds from its
+  // cache carries it too; browsers take it from network responses only, so there it changes nothing.
+  'Strict-Transport-Security': 'max-age=31536000',
 };
 
 // The loader (sw-<hash>.js) is a worker, not a page: the policy on ITS response
@@ -94,33 +100,129 @@ export const LOADER_FILE = /^sw(-[0-9a-f]+)?\.js$/;
 
 // Every file of a release may be read by any origin, so any copy of the app can
 // serve updates to installs whose own address is gone (GitHub Pages already
-// sends this). Not on the two same-origin proxies below: they are no relay for
-// other sites.
+// sends this).
 export const RELEASE_CORS = { 'Access-Control-Allow-Origin': '*' };
-export const PROXY_PATHS = ['/recovery/mainnet_recovery.bin', '/explorer/status'];
+
+// The two proxies a deployment serves on this origin (deploy/nginx.conf, deploy/Caddyfile).
+export const RECOVERY_RELAY = '/recovery/mainnet_recovery.bin';
+export const EXPLORER_PROXY = '/explorer/status';
+export const PROXY_PATHS = [RECOVERY_RELAY, EXPLORER_PROXY];
+
+// BEAM's recovery snapshot, relayed here: every copy of the app without a relay
+// of its own (GitHub Pages, jsDelivr, static mirrors) restores through this one
+// (lib/recovery.js RECOVERY_FALLBACK), so any origin may read it, read-only.
+// Resuming sends Range and If-Range (If-Range is not a simple header: the browser
+// asks first with OPTIONS) and reads ETag and Content-Range. The engine checks the
+// file against the chain's proof of work, whoever serves it. The explorer proxy
+// stays this origin's own: no CORS there.
+export const RECOVERY_CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, HEAD',
+  'Access-Control-Allow-Headers': 'Range, If-Range',
+  'Access-Control-Expose-Headers': 'Content-Length, Content-Range, ETag, Last-Modified',
+  'Access-Control-Max-Age': '86400',
+  'Cross-Origin-Resource-Policy': 'cross-origin',
+};
+
+// App files are revalidated on every load (a CDN must not mix two releases). The
+// relay keeps BEAM's own caching headers, so a CDN in front can hold the 330 MB
+// file instead of fetching it again for every restore.
+export const CACHE_CONTROL = 'no-cache';
 
 /** The headers a deployment sends for a path under the app's folder (rel: path relative to it, no leading slash). */
 export function headersFor(rel) {
   const clean = String(rel).replace(/^\/+/, '');
   const h = { ...SECURITY_HEADERS };
   if (LOADER_FILE.test(clean)) h['Content-Security-Policy'] = LOADER_CSP;
-  if (!PROXY_PATHS.includes(`/${clean}`)) Object.assign(h, RELEASE_CORS);
+  if (`/${clean}` === RECOVERY_RELAY) Object.assign(h, RECOVERY_CORS);
+  else if (`/${clean}` !== EXPLORER_PROXY) Object.assign(h, RELEASE_CORS);
   return h;
+}
+
+/** Cache-Control a deployment sends for a path (null: the upstream's own, on the relay). */
+export function cacheControlFor(rel) {
+  return `/${String(rel).replace(/^\/+/, '')}` === RECOVERY_RELAY ? null : CACHE_CONTROL;
+}
+
+// Headers that differ by path, as nginx variables: [header, variable, default, {path or "~regex": value}].
+// An empty value means nginx leaves the header out. headersFor() above says the same, path by path.
+function nginxPathRules() {
+  const R = RECOVERY_RELAY;
+  return [
+    ['Content-Security-Policy', '$campfire_csp', CSP, { '~^/sw(-[0-9a-f]+)?\\.js$': LOADER_CSP }],
+    ['Cross-Origin-Resource-Policy', '$campfire_corp', SECURITY_HEADERS['Cross-Origin-Resource-Policy'], { [R]: RECOVERY_CORS['Cross-Origin-Resource-Policy'] }],
+    ['Access-Control-Allow-Origin', '$campfire_acao', RELEASE_CORS['Access-Control-Allow-Origin'], { [EXPLORER_PROXY]: '' }],
+    ['Access-Control-Allow-Methods', '$campfire_acam', '', { [R]: RECOVERY_CORS['Access-Control-Allow-Methods'] }],
+    ['Access-Control-Allow-Headers', '$campfire_acah', '', { [R]: RECOVERY_CORS['Access-Control-Allow-Headers'] }],
+    ['Access-Control-Expose-Headers', '$campfire_aceh', '', { [R]: RECOVERY_CORS['Access-Control-Expose-Headers'] }],
+    ['Access-Control-Max-Age', '$campfire_acma', '', { [R]: RECOVERY_CORS['Access-Control-Max-Age'] }],
+    ['Cache-Control', '$campfire_cache', CACHE_CONTROL, { [R]: '' }],
+  ];
 }
 
 /**
  * What deploy/nginx.conf must contain (tools/build.mjs and the unit tests check
- * it): every header, the page policy and the loader's from one map on $uri,
- * and CORS from another (empty on the proxies, which nginx then leaves out).
+ * it): an add_header for every header at server level (nginx drops them in any
+ * location with an add_header of its own, so none may have one), and a map on
+ * $uri for each header that differs by path. The maps belong to the http context.
  */
 export function nginxHeaderLines() {
   const lines = [];
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (k !== 'Content-Security-Policy') lines.push(`add_header ${k} "${v}" always;`);
-  lines.push('add_header Content-Security-Policy $campfire_csp always;');
-  lines.push('add_header Access-Control-Allow-Origin $campfire_acao always;');
-  lines.push(`default "${CSP}";`);
-  lines.push(`"~/sw(-[0-9a-f]+)?\\.js$" "${LOADER_CSP}";`);
-  for (const p of PROXY_PATHS) lines.push(`${p} "";`);
+  const rules = nginxPathRules();
+  const byPath = new Set(rules.map((r) => r[0]));
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!byPath.has(k)) lines.push(`add_header ${k} "${v}" always;`);
+  for (const [k, variable] of rules) lines.push(`add_header ${k} ${variable} always;`);
+  for (const [, variable, def, paths] of rules) {
+    const entries = Object.entries(paths).map(([p, v]) => `    ${p.startsWith('~') ? `"${p}"` : p} "${v}";`);
+    lines.push([`map $uri ${variable} {`, `    default "${def}";`, ...entries, '}'].join('\n'));
+  }
+  return lines;
+}
+
+/**
+ * What deploy/Caddyfile must contain (tools/build.mjs and the unit tests check
+ * it). Caddy runs every matching header directive, so a field set in the block
+ * for every response and again for one path ends up with whichever ran last:
+ * a header that differs by path is therefore set by matchers that never both
+ * match (@loader/@page for the policy, @relay/@files for the relay's CORS and
+ * caching, @cors for everything but the explorer proxy), and the block for
+ * every response carries the rest. The loader's name is sw-<hash>.js (LOADER_FILE).
+ */
+export function caddyHeaderLines() {
+  const lines = [];
+  const byPath = new Set(['Content-Security-Policy', 'Cross-Origin-Resource-Policy']);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!byPath.has(k)) lines.push(`\t\t${k} "${v}"`);
+  lines.push('\t@loader path /sw-*.js /sw.js');
+  lines.push('\t@page not path /sw-*.js /sw.js');
+  lines.push(`\theader @page Content-Security-Policy "${CSP}"`);
+  lines.push(`\theader @loader Content-Security-Policy "${LOADER_CSP}"`);
+  lines.push(`\t@relay path ${RECOVERY_RELAY}`);
+  lines.push(`\t@files not path ${RECOVERY_RELAY}`);
+  lines.push(`\theader @files {\n\t\tCross-Origin-Resource-Policy "${SECURITY_HEADERS['Cross-Origin-Resource-Policy']}"\n\t\tCache-Control "${CACHE_CONTROL}"\n\t}`);
+  lines.push(['\theader @relay {', ...Object.entries(RECOVERY_CORS).map(([k, v]) => `\t\t${k} "${v}"`), '\t}'].join('\n'));
+  lines.push(`\t@cors not path ${EXPLORER_PROXY}`);
+  lines.push(`\theader @cors Access-Control-Allow-Origin "${RELEASE_CORS['Access-Control-Allow-Origin']}"`);
+  lines.push(...caddyMimeLines());
+  return lines;
+}
+
+/**
+ * Content-Type exactly as the loader serves it (MIME below): Caddy would take it from the
+ * system's mime.types or sniff it. One matcher per type; anything else is plain bytes, as with
+ * nginx's default_type (the folder itself and the two proxies keep theirs).
+ */
+function caddyMimeLines() {
+  const byType = new Map();
+  for (const [ext, type] of Object.entries(MIME)) byType.set(type, [...(byType.get(type) || []), `*${ext}`]);
+  const lines = [];
+  for (const [type, globs] of byType) {
+    const name = `mime_${type.split(';')[0].replace(/[^a-z0-9]+/g, '_')}`;
+    lines.push(`\t@${name} path ${globs.join(' ')}`);
+    lines.push(`\theader @${name} Content-Type "${type}"`);
+  }
+  const all = Object.keys(MIME).map((e) => `*${e}`).join(' ');
+  lines.push(`\t@mime_other {\n\t\tnot path ${all}\n\t\tnot path / ${RECOVERY_RELAY} ${EXPLORER_PROXY}\n\t}`);
+  lines.push('\theader @mime_other Content-Type "application/octet-stream"');
   return lines;
 }
 
