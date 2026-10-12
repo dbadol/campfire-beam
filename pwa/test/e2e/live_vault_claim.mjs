@@ -1,0 +1,271 @@
+// LIVE MONEY TEST on BEAM mainnet: a payment into BEAM names' vault, built exactly as a payment to a
+// name is, then found by the BEAM names inbox and claimed back. Small amounts only.
+//
+//   npm run e2e:live:vault-claim      (needs the owner's go-ahead: it spends real BEAM)
+//
+// What it proves (audit D-1): a payment to a name is now built by BEAM's Anon-Vault app shader
+// (vault_anon, user send_anon) into the pinned vault for the owner key the wallet checked
+// (lib/bans.js pay() -> deposit()), instead of by BANS's own pay. The owner of a name must still
+// find and claim it. No test wallet owns a .beam name, so the payment goes to this wallet's OWN
+// BEAM names key: a payment to a name is a deposit for its owner's key (the name only rides along,
+// encrypted, as its message), the names program derives that key for every wallet (my_key), and
+// the inbox scans the vault with it whether the wallet owns a name or not (bans/app.cpp user view
+// -> vault_anon OnUser_view_anon). Finding the deposit there with its message decrypted, and
+// claiming it with the wallet's own claim (BANS receive_all at privilege 1), is what a name's owner
+// does.
+//
+// Steps, as test wallet FUNDER2, restored through the real Restore screen:
+//   1. The names inbox must be readable and empty (a claim takes everything waiting).
+//   2. 0.05 BEAM to this wallet's own names key, message "campfire-vault-test", through
+//      lib/bans.js deposit() - the code pay() runs once a name's owner is known - and the real
+//      approve sheet. The build must be the Anon-Vault app (15,969-byte shader) with
+//      cid = the pinned vault and pkOwner = this wallet's names key.
+//   3. Once confirmed: the inbox lists exactly that deposit (its one-time key), 0.05 BEAM, sent to
+//      campfire-vault-test; BEAM names shows it waiting.
+//   4. Claim it from BEAM names through the real approve sheet.
+// At each step BEAM must move by exactly what the sheets said: -(0.05 + 0.011), then +(0.05 - 0.011).
+//
+// Hard limits (any sheet outside them is cancelled and the test stops):
+//   - deposit: pays exactly 0.05 BEAM, receives nothing, to campfire-vault-test.beam; fee exactly 0.011 BEAM;
+//   - claim: receives exactly 0.05 BEAM, pays nothing; fee exactly 0.011 BEAM.
+// Spends at most 0.061 BEAM. If it stops after the deposit, 0.05 BEAM waits in the vault for
+// FUNDER2's names key: BEAM names → Claim (here or in BEAM's desktop wallet) takes it back.
+import { startServer, launch, recordedPage, shot, waitScreen, sleep, foreignHosts } from './harness.mjs';
+import { waitHome, waitSynced } from './flows.mjs';
+import { tid, log, funderWords, restoreFunder, total, waitTx } from './live_common.mjs';
+
+const PORT = Number(process.env.LIVE_PORT || 8824);
+const VAULT = 'a3385e50cf33afc9f769ee1d82d56b73046d680d343977f36d9a303d7bcdc4da';
+const MESSAGE_NAME = 'campfire-vault-test';
+const AMOUNT = 5000000n; // 0.05 BEAM
+const DEPOSIT_FEE = 1100000n; // 0.011 BEAM
+const CLAIM_FEE = 1100000n; // 0.011 BEAM
+const VAULT_SHADER_SIZE = 15969;
+const password = `live-v-${Math.random().toString(36).slice(2, 10)}`;
+const groth = (text) => {
+  const m = /^\s*([0-9][0-9,]*)(?:\.([0-9]{1,8}))?\b/.exec(String(text));
+  if (!m) throw new Error(`not an amount: ${text}`);
+  return BigInt(m[1].replace(/,/g, '')) * 100000000n + BigInt((m[2] || '').padEnd(8, '0'));
+};
+
+const extra = process.env.BEAM_RECOVERY_FILE ? ['--recovery-file', process.env.BEAM_RECOVERY_FILE] : [];
+const srv = await startServer({ port: PORT, extra });
+const browser = await launch();
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'en-GB' });
+const { page, rec } = await recordedPage(ctx, { label: 'V' });
+
+/** Reads the open approve sheet. */
+async function readSheet() {
+  await page.waitForSelector(tid('consent'), { timeout: 180000 });
+  const text = async (id) => ((await page.$(tid(id))) ? (await page.textContent(tid(id))).trim() : null);
+  return {
+    title: (await page.textContent('.consent h2')).trim(),
+    app: await text('consent-app'),
+    pay: await text('consent-pay-0'),
+    pay2: await text('consent-pay-1'),
+    get: await text('consent-get-0'),
+    get2: await text('consent-get-1'),
+    to: await text('consent-to'),
+    fee: await text('consent-fee'),
+    notEnough: await text('consent-not-enough'),
+    button: await text('consent-approve'),
+  };
+}
+
+/** Approves the sheet only if `problem(sheet)` finds nothing; otherwise cancels it and stops. */
+async function approveIf(label, problem) {
+  const sheet = await readSheet();
+  log(`${label} sheet:`, JSON.stringify(sheet));
+  await shot(page, `live-vc-${label}-sheet`);
+  const why = !/BEAM Campfire/.test(sheet.app || '') ? 'the sheet does not name this wallet' : sheet.notEnough ? `the wallet says: ${sheet.notEnough}` : !sheet.button ? 'no approve button' : problem(sheet);
+  if (why) {
+    await page.click(tid('consent-cancel')).catch(() => {});
+    throw new Error(`refusing the ${label} sheet: ${why}`);
+  }
+  await page.click(tid('consent-approve'));
+  await page.waitForSelector(tid('auth-pw'), { timeout: 20000 });
+  await page.fill(tid('auth-pw'), password);
+  await page.click(tid('auth-submit'));
+  return sheet;
+}
+
+const newTx = (seen) => (t) => !seen.has(t.txId);
+const txIds = async () => new Set((await page.evaluate(() => window.__campfire.txs())).map((t) => t.txId));
+
+/** BEAM available, once it equals `want` (a confirmed transaction's change can take a moment); throws if it never does. */
+async function waitBeam(want, label, timeoutMs = 5 * 60000) {
+  const t0 = Date.now();
+  let now = null;
+  while (Date.now() - t0 < timeoutMs) {
+    now = BigInt((await total(page, 0)).available);
+    if (now === want) return now;
+    await sleep(5000);
+  }
+  throw new Error(`${label}: BEAM available is ${now} groth, the sheets say it should be ${want}`);
+}
+
+/** The names inbox, read now through the wallet's own path (screens/names_claim.js nameInbox -> lib/bans.js inbox()). */
+const readInbox = () =>
+  page.evaluate(async () => {
+    const { nameInbox } = await import('./screens/names_claim.js');
+    const inbox = nameInbox();
+    await inbox.refresh({ force: true });
+    const s = inbox.latest;
+    if (!s) return { error: inbox.lastError ? `${inbox.lastError.code}: ${inbox.lastError.message}` : 'no answer' };
+    return { visibility: s.visibility, entryCount: s.entryCount, paymentCount: s.paymentCount, saleCount: s.saleCount, names: s.names, totals: Object.fromEntries([...s.totals].map(([k, v]) => [k, String(v)])) };
+  });
+
+let exit = 0;
+try {
+  log('restoring FUNDER2 through the Restore screen + recovery snapshot');
+  await page.goto(srv.url);
+  await restoreFunder(page, funderWords(), password, 'live-vc');
+  await waitHome(page, { timeout: 20 * 60000 });
+  await waitSynced(page, 15 * 60000);
+  await page.waitForFunction(() => window.__campfire.sync().canSend, null, { timeout: 300000 });
+  await sleep(8000);
+  const beam0 = BigInt((await total(page, 0)).available);
+  log('before: BEAM available', String(beam0));
+  const need = AMOUNT + DEPOSIT_FEE + 1000000n;
+  if (beam0 < need) throw new Error(`FUNDER2 has ${beam0} groth available; this test needs at least ${need}`);
+
+  // ---------------------------------------------------------------- 1. the inbox, before
+  const before = await readInbox();
+  log('names inbox before:', JSON.stringify(before));
+  if (before.error) throw new Error(`refusing: the names inbox could not be read (${before.error})`);
+  if (before.visibility !== 'visible') throw new Error('refusing: this engine cannot read the names inbox, so the claim could not be tested');
+  if (before.entryCount !== 0) throw new Error('refusing: payments already wait for this wallet\'s names; claim them first (a claim takes everything waiting)');
+
+  // ---------------------------------------------------------------- 2. the deposit
+  // The build is recorded (arguments, shader size, one-time key) and then goes on unchanged.
+  const key = await page.evaluate(async () => {
+    const { nativeApp } = await import('./lib/contracts.js');
+    const { readContractTx, ArgsReader } = await import('./lib/contract_tx.js');
+    const app = await nativeApp();
+    const real = app.transact.bind(app);
+    app.transact = (args, shader, opts) => {
+      window.__build = { args: String(args), shaderBytes: shader.length };
+      return real(args, shader, {
+        ...opts,
+        inspect: async (raw, output) => {
+          const e = readContractTx(raw).entries[0];
+          if (e) {
+            const r = new ArgsReader(e.args);
+            r.u64();
+            r.u32();
+            window.__build.oneTimeKey = r.pubKey();
+          }
+          return opts.inspect(raw, output);
+        },
+      });
+    };
+    const { bans } = await import('./screens/names.js');
+    return bans().myKey();
+  });
+  log(`this wallet's names key: ${key.slice(0, 8)}…${key.slice(-10)}`);
+  const seenDeposit = await txIds();
+  await page.evaluate(
+    async ([k, name, amount]) => {
+      const { bans } = await import('./screens/names.js');
+      window.__deposit = null;
+      bans()
+        .deposit(k, name, 0, BigInt(amount))
+        .then(
+          (r) => (window.__deposit = { ok: true, txId: r.txId, fee: String(r.fee) }),
+          (e) => (window.__deposit = { ok: false, code: e && e.code, message: e && e.message }),
+        );
+    },
+    [key, MESSAGE_NAME, String(AMOUNT)],
+  );
+  await page.waitForSelector(tid('consent'), { timeout: 180000 });
+  const build = await page.evaluate(() => window.__build);
+  log('built:', JSON.stringify(build));
+  const wantArgs = `role=user,action=send_anon,cid=${VAULT},pkOwner=${key},aid=0,amount=${AMOUNT}`;
+  if (!build || build.shaderBytes !== VAULT_SHADER_SIZE || !build.args.startsWith(`${wantArgs},msg=`)) {
+    await page.click(tid('consent-cancel')).catch(() => {});
+    throw new Error('refusing: the deposit was not built by the Anon-Vault app for this wallet\'s names key');
+  }
+  const depositSheet = await approveIf('deposit', (s) => {
+    if (s.title !== 'Approve this payment') return `its title is ${s.title}`;
+    if (s.pay2 || s.get || s.get2) return 'it moves more than one amount';
+    if (s.pay !== '0.05 BEAM') return `it pays ${s.pay}`;
+    if (s.to !== `${MESSAGE_NAME}.beam`) return `it pays to ${s.to}`;
+    if (groth(s.fee) !== DEPOSIT_FEE) return `it charges ${s.fee}`;
+    if (s.button !== `Send 0.05 BEAM to ${MESSAGE_NAME}.beam`) return `the button says ${s.button}`;
+    return null;
+  });
+  await page.waitForFunction(() => window.__deposit, null, { timeout: 120000 });
+  const deposit = await page.evaluate(() => window.__deposit);
+  log('deposit:', JSON.stringify(deposit));
+  if (!deposit.ok) throw new Error(`the deposit was not sent: ${deposit.code} ${deposit.message}`);
+  const depositTx = await waitTx(page, newTx(seenDeposit), 'deposit', 25 * 60000);
+  log('deposit confirmed:', JSON.stringify({ txId: depositTx.txId, kernel: depositTx.kernel }));
+  const beam1 = await waitBeam(beam0 - groth(depositSheet.pay) - groth(depositSheet.fee), 'after the deposit');
+  log('after the deposit: BEAM available', String(beam1));
+
+  // ---------------------------------------------------------------- 3. the inbox finds it
+  const t0 = Date.now();
+  let found = null;
+  while (Date.now() - t0 < 20 * 60000) {
+    found = await page.evaluate(
+      async ([oneTimeKey]) => {
+        const { bans } = await import('./screens/names.js');
+        const ib = await bans().inbox();
+        const p = ib.payments.find((x) => x.oneTimeKey === oneTimeKey);
+        return { count: ib.payments.length + ib.saleProceeds.length, payment: p ? { assetId: p.assetId, amount: String(p.amount), name: p.name } : null };
+      },
+      [build.oneTimeKey],
+    );
+    if (found.payment) break;
+    await sleep(20000);
+  }
+  log('inbox:', JSON.stringify(found));
+  if (!found || !found.payment) throw new Error('the names inbox did not find the deposit');
+  if (found.count !== 1 || found.payment.assetId !== 0 || found.payment.amount !== String(AMOUNT) || found.payment.name !== MESSAGE_NAME) throw new Error('the inbox does not show exactly the deposit, with its message');
+
+  await page.evaluate(() => window.__campfire.go('names'));
+  await waitScreen(page, 'names');
+  await page.waitForSelector(tid('names-money'), { timeout: 180000 });
+  const title = (await page.textContent(tid('names-money-title'))).trim();
+  log('BEAM names says:', title);
+  if (title !== 'People paid your names: 0.05 BEAM is waiting') throw new Error(`refusing: BEAM names says "${title}"`);
+  await shot(page, 'live-vc-02-waiting');
+
+  // ---------------------------------------------------------------- 4. the claim
+  if ((await page.textContent(tid('names-claim'))).trim() !== 'Claim 0.05 BEAM') throw new Error(`refusing: the button says ${await page.textContent(tid('names-claim'))}`);
+  const seenClaim = await txIds();
+  await page.click(tid('names-claim'));
+  const claimSheet = await approveIf('claim', (s) => {
+    if (s.pay || s.pay2 || s.get2) return 'it moves something other than the deposit';
+    if (s.get !== '0.05 BEAM') return `it gives ${s.get}`;
+    if (groth(s.fee) !== CLAIM_FEE) return `it charges ${s.fee}`;
+    if (s.button !== 'Claim 0.05 BEAM') return `the button says ${s.button}`;
+    return null;
+  });
+  await page.waitForSelector(`${tid('names-claim-msg')}[data-code="sent"]`, { timeout: 120000 });
+  await shot(page, 'live-vc-03-claim-sent');
+  const claimTx = await waitTx(page, newTx(seenClaim), 'claim', 25 * 60000);
+  log('claim confirmed:', JSON.stringify({ txId: claimTx.txId, kernel: claimTx.kernel }));
+
+  // ---------------------------------------------------------------- the balance
+  const beam2 = await waitBeam(beam1 + groth(claimSheet.get) - groth(claimSheet.fee), 'after the claim');
+  const moved = beam0 - beam2;
+  const want = groth(depositSheet.pay) + groth(depositSheet.fee) - groth(claimSheet.get) + groth(claimSheet.fee);
+  log(`after: BEAM available ${beam2}; out ${moved} groth; the sheets said ${want}`);
+  if (moved !== want) throw new Error('BEAM did not move by exactly what the sheets said');
+  const after = await readInbox();
+  log('names inbox after:', JSON.stringify(after));
+  await page.evaluate(() => window.__campfire.go('activity'));
+  await sleep(1500);
+  await shot(page, 'live-vc-04-activity');
+  log('foreign hosts', JSON.stringify(foreignHosts(rec, srv.url)));
+  log('LIVE VAULT CLAIM PASSED');
+} catch (e) {
+  exit = 1;
+  log('LIVE VAULT CLAIM FAILED:', e.message);
+  await shot(page, 'live-vc-failure').catch(() => {});
+} finally {
+  await browser.close();
+  srv.stop();
+}
+process.exit(exit);

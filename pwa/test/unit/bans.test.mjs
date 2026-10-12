@@ -402,6 +402,14 @@ test("pay a name: built by BEAM's vault app from the owner key the wallet checke
     'one build, by the vault app, to the key the wallet checked',
   );
   assert.equal(builds[0].args, `role=user,action=send_anon,cid=${VAULT_ANON_CID},pkOwner=${BEAM_OWNER},aid=0,amount=12345,msg=${BEAM_MSG}`);
+
+  // deposit(): the same build and checks for a key given directly (the live claim test pays this wallet's own key).
+  builds.length = 0;
+  const own = await createBans(deps).deposit(FAKE_KEY, 'beam', 0, 12345n);
+  assert.deepEqual([own.txId, own.ownerKey, own.fee], [TXID, FAKE_KEY, 1100000n]);
+  assert.deepEqual(builds.map((b) => [b.shader, b.action, b.to]), [['vaultAnon', 'send_anon', FAKE_KEY]]);
+  await assert.rejects(createBans(deps).deposit(ZERO_KEY, 'beam', 0, 12345n), (e) => e.code === 'invalidKey');
+  await assert.rejects(createBans(deps).deposit(FAKE_KEY, 'beam', 0, 99999n), (e) => e.code === 'unexpected', 'the built amount must be the one asked');
 });
 
 test('renew: only my own name, within 50 years of the next block', async () => {

@@ -729,6 +729,27 @@ export function createBans(deps) {
       if (!canReceivePayments(before.status)) throw refusal('domain expired');
       if (expectedOwnerKey && key !== expectedOwnerKey) throw ownerChanged(name);
       if (pinVerdict({ pinned: pinnedKey, now: key, accepted: acceptedKey }) === 'changed') throw nameChanged(name, pinnedKey, key);
+      return svc.deposit(key, name, assetId, amount, {
+        // Right after the build, before anything is signed: still the same owner, still able to receive.
+        check: async () => {
+          const after = await svc.resolve(name);
+          if (after.ownerKey !== key) throw ownerChanged(name);
+          if (!canReceivePayments(after.status)) throw refusal('domain expired');
+        },
+      });
+    },
+
+    /**
+     * The payment itself, as pay() makes it once the name's owner is known: BEAM's
+     * Anon-Vault app shader builds a deposit of `amount` of `assetId` into
+     * VAULT_ANON_CID for exactly `ownerKey`, with `name` as its message; check(d)
+     * runs on the built transaction, then checkDeposit; the approve sheet shows a
+     * payment to name.beam with the built amounts and fee. Used directly only by
+     * the live test that pays this wallet's own key and claims it back
+     * (test/e2e/live_vault_claim.mjs).
+     */
+    async deposit(ownerKey, name, assetId, amount, { check = null } = {}) {
+      const key = requireKey(ownerKey);
       const a = args.sendAnon(key, name, assetId, amount);
       const want = BigInt(amount);
       let built = null;
@@ -737,9 +758,7 @@ export function createBans(deps) {
         intent: { action: 'namePay', name },
         inspect: async (raw) => {
           const d = readContractTx(raw);
-          const after = await svc.resolve(name);
-          if (after.ownerKey !== key) throw ownerChanged(name);
-          if (!canReceivePayments(after.status)) throw refusal('domain expired');
+          if (check) await check(d);
           checkDeposit(d, assetId, want);
           built = { pays: d.pays, receives: d.receives, fee: d.fee };
         },
