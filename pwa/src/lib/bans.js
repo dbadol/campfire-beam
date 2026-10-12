@@ -15,6 +15,7 @@
 import { nativeApp, privilegedApp } from './contracts.js';
 import { loadShader } from './shaders.js';
 import { readContractTx, ArgsReader, singleEntry, CONTRACT_CALL_FEE, InvokeDataError, spendText } from './contract_tx.js';
+import { VAULT_ANON_CID } from './dapps/policy.js';
 
 /** Mainnet BANS contract ("Bans v0", deployed at 1,890,525). bans_constants.dart. */
 export const BANS_CID = 'af4550f1f8a6051ffeffea06e0cb978f8076fdfc2101d2273d4e62c86540bc5e';
@@ -60,7 +61,7 @@ export const METHOD = Object.freeze({ setOwner: 3, extend: 4, setPrice: 5, buy: 
 export class BansError extends Error {
   constructor(code, message, extra = {}) {
     super(message);
-    this.code = code; // invalidName, invalidKey, refused, claimUnsupported, ownerChanged, unexpected, priceMoved, notMine
+    this.code = code; // invalidName, invalidKey, refused, claimUnsupported, ownerChanged, nameChanged, wrongVault, unexpected, priceMoved, notMine
     Object.assign(this, extra);
   }
 }
@@ -304,12 +305,19 @@ export function parseUserView(out) {
   return { domains, saleProceeds, payments };
 }
 
-/** view_params: {"res": {vault, dao-vault, oracle, price?, h0}}. price is USD per BEAM, 5 decimals, absent when stale. */
+/**
+ * view_params: {"res": {vault, dao-vault, oracle, price?, h0}}. price is USD per BEAM, 5 decimals, absent when stale.
+ *
+ * The node answers this without proof, and the vault is where every payment to a
+ * name goes (audit D-1): one that is not BEAM's own (lib/dapps/policy.js
+ * VAULT_ANON_CID, the BANS contract's setting since it was created) is refused.
+ */
 export function parseViewParams(out) {
   const res = asMap(asMap(out, 'output').res, 'res');
   if (res.price != null && typeof res.price !== 'string') throw fmt('price: expected text');
+  if (asCid(res, 'vault') !== VAULT_ANON_CID) throw wrongVault();
   return {
-    vaultCid: asCid(res, 'vault'),
+    vaultCid: VAULT_ANON_CID,
     daoVaultCid: asCid(res, 'dao-vault'),
     oracleCid: asCid(res, 'oracle'),
     activationHeight: asInt(res.h0, 'h0'),
@@ -346,6 +354,31 @@ export function refusal(shaderText) {
   const r = REFUSALS[shaderText];
   if (r) return new BansError('refused', r[1], { refusal: r[0], shaderText });
   return new BansError('refused', `The name service could not do that (${shaderText}). Try again; if it keeps happening, report it.`, { refusal: 'unknown', shaderText });
+}
+
+function wrongVault() {
+  return new BansError('wrongVault', "The BEAM node this wallet uses gave a vault for name payments that is not BEAM's own, so nothing was sent. Try again later, or choose another node under Settings → BEAM node.");
+}
+
+/**
+ * The owner key a name has now, against the one this wallet paid it before
+ * (`pinned`, kept sealed with the wallet: lib/contacts.js) and the new one the
+ * person chose after seeing both (`accepted`):
+ *   'first'    never paid from this wallet
+ *   'same'     the owner it was paid before
+ *   'changed'  another owner: stop, show both, ask
+ *   'accepted' another owner, the one the person chose to pay
+ * A name changes owner when it is sold, transferred or expires - or when a node
+ * lies about it (audit D-1) - so a change is never taken silently.
+ */
+export function pinVerdict({ pinned = null, now, accepted = null }) {
+  if (!pinned) return 'first';
+  if (now === pinned) return 'same';
+  return now === accepted ? 'accepted' : 'changed';
+}
+
+function nameChanged(name, before, now) {
+  return new BansError('nameChanged', `${display(name)} now has a different owner than when you last paid it. Nothing was sent. Check with the person before paying.`, { name, before, now });
 }
 
 /** A core error that means a privilege-1 shader call (claims) on an engine that refuses them. */
@@ -472,10 +505,10 @@ export function consentExpectation(getBuilt) {
 }
 
 /** The vault withdrawals a claim builds: each one pays this wallet, nothing leaves it. */
-function claimEntries(d, vaultCid, myKey) {
+function claimEntries(d, myKey) {
   if (!d.entries.length) fail('at least one claim');
   for (const e of d.entries) {
-    if (e.contractId !== vaultCid || e.method !== METHOD.vaultWithdraw) fail('claims withdraw from the BEAM names vault');
+    if (e.contractId !== VAULT_ANON_CID || e.method !== METHOD.vaultWithdraw) fail('claims withdraw from the BEAM names vault');
     const r = new ArgsReader(e.args);
     const amount = r.u64();
     const custom = r.u32();
@@ -626,15 +659,21 @@ export function createBans(deps) {
      * Pays `amount` of `assetId` to the owner of `name`, anonymously, through the
      * BANS vault. The name is resolved before the build and again after it; if
      * its owner differs from the one the person was shown (expectedOwnerKey), or
-     * between the two, nothing is signed.
+     * between the two, nothing is signed. The payment goes into BEAM's own vault
+     * only (VAULT_ANON_CID), whatever the node says the vault is.
+     *
+     * pinnedKey: the owner key this wallet paid the name before (null: never).
+     * Another owner now stops the payment (nameChanged, with both keys) unless it
+     * is acceptedKey, the new one the person saw and chose (pinVerdict).
      */
-    async pay(name, assetId, amount, { expectedOwnerKey = null } = {}) {
-      const p = await svc.params();
+    async pay(name, assetId, amount, { expectedOwnerKey = null, pinnedKey = null, acceptedKey = null } = {}) {
+      await svc.params(); // refuses a node that names another vault (parseViewParams)
       const before = await svc.resolve(name);
       const key = before.ownerKey;
       if (!key) throw refusal('not registered');
       if (!canReceivePayments(before.status)) throw refusal('domain expired');
       if (expectedOwnerKey && key !== expectedOwnerKey) throw ownerChanged(name);
+      if (pinVerdict({ pinned: pinnedKey, now: key, accepted: acceptedKey }) === 'changed') throw nameChanged(name, pinnedKey, key);
       const a = args.pay(name, assetId, amount);
       const want = BigInt(amount);
       let built = null;
@@ -645,7 +684,7 @@ export function createBans(deps) {
           const after = await svc.resolve(name);
           if (after.ownerKey !== key) throw ownerChanged(name);
           if (!canReceivePayments(after.status)) throw refusal('domain expired');
-          const e = singleEntry(d, p.vaultCid, METHOD.vaultDeposit, fail);
+          const e = singleEntry(d, VAULT_ANON_CID, METHOD.vaultDeposit, fail);
           const r = new ArgsReader(e.args);
           if (r.u64() !== want) fail('amount');
           const custom = r.u32();
@@ -767,7 +806,7 @@ export function createBans(deps) {
      */
     async claimAll({ words = null, onBuilt = null } = {}) {
       if (!deps.transactPrivileged) throw unsupported();
-      const p = await svc.params();
+      await svc.params(); // refuses a node that names another vault
       const key = await svc.myKey();
       let built = null;
       const intent = { action: 'nameClaim' };
@@ -776,7 +815,7 @@ export function createBans(deps) {
         intent,
         inspect: (raw) => {
           const d = readContractTx(raw, { allowAdvanced: true });
-          claimEntries(d, p.vaultCid, key);
+          claimEntries(d, key);
           built = { pays: d.pays, receives: d.receives, fee: d.fee, count: d.entries.length };
           Object.assign(intent, typeof words === 'function' ? words(built) : words || {}, { action: 'nameClaim' });
           if (onBuilt) onBuilt(built);
@@ -791,7 +830,7 @@ export function createBans(deps) {
      * where the inbox cannot be read). A shader "no funds" means nothing waits.
      */
     async claimSaleProceeds(assetId, { words = null, onBuilt = null } = {}) {
-      const p = await svc.params();
+      await svc.params(); // refuses a node that names another vault
       const key = await svc.myKey();
       let built = null;
       const intent = { action: 'nameClaim' };
@@ -799,7 +838,7 @@ export function createBans(deps) {
         intent,
         inspect: (raw) => {
           const d = readContractTx(raw, { allowAdvanced: true });
-          claimEntries(d, p.vaultCid, key);
+          claimEntries(d, key);
           built = { pays: d.pays, receives: d.receives, fee: d.fee, count: d.entries.length };
           Object.assign(intent, typeof words === 'function' ? words(built) : words || {}, { action: 'nameClaim' });
           if (onBuilt) onBuilt(built);

@@ -10,11 +10,13 @@ import {
   BANS_CID, args, nameProblem, normaliseName, parseName, tryName, describeNameProblem, usdPerPeriod, isKey, requireKey, fingerprint, checkCode, ZERO_KEY,
   parseMyKey, parseViewName, parseViewDomain, parseViewParams, refusal, mapError, isPrivilegeFailure, statusOf, STATUS, canRegister, canReceivePayments,
   holdEndHeight, expiryAfterRegister, expiryAfterExtend, maxExtendPeriods, priceEstimate, classifyRecipient, createBans, consentExpectation, BansError,
-  HOLD_BLOCKS, BLOCKS_PER_PERIOD, dateOf,
+  HOLD_BLOCKS, BLOCKS_PER_PERIOD, dateOf, pinVerdict,
 } from '../../src/lib/bans.js';
 import { parseShaderJson, bindSession, unbindSession, nativeApp, setConsentPresenter } from '../../src/lib/contracts.js';
 import { fakeEngine } from './helpers/fake_engine.mjs';
-import { readContractTx } from '../../src/lib/contract_tx.js';
+import { readContractTx, le, fromHex } from '../../src/lib/contract_tx.js';
+import { VAULT_ANON_CID } from '../../src/lib/dapps/policy.js';
+import { invokeEntry, invokeData, cid } from './helpers/invoke_builder.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const envelope = (name) => JSON.parse(readFileSync(join(REPO, 'test', 'beam', 'contracts', 'bans', 'fixtures', `${name}.json`), 'utf8'));
@@ -293,6 +295,61 @@ test('pay a name: resolved before and after the build, the kernel pays exactly t
   await assert.rejects(createBans(deps).pay('zzzzz', 0, 1n), (e) => e.refusal === 'notRegistered');
   deps = fakeDeps({ view_params: 'view_params', view_name: { output: `{"res": {"key": "${BEAM_OWNER}","hExpire": 100}}` } });
   await assert.rejects(createBans(deps).pay('old', 0, 1n), (e) => e.refusal === 'domainExpired');
+});
+
+// ------------------------------------------------------------ a node that lies about a name (audit D-1)
+
+const ATTACKER_CID = cid(0xa7);
+const ATTACKER_KEY = '9c'.repeat(32) + '01';
+const SENDER_AND_NAME = new Array(97).fill(5);
+/** What the BANS shader builds for a payment, aimed at `contractId` (vault_anon Method::Deposit). */
+const depositTo = (contractId, amount, aid = 0) =>
+  invokeData([invokeEntry({ contractId, method: 2, args: [...le(amount, 8), ...le(97, 4), ...fromHex('4f'.repeat(32) + '00'), ...le(aid, 4), ...SENDER_AND_NAME], comment: 'vault_anon send anon', spend: { [aid]: amount } })]);
+const forgedParams = { output: JSON.stringify({ res: { ...params.res, vault: ATTACKER_CID } }) };
+
+test("pay a name: a node that names another vault is refused before anything is built, whatever the build says", async () => {
+  assert.equal(VAULT, VAULT_ANON_CID, 'the vault the dApp policy pins is the one view_params answers on mainnet');
+  // view_params says the vault is the attacker's contract, and the build pays it.
+  let deps = fakeDeps({ view_params: forgedParams, view_name: 'view_name_beam', pay: { output: '{}', raw_data: depositTo(ATTACKER_CID, 12345) } });
+  await assert.rejects(createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: BEAM_OWNER }), (e) => e.code === 'wrongVault' && /not BEAM's own/.test(e.message));
+  assert.ok(!deps.calls.includes('pay'), 'refused before the shader builds anything');
+  assert.ok(!deps.calls.includes('signed'));
+  assert.throws(() => parseViewParams(JSON.parse(forgedParams.output)), (e) => e.code === 'wrongVault');
+  // An honest view_params, but the build (its own read of the settings) pays another contract: refused unsigned.
+  deps = fakeDeps({ view_params: 'view_params', view_name: 'view_name_beam', pay: { output: '{}', raw_data: depositTo(ATTACKER_CID, 12345) } });
+  await assert.rejects(createBans(deps).pay('beam', 0, 12345n), (e) => e.code === 'unexpected');
+  assert.ok(!deps.calls.includes('signed'));
+  // The same build into the real vault goes through.
+  deps = fakeDeps({ view_params: 'view_params', view_name: 'view_name_beam', pay: { output: '{}', raw_data: depositTo(VAULT, 12345) } });
+  assert.equal((await createBans(deps).pay('beam', 0, 12345n)).txId, TXID);
+  // Claims too: from the real vault only.
+  deps = fakeDeps({ view_params: forgedParams, my_key: 'my_key' });
+  deps.transactPrivileged = deps.transact;
+  await assert.rejects(createBans(deps).claimAll(), (e) => e.code === 'wrongVault');
+  assert.ok(!deps.calls.includes('signed'));
+});
+
+test('pay a name: an owner key different from the one this wallet paid before stops, until the person picks the new one', async () => {
+  const lying = { view_params: 'view_params', view_name: { output: `{"res": {"key": "${ATTACKER_KEY}","hExpire": 4918184}}` }, pay: 'pay_beam' };
+  // Paid before to BEAM_OWNER; the node now says the attacker owns beam: nothing is built.
+  let deps = fakeDeps(lying);
+  await assert.rejects(createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: ATTACKER_KEY, pinnedKey: BEAM_OWNER }), (e) => e.code === 'nameChanged' && e.before === BEAM_OWNER && e.now === ATTACKER_KEY);
+  assert.ok(!deps.calls.includes('pay'));
+  // The person saw both keys and chose the new owner: it goes ahead, to exactly that key.
+  deps = fakeDeps(lying);
+  assert.equal((await createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: ATTACKER_KEY, pinnedKey: BEAM_OWNER, acceptedKey: ATTACKER_KEY })).ownerKey, ATTACKER_KEY);
+  // Accepting one new key is not accepting any: a third one stops again.
+  deps = fakeDeps({ ...lying, view_name: { output: `{"res": {"key": "${FAKE_KEY}","hExpire": 4918184}}` } });
+  await assert.rejects(createBans(deps).pay('beam', 0, 12345n, { pinnedKey: BEAM_OWNER, acceptedKey: ATTACKER_KEY }), (e) => e.code === 'nameChanged' && e.now === FAKE_KEY);
+  // The same owner as before, or a first payment: no question.
+  deps = fakeDeps({ view_params: 'view_params', view_name: 'view_name_beam', pay: 'pay_beam' });
+  assert.equal((await createBans(deps).pay('beam', 0, 12345n, { pinnedKey: BEAM_OWNER })).ownerKey, BEAM_OWNER);
+  // What Send asks before Review.
+  assert.equal(pinVerdict({ pinned: null, now: BEAM_OWNER }), 'first');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: BEAM_OWNER }), 'same');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: ATTACKER_KEY }), 'changed');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: ATTACKER_KEY, accepted: ATTACKER_KEY }), 'accepted');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: FAKE_KEY, accepted: ATTACKER_KEY }), 'changed');
 });
 
 test('renew: only my own name, within 50 years of the next block', async () => {

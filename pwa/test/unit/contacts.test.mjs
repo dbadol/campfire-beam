@@ -127,3 +127,39 @@ test('vaultFor: one vault per unlocked wallet; a lock forgets it; locked or no w
   await assert.rejects(C.vaultFor({ record: { id: 'd9d9d9d9d9d9d9d9' }, dbPass: null }, kv), (e) => e.code === 'locked');
   await assert.rejects(C.vaultFor({ record: null, dbPass: 'x' }, kv), (e) => e.code === 'missing');
 });
+
+test('BEAM names paid: the owner key each was paid, sealed with the contacts, kept beside them (audit D-1)', async () => {
+  const kv = memKv();
+  const dbPass = newDbPassword();
+  const OWNER = `${'72e368c016'}${'0'.repeat(54)}01`;
+  const OTHER = `${'9c'.repeat(32)}00`;
+  const v = new C.PaymentsVault({ kv, walletId: 'e5e5e5e5e5e5e5e5', imported: false, dbPass });
+  assert.deepEqual(await v.namePins(), {});
+  await v.add({ name: 'Alice', address: A1 });
+  await v.pinName('alice', OWNER, 1000);
+  await v.pinName('bob', OTHER, 2000);
+  assert.ok(!JSON.stringify(kv.m.get('w:e5e5e5e5e5e5e5e5:payments')).includes('alice'), 'who you paid is sealed');
+  const again = new C.PaymentsVault({ kv, walletId: 'e5e5e5e5e5e5e5e5', imported: false, dbPass });
+  assert.deepEqual(await again.namePins(), { alice: OWNER, bob: OTHER });
+  assert.deepEqual((await again.contacts()).map((c) => c.name), ['Alice'], 'contacts untouched');
+  // A contact change keeps the pins; a new owner, once paid, is the one remembered.
+  await again.add({ name: 'Bob', address: A2 });
+  await again.pinName('alice', OTHER, 3000);
+  assert.deepEqual(await new C.PaymentsVault({ kv, walletId: 'e5e5e5e5e5e5e5e5', imported: false, dbPass }).namePins(), { alice: OTHER, bob: OTHER });
+  // Only names and keys.
+  await assert.rejects(again.pinName('Alice.beam', OWNER), (e) => e.code === 'invalid');
+  await assert.rejects(again.pinName('alice', 'nope'), (e) => e.code === 'invalid');
+  // The oldest go first past NAME_PINS_MAX.
+  const many = new C.PaymentsVault({ kv: memKv(), walletId: 'f6f6f6f6f6f6f6f6', imported: false, dbPass });
+  for (let i = 0; i < C.NAME_PINS_MAX + 2; i++) await many.pinName(`n${String(i).padStart(4, '0')}`, OWNER, i);
+  const pins = await many.namePins();
+  assert.equal(Object.keys(pins).length, C.NAME_PINS_MAX);
+  assert.ok(!('n0000' in pins) && !('n0001' in pins) && 'n0002' in pins);
+  // Through the open wallet.
+  const app = { record: { id: 'e5e5e5e5e5e5e5e5', imported: false }, dbPass, lockHooks: new Set() };
+  assert.equal(await C.namePinFor(app, 'alice', kv), OTHER);
+  assert.equal(await C.namePinFor(app, 'carol', kv), null);
+  await C.pinNamePayment(app, 'carol', OWNER, kv);
+  assert.equal(await C.namePinFor(app, 'carol', kv), OWNER);
+  for (const f of app.lockHooks) f();
+});
