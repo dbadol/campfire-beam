@@ -190,7 +190,7 @@ export default function importWalletScreen(app) {
       const code = e && e.code;
       if (code !== 'exists') await forgetStaged();
       // Fixed texts only: nothing from the file or the engine, and never the password.
-      problem(code === 'exists' ? IMPORT_PROBLEM.exists : code === 'gone' ? IMPORT_PROBLEM.gone : code === 'file' ? e.problem : code === 'timeout' ? IMPORT_PROBLEM.slow : IMPORT_PROBLEM.failed);
+      problem(code === 'exists' ? IMPORT_PROBLEM.exists : code === 'gone' ? IMPORT_PROBLEM.gone : code === 'file' ? e.problem : code === 'timeout' ? IMPORT_PROBLEM.slow : /^shared_origin/.test(code || '') ? e.message : IMPORT_PROBLEM.failed);
     }
   }
 
