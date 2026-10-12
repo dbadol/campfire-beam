@@ -393,7 +393,13 @@ export async function createWalletDb(words, dbPass, path = walletPath) {
     throw new EngineError('create', 'The wallet could not be created: ' + (e && e.message));
   }
   if (!M.WasmWalletClient.IsInitialized(path)) throw new EngineError('create', 'The wallet could not be created.');
-  await syncFS(M);
+  // Stored, or undone (as adoptImport): a file that did not reach IndexedDB must not get a record,
+  // or after the next load the wallet is listed with nothing to open (re-audit RE1-4).
+  if (!(await syncFS(M))) {
+    removeWalletFiles(M.FS, path);
+    await syncFS(M);
+    throw new EngineError('save', 'The browser did not store it. Try again.');
+  }
 }
 
 /**
