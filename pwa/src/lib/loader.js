@@ -12,8 +12,15 @@
 // stop that - so the page treats any new worker for the URL it already runs
 // under as a takeover: it locks the wallet at once and says so.
 //
-// Best effort, stated plainly in the project notes: a page opened after a
-// takeover is served by the new code, and that code can show anything.
+// The watch starts before anything else of the page: index.html's classic
+// loader-watch.js records every loader change from the first line (and stops a
+// page that is taken over before the app has started), and watchLoader()
+// replays that record and follows it.
+//
+// Best effort, stated plainly in About and the project notes: a page opened
+// after a takeover is served by the new code, and that code can show anything.
+// That includes a takeover while no page is open (the browser checks the
+// loader then too).
 //
 // An update that came from another copy while the app's own address was down
 // (lib/update_sources.js) runs under the loader the device already has, since
@@ -34,9 +41,13 @@ export function swSupported() {
   return 'serviceWorker' in navigator;
 }
 
-// The loader that served this document. Its headers (the CSP) stay in force
-// for the life of the page, even after a newer loader takes over.
-const servedBy = typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null;
+// What loader-watch.js recorded from the page's first line (null in a page without it).
+const early = typeof window !== 'undefined' && window.__campfireLoaderWatch ? window.__campfireLoaderWatch : null;
+
+// The loader that served this document (as loader-watch.js saw it before any
+// module ran). Its headers (the CSP) stay in force for the life of the page,
+// even after a newer loader takes over.
+const servedBy = early ? early.initial : typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : null;
 
 // This release's loader_compat (null in an unbuilt tree), and whether the loader
 // that served this document said it has the same one (checkServedLoader()).
@@ -210,26 +221,36 @@ export async function watchLoader({ onIntrusion, onMoved = () => {} }) {
     fired = true;
     onIntrusion(reason);
   };
+  // loader-watch.js already stopped this page: say so here too (it never reloads).
+  if (early && early.stopped()) return fire('the loader that served this page was replaced while it started');
   // A worker for LOADER is expected only while the page is moving to it from an
   // older loader (after an approved Update). Anything else is a change of code
   // at a URL whose bytes never change legitimately.
-  const expected = (w) => endsWithLoader(w && w.scriptURL) && !endsWithLoader(sw.controller && sw.controller.scriptURL);
-  const check = (w) => {
-    if (w && !expected(w)) fire(`a new service worker (${w.scriptURL.split('/').pop()}) is being installed`);
+  let controllerUrl = early && early.initial ? early.initial : sw.controller.scriptURL;
+  const expected = (url) => endsWithLoader(url) && !endsWithLoader(controllerUrl);
+  const check = (url) => {
+    if (url && !expected(url)) fire(`a new service worker (${url.split('/').pop()}) is being installed`);
   };
-  let controllerUrl = sw.controller.scriptURL;
-  sw.addEventListener('controllerchange', () => {
-    const now = sw.controller ? sw.controller.scriptURL : null;
+  const changed = (now) => {
     const ok = endsWithLoader(now) && !endsWithLoader(controllerUrl);
     controllerUrl = now;
     if (!ok) fire('the service worker controlling this page changed');
     else onMoved();
-  });
+  };
+  if (early && early.initial) {
+    // Everything since the page's first line, then each new event: nothing between the two is missed.
+    early.subscribe((ev) => (ev.type === 'controllerchange' ? changed(ev.url) : check(ev.url)));
+  } else {
+    // A page without loader-watch.js, or one that was not controlled when it started (the first install).
+    sw.addEventListener('controllerchange', () => changed(sw.controller ? sw.controller.scriptURL : null));
+  }
   const reg = await sw.getRegistration();
   if (!reg) return;
-  check(reg.installing);
-  check(reg.waiting);
-  reg.addEventListener('updatefound', () => check(reg.installing));
+  if (!(early && early.initial)) {
+    check(reg.installing && reg.installing.scriptURL);
+    check(reg.waiting && reg.waiting.scriptURL);
+    reg.addEventListener('updatefound', () => check(reg.installing && reg.installing.scriptURL));
+  }
   if (!endsWithLoader(controllerUrl)) askToTakeOver(reg);
 
   // Moving to this release's loader after an approved Update that brought a new
