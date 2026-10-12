@@ -96,6 +96,30 @@ export function checkContractData(raw) {
 }
 
 const REBUILD_REFUSED = "BEAM Campfire refused this request: it lets the dApp's own code redo the call later, without asking you again. BEAM Campfire allows that only for code from BEAM's own dApps. Nothing was sent.";
+const REBUILD_ARGS_REFUSED = "BEAM Campfire refused this request: it lets BEAM's dApp code redo the call later on another contract than the one that code is made for. Nothing was sent.";
+
+/**
+ * Why the arguments stored next to a pinned body may not be redone (audit BC-4), or null. The core
+ * re-runs the body with exactly these arguments, so every contract argument in them (a key that
+ * starts with "cid", spaces around it ignored) must be one the pin lists, naming a contract it
+ * lists for it, and "cid" must be there.
+ * @param {object|null} args the stored arguments, key -> value
+ * @param {object|null} contracts the pin's {argument: [contract ids]}
+ */
+export function storedArgsProblem(args, contracts) {
+  if (!args || typeof args !== 'object') return 'no stored arguments';
+  if (!contracts || typeof contracts !== 'object') return 'this code names no contract';
+  let named = false;
+  for (const [k, v] of Object.entries(args)) {
+    const key = String(k).trim();
+    if (!/^cid/i.test(key)) continue;
+    const allowed = Object.prototype.hasOwnProperty.call(contracts, key) ? contracts[key] : null;
+    if (!allowed) return `${key} is not a contract this code is redone with`;
+    if (!allowed.includes(String(v).trim().toLowerCase())) return `${key} names another contract`;
+    if (key === 'cid') named = true;
+  }
+  return named ? null : 'no contract named';
+}
 
 /**
  * Throws PolicyRefusal when data the core could redo later (a dependent call, or a stored app
@@ -113,6 +137,8 @@ export async function checkRebuild(data, { unchecked }) {
   const d = new Uint8Array(await crypto.subtle.digest('SHA-256', data.appShader));
   const hex = Array.from(d, (x) => x.toString(16).padStart(2, '0')).join('');
   if (!Object.prototype.hasOwnProperty.call(REBUILD_BODIES, hex)) throw new PolicyRefusal('rebuild', REBUILD_REFUSED);
+  // The body is known; the arguments it would be re-run with must be for its own contract (BC-4).
+  if (storedArgsProblem(data.appArgs, REBUILD_BODIES[hex].contracts)) throw new PolicyRefusal('rebuild', REBUILD_ARGS_REFUSED);
 }
 
 /** SHA-256("bvm.m.key\0" || keyMaterialBytes), lowercase hex. */
