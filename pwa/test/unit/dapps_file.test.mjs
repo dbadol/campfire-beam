@@ -185,7 +185,8 @@ test('every refusal has words that name the next step and blame nobody', () => {
     assert.equal(t(code), "This file isn't a dApp package BEAM Campfire can install safely, so nothing was installed. Ask the dApp's publisher for a new copy.");
   }
   assert.match(installErrorText(new Error('x'), 'Tiny dApp'), /Nothing was changed\. Try again\./);
-  for (const s of [t('storage'), t('invalidFile'), t('reservedGuid', { dappName: 'Beam DEX' })]) assert.doesNotMatch(s, /\byou (did|made|picked a wrong)\b/i);
+  assert.equal(t('walletName'), "This dApp's name reads like BEAM Campfire's own, so its requests could pass for the wallet's. Nothing was installed. Ask its publisher for a copy under its own name.");
+  for (const s of [t('storage'), t('invalidFile'), t('reservedGuid', { dappName: 'Beam DEX' }), t('walletName')]) assert.doesNotMatch(s, /\byou (did|made|picked a wrong)\b/i);
 });
 
 // ------------------------------------------------------------ frame policy
@@ -204,6 +205,23 @@ test('hosts a file dApp may be allowed: https, a public DNS name, an optional po
   assert.ok(remoteHostOk('a.b'));
   assert.ok(remoteHostOk(`${'a'.repeat(60)}.${'b'.repeat(60)}.${'c'.repeat(60)}.${'d'.repeat(60)}.com`), '247 characters');
   assert.ok(!remoteHostOk(`${'a'.repeat(60)}.${'b'.repeat(60)}.${'c'.repeat(60)}.${'d'.repeat(60)}.${'e'.repeat(10)}.com`), 'longer than 253');
+});
+
+// A public name can still resolve to this device or the local network. The browser resolves
+// names itself, so the wallet cannot see where one leads; it refuses the names that say so
+// (an address written into the name) and the services whose names always lead there.
+test('hosts that spell an IP address, or belong to a loopback or rebinding service, are refused', () => {
+  for (const bad of [
+    '127.0.0.1.nip.io', 'app.192.168.1.10.nip.io', 'a.10.0.0.1.example.com', '1.2.3.4.example.com',
+    'app-127-0-0-1.example.com', '192-168-1-1.example.com', '10-0-0-1-router.example.com',
+    'nip.io', 'x.nip.io', '7f000001.nip.io', 'x.sslip.io', '--1.sslip.io', 'x.xip.io', 'localtest.me', 'readme.localtest.me', 'app.lvh.me', 'x.vcap.me',
+    'x.lacolhost.com', 'x.localhost.direct', '127-0-0-1.traefik.me', 'x.fuf.me', 'x.localho.st', '7f000001.c0a80001.rbndr.us', 'make-1-2-3-4-rr.1u.ms',
+  ]) {
+    assert.equal(remoteHostOk(bad), false, bad);
+    assert.equal(remoteOriginFor(`https:${'//'}${bad}`), null, bad);
+  }
+  // Numbers in a name are fine when they do not spell an address.
+  for (const ok of ['explorer.0xmx.net', 'api2.example.com', '2024-01-15.example.com', 'v1-2-3.example.com', '1-2-3.example.com', '300-1-1-1.example.com', 'pinip.io', 'mylvh.me', 'web3.example.com']) assert.equal(remoteHostOk(ok), true, ok);
 });
 
 test('a file dApp frame: its own route, eval and inline scripts, exactly its allowed hosts', () => {
@@ -296,6 +314,26 @@ test('storage: install, list, open (checked again), replace keeps what it may re
   assert.deepEqual(await s.list(), []);
   assert.deepEqual([...kv.m.keys()], ['dapp-files'], 'the package bytes went too');
   await assert.rejects(s.open(GUID), (e) => e.code === 'storage');
+});
+
+test('storage: whether a dApp may see the balance is kept per dApp, through a replace, until changed', async () => {
+  const kv = memoryKv();
+  const s = installedStore(kv);
+  const bytes = pkgBytes();
+  assert.equal((await s.install(await readFilePackage(bytes), bytes)).balance, null, 'not asked yet');
+  assert.equal((await s.setBalance(GUID, true)).balance, true);
+  assert.equal((await s.get(GUID)).balance, true);
+  const bytes2 = pkgBytes(base({ version: '1.1.0' }));
+  assert.equal((await s.install(await readFilePackage(bytes2), bytes2, { replace: true })).balance, true, 'a replace keeps the answer');
+  assert.equal((await s.setBalance(GUID, false)).balance, false);
+  assert.equal((await s.setBalance(GUID, null)).balance, null, 'forgotten: it asks again');
+  await assert.rejects(s.setBalance(GUID, 'yes'));
+  await assert.rejects(s.setBalance('ab'.repeat(16), true), (e) => e.code === 'storage');
+  // Anything else kept reads as not asked.
+  const list = kv.m.get('dapp-files');
+  list[0].balance = 'yes';
+  kv.m.set('dapp-files', list);
+  assert.equal((await s.get(GUID)).balance, null);
 });
 
 test('storage: a kept package that changed is refused; a write that fails changes nothing', async () => {

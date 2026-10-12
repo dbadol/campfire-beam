@@ -46,6 +46,11 @@ test('the words: amounts only when allowed; verified tickers only; a tap opens t
   assert.match(wordsFor({ type: 'failed', tx: tx('1', { income: false }) }).body, /Nothing left your wallet/);
   assert.match(wordsFor({ type: 'failed', tx: tx('1') }).title, /to you did not go through/);
   assert.equal(wordsFor({ type: 'contractDone', tx: tx('1', { tx_type: 12 }) }, { contractTitle: () => 'Swap on Beam DEX' }).title, 'Swap on Beam DEX: done');
+  // A dApp names itself: its name is framed as the app's, never read as the wallet speaking.
+  const dapp = tx('1', { tx_type: 12, appname: 'Re-verify your wallet now' });
+  assert.equal(wordsFor({ type: 'contractDone', tx: dapp }, { contractTitle: (t) => t.appname }).title, 'A call by \u201cRe-verify your wallet now\u201d: done');
+  assert.equal(wordsFor({ type: 'contractFailed', tx: dapp }, { contractTitle: (t) => t.appname }).title, 'A call by \u201cRe-verify your wallet now\u201d: did not go through');
+  assert.equal(wordsFor({ type: 'contractDone', tx: dapp }, { contractTitle: () => 'DEX swap' }).title, 'DEX swap: done', "the wallet's own label is not framed");
   assert.match(wordsFor({ type: 'arriving', tx: tx('1', { status: 1 }) }).body, /finishes only while BEAM Campfire is open/);
   assert.equal(wordsFor({ type: 'received', tx: tx('1') }, { walletName: 'Savings' }).body, 'Tap to see it in Activity. In Savings.');
 });

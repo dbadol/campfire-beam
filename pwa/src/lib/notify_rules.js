@@ -108,6 +108,12 @@ export function underway(txs) {
   return (txs || []).filter((t) => PAYMENT.has(Number(t.tx_type)) && UNDERWAY.has(Number(t.status)) && Number(t.tx_type) === 0);
 }
 
+/** A contract call's title; a dApp's own name (its app name) is quoted as the app's: "A call by “X”". */
+function callTitle(tx, contractTitle) {
+  const t = contractTitle(tx);
+  return typeof tx.appname === 'string' && tx.appname !== '' && t === tx.appname ? `A call by “${t}”` : t;
+}
+
 /**
  * What a notification says. ev: { type, tx } or a free one { type: 'free', title, body }.
  * label(assetId) names an asset; contractTitle(tx) names a contract call (lib/wallet.js
@@ -128,9 +134,9 @@ export function wordsFor(ev, { label = () => null, contractTitle = () => 'Contra
       if (tx.income === true) return { title: amt ? `A payment of ${amt} to you did not go through` : 'A payment to you did not go through', body: `Nothing arrived. The sender can send it again.${where}`, tag: `fail-${tx.txId}`, url: open };
       return { title: amt ? `Your payment of ${amt} did not go through` : 'Your payment did not go through', body: `Nothing left your wallet for it. Tap to see why.${where}`, tag: `fail-${tx.txId}`, url: open };
     case 'contractDone':
-      return { title: `${contractTitle(tx)}: done`, body: `Tap to see it in Activity.${where}`, tag: `c-${tx.txId}`, url: open };
+      return { title: `${callTitle(tx, contractTitle)}: done`, body: `Tap to see it in Activity.${where}`, tag: `c-${tx.txId}`, url: open };
     case 'contractFailed':
-      return { title: `${contractTitle(tx)}: did not go through`, body: `Tap to see why.${where}`, tag: `cf-${tx.txId}`, url: open };
+      return { title: `${callTitle(tx, contractTitle)}: did not go through`, body: `Tap to see why.${where}`, tag: `cf-${tx.txId}`, url: open };
     case 'arriving':
       return { title: 'A payment to you is arriving', body: `It finishes only while BEAM Campfire is open: come back so it can.${where}`, tag: `arr-${tx.txId}`, url: open };
     case 'leaving':

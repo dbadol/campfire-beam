@@ -82,6 +82,19 @@ test('sign_message: a message with hidden characters is refused, line breaks are
   assert.equal((await run('sign_message', { message: 'line 1\nline 2', key_material: 'aa' })).message, 'line 1\nline 2');
 });
 
+// The approve sheet shows a dApp's own words ("The app describes it as: ..."): confirm_comment,
+// else the comments inside its contract data, and for tx_send confirm_comment, else comment.
+test('process_invoke_data and tx_send: a comment with hidden characters is refused, line breaks are fine', async () => {
+  const hidden = [`You receive 5 BEAM${ch(0x202e)} MAEB 05 yap uoY`, `a${ch(0)}b`, `x${ch(0x200b)}y`, `a${ch(0x2066)}b`, `a${ch(0x2028)}b`];
+  for (const bad of hidden) {
+    await assert.rejects(run('process_invoke_data', { data: [1], confirm_comment: bad }), rpcError(-32602), JSON.stringify(bad));
+    await assert.rejects(run('tx_send', { ...ok, comment: bad }), rpcError(-32602), JSON.stringify(bad));
+    await assert.rejects(run('tx_send', { ...ok, confirm_comment: bad }), rpcError(-32602), JSON.stringify(bad));
+  }
+  assert.equal((await run('process_invoke_data', { data: [1], confirm_comment: 'Swap\n1 BEAM' })).confirm_comment, 'Swap\n1 BEAM');
+  assert.equal((await run('tx_send', { ...ok, comment: 'for\tlunch' })).comment, 'for\tlunch');
+});
+
 test('request parsing as the core parses it', () => {
   const r = parseRequest('{"jsonrpc":"2.0","id":"call-1","method":"get_version"}', { maxLength: 100 });
   assert.equal(r.id, 'call-1');
