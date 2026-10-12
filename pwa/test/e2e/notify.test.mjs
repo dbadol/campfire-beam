@@ -147,7 +147,13 @@ test('a new wallet, synced; Settings → Notifications: off, asked only from the
   await page.click(tid('notify-switch'));
   await page.waitForFunction(() => /^On/.test(document.querySelector('[data-testid="notify-sub"]').textContent));
   for (const k of ['in', 'out', 'underway', 'contracts', 'moves']) assert.equal(await page.isChecked(tid(`notify-kind-${k}`)), true, k);
-  assert.equal(await page.isChecked(tid('notify-amounts')), true);
+  // No amounts on the lock screen unless asked for; this suite turns them on to read them.
+  assert.equal(await page.isChecked(tid('notify-amounts')), false, 'off by default');
+  await page.click(tid('notify-amounts'));
+  await until(async () => {
+    const { getPrefs } = await import('./lib/store.js');
+    return (await getPrefs()).notify.amounts === true;
+  }, null, { label: 'amounts on' });
   await page.click(tid('notify-test'));
   await page.waitForFunction(() => window.__shown.length === 1);
   assert.deepEqual(await page.evaluate(() => window.__shown[0]), { title: 'BEAM Campfire notifications are on', body: 'A payment will be told like this.', url: '#open=notifications', tag: 'campfire-test' });

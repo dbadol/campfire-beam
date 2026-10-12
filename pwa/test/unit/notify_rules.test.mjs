@@ -56,7 +56,10 @@ test('settings: off until turned on; every kind on by default; the old payment s
   assert.equal(settingsOf({ paymentNotifications: true, notify: { on: false } }).on, false);
   const s = settingsOf({ notify: { on: true, kinds: { out: false } } });
   assert.deepEqual(KINDS.filter((k) => s.kinds[k]), ['in', 'underway', 'contracts', 'moves']);
-  assert.equal(s.amounts, true);
+  // A lock screen is read by whoever holds the phone: amounts only when the person asks.
+  assert.equal(s.amounts, false, 'no amounts by default');
+  assert.equal(settingsOf({ notify: { on: true } }).amounts, false);
+  assert.equal(settingsOf({ notify: { on: true, amounts: true } }).amounts, true);
   assert.equal(settingsOf({ notify: { on: true, amounts: false } }).amounts, false);
   for (const k of KINDS) assert.ok(KIND_WORDS[k].title && KIND_WORDS[k].sub);
 });

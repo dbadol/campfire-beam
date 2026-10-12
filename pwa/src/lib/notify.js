@@ -134,16 +134,21 @@ function bannerBody(ev, w) {
   return w.body;
 }
 
-/** One event: the banner while the app is on screen; a system notification while it is not in front. */
+/**
+ * One event: the banner while the app is on screen (with the amount: the open wallet shows it
+ * anyway); a system notification while it is not in front, with the amount only if the person
+ * turned that on (it shows on the lock screen).
+ */
 export async function tell(app, ev, { banner = true } = {}) {
   const s = settingsOf(app.prefs);
-  const w = wordsFor(ev, { label: (id) => wallet.label(id), contractTitle: (tx) => contractLabel(tx), amounts: s.amounts, walletName: await walletName(app) });
+  const opts = { label: (id) => wallet.label(id), contractTitle: (tx) => contractLabel(tx), walletName: await walletName(app) };
   if (visible() && banner && bannerFn) {
-    bannerFn(app, w.title, bannerBody(ev, w), w.url);
+    const b = wordsFor(ev, { ...opts, amounts: true });
+    bannerFn(app, b.title, bannerBody(ev, b), b.url);
     stats.banners++;
   }
   if (inFront() || !allowed(app, ev.kind)) return false;
-  const ok = await showSystem(w);
+  const ok = await showSystem(wordsFor(ev, { ...opts, amounts: s.amounts }));
   if (ok) badge(++unseen);
   return ok;
 }
@@ -469,7 +474,8 @@ export function installNotify(app) {
     if (!locked && live && !summarised && s.txsLoaded === true) {
       summarised = true;
       const snap = await readSnapshot(app);
-      const line = snap ? awayLine(awaySummary(snap, s.txs), { amounts: settingsOf(app.prefs).amounts }) : null;
+      // On Home, in the open wallet: with the amounts.
+      const line = snap ? awayLine(awaySummary(snap, s.txs), { amounts: true }) : null;
       saveSnapshot(app);
       dropOnReturn(app);
       if (line) {

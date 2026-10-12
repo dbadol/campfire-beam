@@ -37,11 +37,15 @@ const UNDERWAY = new Set([0, 1, 5]); // pending, in progress, registering
 const PAYMENT = new Set([0, 7]); // a plain payment, an offline / max-privacy one
 const CONTRACT = 12;
 
-/** The person's settings, with defaults; prefs.notify = { on, kinds, amounts }. */
+/**
+ * The person's settings, with defaults; prefs.notify = { on, kinds, amounts }. amounts: whether a
+ * system notification (the lock screen, read by whoever holds the phone) says how much; off unless
+ * the person turns it on. Inside the open app amounts are always shown.
+ */
 export function settingsOf(prefs) {
   const n = (prefs && prefs.notify) || {};
   const on = n.on === true || (n.on === undefined && Boolean(prefs) && prefs.paymentNotifications === true);
-  return { on, kinds: { ...DEFAULT_KINDS, ...(n.kinds || {}) }, amounts: n.amounts !== false };
+  return { on, kinds: { ...DEFAULT_KINDS, ...(n.kinds || {}) }, amounts: n.amounts === true };
 }
 
 const amountOf = (tx, label) => {

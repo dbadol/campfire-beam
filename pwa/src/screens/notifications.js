@@ -9,7 +9,8 @@
  *     computers also while it runs in the background, and reminders the browser may show later.
  *     No server watches the wallet: none can read a BEAM wallet, and the app works without ours.
  *   - "Too many?" -> one switch per kind.
- *   - "Someone can read my lock screen" -> Show amounts off: "Payment received" without the amount.
+ *   - "Someone can read my lock screen" -> no amounts there unless "Show amounts" is turned on
+ *     ("Payment received"); inside the open app amounts are always shown.
  *   - "Is it working?" -> Send a test notification.
  */
 import { h, put } from '../lib/dom.js';
@@ -31,7 +32,7 @@ export const NOTIFY_TEXT = Object.freeze({
   on: 'Notifications are on',
   off: 'Notifications are off. The banner inside the app stays.',
   amounts: 'Show amounts',
-  amountsSub: 'Off: "Payment received", without the amount, on your lock screen',
+  amountsSub: 'Off: "Payment received" on your lock screen. On: "Received 0.5 BEAM", for anyone who sees it',
   test: 'Send a test notification',
 });
 
