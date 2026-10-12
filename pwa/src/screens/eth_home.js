@@ -13,6 +13,8 @@
  *     shows a swap still on its way.
  *   - "Where's my BEAM?" -> the switcher at the top is one tap back.
  *   - "Why no history?" -> when History from Stack Wallet is off, a line says so and where to turn it on.
+ *   - "Why won't it let me send?" -> while a payment, swap or permission is "Not sure yet" or "Not sent
+ *     yet", one line above Send says sending is paused, and opens that transaction (lib/eth/doubt.js).
  */
 import { h, put, shorten } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
@@ -23,7 +25,7 @@ import { formatUnits } from '../lib/eth/units.js';
 import { chainSwitch, bridgeEntry } from './eth_screens.js';
 import { payWithCoinEntry } from './near_intents_entry.js';
 import { intentsFor, openSwaps } from '../lib/intents/wiring.js';
-import { ethBadge, compactAmountText, exactText, serverProblem, activityRow } from './eth_ui.js';
+import { ethBadge, compactAmountText, exactText, serverProblem, activityRow, doubtLine } from './eth_ui.js';
 import { rememberNearSwaps } from '../lib/notify.js';
 
 const REFRESH_MS = 30000;
@@ -73,7 +75,9 @@ export default function ethHome(app, params = {}) {
     sendBtn.prepend(icon('send'));
     const recvBtn = (hasEth ? secondary : primary)(h('span', {}, hasEth ? 'Receive' : 'Receive ETH'), () => app.go('ethReceive'), { 'data-testid': 'eth-receive' });
     recvBtn.prepend(icon('receive'));
-    put(actionsBox, h('div', { class: 'btn-row three' }, ...(hasEth ? [buyBtn, sendBtn, recvBtn] : [recvBtn, sendBtn, buyBtn])));
+    // A transaction in doubt holds back the next one (lib/eth/doubt.js): said above Send, not after a tap.
+    const doubt = w ? w.doubt() : null;
+    put(actionsBox, doubt ? doubtLine(app, doubt) : null, h('div', { class: 'btn-row three' }, ...(hasEth ? [buyBtn, sendBtn, recvBtn] : [recvBtn, sendBtn, buyBtn])));
 
     put(
       tokensBox,

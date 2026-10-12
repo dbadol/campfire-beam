@@ -21,6 +21,7 @@ import { store } from '../lib/store.js';
 import { walletStore } from '../lib/wallet_scope.js';
 import { ethWallet, ethPrefs, forgetEthWallet } from '../lib/eth/wallet.js';
 import { withEthKey } from '../lib/eth/vault.js';
+import { assertNothingInDoubt } from '../lib/eth/doubt.js';
 import { EthPipe } from '../lib/bridge/eth_pipe.js';
 import { BeamPipe } from '../lib/bridge/beam_pipe.js';
 import { PriceFeed } from '../lib/bridge/prices.js';
@@ -111,7 +112,8 @@ export async function bridgeOf(app) {
   // Another Ethereum server was picked (or another wallet): start again on it.
   if (session) endSession();
   const promise = (async () => {
-    const eth = new EthPipe({ rpc: w.rpc, owner: w.state.address, withKey: (fn) => withEthKey(app, fn) });
+    // The bridge signs from the Ethereum wallet's own account: nothing while one of its transactions is in doubt (lib/eth/doubt.js).
+    const eth = new EthPipe({ rpc: w.rpc, owner: w.state.address, withKey: (fn) => withEthKey(app, fn), maySign: () => assertNothingInDoubt(app, { ethId: w.ethId, kv: w.kv }) });
     const prices = new PriceFeed({ allowed: () => pricesChoice(app) === true });
     const ctl = new BridgeController({
       beam: beamSide({ pipe: new BeamPipe(), wallet }),

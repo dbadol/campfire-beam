@@ -313,16 +313,19 @@ function freezeChecks(route) {
  *   rpc      an EthRpc (lib/eth/rpc.js) on the server the person chose
  *   owner    the wallet's address
  *   withKey  fn => withEthKey(app, fn): runs fn({sk, address}) with the key open
+ *   maySign  async () => throws to refuse any signature: the app's Ethereum wallet while one of
+ *            its transactions is in doubt (lib/eth/doubt.js); the bridge signs from that account
  *   clock    () => ms
  */
 export class EthPipe {
   #freezes = new Map();
   #signed = new WeakSet();
 
-  constructor({ rpc, owner, withKey = null, clock = () => Date.now() }) {
+  constructor({ rpc, owner, withKey = null, maySign = null, clock = () => Date.now() }) {
     this.rpc = rpc;
     this.owner = normAddress(owner);
     this.withKey = withKey;
+    this.maySign = maySign;
     this.clock = clock;
   }
 
@@ -492,13 +495,15 @@ export class EthPipe {
    * without broadcasting it (the caller stores the hash and the raw bytes
    * first). Only a bridge transaction is signed (checkBridgeTx), only on
    * mainnet, only after a fresh freeze check that answered "not frozen", and
-   * each request at most once (alreadySent), even when this throws.
+   * each request at most once (alreadySent), even when this throws. Nothing is
+   * asked or signed while maySign() refuses (another transaction in doubt).
    */
   async sign(tx) {
     const route = checkBridgeTx(tx);
     if (this.#signed.has(tx)) throw new BridgeError('alreadySent', 'This transaction was already signed once; plan it again.');
     this.#signed.add(tx);
     if (typeof this.withKey !== 'function') throw new BridgeError('badArgs', 'No Ethereum key to sign with.');
+    if (typeof this.maySign === 'function') await this.maySign();
     await this.assertNotFrozen(route);
     await EthPipe.read('the network', () => this.rpc.assertMainnet());
     const nonce = await EthPipe.read('your next transaction number', () => this.rpc.getTransactionCount(this.owner, 'pending'));

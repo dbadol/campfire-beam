@@ -21,6 +21,7 @@ import { loadOutbox, clearOutbox, isOpen } from './outbox.js';
 import { fetchHistory, mergeActivity } from './history.js';
 import { forgetDataKeys } from './sealed.js';
 import { followOnce } from './send.js';
+import { entryInDoubt } from './doubt.js';
 import { store } from '../store.js';
 
 /** The person's Ethereum settings, with the defaults: Stack Wallet's server, history on. */
@@ -157,6 +158,17 @@ class EthWallet {
     }
     if (changed) await this.reloadOutbox();
     return changed;
+  }
+
+  /** The newest transaction this device sent whose fate is in doubt (lib/eth/doubt.js), as last loaded; or null. */
+  doubt() {
+    return entryInDoubt(this.state.outbox);
+  }
+
+  /** doubt(), from the outbox as stored now: what decides before anything is signed. */
+  async freshDoubt() {
+    await this.reloadOutbox();
+    return this.doubt();
   }
 
   activity() {

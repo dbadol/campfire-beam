@@ -8,6 +8,7 @@ import { ETH } from '../lib/eth/tokens.js';
 import { compactUnits, percentText } from '../lib/compact.js';
 import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC } from '../lib/eth/hosts.js';
 import { ethPrefs } from '../lib/eth/wallet.js';
+import { doubtOf, doubtNameParts, doubtNoun, DOUBT_TITLE, DOUBT_WHY, DOUBT_WAY_OUT } from '../lib/eth/doubt.js';
 
 // Fixed colours, never taken from a token contract.
 const TOKEN_COLORS = { USDT: '#26a17b', USDC: '#2775ca', WBTC: '#f09242', DAI: '#f5ac37' };
@@ -112,6 +113,73 @@ export function highFeeBlock({ share, fee, verb = 'send', ack, onAck, testid = '
   box.addEventListener('change', () => onAck(box.checked));
   const Verb = verb.charAt(0).toUpperCase() + verb.slice(1);
   return [n, h('label', { class: 'check-row' }, box, h('span', { text: `${Verb} anyway, paying about ${fee} in fees` }))];
+}
+
+/** Where a transaction of the outbox is followed: a swap's or permission's own screen, or a payment's. */
+export function openEntry(app, entry) {
+  app.go(entry.kind ? 'ethSwapTx' : 'ethTx', { hash: entry.hash });
+}
+
+/**
+ * Why nothing new can be sent while `entry` is in doubt (lib/eth/doubt.js), with the ways out: see
+ * it, or pick another server in Settings. inSheet: words only (a sheet stays where it is; its
+ * screen behind shows the buttons once it closes).
+ */
+export function doubtNotice(app, entry, { inSheet = false, testid = 'eth-doubt' } = {}) {
+  const { lead, address } = doubtNameParts(entry);
+  const n = notice(
+    'warn',
+    h(
+      'strong',
+      {},
+      `${lead.charAt(0).toUpperCase()}${lead.slice(1)} `,
+      address ? h('span', { class: 'addr-inline', text: address }) : null,
+      `${address ? ' ' : ''}is "${DOUBT_TITLE[doubtOf(entry)]}". `,
+    ),
+    `${DOUBT_WHY} ${DOUBT_WAY_OUT}`,
+    inSheet
+      ? null
+      : h(
+          'div',
+          { class: 'btn-row prompt-actions' },
+          h('button', { class: 'btn btn-secondary btn-small', onclick: () => openEntry(app, entry), 'data-testid': `${testid}-see` }, `See the ${doubtNoun(entry)}`),
+          h('button', { class: 'btn btn-text btn-small', onclick: () => app.go('ethSettings'), 'data-testid': `${testid}-settings` }, 'Settings'),
+        ),
+  );
+  n.dataset.testid = testid;
+  n.dataset.hash = entry.hash;
+  return n;
+}
+
+/** Ethereum Home's one line above Send while a transaction is in doubt; tapping it opens that transaction. */
+export function doubtLine(app, entry) {
+  const n = notice('warn', h('span', { text: `Sending is paused: a ${doubtNoun(entry)} is "${DOUBT_TITLE[doubtOf(entry)]}". ` }), h('button', { class: 'btn btn-text btn-small inline', onclick: () => openEntry(app, entry), 'data-testid': 'eth-doubt-line-see' }, 'See it'));
+  n.dataset.testid = 'eth-doubt-line';
+  n.dataset.hash = entry.hash;
+  return n;
+}
+
+/**
+ * While the screen is open, visible and a transaction is in doubt: follow it every few seconds
+ * (the same one look Ethereum Home takes), and call onChange when the doubt may have changed.
+ * Returns stop().
+ */
+export function followDoubt(app, getWallet, onChange, { every = 4000 } = {}) {
+  let busy = false;
+  const t = setInterval(async () => {
+    const w = getWallet();
+    if (busy || !w || !app.dbPass || document.visibilityState !== 'visible' || !w.doubt()) return;
+    busy = true;
+    try {
+      await w.followOpen();
+    } catch {
+      /* the next look tries again */
+    } finally {
+      busy = false;
+    }
+    onChange();
+  }, every);
+  return () => clearInterval(t);
 }
 
 const STATE_TEXT = {

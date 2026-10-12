@@ -27,6 +27,9 @@
 //            (entry.unsureSince): kept open, the same bytes offered again, and
 //            the screens say not to send it again yet. (The desktop app's
 //            findReplacedPendingEthereumTransactions decides on the nonce alone.)
+//   gate     while any transaction of this wallet is in doubt (unsure, or refused and still
+//            watched), nothing new is signed: it would take the next nonce, and both could be
+//            mined (lib/eth/doubt.js; release audit BM-1).
 
 import { isAddress, toChecksumAddress } from './crypto.js';
 import { encodeCall, abiDecode } from './abi.js';
@@ -34,6 +37,7 @@ import { signTransaction, verifyRpcTransaction, MAINNET_CHAIN_ID } from './tx.js
 import { walletFees, gasWithHeadroom, EthRpcError } from './rpc.js';
 import { withEthKey } from './vault.js';
 import { addToOutbox, updateOutbox } from './outbox.js';
+import { assertNothingInDoubt } from './doubt.js';
 import { ETH, TOKENS, tokenByAddress } from './tokens.js';
 import { formatUnits } from './units.js';
 import { ROUTES } from '../bridge/routes.js';
@@ -196,9 +200,11 @@ export const REFUSAL_WATCH_MS = 30 * 60 * 1000;
  * broadcasts it. Returns {entry, sent, error}: sent false with error when the
  * broadcast did not go through. The entry stays open ('signed') either way:
  * a refusal sets entry.refusedAt, and only following it decides it was never
- * sent ('rejected').
+ * sent ('rejected'). Refused (doubt.js EthInDoubtError), before the key is
+ * opened, while another transaction of this wallet is in doubt.
  */
 export async function signAndSend(app, rpc, prepared, { ethId, kv, now = () => Date.now() } = {}) {
+  await assertNothingInDoubt(app, { ethId, kv });
   const signed = await withEthKey(
     app,
     async ({ sk, address }) => {

@@ -49,7 +49,7 @@ const SECP_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd036414
 const KEY_WARNING = 'This wallet has no recovery words. The private key is the only way back to it: keep it somewhere safe and never share it.';
 
 let srv, browser, ctx, page, rec;
-let mode = 'fork'; // 'fork' | 'down'
+let mode = 'fork'; // 'fork' | 'down' | 'refuse' (eth_sendRawTransaction refused, the rest from the fork)
 const rpcMethods = [];
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
 
@@ -67,11 +67,16 @@ async function stackRoute(route) {
   }
   if (req.method() !== 'POST') return route.fulfill({ status: 404, headers: cors, body: '' });
   const body = req.postData();
+  let j = null;
   try {
-    const j = JSON.parse(body);
+    j = JSON.parse(body);
     for (const m of [].concat(j)) rpcMethods.push(m.method);
   } catch {
     /* not JSON: anvil says so */
+  }
+  // A server that refuses the bytes (it may still have passed them on): "Not sent yet".
+  if (mode === 'refuse' && j && !Array.isArray(j) && j.method === 'eth_sendRawTransaction') {
+    return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: j.id, error: { code: -32000, message: 'transaction underpriced' } }) });
   }
   const r = await fetch(ANVIL, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
   return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: await r.text() });
@@ -476,6 +481,130 @@ test('on the fork: 0.01 ETH and 12.5 WBEAM sent through the screens; receipts an
     await page.click(tid('eth-retry'));
     await page.waitForSelector(`${tid('eth-status')}[data-state="ok"]`, { timeout: 60000 });
     assert.equal(await page.isVisible(tid('eth-server-problem')), false);
+  }));
+
+test('BM-1: a payment the server refused holds back the next one: Home, Send, Buy WBEAM and Move to BEAM say so; settled, they open up', { skip: skip || false, timeout: 6 * 60000 }, () =>
+  withFork(async () => {
+    const to = toChecksumAddress(freshAddress());
+    await setBalance(ACCOUNT0, 5n * ETHER);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-balance')}[data-wei="${5n * ETHER}"]`, { timeout: 30000 });
+    assert.equal(await page.isVisible(tid('eth-doubt-line')), false, 'nothing in doubt: no line');
+
+    // The server refuses the payment's bytes: "Not sent yet" (it may have passed them on first).
+    mode = 'refuse';
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(tid('eth-send-fee'));
+    await page.waitForFunction(() => !/Checking/.test(document.querySelector('[data-testid="eth-send-fee"]').textContent), null, { timeout: 30000 });
+    await page.fill(tid('eth-send-to'), to);
+    await page.fill(tid('eth-send-amount'), '0.001');
+    await page.waitForFunction(() => document.querySelector('[data-testid="eth-send-review"]').textContent === 'Send 0.001 ETH');
+    await page.click(tid('eth-send-review'));
+    await page.click(tid('eth-review-send'));
+    await page.fill(tid('auth-pw'), PASSWORD);
+    await page.click(tid('auth-submit'));
+    await waitScreen(page, 'ethTx');
+    await page.waitForSelector(`${tid('eth-tx-title')}[data-refused="true"]`, { timeout: 30000 });
+    assert.equal(await page.textContent(tid('eth-tx-title')), 'Not sent yet');
+    const hash = await page.getAttribute(tid('eth-tx-hash'), 'data-hash');
+
+    // Home: one line above Send, opening that payment.
+    await page.click(tid('eth-tx-done'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-doubt-line')}[data-hash="${hash}"]`);
+    assert.equal(await page.textContent(tid('eth-doubt-line')), 'Sending is paused: a payment is "Not sent yet". See it');
+    await shots4('25-home-doubt');
+
+    // Send: named at the top with the way out; the button stays grey whatever is typed.
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${hash}"]`);
+    const words = await page.textContent(tid('eth-doubt'));
+    assert.match(words, /^Your payment of 0\.001 ETH to 0x[0-9a-fA-F]{4}…[0-9a-fA-F]{4} is "Not sent yet"\. It may still go through, so nothing new is sent from this Ethereum wallet until it is settled, or both could go through\./);
+    assert.match(words, /Wait until BEAM Campfire knows what happened to it, or choose another Ethereum server in Settings: it is checked there\./);
+    await page.fill(tid('eth-send-to'), to);
+    await page.fill(tid('eth-send-amount'), '0.002');
+    await sleep(400);
+    assert.equal(await page.isDisabled(tid('eth-send-review')), true, 'no second payment while the first is in doubt');
+    assert.equal(await page.textContent(tid('eth-send-review')), 'Sending is paused (see above)');
+    await shots4('26-send-doubt');
+    await page.click(tid('eth-doubt-settings'));
+    await waitScreen(page, 'ethSettings');
+
+    // Buy WBEAM: the same, above the button.
+    await page.evaluate(() => window.__campfire.go('ethSwap'));
+    await waitScreen(page, 'ethSwap');
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${hash}"]`, { timeout: 30000 });
+    await page.fill(tid('uni-pay-amount'), '0.001');
+    await page.waitForFunction(() => /Paused until your last Ethereum transaction is settled/.test(document.querySelector('[data-testid="uni-reason"]').textContent), null, { timeout: 30000 });
+    assert.equal(await page.isDisabled(tid('uni-swap-cta')), true);
+    await shots4('27-swap-doubt');
+
+    // Move to BEAM signs from the same account: the same.
+    await page.evaluate(() => window.__campfire.go('bridgeMove', { dir: 'toBeam', back: 'ethHome' }));
+    await waitScreen(page, 'bridgeMove');
+    await page.waitForSelector(`${tid('bridge-eth-doubt')}[data-hash="${hash}"]`, { timeout: 60000 });
+    await shots4('28-bridge-doubt');
+
+    // The server takes the bytes again: the same payment (never a second) is offered by itself,
+    // mined, and the move opens up without a tap.
+    const sends = rpcMethods.filter((m) => m === 'eth_sendRawTransaction').length;
+    mode = 'fork';
+    await page.waitForSelector(tid('bridge-eth-doubt'), { state: 'detached', timeout: 60000 });
+    assert.equal((await mined(hash)).status, '0x1', 'the very payment that was in doubt');
+    assert.equal(BigInt(await raw('eth_getBalance', [to, 'latest'])), 10n ** 15n, 'paid once');
+    assert.ok(rpcMethods.filter((m) => m === 'eth_sendRawTransaction').length > sends);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-activity-row')}[data-hash="${hash}"][data-state="confirmed"]`, { timeout: 30000 });
+    assert.equal(await page.isVisible(tid('eth-doubt-line')), false);
+  }));
+
+test('BM-1: a payment that falls in doubt while the review is open is not signed, and the sheet says why', { skip: skip || false, timeout: 4 * 60000 }, () =>
+  withFork(async () => {
+    await setBalance(ACCOUNT0, 5n * ETHER);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(tid('eth-send-fee'));
+    await page.waitForFunction(() => !/Checking/.test(document.querySelector('[data-testid="eth-send-fee"]').textContent), null, { timeout: 30000 });
+    await page.fill(tid('eth-send-to'), toChecksumAddress(freshAddress()));
+    await page.fill(tid('eth-send-amount'), '0.001');
+    await page.waitForFunction(() => document.querySelector('[data-testid="eth-send-review"]').textContent === 'Send 0.001 ETH');
+    await page.click(tid('eth-send-review'));
+    await page.waitForSelector(tid('eth-review-send'));
+    // Meanwhile a payment of this wallet is refused by its server (written as lib/eth/send.js does).
+    const doubtful = `0x${'a7'.repeat(32)}`;
+    const write = (patch) =>
+      page.evaluate(
+        async ({ hash, from, to, patch }) => {
+          const { app } = await import('./app.js');
+          const { ethWallet } = await import('./lib/eth/wallet.js');
+          const { addToOutbox, updateOutbox } = await import('./lib/eth/outbox.js');
+          const w = await ethWallet(app);
+          if (patch) await updateOutbox(app, hash, patch, { ethId: w.ethId });
+          else await addToOutbox(app, { hash, raw: `0x02${'a7'.repeat(40)}`, nonce: '901', from, to, asset: 'ETH', token: null, amount: '2000000000000000', gasLimit: '21000', maxFeePerGas: '30000000000', maxPriorityFeePerGas: '1000000000', createdAt: Date.now(), sentAt: null, state: 'signed', receipt: null, error: 'transaction underpriced', refusedAt: Date.now() }, { ethId: w.ethId });
+          await w.reloadOutbox();
+        },
+        { hash: doubtful, from: ACCOUNT0, to: toChecksumAddress(freshAddress()), patch },
+      );
+    await write(null);
+    const counts = rpcMethods.filter((m) => m === 'eth_getTransactionCount').length;
+    await page.click(tid('eth-review-send'));
+    await page.waitForSelector(`${tid('eth-review-doubt')}[data-hash="${doubtful}"]`);
+    assert.equal(await page.isVisible(tid('auth-pw')), false, 'not even the password is asked');
+    assert.match(await page.textContent(tid('eth-review-doubt')), /is "Not sent yet"\. It may still go through/);
+    assert.equal(rpcMethods.filter((m) => m === 'eth_getTransactionCount').length, counts, 'no nonce asked');
+    await shots4('32-review-doubt');
+    // Settled (never sent): nothing holds the next payment back.
+    await write({ state: 'rejected' });
+    await page.click(tid('eth-review-change'));
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    assert.equal(await page.isVisible(tid('eth-doubt-line')), false);
   }));
 
 test('lock forgets the Ethereum wallet; unlocking opens it again', { skip: skip || false, timeout: 2 * 60000 }, async () => {

@@ -5,13 +5,15 @@
 // (lib/eth/send.js): signed inside withEthKey (chain id 1 checked again, the
 // nonce from 'pending', the key zeroed), saved to the sealed outbox BEFORE it
 // is broadcast, then broadcast. The Permit2 signature is made the same way,
-// only after the person confirmed the review.
+// only after the person confirmed the review. Nothing is signed while another
+// transaction of this wallet is in doubt (lib/eth/doubt.js).
 
 import { withEthKey } from './vault.js';
 import { signTransaction, signPermitSingle, MAINNET_CHAIN_ID } from './tx.js';
 import { toChecksumAddress } from './crypto.js';
 import { addToOutbox } from './outbox.js';
 import { broadcast } from './send.js';
+import { assertNothingInDoubt } from './doubt.js';
 import { ETH, TOKENS } from './tokens.js';
 import { UniswapService } from './uniswap/service.js';
 import { loadKnownPools, UniswapDiscovery } from './uniswap/discovery.js';
@@ -88,9 +90,12 @@ export function permitSigner(app, w) {
  * Signs an unsigned transaction from the service, saves it to the outbox, and
  * broadcasts it. meta: {kind: 'swap' | 'approve' | 'approveReset', asset
  * (tokens.js entry of what leaves), amount (bigint), extra (fields kept with
- * the entry)}. Returns broadcast()'s {entry, sent, error}.
+ * the entry)}. Returns broadcast()'s {entry, sent, error}. Refused (doubt.js
+ * EthInDoubtError), before the key is opened, while another transaction of this
+ * wallet is in doubt.
  */
 export async function signAndBroadcast(app, w, tx, meta) {
+  await assertNothingInDoubt(app, { ethId: w.ethId, kv: w.kv });
   const rpc = w.rpc;
   const signed = await withEthKey(
     app,

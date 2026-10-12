@@ -699,3 +699,30 @@ test("isPaid reads the pipe's map at the route's slot; a value a bool never has 
   chain.down = true;
   await assert.rejects(s.isPaid(beam, 639), code('network'));
 });
+
+test('sign (BM-1): while the wallet has a transaction in doubt, nothing is asked and the key is never opened', async () => {
+  const { sk, address } = await ethKeyFromMnemonic(JUNK);
+  const owner = address.toLowerCase();
+  const chain = lockChain({ owner });
+  let keyUses = 0;
+  const withKey = async (fn) => {
+    keyUses++;
+    return fn({ sk: Uint8Array.from(sk), address });
+  };
+  const doubt = Object.assign(new Error('Your payment of 0.01 ETH to 0x7099…79C8 is "Not sure yet".'), { code: 'in_doubt' });
+  let inDoubt = true;
+  const s = new EthPipe({ rpc: chain.rpc(), owner, withKey, maySign: async () => {
+    if (inDoubt) throw doubt;
+  } });
+  const plan = await s.planLock(eth, { value: 10n ** 16n, fee: 10n ** 12n, receiverKey: refKey });
+  const asked = chain.requests.length;
+  await assert.rejects(s.sign(plan.steps[0]), (e) => e === doubt);
+  assert.equal(chain.requests.length, asked, 'no freeze check, no chain id, no nonce');
+  assert.equal(keyUses, 0);
+  // Settled: a new plan is signed as before.
+  inDoubt = false;
+  const plan2 = await s.planLock(eth, { value: 10n ** 16n, fee: 10n ** 12n, receiverKey: refKey });
+  const signed = await s.sign(plan2.steps[0]);
+  assert.equal(parseSignedTransaction(signed.raw).from.toLowerCase(), owner);
+  assert.equal(keyUses, 1);
+});
