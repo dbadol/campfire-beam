@@ -11,6 +11,8 @@
  *     off unless turned on, with the reason (they see your IP address).
  *   - "Can it take my money?" -> it can only ask. Every payment or contract call shows this
  *     dApp's name, what leaves and what arrives, and needs Face ID or the password.
+ *   - "What can it see?" -> the open and install sheets say it can see your balance: BEAM gives
+ *     every dApp wallet_status without asking (the desktop wallet does the same).
  *   - "Is this file safe?" -> the install sheet says plainly that BEAM Campfire did not
  *     check it, warns when its name copies one of BEAM's dApps, and it reaches no server
  *     until the person allows that server, by name, when the dApp first tries it.
@@ -254,7 +256,7 @@ export default function dapps(app, params = {}) {
           { 'data-testid': 'dapp-install-unchecked' },
           notice(
             copies ? 'info' : 'warn',
-            "BEAM Campfire did not check this dApp: it is not one of BEAM's own dApps. Install it only if you trust where it came from. Payments, contract calls and signatures it asks for still come to BEAM Campfire for your approval, but it can read some wallet details without asking, and what you approve can't be undone.",
+            "BEAM Campfire did not check this dApp: it is not one of BEAM's own dApps. Install it only if you trust where it came from. Payments, contract calls and signatures it asks for still come to BEAM Campfire for your approval, but it can see your balance without asking, and what you approve can't be undone.",
           ),
         ),
         h(
@@ -352,7 +354,7 @@ export default function dapps(app, params = {}) {
         needsDownload
           ? h('p', { class: 'lead', 'data-testid': 'dapp-size-note', text: `Downloads ${sizeText(e.size)} from BEAM's GitHub (raw.githubusercontent.com), once. GitHub sees your IP address. BEAM Campfire checks the file against the fingerprint built into this app before anything runs.` })
           : null,
-        h('p', { class: 'small', text: 'It runs walled off from your wallet: it can ask, and nothing leaves without your OK.' }),
+        h('p', { class: 'small', 'data-testid': 'dapp-open-sees', text: 'It runs walled off from your wallet. It can see your balance, but nothing leaves without your OK.' }),
         e.remoteOrigins.length
           ? h('label', { class: 'check-row' }, allow, h('span', {}, h('strong', { text: 'Also allow price lookups. ' }), `It fetches prices from ${remoteHosts(e)}, which see your IP address. Off: the dApp still works, without prices.`))
           : null,

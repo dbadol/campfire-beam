@@ -23,3 +23,13 @@ function sheet(file, name) {
 test("the allow-a-server sheet says the server's name can lead to a device on the person's own network", () => {
   assert.match(sheet('dapps.js', 'askNext'), /device on your own network, such as your router/);
 });
+
+// wallet_status is open to every dApp without asking (BEAM's own rule, as on the desktop): the
+// wallet's total BEAM and token balances. Each way a dApp first reaches the wallet says so.
+test('opening, installing from a file and installing from the store each say the dApp can see the balance', () => {
+  const balance = /can see your balance/;
+  assert.match(sheet('dapps.js', 'prepareSheet'), balance, "BEAM's own dApps: the open sheet");
+  assert.match(sheet('dapps.js', 'confirmInstall'), balance, 'a dApp from a file: the install sheet');
+  const note = source('dapp_store.js').split('\n').find((l) => l.includes("'data-testid': 'store-item-note'"));
+  assert.match(note, balance, "a dApp from BEAM's DApp Store: the note under Install");
+});
