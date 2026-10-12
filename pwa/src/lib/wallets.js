@@ -8,9 +8,10 @@
 //   any other wallet    record 'w:<id>:wallet', database /beam_wallet/<id>/wallet.db (its own
 //                       folder in the same IDBFS mount), data 'w:<id>:<name>', preferences
 //                       'w:<id>:prefs'.
-//   every wallet        'w:<id>:balance' (the last BEAM balance seen while it was open and in step
-//                       with the network, shown in the switcher), and whatever newer code keeps
-//                       under walletKey() (lib/wallet_scope.js).
+//   every wallet        whatever newer code keeps under walletKey() (lib/wallet_scope.js).
+// No balance is kept for a locked wallet: the switcher says it is locked. Earlier versions kept
+// 'w:<id>:balance' in the clear for it (anyone with a copy of this browser's data read what each
+// wallet holds; audit A-4); forgetStoredBalances() removes those at start.
 // A device that had one wallet keeps it exactly where it was: it is the first slot, named
 // "Wallet 1" until renamed; nothing is moved or rewritten. A new wallet takes the first slot when
 // it is free, otherwise a folder of its own.
@@ -153,38 +154,16 @@ export async function savePrefs(record, patch, kv = rawStore) {
   return loadPrefs(record, kv);
 }
 
-// ---------------------------------------------------------------- last known balance
-/** {available (groth, string), at (ms)} per wallet id, for the switcher. Nothing is asked of a locked wallet. */
-export async function lastBalances(list, kv = rawStore) {
-  const out = new Map();
-  for (const r of list) {
-    const b = await kv.get(balanceKey(r.id));
-    if (b && typeof b.available === 'string' && /^\d+$/.test(b.available) && Number.isFinite(b.at)) out.set(r.id, { available: BigInt(b.available), at: b.at });
-  }
-  return out;
-}
-
-const watching = new WeakSet();
-
+// ---------------------------------------------------------------- no stored balance
 /**
- * Keeps each wallet's BEAM balance as last seen while it was open and in step with the network
- * (Synced), so the switcher can show it while the wallet is locked. Written when it changes.
+ * Removes the balances earlier versions kept for the switcher ('w:<id>:balance', in the clear: it
+ * told anyone with a copy of this browser's data what each wallet holds). Run at start; returns
+ * how many went.
  */
-export function watchBalances(app, kv = rawStore) {
-  if (watching.has(app)) return;
-  watching.add(app);
-  const seen = new Map();
-  app.wallet.onChange((s) => {
-    const r = app.record;
-    const run = app.wallet.run;
-    if (!r || !app.dbPass || !run || run.dbPath !== dbPathOf(r) || !s.status || s.importing || !s.sync || s.sync.state !== 'synced') return;
-    const t = s.totals.get(0);
-    if (!t) return;
-    const v = String(t.available);
-    if (seen.get(r.id) === v) return;
-    seen.set(r.id, v);
-    kv.set(balanceKey(r.id), { available: v, at: Date.now() }).catch(() => seen.delete(r.id));
-  });
+export async function forgetStoredBalances(kv = rawStore) {
+  const stale = (await kv.keys(WALLET_PREFIX)).filter((k) => /^w:[0-9a-f]{16}:balance$/.test(k));
+  if (stale.length) await kv.batch(stale.map((k) => ['del', k]));
+  return stale.length;
 }
 
 // ---------------------------------------------------------------- open, switch, remove

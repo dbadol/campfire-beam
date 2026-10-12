@@ -138,6 +138,49 @@ export async function openWithPassword(env, password) {
   return open(env, await passwordKek(password, unb64(env.salt), env.iterations));
 }
 
+// ---------------------------------------------------------------- records sealed under dbPass
+// Small per-wallet records (the notification snapshot, lib/notify.js) are sealed under the wallet's
+// database password, the same way as the Ethereum key and the address book: HKDF-SHA256 when it is
+// the random 64-hex secret of a created or restored wallet; PBKDF2-SHA256 (>= 600,000 rounds) when
+// it is the chosen password of a wallet imported from a wallet.db, so a stored record is never a
+// faster check of that password than the password envelope (audit B1).
+export const KDF_HKDF = 'hkdf-sha256';
+export const KDF_PBKDF2 = 'pbkdf2-sha256';
+
+/** Which KDF a wallet's records use: record.imported -> PBKDF2, else HKDF. */
+export const dbPassKdf = (imported) => (imported ? KDF_PBKDF2 : KDF_HKDF);
+
+/**
+ * The AES-256-GCM key for a record header {kdf, salt (base64), iterations?} under dbPass, with
+ * `info` naming the purpose. Refuses HKDF over anything but a random secret, and PBKDF2 rounds
+ * outside [PBKDF2_MIN_ITERATIONS, PBKDF2_MAX_ITERATIONS].
+ */
+export async function dbPassKey(h, dbPass, info) {
+  if (typeof dbPass !== 'string' || !dbPass) throw new EnvelopeError('malformed', 'Unlock the wallet first.');
+  if (typeof info !== 'string' || !info) throw new EnvelopeError('malformed', 'A sealing key needs its own purpose.');
+  const salt = unb64(h.salt);
+  if (h.kdf === KDF_HKDF) {
+    if (!/^[0-9a-f]{64}$/.test(dbPass)) throw new EnvelopeError('malformed', "This wallet's database password is not a random one; it cannot use HKDF.");
+    const ikm = new Uint8Array(dbPass.match(/../g).map((x) => parseInt(x, 16)));
+    try {
+      const base = await subtle().importKey('raw', ikm, 'HKDF', false, ['deriveKey']);
+      return await subtle().deriveKey({ name: 'HKDF', hash: 'SHA-256', salt, info: enc.encode(info) }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    } finally {
+      ikm.fill(0);
+    }
+  }
+  if (h.kdf !== KDF_PBKDF2) throw new EnvelopeError('malformed', 'Unknown key derivation.');
+  if (!Number.isSafeInteger(h.iterations) || h.iterations < PBKDF2_MIN_ITERATIONS) throw new EnvelopeError('weak', 'Too few PBKDF2 rounds; refusing.');
+  if (h.iterations > PBKDF2_MAX_ITERATIONS) throw new EnvelopeError('malformed', 'Implausible PBKDF2 round count.');
+  const pw = enc.encode(dbPass.normalize('NFC'));
+  try {
+    const base = await subtle().importKey('raw', pw, 'PBKDF2', false, ['deriveKey']);
+    return await subtle().deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: h.iterations }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  } finally {
+    pw.fill(0);
+  }
+}
+
 /** prfOutput: the 32-byte WebAuthn PRF result for this credential and prfSalt. */
 export async function sealWithPrf(secret, prfOutput, walletId, credId, prfSalt) {
   if (typeof credId !== 'string' || !credId) throw new EnvelopeError('malformed', 'Missing credential id');

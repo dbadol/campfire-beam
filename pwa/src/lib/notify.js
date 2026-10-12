@@ -6,8 +6,10 @@
 //     front).
 //   - When the person leaves the app: a payment still under way is said at once (a regular BEAM
 //     payment finishes only while both wallets are online); reminders for later are stored on the
-//     device ('w:<id>:notify-reminders' in the app's own store), with the payment list's statuses
-//     ('w:<id>:notify-snapshot') for the summary on return. Both go when the wallet is deleted.
+//     device ('w:<id>:notify-reminders' in the app's own store, in the clear for the service worker,
+//     so they name nothing: "A payment is still waiting"), with the payment list's statuses
+//     ('w:<id>:notify-snapshot', sealed under the wallet's secret: which payments are this wallet's
+//     is its private history) for the summary on return. Both go when the wallet is deleted.
 //   - Later, with the app closed: the service worker (sw.js) shows the reminders that are due when
 //     the browser wakes it (Periodic Background Sync: Chrome / Edge, an installed app). While the
 //     page itself still runs in the background, it shows them on time. iPhone runs no web app in
@@ -25,7 +27,8 @@ import { listWallets, nameOf } from './wallets.js';
 import { catchUp, notificationPermission } from './payment_notice.js';
 import { isSplitTx, readAllCoins, parseCoin, privateReady, PRIVATE_LIMIT_HOURS } from './coins.js';
 import { listOwn, expiresAtMs, cleanLabel } from './addresses.js';
-import { txWatcher, wordsFor, settingsOf, leavingEvents, remindersFor, dueReminders, awaySummary, snapshotOf, awayLine } from './notify_rules.js';
+import { txWatcher, wordsFor, settingsOf, leavingEvents, remindersFor, plainReminders, dueReminders, awaySummary, snapshotOf, awayLine, underway } from './notify_rules.js';
+import { randomBytes, b64, unb64, dbPassKey, dbPassKdf, KDF_PBKDF2, PBKDF2_MIN_ITERATIONS } from './envelope.js';
 
 export const SYNC_TAG = 'campfire-reminders';
 const ICON = 'icons/icon-192.png';
@@ -43,6 +46,7 @@ let names = null;
 let near = null;
 let timers = new Map(); // reminder id -> timeout, while the page runs in the background
 let toldLeaving = new Set(); // payments already said "under way" in this run
+let waitingTx = new Set(); // the payments the stored "still waiting" reminder is about (its id names none)
 let unseen = 0;
 let appRef = null;
 
@@ -221,7 +225,8 @@ async function leaveReminders(app) {
   if (!app.record) return [];
   const before = await readReminders(app);
   const now = Date.now();
-  const fresh = remindersFor({ txs: wallet.state.txs, privateCoins: await privateCoins(), names: names || [], nearSwaps: near || [], addresses: await expiringAddresses(), labels: settingsOf(app.prefs).amounts, wallet: app.record.id, walletName: await walletName(app), now });
+  waitingTx = new Set(underway(wallet.state.txs).map((t) => t.txId));
+  const fresh = remindersFor({ txs: wallet.state.txs, privateCoins: await privateCoins(), names: names || [], nearSwaps: near || [], addresses: await expiringAddresses(), now });
   const carried = before.filter((r) => r && r.at > now && ((names === null && r.id.startsWith('rem-name-')) || (near === null && r.id.startsWith('rem-near-'))));
   const mine = [...fresh, ...carried].filter((r) => allowed(app, r.kind));
   try {
@@ -254,16 +259,17 @@ function clearTimers() {
   timers = new Map();
 }
 
-/** A payment that ended: its "still waiting" reminder goes, here and on disk. */
+/** A payment that ended: once none of those the "still waiting" reminder was about is left, it goes, here and on disk. */
 async function dropPaymentReminder(app, txId) {
-  const id = `rem-arr-${txId}`;
-  if (timers.has(id)) {
-    clearTimeout(timers.get(id));
+  if (!waitingTx.delete(txId) || waitingTx.size) return;
+  for (const [id, t] of timers) {
+    if (!id.startsWith('rem-arr-')) continue;
+    clearTimeout(t);
     timers.delete(id);
   }
   try {
     const list = await readReminders(app);
-    if (list.some((r) => r && r.id === id)) await rawStore.set(remindersKey(app), list.filter((r) => r && r.id !== id));
+    if (list.some((r) => r && r.id.startsWith('rem-arr-'))) await rawStore.set(remindersKey(app), list.filter((r) => r && !r.id.startsWith('rem-arr-')));
   } catch {
     /* sw.js shows nothing for it once the page says so on return */
   }
@@ -323,9 +329,73 @@ export function dismissAway() {
   away = null;
 }
 
+// The snapshot, sealed: AES-256-GCM under a key made from the wallet's secret (app.dbPass) as every
+// other sealed record is (lib/envelope.js dbPassKey: HKDF for a random secret, PBKDF2 for an imported
+// wallet's password), its own info string, a random salt and IV; the header with the wallet id is
+// additional data, so a copy moved to another wallet or edited does not open. It is written and read
+// only while the wallet is open. The key is made once per unlock (PBKDF2 is slow on a phone).
+export const NOTIFY_INFO = 'beam-campfire-notify-v1';
+const SNAP_KIND = 'notify-snapshot';
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+const snapAad = (h) => enc.encode(JSON.stringify([h.v, h.kind, h.walletId, h.kdf, h.iterations || 0, h.salt]));
+// The keys made under one secret (header -> CryptoKey), this unlock only; another secret starts over.
+let snapKeys = { dbPass: null, keys: new Map() };
+
+function snapKey(dbPass, h) {
+  if (snapKeys.dbPass !== dbPass) snapKeys = { dbPass, keys: new Map() };
+  const { keys } = snapKeys;
+  const id = JSON.stringify([h.walletId, h.kdf, h.iterations || 0, h.salt]);
+  if (!keys.has(id)) {
+    const p = dbPassKey(h, dbPass, NOTIFY_INFO);
+    p.catch(() => keys.get(id) === p && keys.delete(id));
+    keys.set(id, p);
+  }
+  return keys.get(id);
+}
+
+/** Forgets the snapshot keys and the secret they were made under (the lock). */
+export function forgetSnapshotKeys() {
+  snapKeys = { dbPass: null, keys: new Map() };
+}
+
+/** {at, txs} sealed for wallet `walletId` (imported: its secret is a password) under `dbPass`. reuse: an earlier record's header. */
+export async function sealSnapshot(dbPass, { walletId, imported }, snap, reuse = null) {
+  const kdf = dbPassKdf(imported);
+  const h = reuse && reuse.walletId === walletId && reuse.kdf === kdf ? { v: 1, kind: SNAP_KIND, walletId, kdf, ...(kdf === KDF_PBKDF2 ? { iterations: reuse.iterations } : {}), salt: reuse.salt } : { v: 1, kind: SNAP_KIND, walletId, kdf, ...(kdf === KDF_PBKDF2 ? { iterations: PBKDF2_MIN_ITERATIONS } : {}), salt: b64(randomBytes(16)) };
+  const iv = randomBytes(12);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: snapAad(h) }, await snapKey(dbPass, h), enc.encode(JSON.stringify(snap)));
+  return { ...h, iv: b64(iv), ct: b64(new Uint8Array(ct)) };
+}
+
+/** The snapshot back, or null: none, locked, another wallet's, the wrong key derivation, edited. */
+export async function openSnapshot(dbPass, { walletId, imported }, env) {
+  if (!env || typeof env !== 'object' || env.v !== 1 || env.kind !== SNAP_KIND || env.walletId !== walletId || env.kdf !== dbPassKdf(imported)) return null;
+  if (typeof dbPass !== 'string' || !dbPass || typeof env.salt !== 'string' || typeof env.iv !== 'string' || typeof env.ct !== 'string') return null;
+  const h = { v: 1, kind: SNAP_KIND, walletId, kdf: env.kdf, ...(env.kdf === KDF_PBKDF2 ? { iterations: env.iterations } : {}), salt: env.salt };
+  try {
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(env.iv), additionalData: snapAad(h) }, await snapKey(dbPass, h), unb64(env.ct));
+    const v = JSON.parse(dec.decode(pt));
+    return v && v.txs && typeof v.txs === 'object' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+const sealedFor = (app) => ({ walletId: app.record.id, imported: Boolean(app.record.imported) });
+
 async function saveSnapshot(app) {
   try {
-    await rawStore.set(snapshotKey(app), { at: Date.now(), txs: snapshotOf(wallet.state.txs) });
+    if (!app.dbPass || !app.record) return;
+    const key = snapshotKey(app);
+    const dbPass = app.dbPass;
+    const who = sealedFor(app);
+    const snap = { at: Date.now(), txs: snapshotOf(wallet.state.txs) };
+    const before = await rawStore.get(key);
+    const sealed = await sealSnapshot(dbPass, who, snap, before && before.kind === SNAP_KIND ? before : null);
+    // Locked or switched while the key was made: nothing is written for a wallet no longer open.
+    if (app.dbPass !== dbPass || !app.record || app.record.id !== who.walletId) return;
+    await rawStore.set(key, sealed);
   } catch {
     /* no summary next time */
   }
@@ -333,17 +403,46 @@ async function saveSnapshot(app) {
 
 async function readSnapshot(app) {
   try {
-    const v = await rawStore.get(snapshotKey(app));
-    return v && v.txs ? v : null;
+    if (!app.dbPass || !app.record) return null;
+    return await openSnapshot(app.dbPass, sealedFor(app), await rawStore.get(snapshotKey(app)));
   } catch {
     return null;
   }
+}
+
+/**
+ * At start: what an earlier version left in the clear goes. Snapshots that list payment ids and
+ * statuses (they are sealed now), and reminders that named the payment, coin, name, address,
+ * deposit address or wallet (rewritten in words that name nothing, at the same times).
+ */
+export async function forgetPlainNotes(kv = rawStore) {
+  let changed = 0;
+  for (const k of await kv.keys('w:')) {
+    if (/^w:[0-9a-f]{16}:notify-snapshot$/.test(k)) {
+      const v = await kv.get(k);
+      if (v && v.kind !== SNAP_KIND) {
+        await kv.del(k);
+        changed++;
+      }
+    } else if (/^w:[0-9a-f]{16}:notify-reminders$/.test(k)) {
+      const list = await kv.get(k);
+      if (!Array.isArray(list)) continue;
+      const plain = plainReminders(list);
+      if (JSON.stringify(plain) !== JSON.stringify(list)) {
+        await kv.set(k, plain);
+        changed++;
+      }
+    }
+  }
+  return changed;
 }
 
 // ---------------------------------------------------------------- wiring
 
 export function installNotify(app) {
   appRef = app;
+  if (typeof indexedDB !== 'undefined') forgetPlainNotes().catch(() => {});
+  if (app.lockHooks) app.lockHooks.add(forgetSnapshotKeys);
   const watch = txWatcher();
   const run = catchUp();
   let summarised = false;
@@ -355,6 +454,7 @@ export function installNotify(app) {
       run.reset();
       summarised = false;
       toldLeaving = new Set();
+      waitingTx = new Set();
       names = null;
       near = null;
       away = null;

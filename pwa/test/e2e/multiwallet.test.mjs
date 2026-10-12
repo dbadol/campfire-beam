@@ -204,7 +204,7 @@ test('1. A created with Face ID; B added by restore (its own Face ID), C by impo
   await createWallet(page, { password: PA, passkey: true });
   await homeOf('Wallet 1');
   W.A = { addresses: await ownAddresses() };
-  // Synced once: its balance is kept as "last known" for the switcher.
+  // Synced once (no balance is kept for the switcher any more: audit A-4).
   await waitSynced(page, 180000);
   let list = await wallets();
   assert.equal(list.length, 1);
@@ -274,8 +274,9 @@ test('2. switching: Home\'s name -> a wallet -> its own unlock; another wallet\'
   assert.deepEqual(rows.map((r) => r.name), ['Savings', 'Wallet 1', 'Wallet 2']);
   assert.deepEqual(rows.filter((r) => r.current).map((r) => r.name), ['Savings']);
   assert.match(rows.find((r) => r.name === 'Savings').sub, /^Open/);
-  assert.match(rows.find((r) => r.name === 'Wallet 1').sub, /^Last known 0 BEAM · \S/, 'A was synced once: its balance then, labelled as such');
-  for (const r of rows.filter((x) => !x.current)) assert.match(r.sub, /^(Last known .* BEAM · |Open it to see its balance)/, `${r.name}: never a live figure for a locked wallet`);
+  // No amount of a locked wallet is kept on the device (audit A-4): another wallet says Locked.
+  for (const r of rows.filter((x) => !x.current)) assert.equal(r.sub, 'Locked', `${r.name}: no figure for a locked wallet`);
+  assert.deepEqual(Object.keys(await kvDump()).filter((k) => /:balance$/.test(k)), [], 'no balance in the app database');
   await both(page, 'mw-02-switcher');
   await page.click('[data-testid="switch-row"][data-name="Wallet 1"]');
   await waitScreen(page, 'unlock', 60000);

@@ -201,10 +201,15 @@ test('leaving the app: payments under way said at once, reminders stored; change
     const keys = (await rawStore.keys('w:')).filter((k) => k.endsWith(':notify-reminders'));
     let n = 0;
     for (const k of keys) n += ((await rawStore.get(k)) || []).length;
-    return n >= 2;
-  }, null, { label: 'two reminders stored' });
+    return n >= 1;
+  }, null, { label: 'the reminder stored' });
   const rem = await reminders();
-  assert.deepEqual(rem.map((r) => r.id).sort(), [`rem-arr-${hex('b1')}`, `rem-arr-${hex('c1')}`]);
+  // One reminder for both payments, naming nothing (audit A-4): its id is its time, no payment id on disk.
+  assert.equal(rem.length, 1, JSON.stringify(rem.map((r) => r.id)));
+  assert.match(rem[0].id, /^rem-arr-\d+$/);
+  assert.equal(rem[0].title, 'Payments are still waiting');
+  assert.equal(rem[0].url, '#open=activity');
+  assert.ok(!JSON.stringify(rem).includes(hex('b1')) && !JSON.stringify(rem).includes(hex('c1')), 'no payment id kept on disk');
   assert.ok(rem.every((r) => r.at > Date.now() + 15 * 60000 && !/BEAM\b.*\d|\d.*BEAM/.test(r.title)), 'later, and no amounts kept on disk');
   // While away: the send finishes, the contract call fails, the incoming payment fails, more money arrives.
   // Two at a time: four or more at once are one notification ("4 changes in your wallet").
@@ -268,6 +273,13 @@ test('back after a lock: Home says what happened meanwhile, once', { timeout: 10
     const { rawStore } = await import('./lib/store.js');
     return (await rawStore.keys('w:')).some((k) => k.endsWith(':notify-snapshot'));
   }, null, { label: 'the statuses saved on leaving' });
+  // Sealed (audit A-4): no payment id of this wallet in the clear.
+  const stored = await page.evaluate(async () => {
+    const { rawStore } = await import('./lib/store.js');
+    const k = (await rawStore.keys('w:')).find((x) => x.endsWith(':notify-snapshot'));
+    return JSON.stringify(await rawStore.get(k));
+  });
+  assert.ok(!/"txs"/.test(stored) && !stored.includes(hex('b1')) && !stored.includes(hex('a3')), 'the snapshot is sealed');
   await page.evaluate(() => window.__setHidden(false));
   await lock(page);
   // Found after the unlock: money in while the app was locked, and the sent payment that finished.
@@ -346,16 +358,17 @@ test('an address that expires: Extend in Your addresses, and a reminder 3 days b
   await tile.locator(tid('address-extend')).click();
   await page.waitForFunction(([a, d]) => document.querySelector(`[data-address="${a}"] [data-testid="address-life"]`)?.textContent.includes(`Expires ${d}`), [address, day(Date.now() + 61 * 86400000)], { timeout: 20000 });
   await shot(page, 'notify-04-address-extended');
-  // Leaving: a reminder 3 days before it now expires, its label named (amounts are shown).
+  // Leaving: a reminder 3 days before it now expires, naming neither the address nor its label (audit A-4).
   await page.evaluate(() => window.__setHidden(true));
-  await until(async (a) => {
+  await until(async () => {
     const { rawStore } = await import('./lib/store.js');
     const keys = (await rawStore.keys('w:')).filter((k) => k.endsWith(':notify-reminders'));
-    for (const k of keys) if (((await rawStore.get(k)) || []).some((r) => r.id === `rem-addr-${a.slice(0, 16)}`)) return true;
+    for (const k of keys) if (((await rawStore.get(k)) || []).some((r) => r.id.startsWith('rem-addr-') && r.at > Date.now() + 50 * 86400000)) return true;
     return false;
-  }, address, { label: 'the address reminder stored' });
-  const r = (await reminders()).find((x) => x.id === `rem-addr-${address.slice(0, 16)}`);
-  assert.equal(r.title, 'An address of yours (From Alex) expires in 3 days');
+  }, null, { label: 'the address reminder stored' });
+  const r = (await reminders()).find((x) => x.id.startsWith('rem-addr-') && x.at > Date.now() + 50 * 86400000);
+  assert.equal(r.title, 'An address of yours expires in 3 days');
+  assert.ok(!JSON.stringify(await reminders()).includes(address.slice(0, 16)) && !JSON.stringify(await reminders()).includes('From Alex'), 'neither the address nor its label on disk');
   assert.equal(r.url, '#open=addresses');
   const days = (r.at - Date.now()) / 86400000;
   assert.ok(days > 57.9 && days < 58.1, `58 days from now (${days.toFixed(2)})`);

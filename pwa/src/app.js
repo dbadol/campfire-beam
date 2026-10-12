@@ -3,7 +3,7 @@ import { applyTheme, readTheme } from './lib/theme.js';
 import { h, clear } from './lib/dom.js';
 import { engineSupport, loadEngine, nodeGuard, walletFiles, onEngineAbort } from './lib/engine.js';
 import { getPrefs } from './lib/store.js';
-import { listWallets, initialWallet, loadPrefs, savePrefs, scopeTo, watchBalances, nameOf, dbPathOf } from './lib/wallets.js';
+import { listWallets, initialWallet, loadPrefs, savePrefs, scopeTo, forgetStoredBalances, nameOf, dbPathOf } from './lib/wallets.js';
 import { setScopeOpen } from './lib/wallet_scope.js';
 import { wallet } from './lib/wallet.js';
 import { updates, takeJustUpdated } from './lib/update.js';
@@ -308,7 +308,8 @@ app.continueBoot = async function continueBoot() {
   // Several wallets: the one last opened comes first (a single-wallet device: its one wallet, as it was).
   app.record = initialWallet(await listWallets(), app.prefs);
   app.prefs = await loadPrefs(app.record);
-  watchBalances(app);
+  // No balance is kept in the clear for a locked wallet any more; an earlier version's go (lib/wallets.js).
+  forgetStoredBalances().catch(() => {});
   loadEngine().catch((e) => console.warn('[campfire] engine', e.message)); // warm up
   refreshPersistence(app, { request: Boolean(app.record) });
 
