@@ -116,3 +116,12 @@ test('both proxies verify the upstream certificate and name (audit D-6/E-8)', ()
   // Caddy's reverse_proxy verifies https upstreams unless told otherwise: it must never be.
   assert.ok(!/tls_insecure_skip_verify/.test(read('Caddyfile')));
 });
+
+test('nginx keeps no client IPs: no access log, and the error log only for critical errors (audit E-7)', () => {
+  // At the default level nginx writes "client: <IP>" for every missing file and every failed upstream.
+  const nginx = read('nginx.conf');
+  const tls = nginx.slice(nginx.indexOf('listen 443 ssl http2;'));
+  assert.match(tls, /\n    access_log off;\n/);
+  assert.match(tls, /\n    error_log \/var\/log\/nginx\/error\.log crit;\n/);
+  assert.match(tls, /\n    log_not_found off;\n/);
+});
