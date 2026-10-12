@@ -266,6 +266,25 @@ test("an app or its publisher may not use a name that reads as the wallet's own"
   assert.equal(readsAsWallet(''), false);
 });
 
+// Audit BC-5: the florin (U+0192) and the small digamma (U+03DD) read as "f" but were dropped by
+// skeleton(), so "BEAM Campƒire" opened as a dApp. Both map to F now; and any spelling within one
+// edit of the wallet's own (a letter added, dropped, changed or two swapped, as "ſ" folds to S)
+// is refused for an app or publisher name, also inside a longer name.
+test("BC-5: look-alikes of f, and names one edit from the wallet's, are refused; unrelated names still open", async () => {
+  const { skeleton } = await import('../../src/lib/lookalike.js');
+  assert.equal(skeleton('\u0192'), 'F');
+  assert.equal(skeleton('\u03dd'), 'F');
+  const near = ['BEAM Camp\u0192ire', 'BEAM Camp\u03ddire', 'BEAM Camp\u017fire', 'BEAM Campfie', 'BEAM Camppfire', 'BEAM Cmapfire', 'BEAM Canpfire', 'BEAM Campsire Security', 'Official BEAM Campfir', 'BEAN Campfire'];
+  for (const appName of near) {
+    assert.equal(readsAsWallet(appName), true, appName);
+    await assert.rejects(openApp({ appName }), (e) => e.code === 'reserved_name', appName);
+  }
+  await assert.rejects(openApp({ appName: 'Some dApp', publisher: { key: '02' + 'ab'.repeat(32), name: 'BEAM Camp\u0192ire' } }), (e) => e.code === 'reserved_name');
+  for (const appName of ['Campfire Games', 'Beam DEX', 'BEAM NFT Gallery', 'BEAM Camp', 'Beam Campaign', 'Campfire Studio', 'BEAM Fire']) {
+    assert.equal(readsAsWallet(appName), false, appName);
+  }
+});
+
 test('engine amounts: decimal text to groth, nothing else accepted', () => {
   assert.equal(decimalToGroth('0.011'), 1100000n);
   assert.equal(decimalToGroth('371.76133894'), 37176133894n);

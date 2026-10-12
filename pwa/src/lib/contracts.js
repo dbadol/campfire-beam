@@ -584,13 +584,33 @@ export function setConsentPresenter(fn) {
   };
 }
 
+/** Whether a and b differ by at most one letter added, dropped, changed, or two neighbours swapped. */
+function withinOneEdit(a, b) {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+  const [long, short] = a.length > b.length ? [a, b] : [b, a];
+  return long.slice(i + 1) === short.slice(i);
+}
+
 /**
  * A name that reads as the wallet's own, however it is spelt: accents, Cyrillic or Greek
  * letters, digits for letters, other spacing, or with words around it ("BEAM Campfire
- * Security"). The approve sheet and the notifications show an app's and a publisher's name.
+ * Security"); and any spelling one edit from it, anywhere in the name (audit BC-5: a look-alike
+ * the skeleton does not know, such as "ſ", reads as another letter or drops out). The approve
+ * sheet and the notifications show an app's and a publisher's name.
  */
 const NATIVE_KEY = canonical(NATIVE_APP_NAME);
-export const readsAsWallet = (name) => canonical(String(name || '')).includes(NATIVE_KEY);
+export function readsAsWallet(name) {
+  const c = canonical(String(name || ''));
+  if (c.includes(NATIVE_KEY)) return true;
+  for (let len = NATIVE_KEY.length - 1; len <= NATIVE_KEY.length + 1; len++) {
+    for (let i = 0; i + len <= c.length; i++) if (withinOneEdit(c.slice(i, i + len), NATIVE_KEY)) return true;
+  }
+  return false;
+}
 
 function cleanName(s) {
   // eslint-disable-next-line no-control-regex
