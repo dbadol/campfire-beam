@@ -125,3 +125,16 @@ test('nginx keeps no client IPs: no access log, and the error log only for criti
   assert.match(tls, /\n    error_log \/var\/log\/nginx\/error\.log crit;\n/);
   assert.match(tls, /\n    log_not_found off;\n/);
 });
+
+test('Caddy serves the Content-Type the loader serves, not one it guesses (found by tools/check_deploy.mjs)', () => {
+  // Caddy takes types from the system's mime.types or sniffs the bytes: measured, the web manifest and
+  // the extension-less LICENSE files came out as text/plain; Ubuntu's table calls .sig application/pgp-signature.
+  const caddy = read('Caddyfile');
+  for (const [ext, mime] of Object.entries(MIME)) {
+    const m = caddy.match(new RegExp(`\\t@(mime_[a-z0-9_]+) path [^\\n]*\\*\\${ext}(?= |\\n)`));
+    assert.ok(m, `a matcher for *${ext}`);
+    assert.ok(caddy.includes(`\theader @${m[1]} Content-Type "${mime}"`), `${ext}: ${mime}`);
+  }
+  // Anything else (LICENSE, a .dapp package) as plain bytes, as nginx's default_type and the loader do.
+  assert.ok(caddy.includes('\theader @mime_other Content-Type "application/octet-stream"'));
+});

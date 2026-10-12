@@ -52,6 +52,35 @@ wallet.example.org {
 	# Any copy may read the app's files; the explorer proxy is this origin's own.
 	@cors not path /explorer/status
 	header @cors Access-Control-Allow-Origin "*"
+	# Content-Type exactly as the loader serves it (tools/headers.mjs MIME), never Caddy's guess
+	# (from the system's mime.types, or sniffed); anything else as plain bytes.
+	@mime_text_html path *.html
+	header @mime_text_html Content-Type "text/html; charset=utf-8"
+	@mime_text_javascript path *.js *.mjs
+	header @mime_text_javascript Content-Type "text/javascript; charset=utf-8"
+	@mime_text_css path *.css
+	header @mime_text_css Content-Type "text/css; charset=utf-8"
+	@mime_application_json path *.json *.jwk
+	header @mime_application_json Content-Type "application/json"
+	@mime_application_manifest_json path *.webmanifest
+	header @mime_application_manifest_json Content-Type "application/manifest+json"
+	@mime_application_wasm path *.wasm
+	header @mime_application_wasm Content-Type "application/wasm"
+	@mime_image_svg_xml path *.svg
+	header @mime_image_svg_xml Content-Type "image/svg+xml"
+	@mime_image_png path *.png
+	header @mime_image_png Content-Type "image/png"
+	@mime_font_ttf path *.ttf
+	header @mime_font_ttf Content-Type "font/ttf"
+	@mime_font_woff2 path *.woff2
+	header @mime_font_woff2 Content-Type "font/woff2"
+	@mime_text_plain path *.txt *.sig
+	header @mime_text_plain Content-Type "text/plain; charset=utf-8"
+	@mime_other {
+		not path *.html *.js *.mjs *.css *.json *.webmanifest *.wasm *.svg *.png *.ttf *.woff2 *.txt *.sig *.jwk
+		not path / /recovery/mainnet_recovery.bin /explorer/status
+	}
+	header @mime_other Content-Type "application/octet-stream"
 
 	# The hosting repository's own files are not part of the app.
 	@private path /.git /.git/* /.github/* /.nojekyll /deploy/* /README.md /_headers

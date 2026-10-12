@@ -202,6 +202,27 @@ export function caddyHeaderLines() {
   lines.push(['\theader @relay {', ...Object.entries(RECOVERY_CORS).map(([k, v]) => `\t\t${k} "${v}"`), '\t}'].join('\n'));
   lines.push(`\t@cors not path ${EXPLORER_PROXY}`);
   lines.push(`\theader @cors Access-Control-Allow-Origin "${RELEASE_CORS['Access-Control-Allow-Origin']}"`);
+  lines.push(...caddyMimeLines());
+  return lines;
+}
+
+/**
+ * Content-Type exactly as the loader serves it (MIME below): Caddy would take it from the
+ * system's mime.types or sniff it. One matcher per type; anything else is plain bytes, as with
+ * nginx's default_type (the folder itself and the two proxies keep theirs).
+ */
+function caddyMimeLines() {
+  const byType = new Map();
+  for (const [ext, type] of Object.entries(MIME)) byType.set(type, [...(byType.get(type) || []), `*${ext}`]);
+  const lines = [];
+  for (const [type, globs] of byType) {
+    const name = `mime_${type.split(';')[0].replace(/[^a-z0-9]+/g, '_')}`;
+    lines.push(`\t@${name} path ${globs.join(' ')}`);
+    lines.push(`\theader @${name} Content-Type "${type}"`);
+  }
+  const all = Object.keys(MIME).map((e) => `*${e}`).join(' ');
+  lines.push(`\t@mime_other {\n\t\tnot path ${all}\n\t\tnot path / ${RECOVERY_RELAY} ${EXPLORER_PROXY}\n\t}`);
+  lines.push('\theader @mime_other Content-Type "application/octet-stream"');
   return lines;
 }
 
