@@ -8,7 +8,7 @@ import { checkShaders, REPO_ROOT } from '../../tools/shader_check.mjs';
 
 test('the shaders in the repository match their pins and the desktop app pins the same bytes', async () => {
   const list = await checkShaders();
-  assert.deepEqual(list.map((s) => s.key).sort(), ['airdrop', 'amm', 'bans', 'blackhole', 'dappsStore', 'minter', 'pipe', 'pipeReverse']);
+  assert.deepEqual(list.map((s) => s.key).sort(), ['airdrop', 'amm', 'bans', 'blackhole', 'dappsStore', 'minter', 'pipe', 'pipeReverse', 'vaultAnon']);
 });
 
 /** A copy of the parts of the repository checkShaders reads. */

@@ -4,11 +4,20 @@
 //
 // A port of the desktop app (lib/wallets/beam/contracts/bans/: bans_constants,
 // bans_name, bans_args, bans_models, bans_timeline, bans_recipient,
-// bans_service). Every transaction is built by the pinned app shader and read
+// bans_service). Every transaction is built by a pinned app shader and read
 // back from its bytes (lib/contract_tx.js) before the wallet is asked to sign:
 // one call, the right contract and method, the right name, periods and owner
 // key, and exactly the funds asked for. The approve sheet then has to show
 // those same amounts and fee, or the request is refused unseen.
+//
+// A payment to a name is the one exception to "the BANS shader builds it": its
+// `pay` reads the vault and the owner key from the node while it builds, with no
+// proof, so a lying node could aim it anywhere (audit D-1). It is built instead
+// by BEAM's own Anon-Vault app shader (vault_anon, user send_anon) into the
+// pinned vault, for the owner key this wallet looked up, showed and remembered.
+// The deposit is the same as BANS writes (vault_anon/app_impl.h OnUser_send_anon,
+// the name zero-padded to 64 bytes as its message), so the owner's wallet finds
+// and claims it as any other payment to their name.
 //
 // Amounts are BigInt in the asset's smallest unit (8 decimals for every asset).
 
@@ -143,6 +152,12 @@ export function checkCode(key) {
 
 // ---------------------------------------------------------------- args
 
+/** The name as BANS's pay writes it into a payment: its bytes, zero-padded to NAME_MAX (bans/app.cpp, Memset). Hex. */
+export function nameMessage(name) {
+  const hex = Array.from(name, (c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+  return hex + '00'.repeat(NAME_MAX - name.length);
+}
+
 const MAX_AID = 0xffffffff;
 const MAX_U64 = (1n << 64n) - 1n;
 
@@ -181,7 +196,17 @@ export const args = Object.freeze({
   viewDomain: (ownerKey = null) => build('manager', 'view_domain', { pk: ownerKey == null ? ZERO_KEY : requireKey(ownerKey) }),
   register: (name, periods) => build('user', 'domain_register', { name: checkedName(name), nPeriods: periodsArg(periods) }),
   extend: (name, periods) => build('user', 'domain_extend', { name: checkedName(name), nPeriods: periodsArg(periods) }),
-  pay: (name, assetId, amount) => build('manager', 'pay', { name: checkedName(name), aid: aidArg(assetId), amount: amountArg(amount, false) }),
+  /**
+   * A payment to the owner of `name`, built by BEAM's Anon-Vault app shader
+   * (vault_anon/app.cpp, user send_anon) into BEAM's own vault, for exactly
+   * `ownerKey`: the key this wallet checked, never one re-read while building.
+   * (BANS's own manager/pay is not used: it reads the owner from the node as it
+   * builds, audit D-1.)
+   * msg: the name as BANS's pay writes it, its bytes zero-padded to 64, which the
+   * shader encrypts for the owner, whose wallet then shows which name was paid.
+   */
+  sendAnon: (ownerKey, name, assetId, amount) =>
+    build('user', 'send_anon', { pkOwner: requireKey(ownerKey), aid: aidArg(assetId), amount: amountArg(amount, false), msg: nameMessage(checkedName(name)) }, VAULT_ANON_CID),
   /** Gives the name to another key (owner only). */
   setOwner: (name, newOwnerKey) => build('user', 'domain_set_owner', { name: checkedName(name), pkOwner: requireKey(newOwnerKey) }),
   /** Lists the name for `amount` of `assetId`; an amount of 0 takes it off sale (owner only). */
@@ -504,6 +529,29 @@ export function consentExpectation(getBuilt) {
   };
 }
 
+/**
+ * The payment to a name, as built: one call, to BEAM's Anon-Vault, its Deposit
+ * method, with no signature asked of this wallet and nothing stored to re-run;
+ * exactly `want` of `assetId` into an account of a one-time key, with a sender
+ * key and the 64-byte encrypted name after it (vault_anon Method::Deposit,
+ * OnUser_send_anon); the kernel spends exactly that, and receives nothing.
+ */
+function checkDeposit(d, assetId, want) {
+  const e = singleEntry(d, VAULT_ANON_CID, METHOD.vaultDeposit, fail);
+  if (e.flags !== 0 || e.signatureCount !== 0 || d.appArgs !== null || d.appPrivilege !== null) fail('a plain deposit');
+  if (e.comment !== KERNEL.pay) fail(`"${KERNEL.pay}"`);
+  const r = new ArgsReader(e.args);
+  if (r.u64() !== want) fail('amount');
+  const custom = r.u32();
+  if (!isKey(r.pubKey())) fail('a one-time key');
+  if (r.u32() !== assetId) fail('asset');
+  if (custom !== 33 + NAME_MAX || r.remaining !== custom) fail('sender key and encrypted name');
+  if (!isKey(r.pubKey())) fail('a sender key');
+  const spends = [...e.spend].filter(([, v]) => v !== 0n);
+  if (spends.length !== 1 || spends[0][0] !== assetId || spends[0][1] !== want) fail(`the kernel pays exactly the amount, not ${spendText(e.spend)}`);
+  if (d.receives.size) fail('a payment receives nothing');
+}
+
 /** The vault withdrawals a claim builds: each one pays this wallet, nothing leaves it. */
 function claimEntries(d, myKey) {
   if (!d.entries.length) fail('at least one claim');
@@ -527,6 +575,7 @@ function claimEntries(d, myKey) {
  *   deps.view(args) -> parsed shader output (lib/contracts.js App.view)
  *   deps.transact(args, {inspect, expect, intent}) -> txId (App.transact)
  *   deps.status() -> wallet_status ({current_height, current_state_timestamp, is_in_sync})
+ *   deps.transactVault(args, opts): the same with BEAM's Anon-Vault app shader (payments to a name).
  *   deps.viewPrivileged / deps.transactPrivileged: the same at privilege 1 (lib/contracts.js
  *     privilegedApp), for the inbox and claims of payments; absent = claims unsupported.
  */
@@ -656,43 +705,42 @@ export function createBans(deps) {
     },
 
     /**
-     * Pays `amount` of `assetId` to the owner of `name`, anonymously, through the
-     * BANS vault. The name is resolved before the build and again after it; if
-     * its owner differs from the one the person was shown (expectedOwnerKey), or
-     * between the two, nothing is signed. The payment goes into BEAM's own vault
-     * only (VAULT_ANON_CID), whatever the node says the vault is.
+     * Pays `amount` of `assetId` to the owner of `name`, anonymously, through
+     * BEAM's Anon-Vault. The name is resolved before the build and again after
+     * it; if its owner differs from the one the person was shown
+     * (expectedOwnerKey), or between the two, nothing is signed.
+     *
+     * The payment is built by BEAM's Anon-Vault app shader (args.sendAnon) into
+     * VAULT_ANON_CID for exactly that owner key, so nothing the node answers
+     * while it is built can redirect it (audit D-1). The one-time key in the
+     * kernel is the owner key plus a point from the shader's own random scalar,
+     * which the wallet cannot recompute; that it belongs to `key` rests on the
+     * pinned shader, which takes the key as its argument and reads no chain state.
      *
      * pinnedKey: the owner key this wallet paid the name before (null: never).
      * Another owner now stops the payment (nameChanged, with both keys) unless it
      * is acceptedKey, the new one the person saw and chose (pinVerdict).
      */
     async pay(name, assetId, amount, { expectedOwnerKey = null, pinnedKey = null, acceptedKey = null } = {}) {
-      await svc.params(); // refuses a node that names another vault (parseViewParams)
+      checkedName(name);
       const before = await svc.resolve(name);
       const key = before.ownerKey;
       if (!key) throw refusal('not registered');
       if (!canReceivePayments(before.status)) throw refusal('domain expired');
       if (expectedOwnerKey && key !== expectedOwnerKey) throw ownerChanged(name);
       if (pinVerdict({ pinned: pinnedKey, now: key, accepted: acceptedKey }) === 'changed') throw nameChanged(name, pinnedKey, key);
-      const a = args.pay(name, assetId, amount);
+      const a = args.sendAnon(key, name, assetId, amount);
       const want = BigInt(amount);
       let built = null;
       const txId = await svc.transact(a, {
+        vault: true,
         intent: { action: 'namePay', name },
         inspect: async (raw) => {
           const d = readContractTx(raw);
           const after = await svc.resolve(name);
           if (after.ownerKey !== key) throw ownerChanged(name);
           if (!canReceivePayments(after.status)) throw refusal('domain expired');
-          const e = singleEntry(d, VAULT_ANON_CID, METHOD.vaultDeposit, fail);
-          const r = new ArgsReader(e.args);
-          if (r.u64() !== want) fail('amount');
-          const custom = r.u32();
-          r.pubKey(); // the one-time key
-          if (r.u32() !== assetId) fail('asset');
-          if (custom !== 33 + NAME_MAX || r.remaining !== custom) fail('sender key and encrypted name');
-          const spends = [...e.spend].filter(([, v]) => v !== 0n);
-          if (spends.length !== 1 || spends[0][0] !== assetId || spends[0][1] !== want) fail(`the kernel pays exactly the amount, not ${spendText(e.spend)}`);
+          checkDeposit(d, assetId, want);
           built = { pays: d.pays, receives: d.receives, fee: d.fee };
         },
         expect: consentExpectation(() => built),
@@ -865,8 +913,9 @@ export function createBans(deps) {
         }
         return null;
       };
-      const { privileged = false, ...rest } = opts;
-      const run = privileged ? deps.transactPrivileged : deps.transact;
+      const { privileged = false, vault = false, ...rest } = opts;
+      if (vault && !deps.transactVault) throw new BansError('unexpected', 'Paying a name is not possible in this version. Nothing was sent.');
+      const run = privileged ? deps.transactPrivileged : vault ? deps.transactVault : deps.transact;
       try {
         return await run(a, { ...rest, inspect });
       } catch (e) {
@@ -916,6 +965,11 @@ export function bansFor(session, status) {
     },
     transact: async (a, opts) => {
       const { app, shader } = await withApp();
+      return app.transact(a, shader, opts);
+    },
+    // Payments to a name: BEAM's Anon-Vault app shader, on the same app (privilege 0).
+    transactVault: async (a, opts) => {
+      const [app, shader] = await Promise.all([nativeApp(), loadShader('vaultAnon')]);
       return app.transact(a, shader, opts);
     },
     viewPrivileged: async (a) => {

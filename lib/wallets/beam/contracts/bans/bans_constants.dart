@@ -36,6 +36,21 @@ const String kBansShaderName = 'bans_app.wasm';
 /// Where the pinned app shader is bundled.
 const String kBansShaderAsset = 'assets/beam/shaders/$kBansShaderName';
 
+/// BEAM's Anon-Vault app shader: `bvm/Shaders/vault_anon/app.wasm` at tag
+/// `beam-7.5.14493` (git blob 3befada9, the same bytes on master). The web
+/// wallet builds payments to a name with it (`role=user,action=send_anon`,
+/// the owner key it checked passed as `pkOwner`), so the BANS shader never
+/// re-reads the owner while building (audit D-1). Pinned here so both apps
+/// pin the same bytes (pwa/tools/shader_check.mjs); this app does not use it.
+const String kVaultAnonShaderSha256 =
+    '25eb5a8d6156c02810f6bf2eae31c43d5ed25a83a029dd714204b687d92a9422';
+
+/// Size of the pinned Anon-Vault app shader in bytes.
+const int kVaultAnonShaderSize = 15969;
+
+/// The Anon-Vault app shader's file name under `assets/beam/shaders/`.
+const String kVaultAnonShaderName = 'vault_anon_app.wasm';
+
 /// The pinned BANS app shader, read from [source].
 PinnedShader bansAppShader(ShaderSource source) => PinnedShader(
   name: kBansShaderName,
