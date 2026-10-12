@@ -21,14 +21,17 @@
 //    N+1 and works.
 // 4. M serves N+1 or N: "up to date".
 // 5. M sends no CORS: unreachable, M2 is asked next and its release is used.
-// 6. A is alive: A answers, M and M2 are never contacted.
+// 6. A is alive: every source is asked (release.json/.sig/manifest.json only) and the newest
+//    signed release wins. A on the installed release, M and M2 too: up to date. A still on it
+//    (frozen) while M has N+4: N+4 comes from M.
 // 7. Nothing reachable -> "Update from another address": an http address is
 //    refused in words, the https one is saved and used.
 // 8. A release that brings a new loader while A is dead: one that serves pages
 //    like the running loader applies and runs under it, no loop, no takeover
-//    alarm, no request to A and no "finish the update" banner; one that cannot is refused from M with the reason. A back: a
-//    tapped check moves the page to its loader; the incompatible release then
-//    installs from A and the loader moves as before. Update of such a staged
+//    alarm, no request to A and no "finish the update" banner; one that cannot is refused from M with the reason. A back
+//    with the installed release while M still has the newer one: it needs A, which "still serves"
+//    the installed version, and the tapped check moves the page to its loader; the incompatible
+//    release then installs from A and the loader moves as before. Update of such a staged
 //    release while A is down says it needs A.
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -379,25 +382,28 @@ test('5. M sends no CORS headers: unreachable, M2 is asked next and used', { tim
 });
 
 // ---------------------------------------------------------------- 6
-test('6. the own address is alive: it answers, the copies are never contacted', { timeout: 6 * 60000 }, async () => {
+test('6. the own address is alive: every source is asked and the newest signed release wins, wherever it is', { timeout: 6 * 60000 }, async () => {
   A.serve(R.n3);
   await A.start();
   await unlockWithPassword(page, PASSWORD);
   await waitScreen(page, 'home', 60000);
   const [a0, m0, m20] = [A.count(), M.count(), M2.count()];
   let r = await checkAndWait();
-  assert.equal(r.toast, 'You have the latest version.');
+  assert.equal(r.toast, 'You have the latest version.', 'everyone has the installed release; the own address confirms it');
   assert.deepEqual(A.since(a0).filter((x) => !x.sw).map((x) => x.path), ['/release.json', '/release.sig', '/manifest.json']);
-  // Newer at the own address: staged from there.
-  A.serve(R.n4);
+  for (const s of [M.since(m0), M2.since(m20)]) assert.deepEqual(s.map((x) => x.path), ['/release.json', '/release.sig', '/manifest.json'], 'a copy is asked for the release, nothing else');
+  // The own address keeps serving the installed release (frozen); M has a newer one: that one.
+  M.serve(R.n4);
+  const m1 = M.count();
   r = await checkAndWait();
-  assert.match(await page.textContent(tid('update-ready-text')), /checked against the BEAM Campfire release signature/);
-  assert.equal(M.count() - m0, 0, 'M never contacted');
-  assert.equal(M2.count() - m20, 0, 'M2 never contacted');
+  assert.match(await page.textContent(tid('update-ready-text')), new RegExp(`Downloaded from a copy at ${esc(M_HOST)}`));
+  assert.match(await page.textContent(tid('update-released')), /^Released \d{1,2} [A-Z][a-z]{2} \d{4}\.$/);
+  await shots('mirrors-06b-newer-at-copy-than-own');
+  assert.ok(M.since(m1).length > 3, 'its files came from M');
   await applyAndReload();
   assert.equal(await servedVersion(), V(4));
   await A.stop();
-  console.log(`# own address alive: ${A.count() - a0} requests there, 0 at the copies`);
+  console.log(`# own address alive: ${A.count() - a0} requests there; ${V(4)} came from ${M_HOST}, where it was newer`);
 });
 
 // ---------------------------------------------------------------- 7
@@ -493,12 +499,15 @@ test('8. a release that brings a new loader while the address is dead: safe, no 
   assert.equal(await servedVersion(), V(6));
   assert.match(await page.textContent(tid('check-updates')), /needs this app's address to install; your app keeps working/);
 
-  // (c) The address is back with the installed release: a tapped check moves the page to its loader.
+  // (c) The address is back with the installed release, M still has the newer one: it needs the
+  // address, which "still serves" the installed version; the tapped check moves the page to its loader.
   A.serve(R.n6c);
   await A.start();
   const a0 = A.count();
   const r2 = await checkAndWait();
-  assert.equal(r2.toast, 'You have the latest version.');
+  assert.match(r2.sheet, new RegExp(`Version ${V(7).replace(/\./g, '\\.')} needs this app's address`));
+  assert.match(await page.textContent(tid('update-needs-address')), new RegExp(`which still serves version ${V(6).replace(/\./g, '\\.')}\\.`));
+  await page.click('.sheet .btn-primary');
   await page.waitForFunction((l) => navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL.endsWith(`/${l}`), L.n6c, { timeout: 30000 });
   await sleep(2000);
   assert.equal(await intrusion(), null, 'the move is not a takeover');

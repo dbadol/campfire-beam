@@ -22,10 +22,11 @@
  * which only the Update button sends.
  *
  * Update sources (lib/update_sources.js, inlined below): this app's own
- * address first, then the public copies the installed release names, then an
- * address the person added. The first that answers with a valid signed release
- * decides; the rest are never contacted. Files from any source go into this
- * app's own cache under its own scope URLs, each only after its hash matched.
+ * address, the public copies the installed release names, and an address the
+ * person added. A tapped check asks all of them at once and keeps the newest
+ * signed release (on a tie, the own address's), so an address that keeps
+ * serving an old release cannot hide a newer one. Files from any source go into
+ * this app's own cache under its own scope URLs, each only after its hash matched.
  * A release from anywhere but the own address must run under THIS loader (a
  * service worker comes only from its own address), so it is staged only when
  * it ships this loader or one that serves pages the same way (loader_compat).
@@ -314,6 +315,7 @@ async function stageRelease({ release, manifest }, { base = scopeUrl, signal = n
     cache: cacheName,
     files: map,
     manifestSha: release.manifest_sha256,
+    created: createdOf(release), // the release's signed date, for "released ..." and the age warning
     verifiedAt: Date.now(),
     // Where the next check looks, from the signed release; the loader that ships with it; and
     // what that loader does to pages (see loaderCompatible()).
@@ -459,9 +461,10 @@ self.addEventListener('fetch', (event) => {
 });
 
 /**
- * "Check for updates": asks the sources in order (findUpdate in
- * lib/update_sources.js) and stages the first newer release it may install.
- * added: addresses the person added. progress(p) gets {step, host, own, ...}.
+ * "Check for updates": asks every source (findUpdate in lib/update_sources.js)
+ * and stages the newest release it may install. added: addresses the person
+ * added. progress(p) gets {step: 'asking', total, answered} while the sources
+ * answer, then {step: 'downloading', host, own, version, done, total}.
  */
 async function checkUpdate({ added = [], progress = null } = {}) {
   const st = await readState();
@@ -471,12 +474,14 @@ async function checkUpdate({ added = [], progress = null } = {}) {
   };
   const sources = updateSources({ own: scopeUrl.href, builtins: Array.isArray(st.current.sources) ? st.current.sources : BUILTIN_SOURCES, added });
   const ownFrom = { host: scopeUrl.host, own: true };
+  let answered = 0;
+  say({ step: 'asking', total: sources.length, answered });
   const r = await findUpdate({
     sources,
-    installed: { version: st.current.version, manifestSha: st.current.manifestSha },
+    installed: { version: st.current.version, manifestSha: st.current.manifestSha, created: st.current.created || null },
     pending: st.pending ? { version: st.pending.version, manifestSha: st.pending.manifestSha, from: st.pending.from || ownFrom } : null,
     loader: { name: LOADER_NAME, compat: LOADER_COMPAT },
-    onSource: (src) => say({ step: 'checking', host: src.host, own: src.own }),
+    onAnswer: () => say({ step: 'asking', total: sources.length, answered: ++answered }),
     fetchRelease: (src) => fetchVerifiedRelease(src.url, { timeoutMs: PROBE_TIMEOUT_MS }),
     stage: async (src, rel) => {
       const staged = await stageRelease(rel, {
@@ -553,8 +558,10 @@ self.addEventListener('message', (event) => {
             compat: LOADER_COMPAT,
             current: st.current && st.current.version,
             currentFrom: (st.current && st.current.from) || null,
+            currentCreated: (st.current && st.current.created) || null,
             pending: st.pending && st.pending.version,
             pendingFrom: (st.pending && st.pending.from) || null,
+            pendingCreated: (st.pending && st.pending.created) || null,
             currentFiles: st.current ? Object.keys(st.current.files).length : 0,
             releaseLoader: releaseLoaderOf(st.current),
             sources: st.current ? updateSources({ own: scopeUrl.href, builtins: Array.isArray(st.current.sources) ? st.current.sources : BUILTIN_SOURCES }).map((x) => ({ host: x.host, kind: x.kind })) : [],
