@@ -201,8 +201,10 @@ async function readCapped(r, max, tooBig) {
 
 /**
  * One file of a release from base (this app's folder or another copy).
- * Another copy gets no cookies and no referrer; it must send CORS headers,
- * or the browser hands nothing over (reported as unreachable).
+ * No cookies and no referrer, wherever it is: the app sets no cookies, and one
+ * set for the parent domain by any site under it (a large one makes the CDN
+ * refuse the request) must not ride along and stop updates. Another copy must
+ * send CORS headers, or the browser hands nothing over (reported as unreachable).
  */
 async function fetchBytes(base, path, { signal = null, timeoutMs = FILE_TIMEOUT_MS, max = Infinity, tooBig = null } = {}) {
   const url = new URL(path, base);
@@ -218,7 +220,7 @@ async function fetchBytes(base, path, { signal = null, timeoutMs = FILE_TIMEOUT_
   try {
     let r;
     try {
-      r = await fetch(url.href, { cache: 'no-store', credentials: own ? 'same-origin' : 'omit', referrerPolicy: 'no-referrer', signal: ctl.signal });
+      r = await fetch(url.href, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', signal: ctl.signal });
     } catch {
       throw new ReleaseError('unreachable', `Could not download ${path}${where}.`);
     }

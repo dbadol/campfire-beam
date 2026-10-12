@@ -129,7 +129,8 @@ export async function loaderServed(path, sha256 = null) {
   if (!/^sw-[0-9a-f]{16}\.js$/.test(String(path))) return false;
   let bytes;
   try {
-    const r = await fetch(new URL(path, document.baseURI).href, { cache: 'no-store', credentials: 'same-origin' });
+    // No cookies: the app sets none, and one set for the parent domain must not decide the answer.
+    const r = await fetch(new URL(path, document.baseURI).href, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
     if (!r.ok) return false;
     bytes = await r.arrayBuffer();
   } catch {
