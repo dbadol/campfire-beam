@@ -149,15 +149,24 @@ export function onShown(fn, doc = globalThis.document) {
   return () => doc.removeEventListener('visibilitychange', vis);
 }
 
-export async function copyText(text, what = 'Copied') {
+/**
+ * Copies something that is not a secret (an address, a hash). It takes the place of a secret
+ * copied before (copySecret): that one's wipe is cancelled, or it would empty this later (release
+ * audit BM-5). nav, say: for the tests.
+ */
+export async function copyText(text, what = 'Copied', { nav = globalThis.navigator, say = toast } = {}) {
   try {
-    await navigator.clipboard.writeText(text);
-    toast(what);
-    return true;
+    await nav.clipboard.writeText(text);
   } catch {
-    toast("Couldn't copy. Press and hold the text to copy it.");
+    say("Couldn't copy. Press and hold the text to copy it.");
     return false;
   }
+  if (pendingSecret) {
+    pendingSecret.stop();
+    pendingSecret = null;
+  }
+  say(what);
+  return true;
 }
 
 // ---------------------------------------------------------------- secrets on the clipboard
