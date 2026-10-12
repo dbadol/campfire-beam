@@ -141,6 +141,7 @@ export function activityRow(item, onclick) {
   const open = item.state === 'signed' || item.state === 'pending';
   const bad = item.state === 'failed' || item.state === 'replaced' || item.state === 'rejected';
   const title =
+    (item.doubt === 'unsure' ? 'Not sure yet' : item.doubt === 'refused' ? 'Not sent yet' : null) ||
     swapTitle(item) ||
     STATE_TEXT[item.state] ||
     (item.direction === 'in' ? `Received ${item.asset.symbol}` : item.direction === 'self' ? `Sent ${item.asset.symbol} to yourself` : `Sent ${item.asset.symbol}`);

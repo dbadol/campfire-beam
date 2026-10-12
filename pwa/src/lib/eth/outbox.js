@@ -10,8 +10,15 @@
 // state: 'signed'   saved, not yet accepted by the server
 //        'pending'  the server took it; waiting for a block
 //        'confirmed' | 'failed' (mined; status 1 / 0: the fee was spent)
-//        'replaced' another transaction with its nonce was mined instead
-//        'rejected' the server refused the bytes: it can never be mined
+//        'replaced' another transaction with its nonce was mined instead, shown by the
+//                   server and signed by this wallet (replacedBy: its hash, replacedIn: its block)
+//        'rejected' the server refused the bytes, and kept refusing them for
+//                   lib/eth/send.js REFUSAL_WATCH_MS while their hash stayed unknown
+// unsureSince: set (ms) while an open entry's server says its nonce is used up but cannot show
+//   what used it (lib/eth/send.js followOnce): it may still be mined, so the screens say not to
+//   send it again yet. Cleared once it is mined, shown replaced, or the server sees it again.
+// refusedAt: set (ms) while an open entry's bytes are refused by the server: it may still have
+//   passed them on, so the screens say "not sent yet" and not to send it again yet.
 
 import { sealData, openData } from './sealed.js';
 import { ETH_OUTBOX_KEY } from './record.js';

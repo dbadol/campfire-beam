@@ -186,7 +186,8 @@ export function openAllowSheet(app, { w, svc, approval }) {
           try {
             for (const tx of txs) {
               const r = await signAndBroadcast(app, w, tx, { kind: tx.kind, asset, amount: tx.kind === 'approveReset' ? 0n : approval.amount, extra: { spender: ADDRESSES.permit2 } });
-              if (!r.sent && r.entry.state === 'rejected') throw new Error(`Ethereum's server refused it: ${r.error && r.error.message}`);
+              // Refused: most likely not sent, but the server may have passed it on (lib/eth/send.js keeps checking).
+              if (!r.sent && (r.entry.refusedAt || r.entry.state === 'rejected')) throw new Error(`Your Ethereum server refused it: "${r.error && r.error.message}". It most likely did not go through; it shows in your Ethereum activity while BEAM Campfire checks.`);
               hash = r.entry.hash;
               phase = 'waiting';
               rerender();
@@ -307,11 +308,8 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact }) {
               amount: q.amountIn,
               extra: { tokenOut: q.tokenOut.isEth ? null : q.tokenOut.address, tokenOutSymbol: q.tokenOut.symbol, quotedOut: String(q.amountOut), minimumOut: String(prepared.minimumOut), pools: poolCount(q) },
             });
-            if (!r.sent && r.entry.state === 'rejected') {
-              busy = false;
-              error = `Nothing was sent. Ethereum's server refused it: ${r.error && r.error.message}`;
-              return rerender();
-            }
+            // Sent, or refused by a server that may have passed it on first: the status screen follows
+            // it either way and says which ("Not sent yet" until it knows), never "nothing was sent" too soon.
             close(r.entry.hash);
           } catch (e) {
             busy = false;

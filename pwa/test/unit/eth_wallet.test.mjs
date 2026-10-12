@@ -7,13 +7,13 @@ import assert from 'node:assert/strict';
 import { sealData, openData, forgetDataKeys, ETH_DATA_INFO } from '../../src/lib/eth/sealed.js';
 import { loadOutbox, addToOutbox, updateOutbox, clearOutbox, validEntry, trimOutbox, OUTBOX_MAX } from '../../src/lib/eth/outbox.js';
 import { parseTransactions, parseTokenTransfers, mergeActivity, fetchHistory, HistoryError, PAGE } from '../../src/lib/eth/history.js';
-import { recipientProblem, transferCall, prepareSend, signAndSend, followOnce, classify, maxSendable, costRose, entryFee, SendError, BRIDGE_PIPES, ETH_TRANSFER_GAS } from '../../src/lib/eth/send.js';
+import { recipientProblem, transferCall, prepareSend, signAndSend, followOnce, classify, findNonceTaker, maxSendable, costRose, entryFee, SendError, BRIDGE_PIPES, ETH_TRANSFER_GAS, NONCE_LOOK_MS, REFUSAL_WATCH_MS } from '../../src/lib/eth/send.js';
 import { ethWallet, removeEthWallet, ethPrefs, forgetEthWallet } from '../../src/lib/eth/wallet.js';
 import { saveEthKey, getEthRecord, VaultError } from '../../src/lib/eth/vault.js';
 import { hasEthWallet, ETH_OUTBOX_KEY, ETH_RECORD_KEY } from '../../src/lib/eth/record.js';
 import { ethKeyFromMnemonic, toChecksumAddress } from '../../src/lib/eth/crypto.js';
 import { EthRpc } from '../../src/lib/eth/rpc.js';
-import { parseSignedTransaction, transactionHash } from '../../src/lib/eth/tx.js';
+import { parseSignedTransaction, transactionHash, signTransaction } from '../../src/lib/eth/tx.js';
 import { decodeCall, abiEncode } from '../../src/lib/eth/abi.js';
 import { bytesToHex } from '../../src/lib/eth/hex.js';
 import { ETH, WBEAM, TOKENS, tokenBySymbol } from '../../src/lib/eth/tokens.js';
@@ -241,16 +241,58 @@ test('transfer calls: ETH goes to the person; a token goes to its contract as tr
 const word = (n) => `0x${BigInt(n).toString(16).padStart(64, '0')}`;
 const q = (n) => `0x${BigInt(n).toString(16)}`;
 
-/** A tiny chain behind EthRpc's own fetch: one account, a pool, receipts on demand. */
+/** A signed transaction as a server's JSON shows it (eth_getTransactionByHash, a full block). */
+function txJson(raw, blockNumber = null) {
+  const p = parseSignedTransaction(raw);
+  const t = p.tx;
+  return {
+    type: '0x2',
+    chainId: q(t.chainId),
+    nonce: q(t.nonce),
+    maxPriorityFeePerGas: q(t.maxPriorityFeePerGas),
+    maxFeePerGas: q(t.maxFeePerGas),
+    gas: q(t.gasLimit),
+    to: t.to.toLowerCase(),
+    value: q(t.value),
+    input: t.data,
+    accessList: [],
+    v: q(p.yParity),
+    yParity: q(p.yParity),
+    r: q(p.r),
+    s: q(p.s),
+    hash: p.hash,
+    from: p.from.toLowerCase(),
+    blockHash: blockNumber === null ? null : F.h(0xb000 + blockNumber),
+    blockNumber: blockNumber === null ? null : q(blockNumber),
+  };
+}
+
+/**
+ * A tiny chain behind EthRpc's own fetch: one account, a pool, receipts on demand, blocks from
+ * 100 on with the transactions mined in them, and the account's count at each block. st.latest
+ * is what 'latest' answers (a test sets it to lie); st.lieAll makes every block's count lie too;
+ * st.noOldState refuses counts at past blocks, as a server without old state does; st.relayOnRefuse
+ * keeps refused bytes (a server that passed them on and then said no).
+ */
 function fakeChain({ eth = ETHER, nonce = 0n, transferReturns = word(1), estimate = null, codeAt = {}, onSend = null } = {}) {
-  const st = { eth, latest: nonce, pending: nonce, pool: new Map(), mined: new Map(), sends: [], calls: [], down: false, refuse: null };
+  const st = { eth, latest: nonce, pending: nonce, pool: new Map(), mined: new Map(), byHash: new Map(), blocks: new Map(), own: [], head: 100, sends: [], calls: [], down: false, refuse: null, relayed: new Map(), relayOnRefuse: false, lieAll: false, noOldState: false };
+  const countAt = (n) => {
+    if (st.lieAll) return st.latest;
+    if (st.noOldState && n < st.head) throw Object.assign(new Error('missing trie node'), { code: -32000 });
+    return nonce + BigInt(st.own.filter((b) => b <= n).length);
+  };
   const handle = async (method, params) => {
     st.calls.push(method);
     switch (method) {
       case 'eth_chainId':
         return '0x1';
       case 'eth_blockNumber':
-        return '0x64';
+        return q(st.head);
+      case 'eth_getBlockByNumber': {
+        const n = Number(BigInt(params[0]));
+        if (n > st.head) return null;
+        return { number: q(n), hash: F.h(0xb000 + n), transactions: st.blocks.get(n) || [] };
+      }
       case 'eth_feeHistory':
         // base fee 10 gwei (next block), tips 1..5 gwei -> median 3
         return { oldestBlock: '0x60', baseFeePerGas: Array(6).fill(q(10n * GWEI)), reward: [1, 2, 3, 4, 5].map((g) => [q(BigInt(g) * GWEI)]) };
@@ -267,10 +309,15 @@ function fakeChain({ eth = ETHER, nonce = 0n, transferReturns = word(1), estimat
       case 'eth_getBalance':
         return q(st.eth);
       case 'eth_getTransactionCount':
-        return q(params[1] === 'pending' ? st.pending : st.latest);
+        if (params[1] === 'pending') return q(st.pending);
+        if (params[1] === 'latest') return q(st.latest);
+        return q(countAt(Number(BigInt(params[1]))));
       case 'eth_sendRawTransaction': {
         if (onSend) await onSend(params[0]);
-        if (st.refuse) throw st.refuse;
+        if (st.refuse) {
+          if (st.relayOnRefuse) st.relayed.set(transactionHash(params[0]), params[0]);
+          throw st.refuse;
+        }
         const hash = transactionHash(params[0]);
         st.sends.push(params[0]);
         st.pool.set(hash, params[0]);
@@ -281,6 +328,7 @@ function fakeChain({ eth = ETHER, nonce = 0n, transferReturns = word(1), estimat
         return st.mined.get(params[0]) || null;
       case 'eth_getTransactionByHash': {
         const h = params[0];
+        if (st.byHash.has(h)) return st.byHash.get(h);
         if (st.mined.has(h)) return { hash: h, blockHash: F.h(0xbb) };
         if (st.pool.has(h)) return { hash: h, blockHash: null };
         return null;
@@ -302,12 +350,28 @@ function fakeChain({ eth = ETHER, nonce = 0n, transferReturns = word(1), estimat
     const out = Array.isArray(body) ? await Promise.all(body.map(one)) : await one(body);
     return { status: 200, text: async () => JSON.stringify(out) };
   };
+  const receiptOf = (hash, n, status) => ({ transactionHash: hash, status: q(status), blockNumber: q(n), blockHash: F.h(0xb000 + n), from: ME.toLowerCase(), to: F.ALICE, gasUsed: q(21000), effectiveGasPrice: q(13n * GWEI), logs: [] });
   const mine = (hash, status = 1) => {
+    const raw = st.pool.get(hash) || st.relayed.get(hash);
     st.pool.delete(hash);
+    st.relayed.delete(hash);
     st.latest += 1n;
-    st.mined.set(hash, { transactionHash: hash, status: q(status), blockNumber: '0x65', blockHash: F.h(0xbb), from: ME.toLowerCase(), to: F.ALICE, gasUsed: q(21000), effectiveGasPrice: q(13n * GWEI), logs: [] });
+    const n = ++st.head;
+    st.own.push(n);
+    if (raw) st.blocks.set(n, [txJson(raw, n)]);
+    st.mined.set(hash, receiptOf(hash, n, status));
   };
-  return { st, rpc: new EthRpc('stackwallet', { fetch }), mine };
+  /** Mines signed bytes this server never had in its pool (sent elsewhere); `json` as the block shows it. */
+  const mineRaw = (raw, { json = txJson(raw, st.head + 1), receipt = true } = {}) => {
+    const n = ++st.head;
+    st.latest += 1n;
+    st.own.push(n);
+    st.blocks.set(n, [json]);
+    st.byHash.set(json.hash, json);
+    if (receipt) st.mined.set(json.hash, receiptOf(json.hash, n, 1));
+    return n;
+  };
+  return { st, rpc: new EthRpc('stackwallet', { fetch }), mine, mineRaw };
 }
 
 // ---------------------------------------------------------------- prepare
@@ -424,33 +488,199 @@ test('send: a network error leaves it signed; following sends the identical byte
   assert.equal((await loadOutbox(app, { ethId, kv })).length, 1);
 });
 
-test('send: bytes the server refuses are marked as never sent', async () => {
+test('send (D-3): bytes the server refuses stay open and checked; "never sent" only after 30 minutes of refusals', async () => {
   const { app, kv, ethId } = await walletWithKey();
   const chain = fakeChain();
   const p = await prepareSend(chain.rpc, { from: ME, asset: ETH, recipient: F.ALICE, amount: 1n, balances: { eth: ETHER } });
   chain.st.refuse = Object.assign(new Error('insufficient funds for gas * price + value'), { code: -32000 });
-  const r = await signAndSend(app, chain.rpc, p, { ethId, kv });
+  let now = 1000;
+  const r = await signAndSend(app, chain.rpc, p, { ethId, kv, now: () => now });
   assert.equal(r.sent, false);
-  assert.equal(r.entry.state, 'rejected');
+  assert.equal(r.entry.state, 'signed', 'not "Nothing was spent": the server may have passed it on');
+  assert.equal(r.entry.refusedAt, 1000);
   assert.match(r.entry.error, /insufficient funds/);
-  assert.equal((await followOnce(app, chain.rpc, r.entry, { ethId, kv })).state, 'rejected', 'not followed any more');
+  assert.equal((await loadOutbox(app, { ethId, kv }))[0].refusedAt, 1000, 'kept with the entry');
+  // Followed: its hash asked, its bytes offered again, still refused: still open.
+  now += REFUSAL_WATCH_MS - 1;
+  let e = await followOnce(app, chain.rpc, r.entry, { ethId, kv, now: () => now });
+  assert.equal(e.state, 'signed');
+  assert.equal(e.refusedAt, 1000, 'since the first refusal');
+  assert.ok(chain.st.calls.includes('eth_getTransactionByHash'));
+  assert.equal(chain.st.calls.filter((m) => m === 'eth_sendRawTransaction').length, 2, 'the same bytes, again');
+  // Half an hour of refusals with the hash unknown and the nonce free: never sent.
+  now += 1;
+  e = await followOnce(app, chain.rpc, e, { ethId, kv, now: () => now });
+  assert.equal(e.state, 'rejected');
+  assert.equal((await followOnce(app, chain.rpc, e, { ethId, kv })).state, 'rejected', 'not followed any more');
 });
 
-test('follow: replaced when the nonce is used up with no receipt and the transaction is in no block', async () => {
-  assert.equal(classify({ receipt: { status: 1 }, minedNonce: 9n, nonce: '0', known: true }), 'confirmed');
-  assert.equal(classify({ receipt: { status: 0 }, minedNonce: 9n, nonce: '0', known: true }), 'failed');
-  assert.equal(classify({ receipt: null, minedNonce: 1n, nonce: '0', known: false }), 'replaced');
-  assert.equal(classify({ receipt: null, minedNonce: 1n, nonce: '0', known: true, inBlock: true }), 'pending', 'mined, the receipt is on its way');
-  assert.equal(classify({ receipt: null, minedNonce: 0n, nonce: '0', known: false }), 'unknown');
-  assert.equal(classify({ receipt: null, minedNonce: 0n, nonce: '0', known: true }), 'pending');
+test('send (D-3): a server that refused the bytes but had passed them on: the payment is followed to its receipt', async () => {
   const { app, kv, ethId } = await walletWithKey();
   const chain = fakeChain();
   const p = await prepareSend(chain.rpc, { from: ME, asset: ETH, recipient: F.ALICE, amount: 1n, balances: { eth: ETHER } });
+  chain.st.refuse = Object.assign(new Error('transaction underpriced'), { code: -32000 });
+  chain.st.relayOnRefuse = true;
+  const r = await signAndSend(app, chain.rpc, p, { ethId, kv, now: () => 5 });
+  assert.equal(r.entry.state, 'signed');
+  // Another node mined it.
+  chain.mine(r.entry.hash);
+  const e = await followOnce(app, chain.rpc, r.entry, { ethId, kv, now: () => 5 + REFUSAL_WATCH_MS * 2 });
+  assert.equal(e.state, 'confirmed', 'mined, whatever the server said when it was sent');
+  assert.equal(e.refusedAt, null);
+  // And a server that takes the bytes on a later try clears the doubt.
+  const { app: app2, kv: kv2, ethId: id2 } = await walletWithKey();
+  const c2 = fakeChain();
+  const p2 = await prepareSend(c2.rpc, { from: ME, asset: ETH, recipient: F.ALICE, amount: 2n, balances: { eth: ETHER } });
+  c2.st.refuse = Object.assign(new Error('txpool is full'), { code: -32000 });
+  const r2 = await signAndSend(app2, c2.rpc, p2, { ethId: id2, kv: kv2 });
+  c2.st.refuse = null;
+  const e2 = await followOnce(app2, c2.rpc, r2.entry, { ethId: id2, kv: kv2 });
+  assert.equal(e2.state, 'pending');
+  assert.equal(e2.refusedAt, null);
+});
+
+test('follow: a used-up nonce alone is "unsure", never "replaced"; mined, or in a block, wins', () => {
+  assert.equal(classify({ receipt: { status: 1 }, minedNonce: 9n, nonce: '0', known: true }), 'confirmed');
+  assert.equal(classify({ receipt: { status: 0 }, minedNonce: 9n, nonce: '0', known: true }), 'failed');
+  assert.equal(classify({ receipt: null, minedNonce: 1n, nonce: '0', known: false }), 'unsure');
+  assert.equal(classify({ receipt: null, minedNonce: 8n, nonce: '7', known: false }), 'unsure', 'the audit\'s PoC: a mined payment seen through a lagging backend');
+  assert.equal(classify({ receipt: null, minedNonce: 1n, nonce: '0', known: true, inBlock: true }), 'pending', 'mined, the receipt is on its way');
+  assert.equal(classify({ receipt: null, minedNonce: 0n, nonce: '0', known: false }), 'unknown');
+  assert.equal(classify({ receipt: null, minedNonce: 0n, nonce: '0', known: true }), 'pending');
+});
+
+// followOnce looks into a used-up nonce at most once a minute per transaction, and the test key
+// signs the same bytes in every test: one clock for all of them, moved past that minute each time.
+let clock = 10 ** 9;
+const later = () => (clock += NONCE_LOOK_MS);
+
+/** A wallet with one 1-wei payment sent and waiting on `chain`. */
+async function sentOne(chain = fakeChain()) {
+  const { app, kv, ethId } = await walletWithKey();
+  const p = await prepareSend(chain.rpc, { from: ME, asset: ETH, recipient: F.ALICE, amount: 1n, balances: { eth: ETHER } });
   const r = await signAndSend(app, chain.rpc, p, { ethId, kv });
-  // Another transaction with the same nonce was mined (sent from another copy of these words).
-  chain.st.pool.delete(r.entry.hash);
+  assert.equal(r.entry.state, 'pending');
+  return { app, kv, ethId, chain, entry: r.entry, p };
+}
+
+/** Another transaction from this wallet with `entry`'s nonce (what another device with the same words would send). */
+async function sameNonce(entry, { chainId = 1n, to = F.BOB, words = JUNK } = {}) {
+  const { sk } = await ethKeyFromMnemonic(words);
+  if (chainId === 1n) return signTransaction({ chainId, nonce: BigInt(entry.nonce), to: toChecksumAddress(to), value: 5n, gasLimit: 21000n, maxFeePerGas: 40n * GWEI, maxPriorityFeePerGas: 2n * GWEI }, sk);
+  // This wallet signs for Ethereum only: another chain's transaction is built here by hand.
+  const { rlpEncode } = await import('../../src/lib/eth/rlp.js');
+  const { signDigest, keccak256 } = await import('../../src/lib/eth/crypto.js');
+  const { hexToBytes, concatBytes } = await import('../../src/lib/eth/hex.js');
+  const fields = [chainId, BigInt(entry.nonce), 2n * GWEI, 40n * GWEI, 21000n, hexToBytes(to), 5n, new Uint8Array(0), []];
+  const sig = signDigest(keccak256(concatBytes(Uint8Array.of(2), rlpEncode(fields))), sk);
+  const raw = bytesToHex(concatBytes(Uint8Array.of(2), rlpEncode([...fields, sig.yParity, sig.r, sig.s])));
+  return { raw, hash: transactionHash(raw) };
+}
+
+test('follow (D-3): one server saying the nonce is used up cannot turn a waiting payment into "replaced"', async () => {
+  const { app, kv, ethId, chain, entry } = await sentOne();
+  // The PoC: the server still holds the payment, waiting, but says the account's nonce moved on.
   chain.st.latest = 1n;
-  assert.equal((await followOnce(app, chain.rpc, r.entry, { ethId, kv })).state, 'replaced');
+  let now = later();
+  const first = now;
+  const look = () => followOnce(app, chain.rpc, entry, { ethId, kv, now: () => now });
+  let e = await look();
+  assert.equal(e.state, 'pending', 'still open: it may yet be mined');
+  assert.equal(e.unsureSince, first, 'the screens are told not to send it again yet');
+  assert.deepEqual(chain.st.sends, [entry.raw, entry.raw], 'the same bytes offered again, never re-signed');
+  assert.equal((await loadOutbox(app, { ethId, kv }))[0].unsureSince, first, 'kept with the entry');
+  // A server that lies about every block too, and forgets the payment: still no evidence, still not replaced.
+  chain.st.lieAll = true;
+  chain.st.pool.delete(entry.hash);
+  const counts = () => chain.st.calls.filter((m) => m === 'eth_getTransactionCount').length;
+  now += 1000;
+  const before = counts();
+  e = await look();
+  assert.equal(e.state, 'pending');
+  assert.equal(counts() - before, 1, 'looked into a moment ago: only the nonce is asked, no search');
+  for (let i = 0; i < 5; i++) {
+    now += NONCE_LOOK_MS;
+    e = await look();
+    assert.equal(e.state, 'pending', `look ${i}: never replaced on the server's word`);
+    assert.equal(e.unsureSince, first, 'since the first time');
+  }
+  clock = now;
+  // The payment was in fact still out there: it is mined, and that is what counts.
+  chain.st.lieAll = false;
+  chain.st.latest = 0n;
+  chain.st.pool.set(entry.hash, entry.raw);
+  chain.mine(entry.hash);
+  e = await look();
+  assert.equal(e.state, 'confirmed');
+  assert.equal(e.unsureSince, null, 'no longer in doubt');
+});
+
+test('follow (D-3): "replaced" only once the server shows the transaction that took the nonce, signed by this wallet, with a receipt', async () => {
+  const { app, kv, ethId, chain, entry } = await sentOne();
+  const other = await sameNonce(entry);
+  chain.st.pool.delete(entry.hash);
+  const block = chain.mineRaw(other.raw);
+  const e = await followOnce(app, chain.rpc, entry, { ethId, kv, now: later });
+  assert.equal(e.state, 'replaced');
+  assert.equal(e.replacedBy, other.hash);
+  assert.equal(e.replacedIn, block);
+  assert.equal(e.unsureSince, null);
+  assert.ok(chain.st.calls.includes('eth_getBlockByNumber'), 'found in the block where the count passed the nonce');
+});
+
+test('follow (D-3): made-up, altered, foreign-chain or unmined "replacements" are not evidence', async () => {
+  const STRANGER = 'legal winner thank year wave sausage worth useful legal winner thank yellow';
+  const cases = {
+    'signed by another key, labelled as this wallet': async (entry) => ({ ...txJson((await sameNonce(entry, { words: STRANGER })).raw), from: ME.toLowerCase() }),
+    'a real one of ours with its amount changed': async (entry) => ({ ...txJson((await sameNonce(entry)).raw), value: q(10n ** 18n) }),
+    'ours, but signed for another chain': async (entry) => txJson((await sameNonce(entry, { chainId: 56n })).raw),
+  };
+  for (const [name, make] of Object.entries(cases)) {
+    const { app, kv, ethId, chain, entry } = await sentOne();
+    chain.st.pool.delete(entry.hash);
+    const json = await make(entry);
+    chain.mineRaw(null, { json: { ...json, blockHash: F.h(0xb065), blockNumber: q(chain.st.head + 1) } });
+    const e = await followOnce(app, chain.rpc, entry, { ethId, kv, now: later });
+    assert.equal(e.state, 'pending', name);
+    assert.ok(e.unsureSince, name);
+  }
+  // Genuinely ours and in the block, but the server serves no receipt for it: not yet evidence.
+  const { app, kv, ethId, chain, entry } = await sentOne();
+  chain.st.pool.delete(entry.hash);
+  chain.mineRaw((await sameNonce(entry)).raw, { receipt: false });
+  assert.equal((await followOnce(app, chain.rpc, entry, { ethId, kv, now: later })).state, 'pending');
+});
+
+test('follow (D-3): our own payment found in the block (its receipt not served yet) is waiting, not replaced', async () => {
+  const { app, kv, ethId, chain, entry } = await sentOne();
+  // A server whose receipt lags its blocks: the count moved, the block holds our bytes, no receipt yet.
+  const json = txJson(entry.raw, chain.st.head + 1);
+  chain.st.pool.delete(entry.hash);
+  chain.mineRaw(entry.raw, { json, receipt: false });
+  chain.st.byHash.delete(entry.hash); // and it says it does not know the hash
+  const e = await followOnce(app, chain.rpc, entry, { ethId, kv, now: later });
+  assert.equal(e.state, 'pending');
+  assert.ok(!e.unsureSince);
+});
+
+test('follow (D-3): a hash the wallet already knows proves it where the server keeps no old state', async () => {
+  const { app, kv, ethId, chain, entry } = await sentOne();
+  const other = await sameNonce(entry);
+  chain.st.pool.delete(entry.hash);
+  chain.mineRaw(other.raw);
+  chain.st.head += 500; // long ago
+  chain.st.noOldState = true;
+  assert.equal(await findNonceTaker(chain.rpc, entry).catch((err) => err.code), -32000, 'the block search needs old state');
+  assert.equal((await followOnce(app, chain.rpc, entry, { ethId, kv, now: later })).state, 'pending');
+  const e = await followOnce(app, chain.rpc, entry, { ethId, kv, candidates: [F.h(0xdead), other.hash], now: later });
+  assert.equal(e.state, 'replaced');
+  assert.equal(e.replacedBy, other.hash);
+  // The wallet offers its outbox's same-nonce entries and the history index's as candidates.
+  const w = await ethWallet(app, { kv });
+  w.state.history = { txs: [{ hash: other.hash, from: ME.toLowerCase(), nonce: Number(entry.nonce) }, { hash: F.h(7), from: ME.toLowerCase(), nonce: 99 }], transfers: [], error: null, at: 1 };
+  assert.deepEqual(w.nonceTwins(entry), [other.hash]);
+  w.state.history = { txs: [], transfers: [], error: null, at: null };
+  forgetEthWallet();
 });
 
 // ---------------------------------------------------------------- the wallet object

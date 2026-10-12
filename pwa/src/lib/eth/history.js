@@ -184,6 +184,8 @@ export function mergeActivity({ address, outbox = [], txs = [], transfers = [] }
       // A Uniswap swap or approval sent from this device (lib/eth/uniswap_app.js): what it was for.
       kind: typeof e.kind === 'string' ? e.kind : null,
       swapOut: typeof e.tokenOutSymbol === 'string' ? e.tokenOutSymbol : null,
+      // Open but in doubt (lib/eth/send.js): 'unsure' (its nonce said used, nothing shown) or 'refused'.
+      doubt: e.state !== 'signed' && e.state !== 'pending' ? null : e.unsureSince ? 'unsure' : e.refusedAt && e.state === 'signed' ? 'refused' : null,
     });
   }
   const items = [...byHash.values()];

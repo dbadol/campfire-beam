@@ -273,6 +273,18 @@ export class EthRpc {
     return r;
   }
 
+  /**
+   * Block `block` (a number or a tag) with its transactions as objects (full) or hashes; null
+   * when the server has no such block. What the transactions say is the server's word: check
+   * them (tx.js verifyRpcTransaction) before acting on one.
+   */
+  async getBlockByNumber(block, full = false) {
+    const r = await this.call('eth_getBlockByNumber', [blockParam(block), Boolean(full)]);
+    if (r === null) return null;
+    if (typeof r !== 'object' || !Array.isArray(r.transactions)) throw new EthRpcError('bad_response', 'The block answered has no transaction list.');
+    return r;
+  }
+
   /** null while pending or unknown; else {status 1|0, blockNumber, gasUsed, effectiveGasPrice, logs, …}. */
   async getTransactionReceipt(hash) {
     const h = bytesToHex(toBytes(hash));
