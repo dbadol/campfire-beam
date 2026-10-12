@@ -44,7 +44,8 @@ certutil -hashfile BEAM-Campfire-<version>-windows-x86_64.zip SHA256   # Windows
   keeps working when the site is gone. Its releases are tagged `web-v…`, with the signed files
   attached. The copy at vsnation.github.io/beam-campfire-pwa/ is an update source for installed apps
   only, not a place to keep a wallet: other GitHub Pages sites share that address, so the app there
-  sends you to pwa.buybeam.my to create, restore or import one.
+  makes no new wallet and sends you to pwa.buybeam.my (restoring or importing there is possible only
+  after a warning, for when pwa.buybeam.my is gone).
 
 ## Screenshots
 

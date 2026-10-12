@@ -18,7 +18,7 @@ import { wallet, sendModeFor } from '../lib/wallet.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
 import { checkCode, display } from '../lib/bans.js';
 import { bans, nameProblemText } from './names.js';
-import { contactNameFor, namePinFor, pinNamePayment } from '../lib/contacts.js';
+import { contactNameFor, readNamePin, pinNamePayment, NAME_PIN_UNREAD } from '../lib/contacts.js';
 import { cleanNote } from '../lib/payments.js';
 
 export default function review(app, p) {
@@ -108,7 +108,9 @@ function nameReview(app, p) {
     put(msg);
     try {
       // A name this wallet paid before must still have that owner, unless the person chose the new one on Send.
-      const pinnedKey = await namePinFor(app, p.name).catch(() => p.pinnedKey || null);
+      // Unreadable now: what Send read (Review already says when Send could not read it either).
+      const pin = await readNamePin(app, p.name);
+      const pinnedKey = pin.unread ? p.pinnedKey || null : pin.key;
       // The approve sheet that follows shows the wallet's own figures and asks for Face ID / password.
       const r = await bans().pay(p.name, Number(p.assetId), p.amount, { expectedOwnerKey: p.ownerKey, pinnedKey, acceptedKey: p.acceptedKey || null });
       // Paid: the owner the name is expected to have next time.
@@ -146,8 +148,16 @@ function nameReview(app, p) {
   return { el };
 }
 
-/** Whether this wallet paid the name before, and to whom: the same owner, or a new one the person chose. */
+/**
+ * Whether this wallet paid the name before, and to whom: the same owner, or a new one the person
+ * chose; or that the record of earlier payments could not be read, so nothing was compared (BC-3).
+ */
 function ownerHistory(p) {
+  if (p.pinUnread) {
+    const n = notice('warn', NAME_PIN_UNREAD);
+    n.dataset.testid = 'review-owner-pin';
+    return n;
+  }
   if (p.acceptedKey && p.pinnedKey && p.acceptedKey === p.ownerKey) {
     const n = notice('warn', `${display(p.name)} had another owner when you last paid it (${checkCode(p.pinnedKey)}). You chose to pay the new one.`);
     n.dataset.testid = 'review-owner-pin';

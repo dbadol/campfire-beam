@@ -315,6 +315,48 @@ test('pay a name from Send: resolved to its owner before Review, shown on Review
   assert.match(await page.textContent(tid('review-name-result')), /Cancelled\. Nothing was sent\./);
   assert.equal((await lastConsent()).decision, 'rejected');
 
+  // Audit BC-3: the sealed record of names paid before does not open (damaged). Send and Review say
+  // the owner could not be compared, instead of treating the name as never paid.
+  const UNREAD = 'BEAM Campfire could not compare this owner with your earlier payments.';
+  const paymentsRecord = async (value) =>
+    page.evaluate(async ([v]) => {
+      const id = (await window.__campfire.wallets()).find((w) => w.selected).id;
+      const db = await new Promise((res, rej) => {
+        const r = indexedDB.open('beam-campfire-app', 1);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      await new Promise((res, rej) => {
+        const t = db.transaction('kv', 'readwrite');
+        if (v === null) t.objectStore('kv').delete(`w:${id}:payments`);
+        else t.objectStore('kv').put(v, `w:${id}:payments`);
+        t.oncomplete = res;
+        t.onerror = () => rej(t.error);
+      });
+      db.close();
+    }, [value]);
+  await page.evaluate(() => window.__campfire.go('home'));
+  await waitScreen(page, 'home');
+  await paymentsRecord({ v: 1, kind: 'damaged' });
+  await lock(page); // the record is read once per unlock
+  await unlockWithPassword(page, PASSWORD);
+  await waitHome(page);
+  await pretendBalance(500000000000n);
+  await page.evaluate(() => window.__campfire.go('send'));
+  await waitScreen(page, 'send');
+  await page.fill(tid('send-address'), 'beam.beam');
+  await page.waitForFunction(() => /registered name, owner key/.test(document.querySelector('[data-testid="address-hint"]').textContent), null, { timeout: 120000 });
+  const unreadHint = await page.textContent(tid('address-hint'));
+  console.log(`# send hint, record unreadable: ${unreadHint}`);
+  assert.ok(unreadHint.includes(UNREAD), unreadHint);
+  await page.fill(tid('send-amount'), '0.001');
+  await shots('send-05-name-pin-unread');
+  await page.click(tid('review'));
+  await waitScreen(page, 'review');
+  assert.equal((await page.textContent(tid('review-owner-pin'))).trim(), UNREAD);
+  await shots('send-06-review-name-pin-unread');
+  await paymentsRecord(null); // back to "never paid" for the rest of the run
+
   // A name nobody owns, and text that is neither: plain words, no button.
   await page.click('button[aria-label="Back"]');
   await waitScreen(page, 'send');

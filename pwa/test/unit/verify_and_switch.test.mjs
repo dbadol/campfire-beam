@@ -62,7 +62,10 @@ function world() {
   const root = mkdtempSync(join(tmpdir(), 'campfire-vas-'));
   const site = join(root, 'site');
   mkdirSync(site);
-  return { root, site, co: join(root, 'checkout'), key: join(site, 'release_public.jwk'), cleanup: () => rmSync(root, { recursive: true, force: true }) };
+  // The pinned key lives outside both the checkout and the served folder (in production
+  // /etc/beam-campfire/, root-owned): the deploy user can write <site>, so a key there is not pinned.
+  mkdirSync(join(root, 'etc'));
+  return { root, site, co: join(root, 'checkout'), key: join(root, 'etc', 'release_public.jwk'), cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
 const served = (site) => readlinkSync(join(site, 'current'));
@@ -141,6 +144,63 @@ test('refused, and the served release left as it was: altered file, other key, s
     assert.equal(served(w.site), before);
   } finally {
     w.cleanup();
+  }
+});
+
+// Audit UPD-1: the hosting README ran the checker from the checkout it judges, so whoever can push
+// to the hosting repository shipped the checker too, served unsigned files and rewrote the pinned
+// key (it sat in <site>, writable by the same user). The checker now refuses to run from inside the
+// checkout or the served folder, takes its key from outside both, and the docs install it so.
+test('refused when the checker itself, or its key, sits inside the checkout or the served folder', { skip: !tools && 'needs python3 and openssl' }, async () => {
+  const w = world();
+  try {
+    const k = await keyPair();
+    writeFileSync(w.key, JSON.stringify(k.pub));
+    await checkout(w.co, k.priv);
+    const from = (copy, args) => {
+      mkdirSync(dirname(copy), { recursive: true });
+      writeFileSync(copy, readFileSync(script));
+      const r = spawnSync('sh', [copy, ...args], { encoding: 'utf8' });
+      return { code: r.status, out: `${r.stdout}${r.stderr}` };
+    };
+    // The hosting README's old command: the checkout's own copy of the script.
+    const inCheckout = from(join(w.co, 'deploy', 'verify_and_switch.sh'), [w.co, w.site, '--key', w.key]);
+    assert.notEqual(inCheckout.code, 0, inCheckout.out);
+    assert.match(inCheckout.out, /REFUSED.*runs from inside the checkout/);
+    assert.ok(!existsSync(join(w.site, 'current')), 'nothing served');
+    // A copy kept in the served folder is no better: the same user writes it.
+    const inSite = from(join(w.site, 'verify_and_switch.sh'), [w.co, w.site, '--key', w.key]);
+    assert.notEqual(inSite.code, 0, inSite.out);
+    assert.match(inSite.out, /REFUSED.*runs from inside the folder it serves/);
+    assert.ok(!existsSync(join(w.site, 'current')), 'nothing served');
+    // A key in the served folder: refused (the old default).
+    const siteKey = join(w.site, 'release_public.jwk');
+    writeFileSync(siteKey, JSON.stringify(k.pub));
+    const r = run(w.co, w.site, siteKey);
+    assert.notEqual(r.code, 0, r.out);
+    assert.match(r.out, /key .* inside the folder it serves/);
+    assert.ok(!existsSync(join(w.site, 'current')), 'nothing served');
+    // No --key: the default is outside both, /etc/beam-campfire/release_public.jwk.
+    const d = spawnSync('sh', [script, w.co, w.site], { encoding: 'utf8' });
+    assert.notEqual(d.status, 0);
+    if (!existsSync('/etc/beam-campfire/release_public.jwk')) assert.match(`${d.stdout}${d.stderr}`, /no readable release key at (\/private)?\/etc\/beam-campfire\/release_public\.jwk/);
+    // Kept outside both (as installed): served.
+    const ok = from(join(w.root, 'etc', 'verify_and_switch.sh'), [w.co, w.site, '--key', w.key]);
+    assert.equal(ok.code, 0, ok.out);
+    assert.match(served(w.site), /^releases\/1\.0\.0-/);
+  } finally {
+    w.cleanup();
+  }
+});
+
+test('the hosting README and the release notes install the checker and the key outside the checkout', () => {
+  const docs = [join(dirname(script), 'hosting_README.md'), join(dirname(script), '..', '..', 'docs', 'beam', 'RELEASE_NOTES_PWA_0.2.13.md')];
+  for (const f of docs) {
+    const s = readFileSync(f, 'utf8');
+    assert.ok(!/\bsh \S*beam-campfire-pwa\/deploy\/verify_and_switch\.sh/.test(s), `${f}: never runs the checkout's own copy`);
+    assert.ok(!s.includes('/srv/beam-campfire/release_public.jwk'), `${f}: the key is not pinned inside the served folder`);
+    assert.ok(s.includes('/etc/beam-campfire/verify_and_switch.sh'), `${f}: runs the installed copy`);
+    assert.ok(s.includes('/etc/beam-campfire/release_public.jwk'), `${f}: pins the key outside`);
   }
 });
 

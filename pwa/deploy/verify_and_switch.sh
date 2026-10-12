@@ -1,7 +1,7 @@
 #!/bin/sh
 # Serve a BEAM Campfire release only after it verified, the way the app verifies it.
 #
-#   sh verify_and_switch.sh <checkout> <site> [--key <release_public.jwk>] [--keep 3]
+#   sh /etc/beam-campfire/verify_and_switch.sh <checkout> <site> [--key <release_public.jwk>] [--keep 3]
 #
 # <checkout>  a freshly pulled checkout of the hosting repository
 #             (git -C <checkout> pull --ff-only). Untrusted: whoever can push to that
@@ -10,8 +10,13 @@
 #             <site>/releases/<version>-<manifest hash>/, and nginx's root is <site>/current.
 # --key       the release public key, pinned on the server: a copy of
 #             pwa/keys/release_public.jwk from the source repository, checked by hand once.
-#             Default <site>/release_public.jwk. Never one inside the checkout it judges.
+#             Default /etc/beam-campfire/release_public.jwk.
 # --keep      release folders to keep besides the one served (for a rollback). Default 3.
+#
+# This script and the key must live outside both the checkout and <site>, owned by root and
+# read-only to the user that runs it (install them once in /etc/beam-campfire/). A copy inside the
+# checkout is whatever the last push made it, and <site> is writable by the user that runs this:
+# either would let a push change the checker or the key it trusts. Both are refused.
 #
 # What it checks before anything is served (src/lib/release.js, src/lib/update_sources.js):
 #   release.sig is an ECDSA P-256 / SHA-256 signature of release.json's exact bytes under the
@@ -30,13 +35,12 @@
 # Needs python3 and openssl (both on any Ubuntu server). Run as the user that owns <site>, not
 # root, e.g. from the deploy hook right after the pull:
 #   git -C /srv/beam-campfire-pwa pull --ff-only && \
-#     sh /srv/beam-campfire-pwa/deploy/verify_and_switch.sh /srv/beam-campfire-pwa /srv/beam-campfire
-# (Better: keep this script outside the checkout too, so a push cannot change the checker.)
+#     sh /etc/beam-campfire/verify_and_switch.sh /srv/beam-campfire-pwa /srv/beam-campfire
 set -eu
 for tool in python3 openssl; do
   command -v "$tool" >/dev/null 2>&1 || { echo "verify_and_switch: needs $tool" >&2; exit 2; }
 done
-exec python3 - "$@" <<'PY'
+exec python3 - "$0" "$@" <<'PY'
 import base64, errno, fcntl, hashlib, json, os, re, shutil, subprocess, sys, tempfile
 
 APP = 'beam-campfire-pwa'
@@ -56,7 +60,9 @@ def usage():
     sys.exit(2)
 
 
-args = sys.argv[1:]
+DEFAULT_KEY = '/etc/beam-campfire/release_public.jwk'
+self_path = os.path.realpath(sys.argv[1])  # this script, as the shell ran it ($0)
+args = sys.argv[2:]
 opts = {'--key': None, '--keep': '3'}
 pos = []
 i = 0
@@ -73,7 +79,7 @@ if len(pos) != 2 or not opts['--keep'].isdigit():
     usage()
 checkout = os.path.realpath(pos[0])
 site = os.path.realpath(pos[1])
-key_path = os.path.realpath(opts['--key'] or os.path.join(site, 'release_public.jwk'))
+key_path = os.path.realpath(opts['--key'] or DEFAULT_KEY)
 keep = int(opts['--keep'])
 
 
@@ -109,9 +115,24 @@ def read_plain(rel, limit, too_big='is larger than it may be'):
     return data
 
 
+def where_things_are():
+    """The checker and the key it trusts must be out of reach of a push (audit UPD-1)."""
+    if inside(site, checkout) or inside(checkout, site):
+        raise Refused('the checkout and the served folder must be separate folders')
+    if not os.path.isfile(self_path):
+        raise Refused('cannot tell where this script is: run it by its path, e.g. sh /etc/beam-campfire/verify_and_switch.sh <checkout> <site>')
+    for what, path in (('this script', self_path), ('the release key', key_path)):
+        for folder, name in ((checkout, 'the checkout it would judge'), (site, 'the folder it serves')):
+            if inside(path, folder):
+                runs = 'runs from' if what == 'this script' else f'{path} is'
+                raise Refused(f'{what} {runs} inside {name}, so a push could change it: '
+                              'install it outside both, e.g. in /etc/beam-campfire/, owned by root and read-only to this user')
+    for path in (self_path, key_path):
+        if os.path.exists(path) and os.access(path, os.W_OK) and os.geteuid() != 0:
+            print(f'verify_and_switch: warning: {path} can be changed by the user running this; make it owned by root and read-only', file=sys.stderr)
+
+
 def public_key_pem():
-    if inside(key_path, checkout):
-        raise Refused(f'the release key {key_path} is inside the checkout it would judge: pin a copy outside it')
     try:
         jwk = json.load(open(key_path))
     except (OSError, ValueError):
@@ -165,8 +186,6 @@ def write(dst_root, rel, data):
 
 
 def main():
-    if inside(site, checkout) or inside(checkout, site):
-        raise Refused('the checkout and the served folder must be separate folders')
     meta = {name: read_plain(name, MAX_META) for name in META}
     verify_signature(meta['release.json'], meta['release.sig'].decode('ascii', 'replace'))
     rel = json.loads(meta['release.json'])
@@ -244,6 +263,7 @@ def main():
 
 
 try:
+    where_things_are()
     os.makedirs(site, exist_ok=True)
     with open(os.path.join(site, '.verify_and_switch.lock'), 'w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

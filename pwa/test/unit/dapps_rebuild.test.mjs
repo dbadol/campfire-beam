@@ -12,7 +12,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeInvokeData, FLAG_DEPENDENT, FLAG_SAVE_APP_INVOKE } from '../../src/lib/dapps/invoke_data.js';
-import { checkContractData, checkRebuild, PolicyRefusal } from '../../src/lib/dapps/policy.js';
+import { checkContractData, checkRebuild, storedArgsProblem, PolicyRefusal } from '../../src/lib/dapps/policy.js';
 import { DappSession } from '../../src/lib/dapps/session.js';
 import { CATALOGUE, REBUILD_BODIES } from '../../src/lib/dapps/catalogue.js';
 import { SHADERS } from '../../src/lib/shaders.js';
@@ -56,9 +56,9 @@ test('a pinned body passes from a checked dApp; not from a file, and not with a 
   const d = checkContractData(swapRaw());
   await assert.rejects(checkRebuild(d, { unchecked: true }), refused);
   const body = [...d.appShader];
-  await checkRebuild(checkContractData(rebuildable(body)), { unchecked: false });
+  await checkRebuild(checkContractData(rebuildable(body, { appArgs: { action: 'pool_trade', cid: DEX } })), { unchecked: false });
   // invoke_builder stores an empty contract body; one with bytes deploys code on a rebuild.
-  const withContract = Uint8Array.from([...rebuildable(body)]);
+  const withContract = Uint8Array.from([...rebuildable(body, { appArgs: { action: 'pool_trade', cid: DEX } })]);
   const decoded = checkContractData(withContract);
   await assert.rejects(checkRebuild({ ...decoded, contractShaderLength: 4 }, { unchecked: false }), refused);
 });
@@ -139,4 +139,43 @@ test("the wallet's own DEX shader is pinned by its compiled body too", () => {
   assert.equal(own.length, 1);
   assert.equal(own[0][1].wasmSha256, SHADERS.amm.sha256);
   assert.equal(own[0][0], 'bdff009943b48d32af3253b7e61facd09777c8064e83934b23caa0443533dc8b', "the desktop's pin (dapp_rebuild_terms.dart)");
+});
+
+// Audit BC-4: checkRebuild pinned the stored app body but not its stored arguments, and the core
+// re-runs that body with those arguments. A store dApp could store BEAM's own DEX body with
+// cid=<another contract> next to a 1-groth call to the real DEX; the rebuild would then run BEAM's
+// AMM code against that contract (bounded by the core to the approved funds + 1%). Now the stored
+// cid (and cidAmm, the only other contract argument a pinned body may be redone with) must be the
+// contract that body is for.
+const ACCUM = 'ec160307c43bc3fc0c3a52d3e3d3dfd8101593e8cec7a907fc42c9f103aabbae';
+
+test("the audit's shape: BEAM's DEX body stored with another contract's id is refused; with the DEX's, it passes", async (t) => {
+  if (!existsSync(swapFixture)) return t.skip('desktop fixtures not next to the PWA');
+  const body = [...checkContractData(swapRaw()).appShader];
+  const trade = { role: 'user', action: 'pool_trade', aid1: '0', aid2: '174', kind: '2', val1_buy: '0', val2_pay: '100000000', bPredictOnly: '0' };
+  const shaped = (appArgs) => checkContractData(new Uint8Array(invokeData([invokeEntry({ contractId: DEX, method: 7, flags: FLAG_DEPENDENT | FLAG_SAVE_APP_INVOKE, spend: { 0: 1 }, comment: 'Amm trade' })], { firstFlags: FLAG_SAVE_APP_INVOKE, appShader: body, appArgs, privilege: 0 })));
+  await assert.rejects(checkRebuild(shaped({ ...trade, cid: cid(0xa7) }), { unchecked: false }), refused, 'cid of another contract');
+  await assert.rejects(checkRebuild(shaped(trade), { unchecked: false }), refused, 'no cid at all');
+  await assert.rejects(checkRebuild(shaped({ ...trade, cid: DEX, cidAmm: cid(0xa7) }), { unchecked: false }), refused, 'a contract argument the DEX body is not redone with');
+  await assert.rejects(checkRebuild(shaped({ ...trade, cid: DEX, ' cid': cid(0xa7) }), { unchecked: false }), refused, 'a spaced copy of the key');
+  await checkRebuild(shaped({ ...trade, cid: DEX }), { unchecked: false });
+  await checkRebuild(shaped({ ...trade, cid: DEX.toUpperCase() }), { unchecked: false });
+});
+
+test('every pinned body names the contract it is for; the stored contract arguments must be those', () => {
+  for (const [hash, pin] of Object.entries(REBUILD_BODIES)) {
+    assert.ok(pin.contracts && Array.isArray(pin.contracts.cid) && pin.contracts.cid.length > 0, `${hash}: names its contract`);
+    for (const list of Object.values(pin.contracts)) for (const c of list) assert.match(c, /^[0-9a-f]{64}$/, hash);
+    if (pin.package === 'dex-app.dapp' || pin.shader) assert.deepEqual(pin.contracts, { cid: [DEX] }, `${hash}: the Beam DEX`);
+    if (pin.package === 'accum-dapp.dapp') assert.deepEqual(pin.contracts, { cid: [ACCUM], cidAmm: [DEX] }, `${hash}: the DAO accumulator (and the DEX it farms)`);
+  }
+  const accum = { cid: [ACCUM], cidAmm: [DEX] };
+  assert.equal(storedArgsProblem({ action: 'user_lock', cid: ACCUM, amountLpToken: '5' }, accum), null);
+  assert.equal(storedArgsProblem({ action: 'start_farming', cid: ACCUM, cidAmm: DEX }, accum), null);
+  assert.ok(storedArgsProblem({ action: 'user_lock', cid: DEX }, accum));
+  assert.ok(storedArgsProblem({ action: 'start_farming', cid: ACCUM, cidAmm: cid(0xa7) }, accum));
+  assert.ok(storedArgsProblem({ action: 'start_farming', cid: ACCUM, cidDaoCore: cid(0xa7) }, accum), 'a contract argument not listed');
+  assert.ok(storedArgsProblem({ action: 'user_lock', CID: ACCUM }, accum), 'keys are exact');
+  assert.ok(storedArgsProblem(null, accum));
+  assert.ok(storedArgsProblem({ cid: ACCUM }, null), 'a body that names no contract is never redone');
 });

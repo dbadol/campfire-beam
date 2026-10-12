@@ -418,3 +418,15 @@ test('the build signs the loader, its compat value and the sources into release.
     for (const d of dirs) rmSync(d, { recursive: true, force: true });
   }
 });
+
+// Audit UPD-3: "the newest signed release wins", so a release can no longer be withdrawn by
+// reverting the hosting repository: every copy that still has it (jsDelivr's @main up to 12 h,
+// Pages ~10 min, an added mirror for as long as it likes) offers it to every install that checks.
+// The release process must say so: roll forward with a higher version, and purge jsDelivr.
+test('PWA.md §5: never withdraw a release by reverting; roll forward with a higher version and purge jsDelivr', () => {
+  const doc = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'docs', 'beam', 'PWA.md'), 'utf8');
+  const s5 = doc.slice(doc.indexOf('## 5. Deployment requirements'), doc.indexOf('## 6. Running it'));
+  assert.match(s5, /[Nn]ever withdraw a release by reverting/);
+  assert.match(s5, /roll forward with a higher\s+version/);
+  assert.match(s5, /purge\.jsdelivr\.net\/gh\/vsnation\/beam-campfire-pwa@main\/release\.json/);
+});

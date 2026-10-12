@@ -260,6 +260,7 @@ test('Send: pick a contact (its address shown), a look-alike called out, Scan wi
   await page.waitForSelector(tid('send-lookalike'));
   assert.match(await page.textContent(tid('send-lookalike')), /Not Alice S's saved address/);
   await shot(page, 'payments-14-send-lookalike');
+  await primaryAboveFold(tid('review')); // the warning and the note push the content down; the button stays
 
   // Scan: the fake camera shows beam:<OTHER>?amount=0.5.
   await page.fill(tid('send-address'), '');
