@@ -14,10 +14,12 @@
  *   - "Can someone take my money with it?" -> no: it can see balance and history, not spend.
  *   - "Which password?" -> the BEAM Campfire one; the node needs the same.
  *   - "Wrong password" / "Face ID failed" -> says so, keeps the field, says the way forward.
+ *   - "Is it safe on the clipboard?" -> Copy says the clipboard is emptied after a minute (and at
+ *     the lock), and that clipboard history apps may keep it.
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, primary, textButton, notice, copyText, focusSoon, onHidden } from '../lib/ui.js';
+import { screen, primary, textButton, notice, copySecret, focusSoon, onHidden } from '../lib/ui.js';
 import { hasPasskey, openWithPasswordFor, openWithPasskeyFor } from '../lib/session.js';
 import { wallet } from '../lib/wallet.js';
 import { OWNER_KEY_TEXT as T, looksLikeOwnerKey } from '../lib/owner_key.js';
@@ -133,7 +135,7 @@ export default function ownerKey(app, params = {}) {
       h('div', { class: 'address-box' }, keyText),
       notice('warn', T.shownWarn),
     );
-    const copyBtn = primary(h('span', { text: T.copyCta }), () => key && copyText(key, T.copied), { 'data-testid': 'okey-copy' });
+    const copyBtn = primary(h('span', { text: T.copyCta }), () => key && copySecret(key, T.copied, { app }), { 'data-testid': 'okey-copy' });
     copyBtn.prepend(icon('copy'));
     put(actions, copyBtn, textButton(T.done, () => app.back(backTo), { 'data-testid': 'okey-done' }));
   }

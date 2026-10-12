@@ -8,12 +8,13 @@
  *   - "Which ones were claimed?" -> each code shows what the network last said about it.
  *   - "I need them in a spreadsheet / somewhere safe" -> "Save as CSV" (the desktop's columns) to the share
  *     sheet or a download, with a word that the file holds the keys in plain text.
+ *   - "Are they safe on the clipboard?" -> Copy says the clipboard is emptied after a minute (and at the lock).
  *   - "Someone could see them in the app switcher" -> the codes leave the screen while the app is out of
  *     sight and come back by themselves on return (copy, paste in a chat, come back for the next).
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, primary, secondary, notice, copyText, toast, onHidden, onShown } from '../lib/ui.js';
+import { screen, primary, secondary, notice, copySecret, toast, onHidden, onShown } from '../lib/ui.js';
 import { batchTotal, CODE_STATUS, TX_STATUS } from '../lib/airdrop.js';
 import { airdrop, amountText } from './airdrop.js';
 import { csvFile } from '../lib/airdrop_csv.js';
@@ -53,7 +54,7 @@ export default function airdropCodes(app, p = {}) {
     const same = batch.codes.every((c) => c.value === batch.codes[0].value);
     const all = batch.codes.map((c) => c.code).join('\n');
     const n = batch.codes.length;
-    const copyAll = primary(`Copy all ${n} ${n === 1 ? 'code' : 'codes'}`, () => copyText(all, `${n} ${n === 1 ? 'code' : 'codes'} copied`), { 'data-testid': 'codes-copy-all' });
+    const copyAll = primary(`Copy all ${n} ${n === 1 ? 'code' : 'codes'}`, () => copySecret(all, `${n} ${n === 1 ? 'code' : 'codes'} copied`, { app }), { 'data-testid': 'codes-copy-all' });
     put(
       body,
       p.justCreated
@@ -79,7 +80,7 @@ export default function airdropCodes(app, p = {}) {
             { class: 'row asset-row code-row' },
             h('span', { class: 'code-n', text: String(i + 1) }),
             h('span', { class: 'main' }, h('div', { class: 't mono code-text', 'data-testid': 'code', text: c.code }), STATUS_TEXT[c.status] ? h('div', { class: 's', text: STATUS_TEXT[c.status] }) : null),
-            h('button', { class: 'icon-btn', type: 'button', 'aria-label': `Copy code ${i + 1}`, onclick: () => copyText(c.code, 'Code copied') }, icon('copy')),
+            h('button', { class: 'icon-btn', type: 'button', 'aria-label': `Copy code ${i + 1}`, onclick: () => copySecret(c.code, 'Code copied', { app }) }, icon('copy')),
           ),
         ),
       ),

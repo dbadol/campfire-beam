@@ -626,7 +626,7 @@ test('import by private key: one box knows it is a key, shows the address first;
   assert.equal(await page.evaluate((k) => window.__copied === k, key), true, 'Copy gives the key');
   await page.evaluate(() => delete window.__copied);
   await page.waitForSelector('.toast');
-  assert.equal(await page.textContent('.toast'), 'Private key copied');
+  assert.equal(await page.textContent('.toast'), 'Private key copied. BEAM Campfire empties the clipboard in 1 minute (clipboard history apps may keep it).');
   await page.click(tid('eth-key-hide'));
   assert.equal(await page.getAttribute(tid('eth-key-box'), 'data-state'), 'masked');
   assert.match(await page.textContent(tid('eth-key-text')), /^•{64}$/);

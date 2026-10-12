@@ -19,7 +19,7 @@
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, toast, notice, openSheet, copyText, onHidden } from '../lib/ui.js';
+import { screen, toast, notice, openSheet, copySecret, onHidden } from '../lib/ui.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
 import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC } from '../lib/eth/hosts.js';
 import { getEthRecord, ethRecordKind, withEthKey } from '../lib/eth/vault.js';
@@ -40,7 +40,7 @@ function keyReveal(app, { onHide = null } = {}) {
   const text = h('p', { class: 'mono', 'data-testid': 'eth-key-text', 'aria-label': 'Private key, hidden', text: MASK });
   const showBtn = h('button', { class: 'btn btn-secondary btn-small', 'data-testid': 'eth-key-reveal' }, icon('eye'), 'Tap to show the private key');
   const cover = h('div', { class: 'cover' }, showBtn);
-  const copyBtn = h('button', { class: 'btn btn-secondary btn-small', 'data-testid': 'eth-key-copy', onclick: () => hex && copyText(hex, 'Private key copied') }, icon('copy'), 'Copy');
+  const copyBtn = h('button', { class: 'btn btn-secondary btn-small', 'data-testid': 'eth-key-copy', onclick: () => hex && copySecret(hex, 'Private key copied', { app }) }, icon('copy'), 'Copy');
   const hideBtn = h('button', { class: 'btn btn-text btn-small', 'data-testid': 'eth-key-hide', onclick: () => hide() }, 'Hide');
   const tools = h('div', { class: 'btn-row key-actions hidden' }, copyBtn, hideBtn);
   const box = h('div', { class: 'key-box masked', 'data-testid': 'eth-key-box', 'data-state': 'masked' }, text);

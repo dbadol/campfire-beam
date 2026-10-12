@@ -160,6 +160,95 @@ export async function copyText(text, what = 'Copied') {
   }
 }
 
+// ---------------------------------------------------------------- secrets on the clipboard
+// A key or a code copied to the system clipboard stays there for any app to read (desktop
+// programs, the keyboard's clipboard history, Windows' Win+V with its cloud sync, Universal
+// Clipboard), and a page cannot mark it sensitive the way an Android app can. So a secret is taken
+// out again after SECRET_CLIPBOARD_MS, and at the lock. Only what BEAM Campfire put there: where the
+// browser lets the page read the clipboard without asking, it checks first; elsewhere the clipboard
+// is emptied (the toast said it would be). A browser lets a page write only while it is in front
+// (Chrome) or right after a tap (Safari, Firefox), so the clear also runs when the page is back in
+// front and at the next tap. No copy of the secret is kept for that: only its SHA-256. The 12 words
+// have no copy button at all. (Ported from the Firo wallet.)
+export const SECRET_CLIPBOARD_MS = 60000;
+let pendingSecret = null; // { hash, due, compare, stop }
+
+async function sha256Hex(text) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(text)));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Whether a secret BEAM Campfire copied is still waiting to be cleared (for the tests). */
+export const secretOnClipboard = () => Boolean(pendingSecret);
+
+/**
+ * Empties the clipboard if it still holds the secret BEAM Campfire copied (force: now, not only once
+ * it is due: the lock). Resolves true once done or nothing is waiting.
+ */
+export function clearSecretClipboard({ force = false, nav = globalThis.navigator } = {}) {
+  const p = pendingSecret;
+  if (!p) return Promise.resolve(true);
+  if (!force && Date.now() < p.due) return Promise.resolve(false);
+  const done = () => {
+    if (pendingSecret === p) {
+      pendingSecret = null;
+      p.stop();
+    }
+    return true;
+  };
+  // No read-back possible: write now, in this very turn, so a tap still counts as one. A lock out of
+  // sight is refused (not in front): then the next return or tap clears it, without the wait.
+  const write = () =>
+    nav.clipboard.writeText('').then(done, () => {
+      if (force) p.due = 0;
+      return false;
+    });
+  if (!p.compare) return write();
+  return nav.clipboard.readText().then(
+    (now) => sha256Hex(now).then((h) => (h === p.hash ? write() : done())),
+    () => write(),
+  );
+}
+
+/**
+ * Copies a secret: a toast that says the clipboard is emptied after a minute, then it is (see
+ * above). app: also emptied when the wallet locks. say: the toast (the tests pass their own).
+ */
+export async function copySecret(text, what, { app = null, clearMs = SECRET_CLIPBOARD_MS, nav = globalThis.navigator, doc = globalThis.document, win = globalThis.window, say = toast } = {}) {
+  try {
+    await nav.clipboard.writeText(text);
+  } catch {
+    say("Couldn't copy. Press and hold the text to copy it.");
+    return false;
+  }
+  if (pendingSecret) pendingSecret.stop();
+  let compare = false;
+  try {
+    const st = nav.permissions && (await nav.permissions.query({ name: 'clipboard-read' }));
+    compare = Boolean(st && st.state === 'granted' && nav.clipboard.readText);
+  } catch {
+    /* this browser cannot say: it is emptied without a check */
+  }
+  const p = { hash: await sha256Hex(text), due: Date.now() + clearMs, compare };
+  const tryClear = () => clearSecretClipboard({ nav });
+  const onVisible = () => doc.visibilityState === 'visible' && tryClear();
+  const onLock = () => clearSecretClipboard({ force: true, nav });
+  const timer = setTimeout(tryClear, clearMs + 50);
+  doc.addEventListener('visibilitychange', onVisible);
+  if (win) for (const ev of ['focus', 'pointerdown', 'keydown']) win.addEventListener(ev, tryClear, true);
+  if (app && app.lockHooks) app.lockHooks.add(onLock);
+  p.stop = () => {
+    clearTimeout(timer);
+    doc.removeEventListener('visibilitychange', onVisible);
+    if (win) for (const ev of ['focus', 'pointerdown', 'keydown']) win.removeEventListener(ev, tryClear, true);
+    if (app && app.lockHooks) app.lockHooks.delete(onLock);
+  };
+  pendingSecret = p;
+  const mins = Math.max(1, Math.round(clearMs / 60000));
+  say(`${what}. BEAM Campfire empties the clipboard in ${mins} minute${mins === 1 ? '' : 's'} (clipboard history apps may keep it).`, 6000);
+  return true;
+}
+
 /**
  * An asset's round icon, the same on every screen (the desktop's BeamAssetLogo):
  * BEAM's logo, a verified asset's bundled icon, otherwise the BEAM desktop
