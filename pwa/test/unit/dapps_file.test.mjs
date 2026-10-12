@@ -207,6 +207,23 @@ test('hosts a file dApp may be allowed: https, a public DNS name, an optional po
   assert.ok(!remoteHostOk(`${'a'.repeat(60)}.${'b'.repeat(60)}.${'c'.repeat(60)}.${'d'.repeat(60)}.${'e'.repeat(10)}.com`), 'longer than 253');
 });
 
+// A public name can still resolve to this device or the local network. The browser resolves
+// names itself, so the wallet cannot see where one leads; it refuses the names that say so
+// (an address written into the name) and the services whose names always lead there.
+test('hosts that spell an IP address, or belong to a loopback or rebinding service, are refused', () => {
+  for (const bad of [
+    '127.0.0.1.nip.io', 'app.192.168.1.10.nip.io', 'a.10.0.0.1.example.com', '1.2.3.4.example.com',
+    'app-127-0-0-1.example.com', '192-168-1-1.example.com', '10-0-0-1-router.example.com',
+    'nip.io', 'x.nip.io', '7f000001.nip.io', 'x.sslip.io', '--1.sslip.io', 'x.xip.io', 'localtest.me', 'readme.localtest.me', 'app.lvh.me', 'x.vcap.me',
+    'x.lacolhost.com', 'x.localhost.direct', '127-0-0-1.traefik.me', 'x.fuf.me', 'x.localho.st', '7f000001.c0a80001.rbndr.us', 'make-1-2-3-4-rr.1u.ms',
+  ]) {
+    assert.equal(remoteHostOk(bad), false, bad);
+    assert.equal(remoteOriginFor(`https:${'//'}${bad}`), null, bad);
+  }
+  // Numbers in a name are fine when they do not spell an address.
+  for (const ok of ['explorer.0xmx.net', 'api2.example.com', '2024-01-15.example.com', 'v1-2-3.example.com', '1-2-3.example.com', '300-1-1-1.example.com', 'pinip.io', 'mylvh.me', 'web3.example.com']) assert.equal(remoteHostOk(ok), true, ok);
+});
+
 test('a file dApp frame: its own route, eval and inline scripts, exactly its allowed hosts', () => {
   const H = 'https:' + '//';
   const origins = [`${H}explorer.0xmx.net`, `${H}api.example.com:8443`];

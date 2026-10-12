@@ -650,6 +650,9 @@ export default function dapps(app, params = {}) {
         h('div', { class: 'dapp-sheet-head' }, h('span', { class: 'dapp-icon big file none' }, icon('globe')), h('h2', { 'data-testid': 'dapp-host-title', text: `Let ${name} connect to ${host}?` })),
         h('p', { class: 'lead', text: `${host} will see your IP address and everything ${name} asks it.` }),
         h('p', { class: 'small', text: `Allow it only if you trust ${name} and that server: BEAM Campfire checked neither. ${name} could also tell the server what it can read from your wallet without asking, such as your balance. You can take this back in More (⋯) at any time.` }),
+        // The browser looks the name up, not BEAM Campfire: it refuses names that spell a local address
+        // (lib/dapps/frame_policy.js), but any other name can still lead into the person's network.
+        h('p', { class: 'small', 'data-testid': 'dapp-host-local', text: `A server's name can also lead to a device on your own network, such as your router. If ${host} does, ${name} can reach that device.` }),
         h(
           'div',
           { class: 'sheet-actions' },
