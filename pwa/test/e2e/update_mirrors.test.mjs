@@ -509,8 +509,12 @@ test('8. a release that brings a new loader while the address is dead: safe, no 
   assert.match(await page.textContent(tid('update-needs-address')), new RegExp(`which still serves version ${V(6).replace(/\./g, '\\.')}\\.`));
   await page.click('.sheet .btn-primary');
   await page.waitForFunction((l) => navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL.endsWith(`/${l}`), L.n6c, { timeout: 30000 });
-  // The page then looks at what was installed (lib/loader.js checkMovedLoader).
-  await page.waitForFunction(() => !localStorage.getItem('campfire-loader-check'), null, { timeout: 30000 });
+  // The page then looks at what was installed (lib/loader.js checkMovedLoader). A good answer keeps
+  // the record (a day at most) for windows whose takeover arrives later (re-audit RE2-4).
+  const checkedAfter = () => A.since(a0).some((x) => x.path === `/${L.n6c}` && x.sw && x.dest !== 'serviceworker');
+  for (let t0 = Date.now(); !checkedAfter() && Date.now() - t0 < 30000; ) await sleep(250);
+  assert.ok(checkedAfter(), 'the bytes were checked again after the move');
+  assert.ok(await page.evaluate(() => localStorage.getItem('campfire-loader-check')), 'the record is kept for other windows');
   await sleep(2000);
   assert.equal(await intrusion(), null, 'the move is not a takeover');
   const atA = A.since(a0).map((x) => `${x.path}${x.dest === 'serviceworker' ? ' (loader install)' : x.sw ? ' (loader check after the move)' : ''}`);
