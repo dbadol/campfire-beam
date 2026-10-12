@@ -135,6 +135,9 @@ export function askLoader(msg, { timeoutMs = 120000, onProgress = null, slowMess
   });
 }
 
+// A loader's file name: sw-<16 hex of its SHA-256>.js.
+const LOADER_NAME = /^sw-[0-9a-f]{16}\.js$/;
+
 const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
 
 /**
@@ -148,7 +151,7 @@ const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padSt
  * page can send.
  */
 export async function loaderBytes(path, sha256 = null, { asInstall = false, timeoutMs = 15000 } = {}) {
-  if (!/^sw-[0-9a-f]{16}\.js$/.test(String(path))) return 'unknown';
+  if (!LOADER_NAME.test(String(path))) return 'unknown';
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeoutMs);
   let bytes;
@@ -181,7 +184,7 @@ export async function loaderServed(path, sha256 = null) {
 function readMoveCheck() {
   try {
     const v = JSON.parse(localStorage.getItem(MOVE_CHECK_KEY) || 'null');
-    return v && typeof v.path === 'string' && typeof v.at === 'number' ? v : null;
+    return v && typeof v.path === 'string' && LOADER_NAME.test(v.path) && typeof v.at === 'number' ? v : null;
   } catch {
     return null;
   }
@@ -197,22 +200,37 @@ function writeMoveCheck(v) {
 }
 
 /**
- * After a move to this release's loader: what the address serves under its
- * name now, asked the way the browser asked to install it, against the signed
- * hash noted before the move. 'other' means the browser may have installed
- * bytes BEAM Campfire did not sign. Best effort (see loaderBytes; and a worker that
+ * After a move to this release's loader (or, path given, to the loader another
+ * window of this app recorded): what the address serves under its name now,
+ * asked the way the browser asked to install it, against the signed hash noted
+ * before the move. 'other' means the browser may have installed bytes BEAM
+ * Campfire did not sign. Best effort (see loaderBytes; and a worker that
  * controls this page can answer this request itself). One answer, or a day
  * without one, ends it.
  */
-export async function checkMovedLoader(now = Date.now()) {
+export async function checkMovedLoader(now = Date.now(), path = LOADER) {
   const p = readMoveCheck();
-  if (!p || p.path !== LOADER) return 'unknown';
-  const v = await loaderBytes(LOADER, typeof p.sha256 === 'string' ? p.sha256 : null, { asInstall: true });
+  if (!p || p.path !== path) return 'unknown';
+  const v = await loaderBytes(path, typeof p.sha256 === 'string' ? p.sha256 : null, { asInstall: true });
   if (v !== 'unknown' || now - p.at > DAY_MS) writeMoveCheck(null);
   return v;
 }
 
-const endsWithLoader = (url) => typeof url === 'string' && url.split('?')[0].endsWith(`/${LOADER}`);
+const endsWithName = (url, name) => typeof url === 'string' && url.split('?')[0].endsWith(`/${name}`);
+const endsWithLoader = (url) => endsWithName(url, LOADER);
+
+/**
+ * The loader another window of this app is moving to: moveToLoader() there
+ * recorded it (shared localStorage) before registering it, after the address
+ * served its signed bytes. Null when none is recorded, the record is older
+ * than a day, or this page already runs under it (then a new worker for it is
+ * a takeover).
+ */
+function movingElsewhere(controllerUrl, now = Date.now()) {
+  const p = readMoveCheck();
+  if (!p || now - p.at > DAY_MS || endsWithName(controllerUrl, p.path)) return null;
+  return p.path;
+}
 
 /** First install (or a retry after it stopped). Returns the registration. */
 export function registerLoader() {
@@ -288,17 +306,25 @@ export async function watchLoader({ onIntrusion, onMoved = () => {} }) {
   // older loader (after an approved Update). Anything else is a change of code
   // at a URL whose bytes never change legitimately.
   let controllerUrl = early && early.initial ? early.initial : sw.controller.scriptURL;
-  const expected = (url) => endsWithLoader(url) && !endsWithLoader(controllerUrl);
+  // Also expected: the loader another window of this app recorded before it registered it, after
+  // an Update approved there (audit UPD-6: a false alarm here trains people to ignore a real one).
+  const elsewhere = (url) => {
+    const path = movingElsewhere(controllerUrl);
+    return path && endsWithName(url, path) ? path : null;
+  };
+  const expected = (url) => (endsWithLoader(url) && !endsWithLoader(controllerUrl)) || Boolean(elsewhere(url));
   const check = (url) => {
     if (url && !expected(url)) fire(`a new service worker (${url.split('/').pop()}) is being installed`);
   };
   const movedOther = "this app's address serves other code under the new loader's name than BEAM Campfire signed";
   const changed = (now) => {
-    const ok = endsWithLoader(now) && !endsWithLoader(controllerUrl);
+    const own = endsWithLoader(now) && !endsWithLoader(controllerUrl);
+    const other = own ? null : elsewhere(now);
     controllerUrl = now;
-    if (!ok) return fire('the service worker controlling this page changed');
-    // Moved to this release's loader: look at what was installed before anything reloads into it.
-    checkMovedLoader().then((v) => (v === 'other' ? fire(movedOther) : onMoved()));
+    if (!own && !other) return fire('the service worker controlling this page changed');
+    // Moved to this release's loader, or to the one another window recorded: look at what was
+    // installed before anything reloads into it.
+    (own ? checkMovedLoader() : checkMovedLoader(Date.now(), other)).then((v) => (v === 'other' ? fire(movedOther) : onMoved()));
   };
   if (early && early.initial) {
     // Everything since the page's first line, then each new event: nothing between the two is missed.
