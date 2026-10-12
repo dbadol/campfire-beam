@@ -28,7 +28,7 @@ import { catchUp, notificationPermission } from './payment_notice.js';
 import { isSplitTx, readAllCoins, parseCoin, privateReady, PRIVATE_LIMIT_HOURS } from './coins.js';
 import { listOwn, expiresAtMs, cleanLabel } from './addresses.js';
 import { txWatcher, wordsFor, settingsOf, leavingEvents, remindersFor, plainReminders, dueReminders, awaySummary, snapshotOf, awayLine, underway } from './notify_rules.js';
-import { randomBytes, b64, unb64, dbPassKey, dbPassKdf, KDF_PBKDF2, PBKDF2_MIN_ITERATIONS } from './envelope.js';
+import { randomBytes, b64, unb64, dbPassKey, dbPassKdf, KDF_PBKDF2, PBKDF2_MIN_ITERATIONS, PBKDF2_MAX_ITERATIONS } from './envelope.js';
 
 export const SYNC_TAG = 'campfire-reminders';
 const ICON = 'icons/icon-192.png';
@@ -367,7 +367,10 @@ export function forgetSnapshotKeys() {
 /** {at, txs} sealed for wallet `walletId` (imported: its secret is a password) under `dbPass`. reuse: an earlier record's header. */
 export async function sealSnapshot(dbPass, { walletId, imported }, snap, reuse = null) {
   const kdf = dbPassKdf(imported);
-  const h = reuse && reuse.walletId === walletId && reuse.kdf === kdf ? { v: 1, kind: SNAP_KIND, walletId, kdf, ...(kdf === KDF_PBKDF2 ? { iterations: reuse.iterations } : {}), salt: reuse.salt } : { v: 1, kind: SNAP_KIND, walletId, kdf, ...(kdf === KDF_PBKDF2 ? { iterations: PBKDF2_MIN_ITERATIONS } : {}), salt: b64(randomBytes(16)) };
+  // The earlier record's salt (and rounds) are kept, so its key, made once per unlock, serves again;
+  // a record that is not this wallet's, or asks for rounds out of bounds, is replaced by a fresh one.
+  const fits = reuse && reuse.walletId === walletId && reuse.kdf === kdf && typeof reuse.salt === 'string' && (kdf !== KDF_PBKDF2 || (Number.isSafeInteger(reuse.iterations) && reuse.iterations >= PBKDF2_MIN_ITERATIONS && reuse.iterations <= PBKDF2_MAX_ITERATIONS));
+  const h = fits ? { v: 1, kind: SNAP_KIND, walletId, kdf, ...(kdf === KDF_PBKDF2 ? { iterations: reuse.iterations } : {}), salt: reuse.salt } : { v: 1, kind: SNAP_KIND, walletId, kdf, ...(kdf === KDF_PBKDF2 ? { iterations: PBKDF2_MIN_ITERATIONS } : {}), salt: b64(randomBytes(16)) };
   const iv = randomBytes(12);
   const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: snapAad(h) }, await snapKey(dbPass, h), enc.encode(JSON.stringify(snap)));
   return { ...h, iv: b64(iv), ct: b64(new Uint8Array(ct)) };

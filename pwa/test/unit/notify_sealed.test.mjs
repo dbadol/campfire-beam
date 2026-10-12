@@ -47,6 +47,10 @@ test('imported wallet: PBKDF2 at 600,000+ rounds; one HKDF over its password is 
   const again = await sealSnapshot(PASSWORD, { walletId: W, imported: true }, snap, env);
   assert.equal(again.salt, env.salt);
   assert.notEqual(again.iv, env.iv);
+  // A stored record asking for absurd rounds is not reused (it would block every later save).
+  const fresh = await sealSnapshot(PASSWORD, { walletId: W, imported: true }, snap, { ...env, iterations: 1e12 });
+  assert.equal(fresh.iterations, PBKDF2_MIN_ITERATIONS);
+  assert.notEqual(fresh.salt, env.salt);
 });
 
 test('at start: plaintext snapshots go, sealed ones stay; old reminders rewritten to name nothing', async () => {
