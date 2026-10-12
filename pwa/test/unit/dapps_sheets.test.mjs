@@ -26,10 +26,23 @@ test("the allow-a-server sheet says the server's name can lead to a device on th
 
 // wallet_status is open to every dApp without asking (BEAM's own rule, as on the desktop): the
 // wallet's total BEAM and token balances. Each way a dApp first reaches the wallet says so.
-test('opening, installing from a file and installing from the store each say the dApp can see the balance', () => {
+test('opening and installing from the store say the dApp can see the balance; from a file, that it asks first', () => {
   const balance = /can see your balance/;
   assert.match(sheet('dapps.js', 'prepareSheet'), balance, "BEAM's own dApps: the open sheet");
-  assert.match(sheet('dapps.js', 'confirmInstall'), balance, 'a dApp from a file: the install sheet');
+  assert.match(sheet('dapps.js', 'confirmInstall'), /asks before it sees your balance/, 'a dApp from a file: the install sheet (it asks first)');
   const note = source('dapp_store.js').split('\n').find((l) => l.includes("'data-testid': 'store-item-note'"));
   assert.match(note, balance, "a dApp from BEAM's DApp Store: the note under Install");
+});
+
+// A dApp installed from a file asks first (lib/dapps/session.js confirmBalance); More shows the answer.
+test('a dApp from a file asks before it sees the balance, and More shows the answer with a way to change it', () => {
+  const ask = sheet('dapps.js', 'askBalance');
+  assert.match(ask, /Let \$\{name\} see your balance\?/);
+  assert.match(ask, /It can send what it sees to any server\./);
+  assert.match(sheet('dapps.js', 'fileMoreSheet'), /rec\.store \? null : balanceRow\(/);
+  const row = sheet('dapps.js', 'balanceRow');
+  assert.match(row, /dapp-balance-row/);
+  assert.match(row, /'Remove access'/);
+  assert.match(row, /'Ask me again'/);
+  assert.match(source('dapps.js'), /confirmBalance: e\.file && !e\.rec\.store \?/);
 });

@@ -16,6 +16,11 @@
 //    to this dApp, and asks the person (through the consent presenter, with
 //    this dApp's name) before tx_send or process_invoke_data runs.
 //    invoke_contract and process_invoke_data go one at a time.
+// 6. wallet_status and calc_change, for a dApp given confirmBalance (one installed
+//    from a file): BEAM answers them for any app without asking, and the dApp
+//    could send the balance to any server (a preconnect or dns-prefetch link
+//    reaches any host, whatever the frame's policy). So they wait for the
+//    person's answer, asked once; a no is refused as a rejected call (-32021).
 //
 // handle() never throws: every failure is a JSON-RPC error string for the dApp.
 
@@ -30,13 +35,16 @@ export class DappSession {
    * @param {string} o.appName shown in every approval
    * @param {{call: (method: string, params: object) => Promise<any>}} o.app this dApp's app API (openApp)
    * @param {(req: {appName: string, message: string}) => Promise<boolean>} o.confirmSign
+   * @param {(req: {appName: string}) => Promise<boolean>} [o.confirmBalance] may it see the balance (null: never asked)
    * @param {(why: string) => void} [o.onRefused] a request was refused before anyone was asked
    * @param {(delta: number) => void} [o.onBusy] +1/-1 around calls to the wallet
    */
-  constructor({ appName, app, confirmSign, onRefused = null, onBusy = null, apiVersion = null, minApiVersion = null, limits = DEFAULT_REQUEST_LIMITS }) {
+  constructor({ appName, app, confirmSign, confirmBalance = null, onRefused = null, onBusy = null, apiVersion = null, minApiVersion = null, limits = DEFAULT_REQUEST_LIMITS }) {
     this.appName = appName;
     this.app = app;
     this.confirmSign = confirmSign;
+    this.confirmBalance = confirmBalance;
+    this.balanceAnswer = null; // Promise<boolean>: the person's answer, asked once per session
     this.onRefused = onRefused;
     this.onBusy = onBusy;
     this.limits = limits;
@@ -131,6 +139,10 @@ export class DappSession {
         if (!ok || this.closed) throw new RpcError(RPC.userRejected);
         return this.forward(method, params);
       }
+      case 'wallet_status':
+      case 'calc_change':
+        if (!(await this.balanceAllowed()) || this.closed) throw new RpcError(RPC.userRejected, 'The person did not let this dApp see the balance.');
+        return this.forward(method, params);
       case 'ev_subunsub': {
         const r = await this.forward(method, params);
         for (const [k, v] of Object.entries(params)) {
@@ -142,6 +154,24 @@ export class DappSession {
       default:
         return this.forward(method, params);
     }
+  }
+
+  /** True when the dApp may see the balance: no question for it, or the person said yes. */
+  balanceAllowed() {
+    if (!this.confirmBalance) return Promise.resolve(true);
+    if (!this.balanceAnswer) {
+      // Every call waits for the one question. One that could not be put is a no for now, asked again next time.
+      this.balanceAnswer = Promise.resolve()
+        .then(() => this.confirmBalance({ appName: this.appName }))
+        .then(
+          (v) => v === true,
+          () => {
+            this.balanceAnswer = null;
+            return false;
+          },
+        );
+    }
+    return this.balanceAnswer;
   }
 
   async forward(method, params) {

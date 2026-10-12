@@ -316,6 +316,26 @@ test('storage: install, list, open (checked again), replace keeps what it may re
   await assert.rejects(s.open(GUID), (e) => e.code === 'storage');
 });
 
+test('storage: whether a dApp may see the balance is kept per dApp, through a replace, until changed', async () => {
+  const kv = memoryKv();
+  const s = installedStore(kv);
+  const bytes = pkgBytes();
+  assert.equal((await s.install(await readFilePackage(bytes), bytes)).balance, null, 'not asked yet');
+  assert.equal((await s.setBalance(GUID, true)).balance, true);
+  assert.equal((await s.get(GUID)).balance, true);
+  const bytes2 = pkgBytes(base({ version: '1.1.0' }));
+  assert.equal((await s.install(await readFilePackage(bytes2), bytes2, { replace: true })).balance, true, 'a replace keeps the answer');
+  assert.equal((await s.setBalance(GUID, false)).balance, false);
+  assert.equal((await s.setBalance(GUID, null)).balance, null, 'forgotten: it asks again');
+  await assert.rejects(s.setBalance(GUID, 'yes'));
+  await assert.rejects(s.setBalance('ab'.repeat(16), true), (e) => e.code === 'storage');
+  // Anything else kept reads as not asked.
+  const list = kv.m.get('dapp-files');
+  list[0].balance = 'yes';
+  kv.m.set('dapp-files', list);
+  assert.equal((await s.get(GUID)).balance, null);
+});
+
 test('storage: a kept package that changed is refused; a write that fails changes nothing', async () => {
   const kv = memoryKv();
   const s = installedStore(kv);
