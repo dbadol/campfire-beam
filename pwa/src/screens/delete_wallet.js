@@ -9,6 +9,10 @@
  *   - Imported from a wallet.db: the same, with the original file and its password instead of words.
  *   - "Does this delete my other wallets?" -> with several, it names the one that goes and says the
  *     others stay as they are; only its own file and data are removed (lib/wallets.js).
+ *   - "Is it really all gone?" -> what BEAM Campfire cannot remove is said, small: its Face ID passkey
+ *     lives in the password manager (BEAM Campfire asks it to forget it; where to check), and, for the
+ *     last wallet, the browser may keep deleted data on disk until it tidies up (clearing the site's
+ *     data in the browser's settings removes it).
  */
 import { h, put } from '../lib/dom.js';
 import { screen, primary, notice, toast } from '../lib/ui.js';
@@ -49,8 +53,17 @@ export default function deleteWallet(app, params = {}) {
   cta.classList.replace('btn-primary', 'btn-danger');
   input.addEventListener('input', () => (cta.disabled = input.value.trim().toUpperCase() !== 'DELETE'));
 
+  // What stays where BEAM Campfire cannot reach it.
+  const tracesBox = h('div', { class: 'stack tight' });
   listWallets().then((l) => {
     if (l.length > 1) put(othersBox, h('p', { class: 'lead', 'data-testid': 'delete-others', text: `Only ${name} is deleted. ${l.length === 2 ? 'Your other wallet stays as it is.' : `Your other ${l.length - 1} wallets stay as they are.`}` }));
+    const r = l.find((x) => x.id === target.id);
+    const passkey = Boolean(r && r.envelopes && r.envelopes.passkey);
+    put(
+      tracesBox,
+      passkey ? h('p', { class: 'small', 'data-testid': 'delete-passkey', text: `Its Face ID key (a passkey for ${location.hostname}, “BEAM Campfire wallet ${target.id.slice(0, 6)}”) is kept by your password manager, not by BEAM Campfire. BEAM Campfire asks it to forget the key; if it is still listed in Passwords or Google Password Manager, delete it there.` }) : null,
+      l.length === 1 ? h('p', { class: 'small', 'data-testid': 'delete-traces', text: "The browser may keep deleted data on its disk for a while. To leave nothing, also clear this site's data in the browser's settings." }) : null,
+    );
   }, () => {});
 
   async function run() {
@@ -91,6 +104,7 @@ export default function deleteWallet(app, params = {}) {
     othersBox,
     h('label', { class: 'field' }, 'Type DELETE to confirm', input),
     msg,
+    tracesBox,
   );
   return { el };
 }

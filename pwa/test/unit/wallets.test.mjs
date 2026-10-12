@@ -344,6 +344,37 @@ test('removeWallet: a wallet kept running behind the lock for a payment is stopp
   assert.equal(app.record.id, C);
 });
 
+test('deleting leaves less behind (ported from the Firo wallet): the passkey is reported gone, shown notifications close; the last wallet also takes the app caches and the app settings in localStorage', async () => {
+  const kv = await threeWallets();
+  const withKey = { ...(await listWallets(kv)).find((r) => r.id === B), envelopes: { password: env(B), passkey: { v: 1, kind: 'passkey', walletId: B, credId: 'Y3JlZC1C', prfSalt: 'c2FsdA==' } } };
+  await saveRecord(withKey, kv);
+  const storage = new Map([['campfire-theme', 'dark'], ['campfire-update-source', '"https://mirror.example/"'], ['campfire-last-update-check', '{}'], ['other-site-thing', 'x']]);
+  const ls = { get length() { return storage.size; }, key: (i) => [...storage.keys()][i] ?? null, removeItem: (k) => storage.delete(k), getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) };
+  const seen = { signalled: [], closed: 0, caches: 0 };
+  const deps = {
+    kv,
+    deleteDb: async () => {},
+    clearCaches: async () => void seen.caches++,
+    storage: ls,
+    signalPasskeyGone: async (credId) => void seen.signalled.push(credId),
+    closeNotifications: async () => void seen.closed++,
+  };
+  const a = (await listWallets(kv)).find((r) => r.id === A);
+  const { app } = fakeApp(kv, a);
+  await removeWallet(app, (await listWallets(kv)).find((r) => r.id === B), deps);
+  assert.deepEqual(seen.signalled, ['Y3JlZC1C'], 'its passkey: the password manager is told it is gone');
+  assert.equal(seen.closed, 1, 'notifications already shown are closed');
+  assert.equal(seen.caches, 0, 'other wallets still use the own node and the dApps');
+  assert.equal(storage.size, 4, "the app's settings stay while other wallets do");
+  await removeWallet(app, (await listWallets(kv)).find((r) => r.id === C), deps);
+  assert.deepEqual(seen.signalled, ['Y3JlZC1C'], 'no passkey, nothing to tell');
+  // A step that fails never fails the delete.
+  await removeWallet(app, (await listWallets(kv)).find((r) => r.id === A), { ...deps, closeNotifications: async () => { throw new Error('no service worker'); } });
+  assert.equal(seen.caches, 1, 'the last wallet: the own-node address and dApp copies go too');
+  assert.deepEqual([...storage.keys()], ['other-site-thing'], "the last wallet: BEAM Campfire's own localStorage goes (theme, update address)");
+  assert.equal(kv.m.size, 0);
+});
+
 test('rename: the open wallet in memory and in storage; another wallet in storage; names checked', async () => {
   const kv = await threeWallets();
   const list = await listWallets(kv);

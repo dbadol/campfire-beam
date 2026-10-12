@@ -24,6 +24,7 @@
 
 import { rawStore, getPrefs, setPrefs, DEFAULT_PREFS } from './store.js';
 import { DB_DIR, DB_PATH, useWalletPath, deleteWalletDb } from './engine.js';
+import { setTheme } from './theme.js';
 import { WALLET_PREFIX, WALLET_KEYS, WALLET_KEY_PREFIXES, WALLET_PREF_KEYS, prefixOf, isWalletId, inSlot0, setScopeRecord, runRemovedHooks } from './wallet_scope.js';
 
 export { walletKey, walletStore, onWalletRemoved, WALLET_PREF_KEYS } from './wallet_scope.js';
@@ -231,13 +232,71 @@ export async function removalOps(target, kv = rawStore) {
   return ops;
 }
 
+// ---------------------------------------------------------------- what a delete also clears
+/**
+ * Tells the password manager that keeps the wallet's passkey (iCloud Keychain, Google Password
+ * Manager) that it is gone, so it can remove it (WebAuthn Signal API; Chrome 132+, Safari 26+).
+ * A site cannot delete a passkey itself: where this is missing, the delete screen says where to.
+ */
+async function signalPasskeyGone(credId) {
+  const PKC = globalThis.PublicKeyCredential;
+  if (!PKC || typeof PKC.signalUnknownCredential !== 'function' || !globalThis.location) return;
+  await PKC.signalUnknownCredential({ rpId: globalThis.location.hostname, credentialId: credId });
+}
+
+/** Notifications already on the screen or in the notification list may be about the wallet or a payment. */
+async function closeShownNotifications() {
+  const nav = globalThis.navigator;
+  const sw = nav && nav.serviceWorker;
+  const reg = sw ? await sw.getRegistration() : null;
+  if (reg && typeof reg.getNotifications === 'function') for (const n of await reg.getNotifications()) n.close();
+  if (nav && typeof nav.clearAppBadge === 'function') await nav.clearAppBadge();
+}
+
+/**
+ * With the last wallet: what the app keeps outside its own store. The own node's address the
+ * service worker keeps for the page's security policy, and the copies of installed dApps (Cache
+ * Storage "dapp-packages": they show which dApps were used here).
+ */
+async function clearAppCaches() {
+  try {
+    const m = await import('./own_node.js'); // loaded here: own_node.js reaches back to this module
+    if (m.canUseOwnNode() && (await m.loaderNode())) await m.setLoaderNode(null);
+  } finally {
+    if (globalThis.caches) await globalThis.caches.delete('dapp-packages');
+  }
+}
+
+/** BEAM Campfire's own keys in this browser's localStorage (the theme, the update check, an added update address). */
+function clearAppLocalStorage(storage) {
+  if (!storage) return;
+  const mine = [];
+  for (let i = 0; i < storage.length; i++) {
+    const k = storage.key(i);
+    if (typeof k === 'string' && k.startsWith('campfire-')) mine.push(k);
+  }
+  for (const k of mine) storage.removeItem(k);
+  if (mine.includes('campfire-theme')) setTheme('system', { storage });
+}
+
+const quietly = async (fn) => {
+  try {
+    await fn();
+  } catch (e) {
+    console.warn('[campfire] after the delete:', e && e.message);
+  }
+};
+
 /**
  * Deletes one wallet from this device: its database file (and only its), its record and
- * envelopes, and every key that is its. The others are not touched. The last wallet takes the
- * app's settings with it, as deleting the only wallet always did. When it was the selected
- * wallet, another one is selected (locked). @returns {Promise<{others: object[]}>}
+ * envelopes, and every key that is its. The others are not touched. Its passkey is reported gone
+ * to the password manager that keeps it, and notifications still shown are closed. The last
+ * wallet takes the app's settings with it, as deleting the only wallet always did, and the app's
+ * localStorage, its own-node address in the service worker and the dApp copies too. When it was
+ * the selected wallet, another one is selected (locked). None of the extra steps can fail the delete.
+ * @returns {Promise<{others: object[]}>}
  */
-export async function removeWallet(app, target, { kv = rawStore, deleteDb = deleteWalletDb } = {}) {
+export async function removeWallet(app, target, { kv = rawStore, deleteDb = deleteWalletDb, signalPasskeyGone: signal = signalPasskeyGone, closeNotifications = closeShownNotifications, clearCaches = clearAppCaches, storage = globalThis.localStorage } = {}) {
   const list = await listWallets(kv);
   if (!list.some((r) => r.id === target.id)) throw new WalletsError('missing', 'That wallet is not on this device any more.');
   const others = list.filter((r) => r.id !== target.id);
@@ -251,10 +310,18 @@ export async function removeWallet(app, target, { kv = rawStore, deleteDb = dele
     app.runLockHooks();
   }
   if (selected || running) await app.wallet.stop();
+  const gone = list.find((r) => r.id === target.id);
+  const passkey = gone && gone.envelopes && gone.envelopes.passkey;
   await deleteDb(dbPathOf(target));
   if (others.length) await kv.batch(await removalOps(target, kv));
   else await kv.clear();
   await runRemovedHooks(target.id);
+  if (passkey && typeof passkey.credId === 'string') await quietly(() => signal(passkey.credId));
+  await quietly(closeNotifications);
+  if (!others.length) {
+    await quietly(clearCaches);
+    await quietly(() => clearAppLocalStorage(storage));
+  }
   if (selected) {
     const prefs = await getPrefs(kv);
     await selectWallet(app, initialWallet(others, prefs), kv);
