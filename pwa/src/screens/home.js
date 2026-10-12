@@ -49,6 +49,7 @@ import { isSplitTx } from '../lib/coins.js';
 import { namesHomeLine } from './names_claim.js';
 import { awayNow, dismissAway } from '../lib/notify.js';
 import { evictionNotice } from './storage_warning.js';
+import { evictionRisk } from '../lib/storage.js';
 
 export function syncLine(sync) {
   const cls = sync.state === 'synced' ? 'ok' : sync.state === 'offline' || sync.state === 'stalled' || sync.state === 'behind' ? 'bad' : 'wait';
@@ -204,6 +205,8 @@ export default function home(app) {
             { class: 'grow' },
             h('strong', { text: 'Keep a copy of this wallet outside this phone. ' }),
             "It has no 12 words: if this phone is lost or this app's web address stops working, only a wallet.db copy brings it back.",
+            // A Safari tab has its own card about this (screens/storage_warning.js); elsewhere, one clause here.
+            evictionRisk(app) === 'mayClear' ? ' This browser may also clear its storage.' : null,
             h(
               'div',
               { class: 'btn-row prompt-actions' },

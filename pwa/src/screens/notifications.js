@@ -19,6 +19,7 @@ import { screen, notice, openSheet, toast, secondary } from '../lib/ui.js';
 import { notificationPermission, isIos, isStandalone } from '../lib/payment_notice.js';
 import { KINDS, KIND_WORDS, settingsOf } from '../lib/notify_rules.js';
 import { testNotification, forgetReminders } from '../lib/notify.js';
+import { refreshPersistence } from '../lib/storage.js';
 
 export const NOTIFY_TEXT = Object.freeze({
   title: 'Notifications',
@@ -101,6 +102,8 @@ export default function notifications(app) {
       const asked = permission === 'granted' ? Promise.resolve('granted') : askPermission();
       asked.then(async (result) => {
         await setNotify({ on: result === 'granted' });
+        // A site allowed to notify is one Chrome keeps the storage of: asked again now (lib/storage.js).
+        if (result === 'granted') refreshPersistence(app, { request: true }).catch(() => {});
         if (result === 'granted') toast(NOTIFY_TEXT.on, 3000);
         else if (result === 'denied') explain(NOTIFY_TEXT.denied, 'notify-denied');
         else toast(NOTIFY_TEXT.notAsked, 4000);

@@ -57,3 +57,10 @@ test('wired: Home shows it, an airdrop batch and a bridge move ask first, the co
   assert.match(read('screens/airdrop_codes.js'), /STORAGE_TEXT\.codesNote\[evictionRisk\(app\)\]/);
   assert.match(read('lib/storage.js'), /addEventListener\('appinstalled'/);
 });
+
+test('backup reminder (Firo 5cded2676): an imported wallet already gets one until exported; it adds the storage risk; persistence asked again when notifications are allowed', () => {
+  const home = read('screens/home.js');
+  assert.match(home, /if \(needsBackupPrompt\(app\)\)/);
+  assert.match(home, /evictionRisk\(app\) === 'mayClear' \? ' This browser may also clear its storage\.' : null/);
+  assert.match(read('screens/notifications.js'), /if \(result === 'granted'\) refreshPersistence\(app, \{ request: true \}\)/);
+});
