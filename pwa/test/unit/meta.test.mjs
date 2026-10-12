@@ -4,7 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseMetadata, assetLabel, badgeText, display, cleanText, genericIcon, unverifiedIcon, frameInset, MISSING_ICON, VERIFIED, metadataOf, tokenSubtitle, copyWarning } from '../../src/lib/meta.js';
-import { learnPool, lpPoolOf, resetLpTokens, SNAPSHOT } from '../../src/lib/lp_tokens.js';
+import { learnPool, lpPoolOf, resetLpTokens, SNAPSHOT, lpMetadata, contractAssetOwner, confirmLpToken, confirmLearnt, unconfirmedLpTokens, lpTrusted } from '../../src/lib/lp_tokens.js';
+import { DEX_CID } from '../../src/lib/dex.js';
 
 const meta = (fields) => `STD:SCH_VER=1;${fields}`;
 
@@ -103,7 +104,7 @@ test('LP tokens: named after their pool from the DEX\'s list, never from their o
   resetLpTokens();
   const lp = display(175, meta('N=Amm Liquidity Token 0-174-2;SN=AmmL;UN=AMML;NTHUN=GROTH'));
   assert.deepEqual([lp.name, lp.symbol, lp.label, lp.verified], ['BEAM/FOMO LP', 'BEAM/FOMO LP', 'BEAM/FOMO LP', true]);
-  assert.deepEqual(lp.pool, { lpToken: 175, aid1: 0, aid2: 174, kind: 2 });
+  assert.deepEqual({ ...lp.pool }, { lpToken: 175, aid1: 0, aid2: 174, kind: 2, confirmed: true });
   assert.equal(display(192, null).name, 'BEAM/CHAD LP');
   assert.equal(display(193, null).name, 'BEAM/GIGA LP');
   assert.equal(display(110, null).name, 'bETH/bWBTC LP');
@@ -132,6 +133,76 @@ test('LP tokens: pools newer than the bundled list are learnt from the DEX; malf
   resetLpTokens();
   assert.equal(lpPoolOf(9001), null);
   assert.equal(Object.keys(SNAPSHOT).length, 98);
+});
+
+// What get_asset_info answered for four DEX liquidity tokens (wallet-api 7.5.14493, assets_list
+// refresh, mainnet height 4,077,026, 2026-10-12): 50 and 175 are in the snapshot, 205 and 209 are
+// pools created after it. Public chain data: a contract's asset owner is derived from its id.
+const LIVE_LP = {
+  50: { asset_id: 50, ownerId: '54d1ec805f0e656cd017e89151304fa1cc7e6b6e2606d7da4995ddf6c202d04b', metadata: 'STD:SCH_VER=1;N=Amm Liquidity Token 0-7-2;SN=AmmL;UN=AMML;NTHUN=GROTH' },
+  175: { asset_id: 175, ownerId: '60ed0e518ddb1c9f685c6df1d7b19d899d7e764e2c2d23baa26faa39dad65b0f', metadata: 'STD:SCH_VER=1;N=Amm Liquidity Token 0-174-2;SN=AmmL;UN=AMML;NTHUN=GROTH' },
+  205: { asset_id: 205, ownerId: '74a8c779628e608c5bc37e24fd8a2fd83f809d6277e8e390a2aa5def0c933feb', metadata: 'STD:SCH_VER=1;N=Amm Liquidity Token 0-204-2;SN=AmmL;UN=AMML;NTHUN=GROTH' },
+  209: { asset_id: 209, ownerId: '51522e230c832991ae5769b8b79aa6f2c4d3c58b96853714cf0949cb22e3f2a1', metadata: 'STD:SCH_VER=1;N=Amm Liquidity Token 0-208-2;SN=AmmL;UN=AMML;NTHUN=GROTH' },
+};
+
+test('LP tokens: the owner the wallet reports for a DEX liquidity token is derived from the DEX id and its metadata', async () => {
+  for (const [id, info] of Object.entries(LIVE_LP)) {
+    const [aid1, aid2, kind] = /Token (\d+)-(\d+)-(\d+);/.exec(info.metadata).slice(1).map(Number);
+    assert.equal(lpMetadata(aid1, aid2, kind), info.metadata, `metadata of ${id}`);
+    assert.equal(await contractAssetOwner(DEX_CID, info.metadata), info.ownerId, `owner of ${id}`);
+  }
+  assert.notEqual(await contractAssetOwner('11'.repeat(32), LIVE_LP[175].metadata), LIVE_LP[175].ownerId, 'another contract owns other assets');
+});
+
+test('LP tokens: a pool list from the node never renames a snapshot token, and a learnt one is unconfirmed until its asset record agrees (audit D-5)', async () => {
+  resetLpTokens();
+  // A node that says 175 (BEAM/FOMO LP) is the LP token of BEAM/BEAMX: ignored.
+  learnPool({ lpToken: 175, aid1: 0, aid2: 7, kind: 2 });
+  assert.deepEqual({ ...lpPoolOf(175) }, { lpToken: 175, aid1: 0, aid2: 174, kind: 2, confirmed: true });
+  assert.equal(display(175, null).name, 'BEAM/FOMO LP');
+
+  // A node that says an airdropped asset is BEAM/FOMO's LP token: shown with its number, never verified.
+  learnPool({ lpToken: 9100, aid1: 0, aid2: 174, kind: 2 });
+  const fake = display(9100, meta('N=Bonus;UN=BONUS'));
+  assert.deepEqual([fake.name, fake.label, fake.verified, fake.pool], ['BEAM/FOMO LP', 'LP #9100', false, null]);
+  assert.deepEqual({ ...fake.unconfirmedPool }, { lpToken: 9100, aid1: 0, aid2: 174, kind: 2, confirmed: false });
+  assert.equal(tokenSubtitle(fake), 'Pool share · unconfirmed #9100');
+  assert.equal(fake.icon, unverifiedIcon(9100), 'drawn as an unverified asset, not as the pair');
+  // Its own asset record says something else (another owner, or another pool's text): stays unconfirmed.
+  assert.equal(await confirmLpToken(9100, { asset_id: 9100, metadata: 'STD:SCH_VER=1;N=Bonus;UN=BONUS', ownerId: 'ab'.repeat(32) }), false);
+  // The owner id binds the DEX and the text, not the number: 175's own record copied onto 9100 matches it,
+  // but BEAM/FOMO already has its LP token (175), and a pool has one while it lives.
+  assert.equal(await confirmLpToken(9100, { ...LIVE_LP[175], asset_id: 9100 }), false, "the pool's real record copied onto another number");
+  assert.equal(await confirmLpToken(9100, { asset_id: 9100, metadata: LIVE_LP[205].metadata, ownerId: LIVE_LP[205].ownerId }), false, "another pool's record");
+  assert.equal(display(9100, null).verified, false);
+  assert.deepEqual(unconfirmedLpTokens(), [9100]);
+
+  // A real pool newer than the snapshot: confirmed by its record, then named and drawn as a pool.
+  learnPool({ lpToken: 205, aid1: 0, aid2: 204, kind: 2 });
+  assert.equal(display(205, null).pool, null);
+  assert.equal(await confirmLpToken(205, LIVE_LP[205]), true);
+  assert.deepEqual({ ...display(205, null).pool }, { lpToken: 205, aid1: 0, aid2: 204, kind: 2, confirmed: true });
+  assert.equal(tokenSubtitle(display(205, null)), 'Pool share · 1% fee');
+  // A confirmed token is not renamed by a later row either.
+  learnPool({ lpToken: 205, aid1: 0, aid2: 174, kind: 2 });
+  assert.equal(lpPoolOf(205).aid2, 204);
+  assert.equal(lpTrusted({ lpToken: 205, aid1: 0, aid2: 204, kind: 2 }), true);
+  assert.equal(lpTrusted({ lpToken: 205, aid1: 0, aid2: 174, kind: 2 }), false);
+  assert.equal(lpTrusted({ lpToken: 9100, aid1: 0, aid2: 174, kind: 2 }), false);
+
+  // confirmLearnt asks for each unconfirmed token's record once and confirms what agrees.
+  learnPool({ lpToken: 209, aid1: 0, aid2: 208, kind: 2 });
+  const asked = [];
+  const changed = await confirmLearnt(async (id) => {
+    asked.push(id);
+    if (id === 209) return LIVE_LP[209];
+    throw new Error('Asset not found in a local database');
+  });
+  assert.equal(changed, true);
+  assert.deepEqual(asked.sort((a, b) => a - b), [209, 9100]);
+  assert.equal(lpPoolOf(209).confirmed, true);
+  assert.equal(lpPoolOf(9100).confirmed, false);
+  resetLpTokens();
 });
 
 test('a label stays current: metadata or a pool learnt later renames it everywhere it is shown', () => {

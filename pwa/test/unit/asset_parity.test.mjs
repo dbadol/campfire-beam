@@ -10,7 +10,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { display, frameInset } from '../../src/lib/meta.js';
-import { SNAPSHOT, learnPool, resetLpTokens } from '../../src/lib/lp_tokens.js';
+import { SNAPSHOT, learnPool, resetLpTokens, confirmLpToken, lpMetadata, contractAssetOwner } from '../../src/lib/lp_tokens.js';
+import { DEX_CID } from '../../src/lib/dex.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pwa = join(here, '..', '..');
@@ -32,6 +33,19 @@ const shown = (d) => ({
 const expected = (e) => ({ ...e, icon: iconPath(e.icon) });
 
 const rows = [...fx.assets, ...fx.extras];
+
+/**
+ * The desktop's extra pools, learnt and confirmed as a real pool newer than the
+ * snapshot is: by its asset record (lib/lp_tokens.js confirmLpToken). An
+ * unconfirmed one is shown as an unverified asset instead (meta.test.mjs, D-5).
+ */
+async function learnExtraPools() {
+  for (const p of fx.extraPools) {
+    learnPool(p);
+    const metadata = lpMetadata(p.aid1, p.aid2, p.kind);
+    assert.ok(await confirmLpToken(p.lpToken, { asset_id: p.lpToken, metadata, ownerId: await contractAssetOwner(DEX_CID, metadata) }), `pool ${p.lpToken}`);
+  }
+}
 const meta = new Map(rows.filter((r) => r.metadata != null).map((r) => [r.id, r.metadata]));
 const metaOf = (id) => meta.get(id) ?? null;
 
@@ -54,9 +68,9 @@ test(`every mainnet asset (${fx.assets.length}) shows the desktop's name, ticker
   assert.deepEqual(differ, []);
 });
 
-test(`edge cases (${fx.extras.length}): copycats, invisible characters, long names, pools of pools`, () => {
+test(`edge cases (${fx.extras.length}): copycats, invisible characters, long names, pools of pools`, async () => {
   resetLpTokens();
-  for (const p of fx.extraPools) learnPool(p);
+  await learnExtraPools();
   try {
     const differ = [];
     for (const r of fx.extras) {
@@ -70,9 +84,9 @@ test(`edge cases (${fx.extras.length}): copycats, invisible characters, long nam
   }
 });
 
-test('before any metadata arrives, every asset still looks as on the desktop', () => {
+test('before any metadata arrives, every asset still looks as on the desktop', async () => {
   resetLpTokens();
-  for (const p of fx.extraPools) learnPool(p);
+  await learnExtraPools();
   try {
     const differ = [];
     for (const r of rows) {
