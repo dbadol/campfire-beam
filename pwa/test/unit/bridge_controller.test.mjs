@@ -11,6 +11,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BridgeController, nothingSent, sameBlock, beamSide } from '../../src/lib/bridge/controller.js';
+import { BridgeError } from '../../src/lib/bridge/beam_pipe.js';
 import { MemoryBridgeStore, STATES, makeCrossing } from '../../src/lib/bridge/store.js';
 import { routeById, SEND_FEE, CLAIM_FEE } from '../../src/lib/bridge/routes.js';
 import { e2bRelayerFee } from '../../src/lib/bridge/fees.js';
@@ -492,12 +493,95 @@ test('to BEAM: an approval whose broadcast fails ends it; one the server forgets
   assert.equal(y.approveHashes[0], hash);
 });
 
-test('to BEAM: a lock Ethereum refused: nothing locked', async () => {
+test('to BEAM: a lock Ethereum refused: nothing locked, said once BEAM has had the delivery window to show otherwise', async () => {
   const rig = new Rig();
   let x = await rig.move(ethRoute, toBeam, ethUnits(0.01));
   rig.eth.mineLock(x.lockHash, { success: false });
   x = await rig.after(15 * S, x.id);
+  assert.equal(x.state, STATES.locking, 'one server\'s reverted receipt is not final yet');
+  assert.ok(x.revertSeenAt);
+  assert.match(x.lastError, /refused this lock/);
+  x = await rig.after(TIMING.deliveryWaitMs - 30 * S, x.id);
+  assert.equal(x.state, STATES.locking);
+  x = await rig.after(60 * S, x.id);
   assert.equal(x.state, STATES.lockFailed);
+  assert.match(x.lastError, /nothing was locked/);
+});
+
+test('D-4: a lock the server calls reverted, whose coins then arrive on BEAM, is collected, not lost', async () => {
+  const rig = new Rig();
+  let x = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  // A lying (or broken) server answers status 0x0 for a lock that in fact went through.
+  rig.eth.mineLock(x.lockHash, { success: false });
+  x = await rig.after(15 * S, x.id);
+  assert.equal(x.state, STATES.locking);
+  // Minutes later the relayer brings the message to BEAM for this wallet.
+  rig.beam.deliver(ethRoute, 140, x.receives);
+  x = await rig.after(2 * MIN, x.id);
+  assert.equal(x.state, STATES.delivered, 'found on BEAM');
+  assert.equal(x.msgId, 140);
+  assert.equal(x.revertSeenAt, null);
+  x = await rig.c.collect(x.id);
+  assert.equal(x.state, STATES.claiming);
+  assert.deepEqual(rig.sends(), ['claim eth']);
+});
+
+test('D-4: coins waiting for this wallet on the bridge are found without any record, and collected', async () => {
+  const rig = new Rig();
+  // Nothing on this device knows about these: a crossing whose record was lost, or ended as "nothing locked".
+  rig.beam.deliver(beamRoute, 300, beams(12));
+  rig.beam.deliver(usdtRoute, 301, 2500000000n);
+  const w = await rig.c.waiting();
+  assert.deepEqual(w.failed, []);
+  assert.deepEqual(w.items.map((i) => [i.route.id, i.msgId, i.amount, i.crossingId]), [['beam', 300, beams(12), null], ['usdt', 301, 2500000000n, null]]);
+  let x = await rig.c.collectWaiting('beam', 300);
+  assert.equal(x.state, STATES.claiming);
+  assert.equal(x.origin, 'found');
+  assert.equal(x.receives, beams(12));
+  assert.equal(x.msgId, 300);
+  assert.deepEqual(rig.sends(), ['claim beam']);
+  // Now a record follows it: listed with its crossing, never a second record or a second claim.
+  const again = await rig.c.waiting();
+  assert.equal(again.items.find((i) => i.msgId === 300).crossingId, x.id);
+  await assert.rejects(rig.c.collectWaiting('beam', 300), code('alreadySent'));
+  assert.equal(rig.c.crossings.filter((c) => c.msgId === 300).length, 1);
+  const [txId] = rig.beam.executed.keys();
+  rig.beam.mine(txId, 4072900);
+  x = await rig.after(20 * S, x.id);
+  assert.equal(x.state, STATES.claimed);
+  assert.deepEqual((await rig.c.waiting()).items.map((i) => i.msgId), [301]);
+  // Declined: kept as ready to collect, nothing sent.
+  rig.beam.mode = 'reject';
+  await assert.rejects(rig.c.collectWaiting('usdt', 301), code('rejected'));
+  const kept = rig.c.crossings.find((c) => c.msgId === 301);
+  assert.equal(kept.state, STATES.delivered);
+  assert.equal(kept.origin, 'found');
+  assert.equal(rig.beam.executed.size, 1, 'only the first claim was sent');
+  // A route whose pipe does not answer is named, the others still listed.
+  rig.beam.incoming = async (route) => {
+    if (route.id === 'wbtc') throw new BridgeError('network', 'no answer');
+    return [];
+  };
+  assert.deepEqual((await rig.c.waiting()).failed, ['wbtc']);
+});
+
+test('D-4: a message already followed by a crossing is that crossing\'s, not a second one', async () => {
+  const rig = new Rig();
+  let x = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  rig.eth.mineLock(x.lockHash, { msgId: 150 });
+  rig.beam.deliver(ethRoute, 150, x.receives);
+  x = await rig.after(15 * S, x.id);
+  assert.equal(x.state, STATES.delivered);
+  const w = await rig.c.waiting();
+  assert.deepEqual(w.items.map((i) => [i.msgId, i.crossingId]), [[150, x.id]]);
+  const y = await rig.c.collectWaiting('eth', 150);
+  assert.equal(y.id, x.id, 'collected through its own crossing');
+  assert.equal(y.state, STATES.claiming);
+  assert.equal(rig.c.crossings.length, 1);
+  // A message whose amount is not what the bridge says it holds is refused.
+  rig.beam.deliver(beamRoute, 151, beams(3));
+  rig.beam.incoming = async () => [{ msgId: 151, amount: beams(30) }];
+  await assert.rejects(rig.c.collectWaiting('beam', 151), code('unexpectedTransaction'));
 });
 
 test('to BEAM: the lock broadcast throws after it may have gone out: its hash is kept, the identical bytes go again, it is never signed twice', async () => {
