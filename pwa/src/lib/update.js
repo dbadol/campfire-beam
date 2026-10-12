@@ -137,7 +137,9 @@ export const updates = {
    * Switches to the staged release and reloads. A release that brings a loader
    * the running one cannot stand in for needs this app's address right now (the
    * page moves to that loader after the reload): {result: 'needs_own_address'}
-   * when it does not serve it.
+   * when it does not serve that loader's signed bytes to the page. That is a
+   * pre-check, not a guarantee (lib/loader.js loaderServed): the browser fetches
+   * the loader again to install it, and the page checks it once more after the move.
    */
   async apply() {
     let r = await askLoader({ type: 'apply-update' });

@@ -73,7 +73,7 @@ function host({ port, tls = null }) {
   const st = { root: null, nocors: false, delayMs: 0, reqs: [], server: null, sockets: new Set() };
   const handler = async (req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
-    st.reqs.push({ path, sw: String(req.headers['service-worker'] || ''), origin: String(req.headers.origin || ''), referer: String(req.headers.referer || ''), cookie: String(req.headers.cookie || '') });
+    st.reqs.push({ path, sw: String(req.headers['service-worker'] || ''), dest: String(req.headers['sec-fetch-dest'] || ''), origin: String(req.headers.origin || ''), referer: String(req.headers.referer || ''), cookie: String(req.headers.cookie || '') });
     let rel = decodeURIComponent(path.slice(1));
     if (rel === '' || rel.endsWith('/')) rel += 'index.html';
     const full = normalize(join(st.root, rel));
@@ -509,10 +509,12 @@ test('8. a release that brings a new loader while the address is dead: safe, no 
   assert.match(await page.textContent(tid('update-needs-address')), new RegExp(`which still serves version ${V(6).replace(/\./g, '\\.')}\\.`));
   await page.click('.sheet .btn-primary');
   await page.waitForFunction((l) => navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL.endsWith(`/${l}`), L.n6c, { timeout: 30000 });
+  // The page then looks at what was installed (lib/loader.js checkMovedLoader).
+  await page.waitForFunction(() => !localStorage.getItem('campfire-loader-check'), null, { timeout: 30000 });
   await sleep(2000);
   assert.equal(await intrusion(), null, 'the move is not a takeover');
-  const atA = A.since(a0).map((x) => `${x.path}${x.sw ? ' (loader install)' : ''}`);
-  assert.deepEqual(atA.filter((p) => p.startsWith(`/${L.n6c}`)), [`/${L.n6c}`, `/${L.n6c} (loader install)`], 'the bytes are checked first, then installed');
+  const atA = A.since(a0).map((x) => `${x.path}${x.dest === 'serviceworker' ? ' (loader install)' : x.sw ? ' (loader check after the move)' : ''}`);
+  assert.deepEqual(atA.filter((p) => p.startsWith(`/${L.n6c}`)), [`/${L.n6c}`, `/${L.n6c} (loader install)`, `/${L.n6c} (loader check after the move)`], 'the bytes are checked first, then installed, then checked again');
   console.log(`# loader moved ${L.n0} -> ${L.n6c} on a tapped check with the address back; requests there: ${atA.join(', ')}`);
 
   // (d) The incompatible release from the address itself: staged there, applied, the loader moves as before.

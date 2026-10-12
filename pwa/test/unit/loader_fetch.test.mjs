@@ -6,7 +6,7 @@
 // nothing is lost.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { webcrypto } from 'node:crypto';
+import { webcrypto, createHash } from 'node:crypto';
 import { loadLoader } from './helpers/sw_sandbox.mjs';
 
 async function testPub() {
@@ -51,6 +51,47 @@ test("the page checks the loader's bytes without cookies", async () => {
     assert.equal(seen[0].init.credentials, 'omit');
     assert.equal(seen[0].init.cache, 'no-store');
     assert.equal(seen[0].init.referrerPolicy, 'no-referrer');
+  } finally {
+    globalThis.fetch = prev.fetch;
+    globalThis.document = prev.document;
+  }
+});
+
+test('after a move: the loader is asked for the way the browser installs it, and only a script with other bytes counts as other', async () => {
+  const signedBytes = 'self.signed = 1;';
+  const sha = createHash('sha256').update(signedBytes).digest('hex');
+  const name = `sw-${sha.slice(0, 16)}.js`;
+  const prev = { fetch: globalThis.fetch, document: globalThis.document };
+  globalThis.document = { baseURI: 'https://wallet.example/' };
+  let answer = null;
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    seen.push({ url, init });
+    if (answer instanceof Error) throw answer;
+    return answer;
+  };
+  try {
+    const { loaderBytes, loaderServed } = await import('../../src/lib/loader.js');
+    const js = (body) => new Response(body, { status: 200, headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
+    answer = js(signedBytes);
+    assert.equal(await loaderBytes(name, sha, { asInstall: true }), 'same');
+    assert.equal(seen.at(-1).init.headers['Service-Worker'], 'script', 'asked like an install');
+    assert.equal(seen.at(-1).init.credentials, 'omit');
+    answer = js(signedBytes);
+    assert.equal(await loaderBytes(name, null, { asInstall: true }), 'same', 'without the signed hash: the name');
+    answer = js(`${signedBytes}\n// changed\n`);
+    assert.equal(await loaderBytes(name, sha, { asInstall: true }), 'other');
+    answer = new Response('<h1>parked</h1>', { status: 200, headers: { 'Content-Type': 'text/html' } });
+    assert.equal(await loaderBytes(name, sha, { asInstall: true }), 'unknown', 'a parking page is nothing the browser would install');
+    answer = new Response('busy', { status: 503 });
+    assert.equal(await loaderBytes(name, sha, { asInstall: true }), 'unknown');
+    answer = new TypeError('Failed to fetch');
+    assert.equal(await loaderBytes(name, sha, { asInstall: true }), 'unknown');
+    assert.equal(await loaderBytes('../evil.js', sha), 'unknown', 'only a loader name');
+    // The page's pre-check (loaderServed) is a plain request.
+    answer = js(signedBytes);
+    assert.equal(await loaderServed(name, sha), true);
+    assert.deepEqual(seen.at(-1).init.headers, {});
   } finally {
     globalThis.fetch = prev.fetch;
     globalThis.document = prev.document;

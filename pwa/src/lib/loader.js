@@ -26,14 +26,21 @@
 // (lib/update_sources.js) runs under the loader the device already has, since
 // a service worker comes only from its own address. The page moves to its own
 // loader later, when a tapped Check for updates finds that address serving the
-// installed release again; every move first checks that the address serves the
-// loader's signed bytes.
+// installed release again. Every move first checks that the address serves the
+// loader's signed bytes to the page (loaderServed), and checks again once the
+// page runs under it (checkMovedLoader). Neither is a guarantee: the browser
+// fetches a loader itself to install it and no web API lets a page see or
+// choose those bytes, so an address can answer that one request differently,
+// and a worker already in control can answer the page's checks itself.
 
 import { LOADER, LOADER_COMPAT, BUILT } from './version.js';
 
 const META_CACHE = 'campfire-meta';
 const PROGRESS_KEY = '__campfire_install';
 const RELOAD_KEY = 'campfire-sw-reload';
+// A move to this release's loader not yet checked from the page that runs under it: {path, sha256, at}.
+const MOVE_CHECK_KEY = 'campfire-loader-check';
+const DAY_MS = 86400000;
 
 export const INTEGRITY_CODES = new Set(['bad_signature', 'manifest_mismatch', 'file_mismatch', 'malformed', 'downgrade']);
 
@@ -131,24 +138,78 @@ export function askLoader(msg, { timeoutMs = 120000, onProgress = null, slowMess
 const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
 
 /**
- * Whether this app's address serves the loader file `path` with the signed
- * bytes (sha256 from the release's manifest; without it, the hash its
- * content-addressed name carries). A loader that replaces another is installed
- * only after this.
+ * The bytes this app's address serves under the loader name `path`, compared
+ * with the signed SHA-256 (from the release's manifest; without it, the hash
+ * prefix the content-addressed name carries). 'same', 'other', or 'unknown'
+ * (no answer, an error status, or - asked asInstall - not a script, which the
+ * browser would not install either). asInstall asks the way the browser asks
+ * when it installs a loader (Service-Worker: script), as near as a page can:
+ * the browser's own request also says Sec-Fetch-Dest: serviceworker, which no
+ * page can send.
  */
-export async function loaderServed(path, sha256 = null) {
-  if (!/^sw-[0-9a-f]{16}\.js$/.test(String(path))) return false;
+export async function loaderBytes(path, sha256 = null, { asInstall = false, timeoutMs = 15000 } = {}) {
+  if (!/^sw-[0-9a-f]{16}\.js$/.test(String(path))) return 'unknown';
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), timeoutMs);
   let bytes;
   try {
     // No cookies: the app sets none, and one set for the parent domain must not decide the answer.
-    const r = await fetch(new URL(path, document.baseURI).href, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
-    if (!r.ok) return false;
+    const r = await fetch(new URL(path, document.baseURI).href, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', headers: asInstall ? { 'Service-Worker': 'script' } : {}, signal: ctl.signal });
+    if (!r.ok) return 'unknown';
+    if (asInstall && !/javascript|ecmascript/i.test(r.headers.get('content-type') || '')) return 'unknown';
     bytes = await r.arrayBuffer();
   } catch {
-    return false;
+    return 'unknown';
+  } finally {
+    clearTimeout(t);
   }
   const got = hex(await crypto.subtle.digest('SHA-256', bytes));
-  return sha256 ? got === sha256 : got.startsWith(path.slice(3, 19));
+  return (sha256 ? got === sha256 : got.startsWith(path.slice(3, 19))) ? 'same' : 'other';
+}
+
+/**
+ * Whether this app's address serves the loader file `path` with the signed
+ * bytes, asked by the page. A pre-check before a loader replaces another, not
+ * a guarantee: the browser fetches the loader again itself to install it, and
+ * the address can answer that request differently (checkMovedLoader looks
+ * again once the page runs under it).
+ */
+export async function loaderServed(path, sha256 = null) {
+  return (await loaderBytes(path, sha256)) === 'same';
+}
+
+function readMoveCheck() {
+  try {
+    const v = JSON.parse(localStorage.getItem(MOVE_CHECK_KEY) || 'null');
+    return v && typeof v.path === 'string' && typeof v.at === 'number' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeMoveCheck(v) {
+  try {
+    if (v) localStorage.setItem(MOVE_CHECK_KEY, JSON.stringify(v));
+    else localStorage.removeItem(MOVE_CHECK_KEY);
+  } catch {
+    /* private mode: the check after the move is skipped */
+  }
+}
+
+/**
+ * After a move to this release's loader: what the address serves under its
+ * name now, asked the way the browser asked to install it, against the signed
+ * hash noted before the move. 'other' means the browser may have installed
+ * bytes BEAM Campfire did not sign. Best effort (see loaderBytes; and a worker that
+ * controls this page can answer this request itself). One answer, or a day
+ * without one, ends it.
+ */
+export async function checkMovedLoader(now = Date.now()) {
+  const p = readMoveCheck();
+  if (!p || p.path !== LOADER) return 'unknown';
+  const v = await loaderBytes(LOADER, typeof p.sha256 === 'string' ? p.sha256 : null, { asInstall: true });
+  if (v !== 'unknown' || now - p.at > DAY_MS) writeMoveCheck(null);
+  return v;
 }
 
 const endsWithLoader = (url) => typeof url === 'string' && url.split('?')[0].endsWith(`/${LOADER}`);
@@ -231,11 +292,13 @@ export async function watchLoader({ onIntrusion, onMoved = () => {} }) {
   const check = (url) => {
     if (url && !expected(url)) fire(`a new service worker (${url.split('/').pop()}) is being installed`);
   };
+  const movedOther = "this app's address serves other code under the new loader's name than BEAM Campfire signed";
   const changed = (now) => {
     const ok = endsWithLoader(now) && !endsWithLoader(controllerUrl);
     controllerUrl = now;
-    if (!ok) fire('the service worker controlling this page changed');
-    else onMoved();
+    if (!ok) return fire('the service worker controlling this page changed');
+    // Moved to this release's loader: look at what was installed before anything reloads into it.
+    checkMovedLoader().then((v) => (v === 'other' ? fire(movedOther) : onMoved()));
   };
   if (early && early.initial) {
     // Everything since the page's first line, then each new event: nothing between the two is missed.
@@ -252,6 +315,8 @@ export async function watchLoader({ onIntrusion, onMoved = () => {} }) {
     reg.addEventListener('updatefound', () => check(reg.installing && reg.installing.scriptURL));
   }
   if (!endsWithLoader(controllerUrl)) askToTakeOver(reg);
+  // A move that happened while no page of this release could look (the app was closed meanwhile).
+  else if (readMoveCheck() && (await checkMovedLoader()) === 'other') return fire(movedOther);
 
   // Moving to this release's loader after an approved Update that brought a new
   // one. Asked again at each start until it has moved: a phone can stop the page
@@ -283,6 +348,8 @@ export async function moveToLoader() {
   }
   const signed = st && st.releaseLoader && st.releaseLoader.path === LOADER ? st.releaseLoader.sha256 : null;
   if (!(await loaderServed(LOADER, signed))) return 'not-served';
+  // Checked again from the page that runs under it (checkMovedLoader), against this signed hash.
+  writeMoveCheck({ path: LOADER, sha256: signed, at: Date.now() });
   const reg = await sw.register(LOADER, { scope: './', updateViaCache: 'none' });
   askToTakeOver(reg);
   return 'moving';

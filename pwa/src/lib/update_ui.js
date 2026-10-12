@@ -116,7 +116,7 @@ function answer(app, r, close) {
 function needsAddress(version, close, ownVersion = null) {
   const why = ownVersion
     ? `which still serves version ${ownVersion}. Your app keeps working; check again later.`
-    : 'which is not answering. Your app keeps working; check again once that address is back.';
+    : 'which is not serving it right now. Your app keeps working; check again later.';
   return [
     h('h2', { text: `Version ${version} needs this app's address` }),
     h('div', tid('update-needs-address'), notice('info', `BEAM Campfire ${version} changes how the app starts on this device, and that part can only come from the address you installed it from, ${why}`)),
