@@ -11,13 +11,16 @@
 // - No spend ceiling: a stored ceiling (SaveSpendMax) is what the core lets
 //   a rebuilt dependent call spend later without asking again, and the
 //   approve sheet never shows it (see checkContractData).
+// - No unknown code to redo the call later: a rebuilt call is signed without
+//   these checks, so only known app bodies may be stored (checkRebuild).
 //
 // A contract call signs with key hashes chosen by its app shader; the core
 // derives the private key from the wallet's master key and that hash, where
 // the hash is SHA-256("bvm.m.key\0" || id). The ids below are public (BANS
 // uses its own contract id), so any dApp could otherwise ask for them.
 
-import { decodeInvokeData, InvokeDataError, FLAG_SAVE_SPEND_MAX } from './invoke_data.js';
+import { decodeInvokeData, InvokeDataError, FLAG_SAVE_SPEND_MAX, FLAG_DEPENDENT, FLAG_SAVE_APP_INVOKE } from './invoke_data.js';
+import { REBUILD_BODIES } from './catalogue.js';
 import { RPC, RpcError, hasHiddenText } from './rpc.js';
 
 export const BANS_CID = 'af4550f1f8a6051ffeffea06e0cb978f8076fdfc2101d2273d4e62c86540bc5e';
@@ -51,7 +54,7 @@ export const KNOWN_CONTRACTS = Object.freeze({
 export class PolicyRefusal extends Error {
   constructor(reason, message) {
     super(message);
-    this.reason = reason; // 'unreadable' | 'privileged' | 'spend_ceiling' | 'hidden_text' | 'forbidden_contract' | 'reserved_key'
+    this.reason = reason; // 'unreadable' | 'privileged' | 'spend_ceiling' | 'hidden_text' | 'forbidden_contract' | 'reserved_key' | 'rebuild'
   }
 }
 
@@ -90,6 +93,26 @@ export function checkContractData(raw) {
     }
   }
   return data;
+}
+
+const REBUILD_REFUSED = "BEAM Campfire refused this request: it lets the dApp's own code redo the call later, without asking you again. BEAM Campfire allows that only for code from BEAM's own dApps. Nothing was sent.";
+
+/**
+ * Throws PolicyRefusal when data the core could redo later (a dependent call, or a stored app
+ * body) does not store a body from REBUILD_BODIES. When a dependent call misses its block the
+ * core re-runs the stored body and signs what it emits without asking again
+ * (contract_transaction.cpp RebuildHft); nothing checks that variant against these rules, only
+ * its funds against the approved ones (1%). Unknown code could then call BEAM names, or sign
+ * with a key above. unchecked: a dApp installed from a file, refused whatever it stores.
+ */
+export async function checkRebuild(data, { unchecked }) {
+  const later = data.appShader !== null || data.entries.some((e) => e.flags & (FLAG_DEPENDENT | FLAG_SAVE_APP_INVOKE));
+  if (!later) return;
+  // A stored contract body is code the rebuild could deploy: no dApp of BEAM's stores one.
+  if (unchecked !== false || !data.appShader || data.contractShaderLength !== 0) throw new PolicyRefusal('rebuild', REBUILD_REFUSED);
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', data.appShader));
+  const hex = Array.from(d, (x) => x.toString(16).padStart(2, '0')).join('');
+  if (!Object.prototype.hasOwnProperty.call(REBUILD_BODIES, hex)) throw new PolicyRefusal('rebuild', REBUILD_REFUSED);
 }
 
 /** SHA-256("bvm.m.key\0" || keyMaterialBytes), lowercase hex. */

@@ -7,8 +7,9 @@
 // 3. parameter rules (sanitizer.js): no contract_file, no create_tx: true,
 //    no hidden parameters on payments, no privileged shader;
 // 4. process_invoke_data: the raw data is read in full and refused (-32020)
-//    when it asks for privilege or a spend ceiling, calls BEAM names or signs
-//    with a key BEAM Campfire's own features use (policy.js); sign_message with such a key
+//    when it asks for privilege or a spend ceiling, calls BEAM names, signs
+//    with a key BEAM Campfire's own features use, or stores code to redo it
+//    later that is not from BEAM's own dApps (policy.js); sign_message with such a key
 //    is refused too, and any other sign_message is put to the person first;
 // 5. forwarded to this dApp's own app API in BEAM's engine (lib/contracts.js openApp), which
 //    applies the core's app rules again, scopes transactions and addresses
@@ -21,7 +22,7 @@
 import { RPC, RpcError, RpcFailure, parseRequest, resultResponse, errorResponse, eventResponse } from './rpc.js';
 import { MethodGate, negotiateApiVersion, CURRENT_VERSION } from './gate.js';
 import { RequestSanitizer, DEFAULT_REQUEST_LIMITS } from './sanitizer.js';
-import { checkContractData, PolicyRefusal, reservedUseOfKeyMaterial, refusalError } from './policy.js';
+import { checkContractData, checkRebuild, PolicyRefusal, reservedUseOfKeyMaterial, refusalError } from './policy.js';
 
 export class DappSession {
   /**
@@ -109,7 +110,8 @@ export class DappSession {
         return this.oneShaderAtATime(() => this.forward(method, this.withOwnShader(params)));
       case 'process_invoke_data':
         try {
-          checkContractData(Uint8Array.from(params.data));
+          // app.unchecked: installed from a file (lib/contracts.js openApp).
+          await checkRebuild(checkContractData(Uint8Array.from(params.data)), { unchecked: this.app.unchecked === true });
         } catch (e) {
           if (e instanceof PolicyRefusal) {
             if (this.onRefused) this.onRefused(e.message);
