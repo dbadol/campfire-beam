@@ -29,7 +29,7 @@ import { uniswapFor } from '../lib/eth/uniswap_app.js';
 import { uniTokenOf, ETH_TOKEN } from '../lib/eth/uniswap/models.js';
 import { exactUnits } from '../lib/compact.js';
 import { ethAbout, ethAtMost, short, amtShown } from './eth_swap_parts.js';
-import { notSentNotice } from './eth_ui.js';
+import { notSentNotice, indexSaysNotice } from './eth_ui.js';
 
 const FOLLOW_MS = 4000;
 
@@ -100,6 +100,9 @@ export default function ethSwapTx(app, p = {}) {
       cls = 'bad';
       ico = 'close';
       lines = [notice('info', 'Another transaction from this wallet, sent from this device or another one with the same words, took its place. This swap will not happen, and nothing left for it.')];
+      // A verified "Replaced" the history index contradicts: its word beside it (RE2-5).
+      const said = w ? w.indexSays(entry.hash) : null;
+      if (said) lines.push(indexSaysNotice(said, swap ? 'swap' : 'permission'));
     } else {
       title = 'Not sent';
       cls = 'bad';

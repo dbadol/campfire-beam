@@ -18,7 +18,7 @@ import { DEFAULT_ETH_RPC, ETH_RPC_HOSTS, HISTORY_HOST } from './hosts.js';
 import { TOKENS } from './tokens.js';
 import { encodeCall, abiDecode } from './abi.js';
 import { loadOutbox, clearOutbox, isOpen, updateOutbox } from './outbox.js';
-import { fetchHistory, mergeActivity, minedInIndex } from './history.js';
+import { fetchHistory, mergeActivity, minedInIndex, indexBlockOf } from './history.js';
 import { forgetDataKeys } from './sealed.js';
 import { followOnce, minedPatch } from './send.js';
 import { entryInDoubt, forgetInDoubt } from './doubt.js';
@@ -152,8 +152,9 @@ class EthWallet {
 
   /**
    * What the history index shows in a block was sent, whatever one server's refusals ended it as
-   * ('rejected') or which replacement it showed ('replaced'): such an entry is written down as
-   * mined (release audit BM-2). Returns whether any changed.
+   * ('rejected'): such an entry is written down as mined (release audit BM-2). Not a 'replaced'
+   * one: that was shown with evidence, and only the chosen server's receipt of this hash settles
+   * it (recheckRejected; re-audit RE2-5). Returns whether any changed.
    */
   async settleFromIndex() {
     const h = this.state.history;
@@ -166,22 +167,31 @@ class EthWallet {
     return found.length > 0;
   }
 
+  /** What the history index shows for `hash` in a block ({state, blockNumber}), or null. */
+  indexSays(hash) {
+    return indexBlockOf(this.state.history, hash);
+  }
+
   /**
    * 'rejected' is one server's word after half an hour of refusals, not Ethereum's: each look
    * (Ethereum Home opening, the transaction's own screen) asks for the receipts of the newest
    * `limit` such entries, once, and one mined after all becomes confirmed (or failed). An entry
-   * settled from the index (no fee figures yet) gets its receipt the same way. Returns whether
-   * any changed.
+   * settled from the index (no fee figures yet) gets its receipt the same way, and so does a
+   * 'replaced' one the index shows in a block (re-audit RE2-5): it becomes mined only when the
+   * chosen server serves this hash's own receipt. Returns whether any changed.
    */
   async recheckRejected({ hash = null, limit = 10 } = {}) {
     const rpc = this.rpc;
     const fromIndex = (e) => (e.state === 'confirmed' || e.state === 'failed') && e.receipt && e.receipt.gasUsed == null;
-    const list = this.state.outbox.filter((e) => (e.state === 'rejected' || fromIndex(e)) && (hash === null || e.hash === hash)).slice(0, limit);
+    const contested = (e) => e.state === 'replaced' && this.indexSays(e.hash) !== null;
+    const list = this.state.outbox.filter((e) => (e.state === 'rejected' || fromIndex(e) || contested(e)) && (hash === null || e.hash === hash)).slice(0, limit);
     let changed = false;
     for (const e of list) {
       const r = await rpc.getTransactionReceipt(e.hash).catch(() => null);
       if (!r) continue;
-      await updateOutbox(this.app, e.hash, minedPatch(r), { ethId: this.ethId, kv: this.kv });
+      // Our hash has a receipt: it was mined, so nothing took its nonce.
+      const patch = e.state === 'replaced' ? { ...minedPatch(r), replacedBy: null, replacedIn: null } : minedPatch(r);
+      await updateOutbox(this.app, e.hash, patch, { ethId: this.ethId, kv: this.kv });
       changed = true;
     }
     if (changed) await this.reloadOutbox();

@@ -711,6 +711,32 @@ test('BM-2: a swap "Not sent" is the server\'s word too, with Etherscan in it', 
   await ethHomeReady();
 });
 
+// Re-audit RE2-5: a verified "Replaced" is not overwritten by an index row; the index's word is shown beside it.
+test('RE2-5: "Replaced" stays while only the history index lists the payment in a block; both are said', { skip: skip || false, timeout: 2 * 60000 }, async () => {
+  const rep = fake('a9', { state: 'replaced', refusedAt: null, error: null, replacedBy: `0x${'aa'.repeat(32)}`, replacedIn: 21999990 });
+  await outboxWrite({ add: rep });
+  indexExtra.push({ blockHash: `0x${'b3'.repeat(32)}`, blockNumber: 22000200, from: ACCOUNT0.toLowerCase(), to: rep.to.toLowerCase(), gas: 21000, gasPrice: 1000000000, gasUsed: 21000, hash: rep.hash, nonce: 900, receipt: { effectiveGasPrice: 1000000000, gasUsed: 21000, logs: [], status: 1 }, timestamp: 1767225800, value: rep.amount });
+  try {
+    await page.evaluate(() => window.__campfire.go('ethReceive'));
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-activity-row')}[data-hash="${rep.hash}"][data-state="replaced"]`, { timeout: 30000 });
+    await page.click(`${tid('eth-activity-row')}[data-hash="${rep.hash}"]`);
+    await waitScreen(page, 'ethTx');
+    await page.waitForSelector(tid('eth-index-says'));
+    assert.equal(await page.getAttribute(tid('eth-tx-title'), 'data-state'), 'replaced');
+    assert.match(await page.textContent(tid('eth-index-says')), /^Stack Wallet's history index says this payment is in block 22,000,200\. Your Ethereum server showed another transaction from this wallet in its place, so it stays "Replaced" here until your server shows this payment in a block too\./);
+    assert.equal(await page.isVisible(tid('eth-tx-replaced-by')), true, 'the evidence is kept');
+    await sleep(1500); // its receipt asked of the server: none, so it stays as it was
+    assert.equal(await page.getAttribute(tid('eth-tx-title'), 'data-state'), 'replaced');
+    await shots4('37-tx-replaced-index');
+    await page.click(tid('eth-tx-done'));
+    await ethHomeReady();
+  } finally {
+    indexExtra.length = 0;
+  }
+});
+
 // Re-audit RE2-2: a payment no server can settle used to pause this wallet for good. The notice names
 // History when it is off and, after a day in doubt with every look failing, offers "Forget this payment".
 test('RE2-2: a payment in doubt for a day can be forgotten, after a plain warning; that one only, and sending opens up', { skip: skip || false, timeout: 3 * 60000 }, () =>

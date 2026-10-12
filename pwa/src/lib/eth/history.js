@@ -122,8 +122,14 @@ export function parseTokenTransfers(json, address, token) {
   return out;
 }
 
-/** Outbox states that are one server's verdict, not Ethereum's: a block in the index outranks them (release audit BM-2). */
-const OUTRANKED = new Set(['rejected', 'replaced']);
+/**
+ * Outbox states that are one server's verdict, not Ethereum's: a block in the index outranks them
+ * (release audit BM-2). Only 'rejected': 'replaced' was shown with evidence (the transaction that
+ * took the nonce, signed by this wallet's key, with a receipt: send.js followOnce), and an index row
+ * is a third party's word; it is shown beside it (indexSays) and settled only by the chosen server
+ * serving this hash's own receipt (wallet.js recheckRejected; re-audit RE2-5).
+ */
+const OUTRANKED = new Set(['rejected']);
 
 /** hash -> {blockNumber, failed, at} for every transaction the index shows in a block (a token transfer is one that succeeded). */
 function minedRows(txs, transfers) {
@@ -133,8 +139,14 @@ function minedRows(txs, transfers) {
   return out;
 }
 
+/** What the index shows for `hash` in a block: {state: 'confirmed' | 'failed', blockNumber}, or null. */
+export function indexBlockOf({ txs = [], transfers = [] }, hash) {
+  const m = minedRows(txs, transfers).get(String(hash).toLowerCase());
+  return m ? { state: m.failed ? 'failed' : 'confirmed', blockNumber: m.blockNumber } : null;
+}
+
 /**
- * Entries of `outbox` that one server ended as 'rejected' (never sent) or 'replaced', while the
+ * Entries of `outbox` that one server ended as 'rejected' (never sent), while the
  * history index shows that very transaction in a block: [{hash, state: 'confirmed' | 'failed',
  * blockNumber}]. A transaction in a block was sent; the wallet writes it down (wallet.js
  * settleFromIndex) so it never reads "Not sent" again.
@@ -202,6 +214,8 @@ export function mergeActivity({ address, outbox = [], txs = [], transfers = [] }
     const r = e.receipt;
     // One server's "never sent" or "replaced" against a block in the index: the block wins.
     const won = OUTRANKED.has(e.state) ? mined.get(e.hash) : null;
+    // A verified "Replaced" the index contradicts: shown as replaced, with the index's word beside it.
+    const said = e.state === 'replaced' ? mined.get(e.hash) : null;
     byHash.set(`${e.hash}:local`, {
       hash: e.hash,
       at: e.createdAt,
@@ -210,7 +224,8 @@ export function mergeActivity({ address, outbox = [], txs = [], transfers = [] }
       asset,
       amount: BigInt(e.amount),
       counterparty: e.to.toLowerCase(),
-      fee: r && r.gasUsed && r.effectiveGasPrice ? BigInt(r.gasUsed) * BigInt(r.effectiveGasPrice) : fees.get(e.hash) ?? null,
+      // The index's fee only for what it outranks: a "Replaced" it contradicts paid nothing on our word.
+      fee: r && r.gasUsed && r.effectiveGasPrice ? BigInt(r.gasUsed) * BigInt(r.effectiveGasPrice) : said ? null : fees.get(e.hash) ?? null,
       state: won ? (won.failed ? 'failed' : 'confirmed') : e.state,
       local: true,
       // A Uniswap swap or approval sent from this device (lib/eth/uniswap_app.js): what it was for.
@@ -218,6 +233,7 @@ export function mergeActivity({ address, outbox = [], txs = [], transfers = [] }
       swapOut: typeof e.tokenOutSymbol === 'string' ? e.tokenOutSymbol : null,
       // Open but in doubt (lib/eth/send.js): 'unsure' (its nonce said used, nothing shown) or 'refused'.
       doubt: e.state !== 'signed' && e.state !== 'pending' ? null : e.unsureSince ? 'unsure' : e.refusedAt && e.state === 'signed' ? 'refused' : null,
+      indexSays: said ? { state: said.failed ? 'failed' : 'confirmed', blockNumber: said.blockNumber } : null,
     });
   }
   const items = [...byHash.values()];

@@ -257,6 +257,21 @@ export function followDoubt(app, getWallet, onChange, { every = 4000 } = {}) {
 export const NOT_SENT_NOTE =
   "Your Ethereum server refused it for half an hour and never showed it on Ethereum, so most likely it never left and nothing was spent. That is the server's word, not Ethereum's. BEAM Campfire looks for it again each time you open your Ethereum wallet.";
 
+/**
+ * Beside a verified "Replaced" that Stack Wallet's index lists in a block (re-audit RE2-5): both are
+ * said, and "Replaced" stays until the chosen server shows this one's own receipt. said: {state,
+ * blockNumber} (lib/eth/wallet.js indexSays); noun: 'payment' | 'swap' | 'permission'.
+ */
+export function indexSaysNotice(said, noun = 'payment') {
+  const where = `in block ${Number(said.blockNumber).toLocaleString('en-US')}`;
+  const n = notice(
+    'warn',
+    `Stack Wallet's history index says this ${noun} ${said.state === 'failed' ? `failed ${where}` : `is ${where}`}. Your Ethereum server showed another transaction from this wallet in its place, so it stays "Replaced" here until your server shows this ${noun} in a block too. Etherscan can tell you which is right.`,
+  );
+  n.dataset.testid = 'eth-index-says';
+  return n;
+}
+
 /** The "Not sent" notice of a payment's or swap's screen: NOT_SENT_NOTE, what the server said, and Etherscan. */
 export function notSentNotice(hash, serverSaid = null) {
   const n = notice(
