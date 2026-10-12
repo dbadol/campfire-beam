@@ -21,6 +21,8 @@ import { csvFile } from '../lib/airdrop_csv.js';
 import { deliverExport } from '../lib/export.js';
 import { formatAmount } from '../lib/amount.js';
 import { wallet } from '../lib/wallet.js';
+import { evictionRisk } from '../lib/storage.js';
+import { STORAGE_TEXT } from './storage_warning.js';
 
 const STATUS_TEXT = { [CODE_STATUS.available]: 'Not claimed', [CODE_STATUS.claimed]: 'Claimed', [CODE_STATUS.notFound]: 'Not on the network', [CODE_STATUS.unknown]: '' };
 
@@ -67,7 +69,7 @@ export default function airdropCodes(app, p = {}) {
       h('p', { class: 'lead', 'data-testid': 'codes-summary', text: same ? `${n} ${n === 1 ? 'code' : 'codes'} · ${amountText(batch.assetId, BigInt(batch.codes[0].value))} each` : `${n} codes · ${amountText(batch.assetId, batchTotal(batch))} in total` }),
       batch.txStatus === TX_STATUS.failed
         ? null
-        : notice('warn', h('strong', { text: 'These codes are the only key to the locked funds. ' }), 'Anyone who has a code can claim it, so send each one only to its person. They are kept only on this device, in this wallet: copy them or save the file somewhere safe.'),
+        : notice('warn', h('strong', { text: 'These codes are the only key to the locked funds. ' }), `Anyone who has a code can claim it, so send each one only to its person. They are kept only on this device, in this wallet: copy them or save the file somewhere safe.${STORAGE_TEXT.codesNote[evictionRisk(app)] || ''}`),
       // Copying is the job: the button sits above the list, however long it is.
       h('div', { class: 'btn-row' }, copyAll, typeof navigator.share === 'function' ? secondary('Share', () => navigator.share({ text: all }).catch(() => {}), { 'data-testid': 'codes-share' }) : null),
       h('button', { class: 'btn btn-text link-left', type: 'button', 'data-testid': 'codes-csv', onclick: () => saveCsv(batch) }, icon('download'), 'Save as CSV file'),
