@@ -119,8 +119,26 @@ export function nginxHeaderLines() {
   lines.push('add_header Content-Security-Policy $campfire_csp always;');
   lines.push('add_header Access-Control-Allow-Origin $campfire_acao always;');
   lines.push(`default "${CSP}";`);
-  lines.push(`"~/sw(-[0-9a-f]+)?\\.js$" "${LOADER_CSP}";`);
+  lines.push(`"~^/sw(-[0-9a-f]+)?\\.js$" "${LOADER_CSP}";`);
   for (const p of PROXY_PATHS) lines.push(`${p} "";`);
+  return lines;
+}
+
+/**
+ * What deploy/Caddyfile must contain (tools/build.mjs and the unit tests check
+ * it). Caddy runs every matching header directive, so a field set in the block
+ * for every response and again for one path ends up with whichever ran last:
+ * the policy is therefore set by two matchers that never both match, the
+ * loader's (@loader) and the page's (@page), and the block for every response
+ * carries the rest. The loader's name is sw-<hash>.js (LOADER_FILE).
+ */
+export function caddyHeaderLines() {
+  const lines = [];
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (k !== 'Content-Security-Policy') lines.push(`\t\t${k} "${v}"`);
+  lines.push('\t@loader path /sw-*.js /sw.js');
+  lines.push('\t@page not path /sw-*.js /sw.js');
+  lines.push(`\theader @page Content-Security-Policy "${CSP}"`);
+  lines.push(`\theader @loader Content-Security-Policy "${LOADER_CSP}"`);
   return lines;
 }
 

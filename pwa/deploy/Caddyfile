@@ -1,0 +1,78 @@
+# BEAM Campfire (PWA) on Caddy. Replace wallet.example.org with your own address
+# (used only for this app). Caddy gets and renews the HTTPS certificate itself.
+# Files: git clone --depth 1 https://github.com/vsnation/beam-campfire-pwa /srv/beam-campfire
+
+wallet.example.org {
+	root * /srv/beam-campfire
+	encode gzip
+
+	# Every response. tools/build.mjs fails if these lines drift from tools/headers.mjs.
+	header {
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Embedder-Policy "require-corp"
+		Cross-Origin-Resource-Policy "same-origin"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()"
+		Cache-Control "no-cache"
+	}
+	# On its own: deleting a field defers a header directive to the end of the response,
+	# which error responses (a 404) never reach.
+	header -Server
+
+	# The policy is set by two matchers that never both match: Caddy runs every header
+	# directive that matches, so a policy in the block above would also land on the loader
+	# (or replace its own). The loader (sw-<hash>.js) is a worker: its own policy lets it
+	# fetch a signed update from another copy of the app when this address does not answer.
+	# With the page policy it cannot reach any copy, and an installed worker keeps the
+	# policy it was fetched with.
+	@loader path /sw-*.js /sw.js
+	@page not path /sw-*.js /sw.js
+	header @page Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self' wss://eu-node02.mainnet.beam.mw:8200 wss://eu-node03.mainnet.beam.mw:8200 wss://eu-node04.mainnet.beam.mw:8200 wss://eu-nodes.mainnet.beam.mw:8200 wss://eu-node01.mainnet.beam.mw:8200 https://raw.githubusercontent.com/BeamMW/beam-ui/2f36c21ed010dee350c052ffce9097b23f69ecfb/ui/apps/mainnet/ https://eth2.stackwallet.com https://ethereum-rpc.publicnode.com https://eth.drpc.org https://rpc.mevblocker.io https://eth-mainnet.public.blastapi.io https://api.coingecko.com/api/v3/simple/price https://buybeam.my/api/v1/buy/ https://1click.chaindefuser.com/v0/ https://pwa.buybeam.my/recovery/; img-src 'self' data: blob:; style-src 'self'; font-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
+	header @loader Content-Security-Policy "default-src 'none'; connect-src 'self' https:"
+
+	# Never serve the repository's own files.
+	@private path /.git /.git/* /deploy/* /README.md /_headers /.nojekyll
+	handle @private {
+		respond 404
+	}
+
+	# BEAM's daily recovery snapshot (~330 MB) for "Restore with 12 words", relayed as-is.
+	handle /recovery/mainnet_recovery.bin {
+		rewrite * /mainnet/mainnet_recovery.bin
+		reverse_proxy https://mobile-restore.beam.mw {
+			header_up Host {upstream_hostport}
+			header_up -X-Forwarded-For
+			header_up -X-Forwarded-Proto
+			header_up -X-Forwarded-Host
+			header_up -Cookie
+			header_down -Set-Cookie
+			header_down -Access-Control-Allow-Origin
+			flush_interval -1
+		}
+	}
+
+	# An independent chain height for the honest "synced" check (height and time only).
+	handle /explorer/status {
+		rewrite * /api/status
+		reverse_proxy https://explorer.0xmx.net {
+			header_up Host {upstream_hostport}
+			header_up -X-Forwarded-For
+			header_up -X-Forwarded-Proto
+			header_up -X-Forwarded-Host
+			header_up -Cookie
+			header_down -Set-Cookie
+			header_down -Access-Control-Allow-Origin
+			header_down -Access-Control-Allow-Headers
+		}
+	}
+
+	handle {
+		file_server
+	}
+
+	# No access log: a privacy wallet's host should not keep visitors' IP addresses.
+	log {
+		output discard
+	}
+}

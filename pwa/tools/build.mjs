@@ -28,15 +28,15 @@
 //    --loader-note adds a comment to the loader (a release whose loader differs
 //    only in its bytes) and --loader-api builds another contract level (a
 //    release the older loader cannot run): tests use them, releases do not.
-// 4. Writes _headers for static hosts, and fails if deploy/_headers or
-//    deploy/nginx.conf disagree with tools/headers.mjs.
+// 4. Writes _headers for static hosts, and fails if deploy/_headers,
+//    deploy/nginx.conf or deploy/Caddyfile disagree with tools/headers.mjs.
 // The private key never enters the output and is never printed.
 import { webcrypto, createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir, rm, readdir, copyFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, dirname, relative, sep, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SECURITY_HEADERS, LOADER_CSP, nginxHeaderLines } from './headers.mjs';
+import { SECURITY_HEADERS, LOADER_CSP, nginxHeaderLines, caddyHeaderLines } from './headers.mjs';
 import { loaderSource } from './loader_source.mjs';
 import { BUILTIN_SOURCES, normalizeSource } from '../src/lib/update_sources.js';
 import { SHADER_DIR } from '../src/lib/shaders.js';
@@ -180,6 +180,10 @@ if (committed !== headersText) {
 const nginx = await readFile(join(root, 'deploy', 'nginx.conf'), 'utf8').catch(() => '');
 for (const line of nginxHeaderLines()) {
   if (!nginx.includes(line)) throw new Error(`deploy/nginx.conf is missing: ${line}`);
+}
+const caddy = await readFile(join(root, 'deploy', 'Caddyfile'), 'utf8').catch(() => '');
+for (const line of caddyHeaderLines()) {
+  if (!caddy.includes(line)) throw new Error(`deploy/Caddyfile is missing: ${line.trim()}`);
 }
 
 let total = 0;
