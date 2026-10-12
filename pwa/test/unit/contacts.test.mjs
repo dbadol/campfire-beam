@@ -163,3 +163,46 @@ test('BEAM names paid: the owner key each was paid, sealed with the contacts, ke
   assert.equal(await C.namePinFor(app, 'carol', kv), OWNER);
   for (const f of app.lockHooks) f();
 });
+
+// Audit BC-3: Send and Review read the owner key a name was paid before with
+// namePinFor(...).catch(() => null), so a record that does not open (damaged, or a key-derivation
+// mismatch) looked exactly like "never paid": the owner-change check went off without a word.
+// readNamePin says which it is, and both screens say NAME_PIN_UNREAD.
+test('a names-paid record that cannot be read is told apart from "never paid" (audit BC-3)', async () => {
+  const kv = memKv();
+  const dbPass = newDbPassword();
+  const OWNER = `${'72e368c016'}${'0'.repeat(54)}01`;
+  const app = { record: { id: 'a7a7a7a7a7a7a7a7', imported: false }, dbPass, lockHooks: new Set() };
+  try {
+    assert.deepEqual(await C.readNamePin(app, 'alice', kv), { key: null, unread: false }, 'nothing kept yet: never paid');
+    await C.pinNamePayment(app, 'alice', OWNER, kv);
+    assert.deepEqual(await C.readNamePin(app, 'alice', kv), { key: OWNER, unread: false });
+    assert.deepEqual(await C.readNamePin(app, 'bob', kv), { key: null, unread: false });
+    // The sealed record damaged: namePinFor throws, readNamePin says it could not read it.
+    for (const f of app.lockHooks) f();
+    const env = structuredClone(kv.m.get('w:a7a7a7a7a7a7a7a7:payments'));
+    const ct = Buffer.from(env.ct, 'base64');
+    ct[3] ^= 1;
+    env.ct = ct.toString('base64');
+    kv.m.set('w:a7a7a7a7a7a7a7a7:payments', env);
+    await assert.rejects(C.namePinFor(app, 'alice', kv));
+    assert.deepEqual(await C.readNamePin(app, 'alice', kv), { key: null, unread: true });
+    // Locked: the same (nothing to compare with).
+    assert.deepEqual(await C.readNamePin({ record: app.record, dbPass: null }, 'alice', kv), { key: null, unread: true });
+    assert.equal(C.NAME_PIN_UNREAD, 'BEAM Campfire could not compare this owner with your earlier payments.');
+  } finally {
+    for (const f of app.lockHooks) f();
+  }
+});
+
+test('Send and Review never read the names-paid record in a way that hides a failure', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const screens = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'screens');
+  for (const f of ['send.js', 'review.js']) {
+    const s = readFileSync(join(screens, f), 'utf8');
+    assert.ok(!/namePinFor\([^)]*\)\s*\.catch\(\s*\(\)\s*=>\s*null\s*\)/.test(s), `${f}: no namePinFor(...).catch(() => null)`);
+    assert.ok(s.includes('NAME_PIN_UNREAD'), `${f}: says when the record could not be read`);
+  }
+});

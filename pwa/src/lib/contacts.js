@@ -401,6 +401,23 @@ export async function namePinFor(app, name, kv = null) {
   return Object.prototype.hasOwnProperty.call(pins, name) ? pins[name] : null;
 }
 
+// What Send and Review say when that record cannot be read (audit BC-3): the owner-change check
+// could not run, which must not look like a name never paid.
+export const NAME_PIN_UNREAD = 'BEAM Campfire could not compare this owner with your earlier payments.';
+
+/**
+ * namePinFor that never throws: {key, unread}. key is the owner key `name` was last paid, or
+ * null; unread is true when the record could not be read (damaged, a key that does not open it,
+ * locked), so the screens can say the comparison did not happen.
+ */
+export async function readNamePin(app, name, kv = null) {
+  try {
+    return { key: await namePinFor(app, name, kv), unread: false };
+  } catch {
+    return { key: null, unread: true };
+  }
+}
+
 /** Remembers that the open wallet paid `name` at owner key `key`. */
 export async function pinNamePayment(app, name, key, kv = null) {
   return (await vaultFor(app, kv)).pinName(name, key);

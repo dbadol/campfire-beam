@@ -23,7 +23,7 @@ import { screen, primary, notice } from '../lib/ui.js';
 import { parseAmount, formatAmount, toInputString } from '../lib/amount.js';
 import { wallet, sendModeFor } from '../lib/wallet.js';
 import { classifyRecipient, describeNameProblem, canReceivePayments, display, fingerprint, checkCode, pinVerdict, dateOf, holdEndHeight, STATUS, NAME_CALL_FEE } from '../lib/bans.js';
-import { namePinFor } from '../lib/contacts.js';
+import { readNamePin, NAME_PIN_UNREAD } from '../lib/contacts.js';
 import { bans, day } from './names.js';
 import { hiddenIds } from '../lib/hidden_tokens.js';
 import { recipientButtons, contactLine, noteField, scannedAmount } from './send_extras.js';
@@ -121,8 +121,10 @@ export default function send(app) {
       const r = await bans().resolve(name);
       if (seq !== checkSeq) return;
       const payable = canReceivePayments(r.status) && Boolean(r.ownerKey);
-      // The owner key this wallet paid the name before, kept sealed with the contacts. Unreadable: as if never paid.
-      const pinned = payable ? await namePinFor(app, name).catch(() => null) : null;
+      // The owner key this wallet paid the name before, kept sealed with the contacts. Unreadable:
+      // nothing to compare with, and the person is told so (audit BC-3), never "as if never paid".
+      const pin = payable ? await readNamePin(app, name) : { key: null, unread: false };
+      const pinned = pin.key;
       if (seq !== checkSeq) return;
       const accepted = draft.acceptedOwner && draft.acceptedOwner.name === name ? draft.acceptedOwner.key : null;
       const verdict = payable ? pinVerdict({ pinned, now: r.ownerKey, accepted }) : 'first';
@@ -133,16 +135,17 @@ export default function send(app) {
         put(nameBox, ownerChangedCard(name, pinned, r.ownerKey));
       } else if (payable) {
         const clock = { tipHeight: r.tipHeight, tipTime: r.tipTime };
-        check = { state: 'ok', name, ownerKey: r.ownerKey, pinnedKey: pinned, acceptedKey: verdict === 'accepted' ? r.ownerKey : null };
+        check = { state: 'ok', name, ownerKey: r.ownerKey, pinnedKey: pinned, pinUnread: pin.unread, acceptedKey: verdict === 'accepted' ? r.ownerKey : null };
         const parts = [`${display(name)}: registered name, owner key ${fingerprint(r.ownerKey)}${r.status !== STATUS.onHold ? `, active until ${day(dateOf(r.domain.expireHeight, clock))}` : ''}.`];
         if (verdict === 'same') parts.push('The same owner as your last payment to it.');
         if (verdict === 'accepted') parts.push('You chose to pay its new owner.');
+        if (pin.unread) parts.push(NAME_PIN_UNREAD);
         parts.push('Anonymous name payment: the amount is visible on the blockchain, the recipient is not. They claim it from their wallet.');
         if (r.status === STATUS.onHold) parts.push(`This name has lapsed: payments still reach its owner, who can renew it until ${day(dateOf(holdEndHeight(r.domain.expireHeight), clock))}. If they don't, it can pass to someone else.`);
         if (r.status === STATUS.forSale) parts.push('It is listed for sale and may change owner before your payment arrives.');
         if (!r.inSync) parts.push('Your wallet was still catching up, so this may be out of date; it is checked again before anything is sent.');
         addrHint.textContent = parts.join(' ');
-        addrHint.className = r.status === STATUS.onHold ? 'hint' : 'hint good';
+        addrHint.className = r.status === STATUS.onHold || pin.unread ? 'hint' : 'hint good';
       } else {
         check = { state: 'bad' };
         addrHint.textContent =
@@ -289,7 +292,7 @@ export default function send(app) {
   function review() {
     const ok = evaluate();
     if (!ok) return;
-    if (check.name) return app.go('review', { kind: 'name', name: check.name, ownerKey: check.ownerKey, pinnedKey: check.pinnedKey, acceptedKey: check.acceptedKey, amount: ok.amount, fee: ok.fee, assetId: ok.assetId });
+    if (check.name) return app.go('review', { kind: 'name', name: check.name, ownerKey: check.ownerKey, pinnedKey: check.pinnedKey, pinUnread: Boolean(check.pinUnread), acceptedKey: check.acceptedKey, amount: ok.amount, fee: ok.fee, assetId: ok.assetId });
     app.go('review', { address: draft.address, amount: ok.amount, fee: ok.fee, assetId: ok.assetId, type: check.type, note: note.value() });
   }
 
