@@ -34,6 +34,21 @@ function ethUp(wei) {
 
 /** A plain ETH payment to an account without code always uses exactly this. */
 export const ETH_TRANSFER_GAS = 21000n;
+
+/** Above this share of the amount, the network fee is said in words and needs a tick before sending. */
+export const HIGH_FEE_SHARE = 0.1;
+
+/**
+ * The network fee `fee` (wei) as a share of `amount` (wei of ETH), or null when there is
+ * nothing to compare (a token, whose worth in ETH this wallet does not know).
+ */
+export function feeShare(fee, amount) {
+  if (typeof amount !== 'bigint' || amount <= 0n || typeof fee !== 'bigint') return null;
+  return Number((fee * 1000000n) / amount) / 1e6;
+}
+
+/** Whether a fee of this share needs the person's tick (feeShare above HIGH_FEE_SHARE). */
+export const isHighFee = (share) => share != null && share > HIGH_FEE_SHARE;
 const ZERO = '0x0000000000000000000000000000000000000000';
 
 export class SendError extends Error {
@@ -83,7 +98,9 @@ function revertText(e) {
  * Builds the transaction and its costs. balances: {eth: wei, [symbol]: units}.
  * Returns {asset, recipient, amount, tx:{to, value, data, gasLimit,
  * maxFeePerGas, maxPriorityFeePerGas}, gas, fees:{likely, upTo, baseFee, tip},
- * preparedAt}. Throws SendError with the reason in words.
+ * feeShare, highFee, preparedAt}. feeShare: the likely fee as a share of an ETH
+ * amount (null for a token); highFee: above HIGH_FEE_SHARE, so the review asks
+ * for a tick. Throws SendError with the reason in words.
  */
 export async function prepareSend(rpc, { from, asset, recipient, amount, balances, now = Date.now() }) {
   const problem = recipientProblem(recipient, { own: from });
@@ -134,6 +151,8 @@ export async function prepareSend(rpc, { from, asset, recipient, amount, balance
     tx: { to: call.to, value: call.value, data: call.data, gasLimit, maxFeePerGas: fees.maxFeePerGas, maxPriorityFeePerGas: fees.maxPriorityFeePerGas },
     gas: estimate,
     fees: { likely, upTo, baseFee: fees.baseFee, tip: fees.maxPriorityFeePerGas },
+    feeShare: isEth ? feeShare(likely, amount) : null,
+    highFee: isEth && isHighFee(feeShare(likely, amount)),
     preparedAt: now,
   };
 }

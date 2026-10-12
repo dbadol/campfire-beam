@@ -18,6 +18,8 @@
  * Exit-intent: "Is this a scam?" the contract is Uniswap's Universal Router, named with its address;
  *   "What if the price moves?" the least that arrives is on screen, "Ethereum enforces this";
  *   "What does it cost?" the network fee "about" and "at most". The buttons stay in sight.
+ *   "Is that fee right?" paying with ETH, a fee above 10% of it is said in words and the swap waits
+ *   for a tick: a server's fee figure is never paid unseen.
  *
  * Pools list (beside the form from 900 px, a sheet on a phone) and price protection (a sheet):
  *   read-only and a four-way choice; one tap from the form.
@@ -33,7 +35,8 @@ import { SLIPPAGE_CHOICES, PERMIT_LIFE_SECONDS, UniGasChanged, UniRouteChanged }
 import { EthRpcError } from '../lib/eth/rpc.js';
 import { toChecksumAddress } from '../lib/eth/crypto.js';
 import { signAndBroadcast, permitSigner, walletAsset } from '../lib/eth/uniswap_app.js';
-import { ethBadge } from './eth_ui.js';
+import { ethBadge, highFeeBlock } from './eth_ui.js';
+import { feeShare, isHighFee } from '../lib/eth/send.js';
 
 // ------------------------------------------------------------------ words
 
@@ -266,12 +269,17 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact }) {
   let busy = false;
   let error = null;
   let ack = Boolean(acceptImpact);
+  // Paying with ETH, a fee above 10% of it waits for the person's tick (lib/eth/send.js isHighFee).
+  let feeAck = false;
   return new Promise((resolve) => {
     const sheet = openSheet(
       (close, rerender) => {
         const q = review.quote;
+        const share = q.tokenIn.isEth ? feeShare(review.expectedGasCost, q.amountIn) : null;
+        const highFee = isHighFee(share);
+        const blocked = (review.impact === 'block' && !ack) || (highFee && !feeAck);
         const swap = async () => {
-          if (busy || (review.impact === 'block' && !ack)) return;
+          if (busy || blocked) return;
           const ok = await confirmIdentity(app, { title: 'Confirm the swap', detail: `${amtShown(q.amountIn, q.tokenIn)} for at least ${amtShown(review.minimumOut, q.tokenOut, { floor: true })}`, cta: 'Confirm' });
           if (!ok) return;
           busy = true;
@@ -284,6 +292,7 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact }) {
             busy = false;
             if (e instanceof UniGasChanged) {
               review = Object.freeze({ ...review, gasLimit: e.gasLimit, maxGasCost: e.gasLimit * review.fees.maxFeePerGas, expectedGasCost: e.gasLimit * (review.fees.baseFee + review.fees.maxPriorityFeePerGas) });
+              feeAck = false;
               error = 'The swap needs a little more gas than first measured. The network fee below is updated; nothing was sent.';
             } else if (e instanceof UniRouteChanged) error = 'One of the pools on this route would not actually trade, so BEAM Campfire left it out. Go back for the next best price.';
             else if (e instanceof EthRpcError && (e.code === 3 || /revert/i.test(e.message))) error = 'Ethereum would refuse this swap now, most often because the price moved past your protection since this review. Nothing was sent. Tap Change for a new price.';
@@ -353,6 +362,19 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact }) {
             ack = v;
             rerender();
           })),
+          ...(highFee
+            ? highFeeBlock({
+                share,
+                fee: ethAbout(review.expectedGasCost),
+                verb: 'swap',
+                ack: feeAck,
+                onAck: (v) => {
+                  feeAck = v;
+                  rerender();
+                },
+                testid: 'uni-high-fee',
+              })
+            : []),
           hooked ? notice('warn', h('strong', { text: 'This route uses a pool with a hook. ' }), 'A hook is extra code its creator added to the pool. Your minimum above is still enforced by Uniswap.') : null,
           h('p', { class: 'small', text: 'Ethereum swaps cannot be undone once sent, and anyone can see them.' }),
           error ? (() => {
@@ -363,7 +385,7 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact }) {
           h(
             'div',
             { class: 'sheet-actions' },
-            h('button', { class: 'btn btn-primary', onclick: swap, disabled: busy || (review.impact === 'block' && !ack), 'data-testid': 'uni-review-cta' }, busy ? 'Signing and sending…' : `Swap ${amtShown(q.amountIn, q.tokenIn)}`),
+            h('button', { class: 'btn btn-primary', onclick: swap, disabled: busy || blocked, 'data-testid': 'uni-review-cta' }, busy ? 'Signing and sending…' : `Swap ${amtShown(q.amountIn, q.tokenIn)}`),
             h('button', { class: 'btn btn-text', onclick: () => close(null), disabled: busy, 'data-testid': 'uni-review-change' }, 'Change'),
           ),
         ];

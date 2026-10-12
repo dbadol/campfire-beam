@@ -16,8 +16,15 @@ import { MAINNET_CHAIN_ID } from './tx.js';
 import { bytesToHex, hexToBytes, toBytes, toQuantity, fromQuantity, fromQuantityNumber, bigIntToBytes, toBigInt } from './hex.js';
 
 export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11';
+const GWEI = 1000000000n;
 /** The lowest tip walletFees() offers: 0.01 gwei. */
 export const MIN_TIP_WEI = 10000000n;
+/** A tip up to this is taken from the server as it is: 3 gwei (the bridge relayer's own ceiling). */
+export const EASY_TIP_WEI = 3n * GWEI;
+/** Never a higher tip than this, whatever the server says: 20 gwei. */
+export const MAX_TIP_WEI = 20n * GWEI;
+/** A base fee above this is not believed: 1,000 gwei, far above anything Ethereum has charged for years. */
+export const MAX_BASE_FEE_WEI = 1000n * GWEI;
 /** Default widest eth_getLogs window; wider requests are refused before they are sent. */
 export const MAX_LOG_RANGE = 10000;
 
@@ -25,7 +32,8 @@ export class EthRpcError extends Error {
   /**
    * code: the server's JSON-RPC error code (a number), or one of 'network',
    * 'timeout', 'http', 'busy', 'bad_response', 'wrong_chain', 'range',
-   * 'hash_mismatch' for problems found on this side.
+   * 'hash_mismatch', 'bad_fees' (network fee figures that cannot be
+   * Ethereum's: walletFees) for problems found on this side.
    */
   constructor(code, message, data = null) {
     super(message);
@@ -374,16 +382,43 @@ export class EthRpc {
 }
 
 /**
+ * Why a run of base fees (eth_feeHistory's baseFeePerGas, oldest first, the
+ * next block's last) cannot be Ethereum's, in words, or null. The fee is one
+ * server's number, so it is checked against what Ethereum allows: a base fee
+ * moves by at most an eighth from one block to the next (EIP-1559; twice that
+ * is let through here, so a rule change cannot stop every payment), and none
+ * is above MAX_BASE_FEE_WEI.
+ */
+export function baseFeeProblem(bases) {
+  for (let i = 0; i < bases.length; i++) {
+    if (bases[i] > MAX_BASE_FEE_WEI) return `a base fee of ${bases[i] / GWEI} gwei`;
+    if (i > 0) {
+      const step = bases[i] > bases[i - 1] ? bases[i] - bases[i - 1] : bases[i - 1] - bases[i];
+      if (step > bases[i - 1] / 4n + 1n) return 'base fees that jump more than Ethereum allows between blocks';
+    }
+  }
+  return null;
+}
+
+/**
  * EIP-1559 fees for a transaction this wallet sends, as the desktop app's
  * walletFees(): eth_feeHistory(5, latest, [50]); the next block's base fee
  * (the last entry), the median of the five 50th-percentile tips (at least
  * 0.01 gwei), and room for the base fee to double before it is mined:
  * maxFeePerGas = 2 × base + tip.
+ *
+ * Everything here is the one server's word, and the tip is paid in full to
+ * whoever builds the block, so it is bounded: at most 3 gwei, or 3 × the base
+ * fee when Ethereum is that busy, and never above MAX_TIP_WEI. A run of base
+ * fees Ethereum could not have produced (baseFeeProblem) is refused
+ * ('bad_fees') rather than paid.
  */
 export async function walletFees(rpc) {
   const r = await rpc.feeHistory(5, 'latest', [50]);
   const bases = r.baseFeePerGas.map((b) => quantityResult(b, 'baseFeePerGas'));
   if (!bases.length) throw new EthRpcError('bad_response', 'eth_feeHistory: no base fees.');
+  const problem = baseFeeProblem(bases);
+  if (problem) throw new EthRpcError('bad_fees', `${rpc.host ? rpc.host.name : 'The Ethereum server'} gave network fee figures Ethereum cannot have (${problem}).`);
   const next = bases[bases.length - 1];
   const tips = (Array.isArray(r.reward) ? r.reward : [])
     .filter((row) => Array.isArray(row) && row.length > 0)
@@ -391,6 +426,9 @@ export async function walletFees(rpc) {
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   let tip = tips.length ? tips[Math.floor(tips.length / 2)] : MIN_TIP_WEI;
   if (tip < MIN_TIP_WEI) tip = MIN_TIP_WEI;
+  const busy = next * 3n;
+  const cap = busy > EASY_TIP_WEI ? (busy < MAX_TIP_WEI ? busy : MAX_TIP_WEI) : EASY_TIP_WEI;
+  if (tip > cap) tip = cap;
   return { baseFee: next, maxPriorityFeePerGas: tip, maxFeePerGas: next * 2n + tip };
 }
 

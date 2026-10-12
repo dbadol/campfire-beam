@@ -426,6 +426,8 @@ test('on the fork: buy WBEAM with ETH, then sell some back; what arrived is what
     await shots4('18-review-buy');
     const minText = (await page.textContent(tid('uni-review-minimum'))).match(/least ([\d,.]+) WBEAM/)[1].replace(/,/g, '');
     const sends0 = rpcMethods.filter((m) => m === 'eth_sendRawTransaction').length;
+    // A network fee above 10% of the ETH paid waits for a tick (D-2): whether it shows depends on the fork's gas.
+    if (await page.isVisible(tid('uni-high-fee-ack'))) await page.check(tid('uni-high-fee-ack'));
     await page.click(tid('uni-review-cta'));
     await page.waitForSelector(tid('auth-pw'));
     await page.fill(tid('auth-pw'), PASSWORD);
