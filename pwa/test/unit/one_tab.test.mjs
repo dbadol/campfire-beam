@@ -535,6 +535,100 @@ test('without Web Locks: "Take over anyway" tells a frozen tab to stop; once tha
   assert.equal(a.mayWrite(), false);
 });
 
+// Re-audit RE1-2: the fallback could end with two holders. (1) pagehide posted "let-go" also when the
+// page went into the back/forward cache (persisted): the asking tab took the wallet, and the page
+// resumed as a holder when restored. (2) A tab that was asking answered nobody's "here?", so a tab
+// starting meanwhile heard silence and went on too.
+function pageWindow() {
+  const on = { pagehide: [], pageshow: [] };
+  return {
+    addEventListener: (type, fn) => on[type] && on[type].push(fn),
+    fire: (type, e) => on[type].forEach((fn) => fn(e)),
+  };
+}
+
+test('without Web Locks: a page that goes into the back/forward cache never tells the asking tab it is free, and on its return it leaves', async () => {
+  let clock = 1000;
+  let cached = false; // A is in the back/forward cache: its timers do not run
+  const { tab } = browser({ locks: false });
+  const win = pageWindow();
+  const a = tab({ win, now: () => clock, awayGraceMs: 2000, setTimer: (f, ms) => setTimeout(() => !cached && f(), ms) });
+  const b = tab({ now: () => clock });
+  a.onLetGo(() => new Promise(() => {})); // still locking (a slow engine stop) when the person leaves
+  assert.equal(await a.claim(), 'held');
+  assert.equal(await b.claim(), 'busy');
+  let offered = null;
+  const done = b.takeOver({ onNoAnswer: (x) => (offered = x) });
+  await sleep(10);
+  win.fire('pagehide', { persisted: true });
+  // The save on the way out (the wallet's own pagehide listener runs after this one) still goes.
+  assert.equal(await a.confirmWrite(), true, 'the leaving save is not refused');
+  a.ch.paused = true; // in the cache: it hears nothing, runs nothing
+  cached = true;
+  await sleep(30);
+  assert.equal(b.holds(), false, 'B was not told the wallet is free: A may come back holding it');
+  // B's wait runs out ("Take over anyway"); A, in the cache, does not hear it.
+  await sleep(MS.slowMs);
+  assert.ok(offered, '"Take over anyway" is offered');
+  assert.equal(await b.stealNow(), 'held');
+  assert.equal(await done, 'held');
+  // Restored later: a write that runs before its pageshow is refused (it has been away too long) ...
+  clock += 60000;
+  assert.equal(await a.confirmWrite(), false);
+  assert.equal(a.how, 'away');
+  // ... and pageshow says it left (the app reloads it: its memory is the old copy).
+  win.fire('pageshow', { persisted: true });
+  assert.deepEqual(a.left, ['away'], 'told once');
+  assert.equal(a.mayWrite(), false);
+  assert.equal(a.canOpen(), false);
+  assert.equal(await b.confirmWrite(), true, 'one writer');
+});
+
+test('without Web Locks: restored from the back/forward cache with nobody else around, the page still leaves (and reloads)', async () => {
+  const { tab } = browser({ locks: false });
+  const win = pageWindow();
+  const a = tab({ win });
+  assert.equal(await a.claim(), 'held');
+  win.fire('pagehide', { persisted: true });
+  win.fire('pageshow', { persisted: true });
+  assert.deepEqual(a.left, ['away']);
+  assert.equal(a.mayWrite(), false);
+});
+
+test("without Web Locks: a page that really closes still tells the asking tab at once", async () => {
+  const { tab } = browser({ locks: false });
+  const win = pageWindow();
+  const a = tab({ win });
+  const b = tab();
+  a.onLetGo(() => new Promise(() => {}));
+  await a.claim();
+  await b.claim();
+  let offered = null;
+  const done = b.takeOver({ onNoAnswer: (x) => (offered = x) });
+  await sleep(10);
+  win.fire('pagehide', { persisted: false });
+  assert.equal(await done, 'held');
+  assert.equal(offered, null, 'no wait for "Take over anyway"');
+  assert.deepEqual(a.left, []);
+});
+
+test('without Web Locks: a tab starting while another asks for the wallet hears it, and does not go on', async () => {
+  const { tab } = browser({ locks: false });
+  const a = tab();
+  const b = tab();
+  const c = tab();
+  await a.claim();
+  await b.claim();
+  a.ch.paused = true; // the holder is asleep: it answers nothing
+  const done = b.takeOver({ onNoAnswer: () => b.stealNow() });
+  await sleep(5);
+  assert.equal(b.state, 'asking');
+  assert.equal(await c.claim(), 'busy', 'the asking tab answered "here": the wallet is about to be its');
+  assert.equal(await done, 'held');
+  assert.equal(c.holds(), false);
+  assert.equal(await c.confirmWrite(), false);
+});
+
 test('neither Web Locks nor BroadcastChannel: no guard (the page goes on)', async () => {
   const t = new OneTab({ locks: null, Channel: null, win: null, ...MS });
   assert.equal(t.mode, 'none');
