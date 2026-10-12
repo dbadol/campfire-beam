@@ -102,3 +102,17 @@ test("the hosting repository's own files are never served (its root is a git che
   const caddy = read('Caddyfile');
   assert.ok(caddy.includes('@private path /.git /.git/* /.github/* /.nojekyll /deploy/* /README.md /_headers'));
 });
+
+test('both proxies verify the upstream certificate and name (audit D-6/E-8)', () => {
+  // nginx's default is proxy_ssl_verify off: anyone between the server and BEAM's snapshot host (its
+  // provider, its resolver, a BGP hijack) could hand every restore a forged file.
+  const nginx = read('nginx.conf');
+  for (const [path, host] of [['/recovery/mainnet_recovery.bin', 'mobile-restore.beam.mw'], ['/explorer/status', 'explorer.0xmx.net']]) {
+    const at = nginx.slice(nginx.indexOf(`location = ${path} {`));
+    const block = at.slice(0, at.indexOf('\n    }\n'));
+    assert.match(block, new RegExp(`proxy_pass https://${host.replace(/\./g, '\\.')}/`), path);
+    for (const line of ['proxy_ssl_server_name on;', 'proxy_ssl_verify on;', 'proxy_ssl_verify_depth 2;', 'proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;', `proxy_ssl_name ${host};`]) assert.ok(block.includes(line), `${path}: ${line}`);
+  }
+  // Caddy's reverse_proxy verifies https upstreams unless told otherwise: it must never be.
+  assert.ok(!/tls_insecure_skip_verify/.test(read('Caddyfile')));
+});
