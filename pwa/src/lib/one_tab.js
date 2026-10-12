@@ -24,7 +24,8 @@
 //
 // A hand-over waits for a step whose parts must not be split (whileBusy: a new or imported wallet's
 // file and its record, a deleted wallet's file and its keys; re-audit RE1-5, RE1-6), within the same
-// LET_GO_CAP_MS.
+// LET_GO_CAP_MS. A hand-over that reaches the cap goes anyway and says so (how: 'capped', RE1-7):
+// what the page was still saving then is refused, so its last few seconds may be missing.
 //
 // The lookup fails closed (re-audit RE1-1): a lock manager that rejects query(), or lists the lock
 // without a clientId, cannot tell this page whether the lock is still its own, so the page does not
@@ -110,7 +111,7 @@ export class OneTab {
     this.mode = this.locks ? 'locks' : this.Channel ? 'presence' : 'none';
     Object.assign(this, { win, setTimer, clearTimer, now, id, noAnswerMs, slowMs, capMs, presenceMs, ttlMs, awayGraceMs, strictIdle });
     this.state = 'idle';
-    this.how = null; // why it is gone: 'handed' | 'stolen' | 'unchecked' (the lock could not be looked up) | 'away' (back/forward cache)
+    this.how = null; // why it is gone: 'handed' | 'capped' (handed at the cap) | 'stolen' | 'unchecked' (the lock could not be looked up) | 'away' (back/forward cache)
     this.busy = new Set(); // steps a hand-over waits for (whileBusy)
     this.unchecked = false; // a lookup could not be made: the next loss is said as 'unchecked'
     this.awayAt = null; // without Web Locks: when this holding page went into the back/forward cache
@@ -481,7 +482,7 @@ export class OneTab {
     if (this.state !== 'letting-go') return; // lost meanwhile
     // Taken while locking (the other tab gave up waiting): its saves from then on were refused.
     if (!(await this.lookUp())) return this.lost();
-    this.leave('handed');
+    this.leave(capped ? 'capped' : 'handed');
     const r = this.release;
     this.release = null;
     if (r) r();

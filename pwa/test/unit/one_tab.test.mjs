@@ -377,7 +377,10 @@ test('a hand-over whose locking hangs lets go after the cap, and from then on th
   const t0 = Date.now();
   assert.equal(await b.takeOver(), 'held');
   assert.ok(Date.now() - t0 >= MS.capMs - 5, 'it waited for the cap');
-  assert.equal(a.how, 'handed');
+  // Said as such (re-audit RE1-7): what it was still saving then is refused, so "locked and saved
+  // here" would not be true.
+  assert.equal(a.how, 'capped');
+  assert.deepEqual(a.left, ['capped']);
   assert.equal(a.mayWrite(), false);
   assert.equal(await a.confirmWrite(), false);
   assert.equal(lm.holder, b.lockClient.clientId);

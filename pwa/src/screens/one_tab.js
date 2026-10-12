@@ -26,6 +26,8 @@ export const MOVED_TITLE = 'BEAM Campfire moved to another tab';
 export const MOVED_LEAD = {
   handed: 'It works in one tab at a time. Your wallet was locked and saved here before it moved.',
   stolen: 'It works in one tab at a time. Another tab took it over, so your wallet is locked here.',
+  // Locking and saving had not finished when the hand-over's time ran out (lib/one_tab.js, RE1-7).
+  capped: 'It works in one tab at a time. Your wallet was locked here before it moved, but it may not have saved its last few seconds.',
 };
 export const UNCHECKED_TITLE = 'Close your other BEAM Campfire tabs';
 export const UNCHECKED_LEAD = 'This browser cannot keep BEAM Campfire to one tab. Close every other BEAM Campfire tab, then reload.';
@@ -40,7 +42,7 @@ export function otherTab(app) {
 
 export function movedTab(app, p = {}) {
   if (p.how === 'unchecked') return uncheckedTab();
-  const how = p.how === 'stolen' ? 'stolen' : 'handed';
+  const how = p.how === 'stolen' || p.how === 'capped' ? p.how : 'handed';
   return oneTabScreen(app, { title: MOVED_TITLE, lead: MOVED_LEAD[how], testid: 'one-tab-moved', spent: true, how });
 }
 

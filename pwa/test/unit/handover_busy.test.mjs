@@ -142,3 +142,19 @@ test('delete: the hand-over waits for the wallet\'s keys to go with its file', a
   assert.equal(records()[`w:${target.id}:wallet`], undefined, 'and its record');
   assert.deepEqual((await listWallets()).map((r) => r.id), [list[0].id]);
 });
+
+test('a step that outlasts the cap: the hand-over goes anyway, said as "capped" (it may not have saved its last seconds)', async () => {
+  holdAgain();
+  tab.capMs = 50;
+  let finish;
+  const step = tab.whileBusy(() => new Promise((r) => (finish = r)));
+  const t0 = Date.now();
+  await tab.letGo();
+  assert.ok(Date.now() - t0 >= 45, 'it waited for the cap');
+  assert.equal(tab.how, 'capped');
+  assert.deepEqual(order, [], 'the wallet was not locked by the hand-over after the cap (the app stops it when told "capped")');
+  finish();
+  await step;
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(order, [], 'nor later');
+});

@@ -250,8 +250,9 @@ export const app = {
   },
 
   /**
-   * This tab let the wallet go ('handed'), another tab took it while this one was frozen ('stolen'),
-   * or this browser cannot say whose it is ('unchecked', lib/one_tab.js RE1-1). 'away': restored from
+   * This tab let the wallet go ('handed'; 'capped' when locking and saving had not finished within
+   * the cap, RE1-7), another tab took it while this one was frozen ('stolen'), or this browser
+   * cannot say whose it is ('unchecked', lib/one_tab.js RE1-1). 'away': restored from
    * the back/forward cache in a browser without Web Locks (RE1-2): its memory is the old copy and
    * another tab may hold the wallet now, so it starts again (it saved on the way out).
    */
