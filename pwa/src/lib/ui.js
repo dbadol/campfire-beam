@@ -126,6 +126,29 @@ export function progressBar(fraction) {
   return el;
 }
 
+/**
+ * fn() whenever the page goes out of sight: the app switcher, another app or tab, the screen
+ * turning off (visibilitychange to hidden), or the page being left (pagehide). The system takes a
+ * picture of the last screen for the app switcher at that moment: a screen showing a secret hides
+ * it here first. Returns the unsubscribe.
+ */
+export function onHidden(fn, doc = globalThis.document, win = globalThis.window) {
+  const vis = () => doc.visibilityState === 'hidden' && fn();
+  doc.addEventListener('visibilitychange', vis);
+  if (win) win.addEventListener('pagehide', fn);
+  return () => {
+    doc.removeEventListener('visibilitychange', vis);
+    if (win) win.removeEventListener('pagehide', fn);
+  };
+}
+
+/** fn() whenever the page is in sight again (a screen that hid something shows it again). Returns the unsubscribe. */
+export function onShown(fn, doc = globalThis.document) {
+  const vis = () => doc.visibilityState === 'visible' && fn();
+  doc.addEventListener('visibilitychange', vis);
+  return () => doc.removeEventListener('visibilitychange', vis);
+}
+
 export async function copyText(text, what = 'Copied') {
   try {
     await navigator.clipboard.writeText(text);

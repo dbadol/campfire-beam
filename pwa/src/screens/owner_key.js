@@ -6,7 +6,8 @@
  *       copied key (Show owner key, Copy owner key), plus Face ID when it is on.
  *       The key is encrypted with the password typed here, so a node started with that same
  *       password reads it. It is never logged or stored, and it leaves the page when the screen
- *       is left or the wallet locks.
+ *       is left, the wallet locks or the app goes out of sight (the app switcher keeps a picture
+ *       of the screen); showing it again asks for the password again.
  * Exit-intent reasons and answers:
  *   - "What is this for?" -> first line: your own node finds every payment, offline and
  *     max-privacy ones too.
@@ -16,10 +17,13 @@
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, primary, textButton, notice, copyText, focusSoon } from '../lib/ui.js';
+import { screen, primary, textButton, notice, copyText, focusSoon, onHidden } from '../lib/ui.js';
 import { hasPasskey, openWithPasswordFor, openWithPasskeyFor } from '../lib/session.js';
 import { wallet } from '../lib/wallet.js';
 import { OWNER_KEY_TEXT as T, looksLikeOwnerKey } from '../lib/owner_key.js';
+
+// Said when the key left the screen because the app went out of sight.
+export const HIDDEN_AWAY = 'The key was hidden when you left BEAM Campfire. Enter your password to show it again.';
 
 export default function ownerKey(app, params = {}) {
   // Opened from Backup, or from the BEAM node screens, and goes back there (the fallback when Back has no history).
@@ -104,6 +108,13 @@ export default function ownerKey(app, params = {}) {
       return;
     }
     if (gone || !app.dbPass) return; // left or locked meanwhile
+    if (document.visibilityState === 'hidden') {
+      // Out of sight meanwhile: not put on a screen the app switcher may be picturing.
+      ready();
+      pw.value = '';
+      say(notice('info', HIDDEN_AWAY));
+      return;
+    }
     if (!looksLikeOwnerKey(k)) {
       ready();
       say(notice('error', 'The owner key could not be read. Try again.'));
@@ -135,10 +146,21 @@ export default function ownerKey(app, params = {}) {
     put(content);
   };
   app.lockHooks.add(forget);
+  // Out of sight: the key leaves the page and the screen asks again, as before it was shown.
+  const offHidden = onHidden(() => {
+    if (!key || gone) return;
+    key = null;
+    keyText.textContent = '';
+    put(content, ...askBody());
+    put(actions, cta);
+    ready();
+    say(notice('info', HIDDEN_AWAY));
+  });
   return {
     el,
     destroy() {
       gone = true;
+      offHidden();
       forget();
       app.lockHooks.delete(forget);
     },

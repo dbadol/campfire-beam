@@ -8,10 +8,12 @@
  *   - "Which ones were claimed?" -> each code shows what the network last said about it.
  *   - "I need them in a spreadsheet / somewhere safe" -> "Save as CSV" (the desktop's columns) to the share
  *     sheet or a download, with a word that the file holds the keys in plain text.
+ *   - "Someone could see them in the app switcher" -> the codes leave the screen while the app is out of
+ *     sight and come back by themselves on return (copy, paste in a chat, come back for the next).
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, primary, secondary, notice, copyText, toast } from '../lib/ui.js';
+import { screen, primary, secondary, notice, copyText, toast, onHidden, onShown } from '../lib/ui.js';
 import { batchTotal, CODE_STATUS, TX_STATUS } from '../lib/airdrop.js';
 import { airdrop, amountText } from './airdrop.js';
 import { csvFile } from '../lib/airdrop_csv.js';
@@ -25,6 +27,8 @@ export default function airdropCodes(app, p = {}) {
   let batch = null;
   let error = null;
   let alive = true;
+  // Out of sight: the app switcher keeps a picture of the screen, so the codes are not on it.
+  let away = false;
   const body = h('div', { class: 'content' });
   const actions = h('div', { class: 'actions' });
   // Just created: the batch's "sent" note is not shown again by Back.
@@ -32,6 +36,11 @@ export default function airdropCodes(app, p = {}) {
 
   function render() {
     if (!alive) return;
+    if (away) {
+      put(body, h('div', { class: 'card empty', 'data-testid': 'codes-away' }, icon('lock'), h('p', { class: 'small', text: 'Codes hidden while BEAM Campfire is in the background.' })));
+      put(actions);
+      return;
+    }
     if (error) {
       put(body, notice('error', `The saved codes could not be opened: ${error.message} They stay saved on this device. `, h('button', { class: 'btn btn-text btn-small inline', type: 'button', onclick: load }, 'Try again')));
       put(actions, secondary('My batches', toBatches));
@@ -103,6 +112,17 @@ export default function airdropCodes(app, p = {}) {
     render();
   }
 
+  const offHidden = onHidden(() => {
+    away = true;
+    render();
+  });
+  // Back in sight with the wallet still open: shown again from memory, nothing asked again.
+  const offShown = onShown(() => {
+    if (!away || !app.dbPass) return;
+    away = false;
+    render();
+  });
+
   load();
   const el = screen({ title: p.justCreated ? 'Your airdrop codes' : 'Airdrop codes', back: () => app.back(p.justCreated ? 'airdrop' : 'airdropBatches'), cls: 'airdrop-codes feature' }, body);
   el.appendChild(actions);
@@ -110,6 +130,8 @@ export default function airdropCodes(app, p = {}) {
     el,
     destroy() {
       alive = false;
+      offHidden();
+      offShown();
     },
   };
 }

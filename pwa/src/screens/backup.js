@@ -12,7 +12,8 @@
  *       this screen never makes new words.
  * Exit-intent reasons and answers:
  *   - "Why do I need this?" -> one sentence: the words are the wallet; they bring it back on any device.
- *   - "Someone could see my screen" -> words stay blurred until tapped.
+ *   - "Someone could see my screen" -> words stay blurred until tapped, and blur again as soon as the
+ *     app is left, so the app switcher's picture never shows them.
  *   - "Can I screenshot it?" -> we say no, and why (photos sync to the cloud).
  *   - "Where are my 12 words?" (imported) -> there are none here; the file and its password are the backup.
  *   - "What if this website disappears?" -> Export wallet.db: the file and the password open the wallet
@@ -28,7 +29,7 @@
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, primary, notice, openSheet, toast, focusSoon } from '../lib/ui.js';
+import { screen, primary, notice, openSheet, toast, focusSoon, onHidden } from '../lib/ui.js';
 import { generatePhrase } from '../lib/engine.js';
 import { isImported, openWithPasswordFor, markExported, isAdding } from '../lib/session.js';
 import { prepareExport, deliverExport, cloudPlatform, CLOUD_MIN_PASSWORD } from '../lib/export.js';
@@ -38,20 +39,31 @@ import { walletDataCard } from './wallet_data.js';
 
 /**
  * Recovery words in a grid that stays blurred until tapped (no shoulder
- * surfing). fill(words) puts them in; onReveal runs once they are shown.
- * Also used for the Ethereum wallet's words (screens/eth_words.js).
+ * surfing), and blurred again whenever the app goes out of sight (the app
+ * switcher keeps a picture of the last screen). fill(words) puts them in;
+ * onReveal runs each time they are shown; hide() blurs them; destroy() stops
+ * watching (a grid taken off the page stops by itself). Also used for the
+ * Ethereum wallet's words (screens/eth_words.js).
  */
 export function wordReveal(onReveal) {
   const grid = h('div', { class: 'words hidden-words', 'data-testid': 'words' });
   const cover = h('div', { class: 'cover' }, h('button', { class: 'btn btn-secondary btn-small', 'data-testid': 'reveal' }, icon('eye'), 'Tap to show the words'));
+  const el = h('div', { class: 'reveal' }, grid, cover);
   cover.querySelector('button').addEventListener('click', () => {
     grid.classList.remove('hidden-words');
     cover.remove();
     onReveal();
   });
+  const hide = () => {
+    grid.classList.add('hidden-words');
+    if (!cover.isConnected) el.appendChild(cover);
+  };
+  const off = onHidden(() => (el.isConnected ? hide() : off()));
   return {
-    el: h('div', { class: 'reveal' }, grid, cover),
+    el,
     fill: (words) => put(grid, ...words.map((w, i) => h('div', { class: 'word' }, h('span', { class: 'n', text: String(i + 1) }), h('span', { text: w })))),
+    hide,
+    destroy: off,
   };
 }
 
@@ -90,7 +102,7 @@ export default function backup(app) {
     reveal.el,
     status,
   );
-  return { el };
+  return { el, destroy: reveal.destroy };
 }
 
 /** Settings -> Backup: what brings the wallet on this device back. Shows no words, ever. */

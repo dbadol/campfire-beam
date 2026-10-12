@@ -19,7 +19,7 @@
  */
 import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, toast, notice, openSheet, copyText } from '../lib/ui.js';
+import { screen, toast, notice, openSheet, copyText, onHidden } from '../lib/ui.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
 import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC } from '../lib/eth/hosts.js';
 import { getEthRecord, ethRecordKind, withEthKey } from '../lib/eth/vault.js';
@@ -84,9 +84,8 @@ function keyReveal(app, { onHide = null } = {}) {
 export default function ethSettings(app) {
   const body = h('div', { class: 'stack' });
   let reveal = null;
-  // An app switcher snapshot must not carry the key.
-  const onHidden = () => document.visibilityState === 'hidden' && reveal && reveal.hide();
-  document.addEventListener('visibilitychange', onHidden);
+  // An app switcher snapshot must not carry the key (visibilitychange, and pagehide).
+  const offHidden = onHidden(() => reveal && reveal.hide());
   const row = (ico, title, sub, onclick, extra = {}) =>
     h('button', { class: 'row', onclick, ...extra }, h('span', { class: 'ico' }, icon(ico)), h('span', { class: 'main' }, h('div', { class: 't', text: title }), sub ? h('div', { class: 's', text: sub }) : null), h('span', { class: 'chev' }, icon('chevron')));
 
@@ -227,7 +226,7 @@ export default function ethSettings(app) {
   return {
     el,
     destroy() {
-      document.removeEventListener('visibilitychange', onHidden);
+      offHidden();
       if (reveal) reveal.hide();
       reveal = null;
     },
