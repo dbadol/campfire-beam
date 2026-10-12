@@ -164,7 +164,7 @@ export default function ethSwap(app, params = {}) {
     }
     if (message) n.push(message);
     const doubt = w ? w.doubt() : null;
-    if (doubt) n.push(doubtNotice(app, doubt));
+    if (doubt) n.push(doubtNotice(app, doubt, { onForgotten: () => render() }));
     if (problem) n.push(problemNotice());
     if (quoted && (quote.priceImpact ?? 0) >= IMPACT_WARNING) n.push(...impactNotice(quote));
     put(notesBox, ...n);

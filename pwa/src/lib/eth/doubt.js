@@ -9,9 +9,16 @@
 // pays twice. So every way out of this account (a payment, a Uniswap swap or permission, a move to
 // BEAM over the bridge) asks here first, before the key is opened, and is refused while one is in
 // doubt. The ways out are said with it: wait until it is settled (the screens keep following it),
-// or pick another Ethereum server in Settings, which then follows it there.
+// or pick another Ethereum server in Settings, which then follows it there; with History from
+// Stack Wallet off, turning it on (the index can show what took its nonce).
+//
+// A doubt no listed server can settle (re-audit RE2-2: no state at past blocks, History off, or a
+// server that contradicts itself) would pause this wallet for good. Once it has been in doubt for
+// FORGET_AFTER_MS and a look that long after it began still failed (entry.doubtLookAt, written by
+// lib/eth/send.js followOnce), the person may forget it, after a plain warning: that entry only
+// leaves the outbox, and sending opens up again.
 
-import { isOpen, loadOutbox } from './outbox.js';
+import { isOpen, loadOutbox, removeFromOutbox } from './outbox.js';
 import { formatUnits } from './units.js';
 import { ETH, tokenBySymbol, tokenByAddress } from './tokens.js';
 
@@ -33,6 +40,28 @@ export const DOUBT_TITLE = Object.freeze({ unsure: 'Not sure yet', refused: 'Not
 
 /** The way out, said wherever something is refused because of it. */
 export const DOUBT_WAY_OUT = 'Wait until BEAM Campfire knows what happened to it, or choose another Ethereum server in Settings: it is checked there.';
+/** One more way out while History from Stack Wallet is off: its index can show what took the nonce (send.js findNonceTaker). */
+export const HISTORY_WAY_OUT = 'Or turn on History from Stack Wallet in Settings: it then finds what took its place, if anything did.';
+
+/** In doubt this long, with a look this long after it began failing the same way: it may be forgotten. */
+export const FORGET_AFTER_MS = 24 * 60 * 60 * 1000;
+/** Said before it is forgotten. */
+export const FORGET_WARNING = 'It may still go through. If it does and you send again, both go through.';
+
+/** When its doubt began (ms), or null. */
+export function doubtSince(entry) {
+  const d = doubtOf(entry);
+  return d === 'unsure' ? entry.unsureSince : d === 'refused' ? entry.refusedAt : null;
+}
+
+/** Whether `entry` has been in doubt for FORGET_AFTER_MS with a look that long after still failing. */
+export function mayForget(entry) {
+  const since = doubtSince(entry);
+  return Number.isFinite(since) && Number.isFinite(entry.doubtLookAt) && entry.doubtLookAt - since >= FORGET_AFTER_MS;
+}
+
+/** History from Stack Wallet is on unless the person turned it off (lib/eth/wallet.js ethPrefs). */
+const historyOn = (app) => !(app && app.prefs && app.prefs.ethHistory === false);
 
 const shortAddr = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -71,16 +100,21 @@ export function doubtName(entry) {
 /** Why nothing new goes while it is in doubt, after its name. */
 export const DOUBT_WHY = 'It may still go through, so nothing new is sent from this Ethereum wallet until it is settled, or both could go through.';
 
+/** The ways out in words: History is named while it is off. */
+export function doubtWayOut({ history = true } = {}) {
+  return history ? DOUBT_WAY_OUT : `${DOUBT_WAY_OUT} ${HISTORY_WAY_OUT}`;
+}
+
 /** The whole refusal in words: what is in doubt, why nothing new goes, and the way out. */
-export function doubtMessage(entry) {
+export function doubtMessage(entry, { history = true } = {}) {
   const name = doubtName(entry);
-  return `${name.charAt(0).toUpperCase()}${name.slice(1)} is "${DOUBT_TITLE[doubtOf(entry)]}". ${DOUBT_WHY} ${DOUBT_WAY_OUT}`;
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} is "${DOUBT_TITLE[doubtOf(entry)]}". ${DOUBT_WHY} ${doubtWayOut({ history })}`;
 }
 
 /** Thrown instead of signing while a transaction is in doubt; .entry is that transaction. */
 export class EthInDoubtError extends Error {
-  constructor(entry) {
-    super(doubtMessage(entry));
+  constructor(entry, { history = true } = {}) {
+    super(doubtMessage(entry, { history }));
     this.code = 'in_doubt';
     this.entry = entry;
   }
@@ -92,5 +126,33 @@ export class EthInDoubtError extends Error {
  */
 export async function assertNothingInDoubt(app, { ethId, kv } = {}) {
   const e = entryInDoubt(await loadOutbox(app, { ethId, kv }));
-  if (e) throw new EthInDoubtError(e);
+  if (e) throw new EthInDoubtError(e, { history: historyOn(app) });
+}
+
+/** Why an entry cannot be forgotten: .code 'not_in_doubt' | 'not_yet'. */
+export class ForgetRefused extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/**
+ * Forgets the transaction `hash` (that entry only leaves the outbox) once mayForget() says so,
+ * checked again on the stored entry. The person was told FORGET_WARNING first. Returns the entry.
+ */
+export async function forgetInDoubt(app, hash, { ethId, kv } = {}) {
+  let why = null;
+  const gone = await removeFromOutbox(app, hash, {
+    ethId,
+    kv,
+    when: (e) => {
+      if (doubtOf(e) === null) why = new ForgetRefused('not_in_doubt', 'It is settled: there is nothing to forget.');
+      else if (!mayForget(e)) why = new ForgetRefused('not_yet', 'It can be forgotten only after a day of looking for it.');
+      return why === null;
+    },
+  });
+  if (why) throw why;
+  if (!gone) throw new ForgetRefused('not_in_doubt', 'It is not in this Ethereum wallet any more.');
+  return gone;
 }

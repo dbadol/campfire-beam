@@ -711,6 +711,64 @@ test('BM-2: a swap "Not sent" is the server\'s word too, with Etherscan in it', 
   await ethHomeReady();
 });
 
+// Re-audit RE2-2: a payment no server can settle used to pause this wallet for good. The notice names
+// History when it is off and, after a day in doubt with every look failing, offers "Forget this payment".
+test('RE2-2: a payment in doubt for a day can be forgotten, after a plain warning; that one only, and sending opens up', { skip: skip || false, timeout: 3 * 60000 }, () =>
+  withFork(async () => {
+    await setBalance(ACCOUNT0, 5n * ETHER);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    const day = 24 * 3600000;
+    // "Not sure yet" for 25 hours, the last look a moment ago (nonce 900: nothing on the fork decides it).
+    const stuck = fake('f6', { state: 'pending', sentAt: Date.now() - 25 * 3600000, refusedAt: null, error: null, unsureSince: Date.now() - 25 * 3600000, doubtLookAt: Date.now() });
+    const young = fake('f7', { nonce: '901', state: 'pending', sentAt: Date.now() - 3600000, refusedAt: null, error: null, unsureSince: Date.now() - 3600000, doubtLookAt: Date.now(), createdAt: Date.now() - 2 * day });
+    await outboxWrite({ add: young });
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${young.hash}"]`);
+    assert.equal(await page.isVisible(tid('eth-doubt-forget')), false, 'an hour in doubt: no Forget');
+    // History off: the notice names it.
+    await page.evaluate(async () => (await import('./app.js')).app.setPrefs({ ethHistory: false }));
+    await page.evaluate(() => window.__campfire.go('ethSend'));
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${young.hash}"]`);
+    assert.match(await page.textContent(tid('eth-doubt')), /Or turn on History from Stack Wallet in Settings: it then finds what took its place, if anything did\./);
+    await page.evaluate(async () => (await import('./app.js')).app.setPrefs({ ethHistory: true }));
+    await outboxWrite({ hash: young.hash, patch: { state: 'confirmed', unsureSince: null, receipt: { blockNumber: 1, status: 1, gasUsed: '21000', effectiveGasPrice: '1' } } });
+
+    await outboxWrite({ add: stuck });
+    await page.evaluate(() => window.__campfire.go('ethSend'));
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${stuck.hash}"][data-forgettable="true"]`);
+    assert.match(await page.textContent(tid('eth-doubt')), /It has been like this for over a day: you can also forget it\./);
+    assert.ok(!/turn on History/.test(await page.textContent(tid('eth-doubt'))), 'History is on: not named');
+    assert.equal(await page.textContent(tid('eth-doubt-forget')), 'Forget this payment');
+    await shots4('34-send-forgettable');
+    await page.click(tid('eth-doubt-forget'));
+    await page.waitForSelector(tid('eth-forget-title'));
+    assert.equal(await page.textContent(tid('eth-forget-title')), 'Forget this payment?');
+    assert.equal(await page.textContent(tid('eth-forget-warning')), 'It may still go through. If it does and you send again, both go through.');
+    await shots4('35-forget-sheet');
+    await page.click(tid('eth-forget-keep'));
+    await page.waitForSelector(tid('eth-forget-title'), { state: 'detached' });
+    assert.equal(await page.isVisible(`${tid('eth-doubt')}[data-hash="${stuck.hash}"]`), true, 'kept: still in doubt');
+    await page.click(tid('eth-doubt-forget'));
+    await page.click(tid('eth-forget-confirm'));
+    await page.waitForSelector(tid('eth-doubt'), { state: 'detached', timeout: 10000 });
+    const left = await page.evaluate(async () => {
+      const { app } = await import('./app.js');
+      const { ethWallet } = await import('./lib/eth/wallet.js');
+      return (await ethWallet(app)).state.outbox.map((e) => e.hash);
+    });
+    assert.ok(!left.includes(stuck.hash), 'forgotten');
+    assert.ok(left.includes(young.hash), 'the other entry stays');
+    await page.fill(tid('eth-send-to'), toChecksumAddress(freshAddress()));
+    await page.fill(tid('eth-send-amount'), '0.001');
+    await page.waitForFunction(() => document.querySelector('[data-testid="eth-send-review"]').textContent === 'Send 0.001 ETH', null, { timeout: 30000 });
+    assert.equal(await page.isDisabled(tid('eth-send-review')), false, 'sending opens up again');
+    await shots4('36-send-after-forget');
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+  }));
+
 test('BM-6: a fee far above what BEAM Campfire pays is said as such, not as impossible; nothing is signed', { skip: skip || false, timeout: 2 * 60000 }, async () => {
   await page.evaluate(() => window.__campfire.go('ethHome'));
   await ethHomeReady();

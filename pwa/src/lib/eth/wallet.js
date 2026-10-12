@@ -21,7 +21,7 @@ import { loadOutbox, clearOutbox, isOpen, updateOutbox } from './outbox.js';
 import { fetchHistory, mergeActivity, minedInIndex } from './history.js';
 import { forgetDataKeys } from './sealed.js';
 import { followOnce, minedPatch } from './send.js';
-import { entryInDoubt } from './doubt.js';
+import { entryInDoubt, forgetInDoubt } from './doubt.js';
 import { store } from '../store.js';
 
 /** The person's Ethereum settings, with the defaults: Stack Wallet's server, history on. */
@@ -193,7 +193,7 @@ class EthWallet {
     let changed = false;
     for (const e of this.state.outbox.filter(isOpen)) {
       const next = await followOnce(this.app, this.rpc, e, { ethId: this.ethId, kv: this.kv, candidates: this.nonceTwins(e) });
-      if (next.state !== e.state || next.receipt !== e.receipt || next.unsureSince !== e.unsureSince || next.refusedAt !== e.refusedAt) changed = true;
+      if (next.state !== e.state || next.receipt !== e.receipt || next.unsureSince !== e.unsureSince || next.refusedAt !== e.refusedAt || next.doubtLookAt !== e.doubtLookAt) changed = true;
     }
     if (changed) await this.reloadOutbox();
     return changed;
@@ -202,6 +202,12 @@ class EthWallet {
   /** The newest transaction this device sent whose fate is in doubt (lib/eth/doubt.js), as last loaded; or null. */
   doubt() {
     return entryInDoubt(this.state.outbox);
+  }
+
+  /** Forgets the transaction `hash` in doubt (lib/eth/doubt.js forgetInDoubt: after a day of failed looks, that one only). */
+  async forget(hash) {
+    await forgetInDoubt(this.app, hash, { ethId: this.ethId, kv: this.kv });
+    await this.reloadOutbox();
   }
 
   /** doubt(), from the outbox as stored now: what decides before anything is signed. */

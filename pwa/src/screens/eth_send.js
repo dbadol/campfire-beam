@@ -20,6 +20,7 @@ import { ethWallet } from '../lib/eth/wallet.js';
 import { walletFees } from '../lib/eth/rpc.js';
 import { parseUnits, toInputString } from '../lib/eth/units.js';
 import { ETH, TOKENS } from '../lib/eth/tokens.js';
+import { mayForget } from '../lib/eth/doubt.js';
 import { recipientProblem, prepareSend, SendError, ETH_TRANSFER_GAS } from '../lib/eth/send.js';
 import { amountText, ethText, serverProblem, doubtNotice, followDoubt } from './eth_ui.js';
 import { openEthReview } from './eth_review.js';
@@ -68,8 +69,8 @@ export default function ethSend(app) {
 
   function evaluate() {
     const doubt = w ? w.doubt() : null;
-    const key = doubt ? `${doubt.hash}:${doubt.unsureSince ? 'unsure' : 'refused'}` : null;
-    if (key !== doubtShown) put(doubtBox, doubt ? doubtNotice(app, doubt) : null);
+    const key = doubt ? `${doubt.hash}:${doubt.unsureSince ? 'unsure' : 'refused'}:${mayForget(doubt) ? 'forget' : ''}` : null;
+    if (key !== doubtShown) put(doubtBox, doubt ? doubtNotice(app, doubt, { onForgotten: () => evaluate() }) : null);
     doubtShown = key;
     const a = asset();
     unitLabel.textContent = a.symbol;
