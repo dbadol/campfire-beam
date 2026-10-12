@@ -30,7 +30,6 @@ import { openBridgeReview } from './bridge_review.js';
 import { bridgeOf, bridgeProblem, pricesChoice, priceQuestion, pricesOff } from './bridge_ui.js';
 import { headline, crossingWords } from './bridge_words.js';
 import {
-import { confirmKeptHere } from './storage_warning.js';
   TO_ETHEREUM,
   TO_BEAM,
   coin,
@@ -52,6 +51,7 @@ import { confirmKeptHere } from './storage_warning.js';
   ABOUT_TO_ETHEREUM_MS,
   ABOUT_TO_BEAM_MS,
 } from './bridge_text.js';
+import { confirmKeptHere } from './storage_warning.js';
 
 const QUOTE_DELAY_MS = 400;
 /** A quote older than this is worked out again when the button is tapped. */
