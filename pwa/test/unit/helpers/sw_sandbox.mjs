@@ -28,13 +28,15 @@ export function memoryCaches() {
 
 /**
  * pub: the public JWK built into this loader. scope: the app's folder. fetch(url, init): the
- * network, as the test wants it. Returns the loader's functions plus { self, caches, handlers }.
+ * network, as the test wants it. globals: anything else the loader reads as a global (indexedDB,
+ * IDBKeyRange, Notification). registration: added to self.registration. Returns the loader's
+ * functions plus { self, caches, handlers }.
  */
-export async function loadLoader({ pub, scope = 'https://wallet.example/', name = 'sw-0000000000000000.js', fetch: net }) {
+export async function loadLoader({ pub, scope = 'https://wallet.example/', name = 'sw-0000000000000000.js', fetch: net, globals = {}, registration = {} }) {
   const { source, loaderCompat } = await loaderSource({ srcDir, pub });
   const handlers = {};
   const self = {
-    registration: { scope, showNotification: async () => {} },
+    registration: { scope, showNotification: async () => {}, ...registration },
     location: new URL(name, scope),
     addEventListener: (type, fn) => {
       handlers[type] = fn;
@@ -44,7 +46,8 @@ export async function loadLoader({ pub, scope = 'https://wallet.example/', name 
   };
   const caches = memoryCaches();
   // eslint-disable-next-line no-new-func
-  const run = new Function('self', 'caches', 'fetch', `${source}\nreturn { fetchBytes, fetchVerifiedRelease, checkUpdate, applyUpdate, readState, writeState, stageRelease, LOADER_COMPAT, LOADER_NAME };`);
-  const api = run(self, caches, (url, init) => net(url, init));
+  const names = Object.keys(globals);
+  const run = new Function('self', 'caches', 'fetch', ...names, `${source}\nreturn { fetchBytes, fetchVerifiedRelease, checkUpdate, applyUpdate, readState, writeState, stageRelease, LOADER_COMPAT, LOADER_NAME };`);
+  const api = run(self, caches, (url, init) => net(url, init), ...names.map((n) => globals[n]));
   return { ...api, self, caches, handlers, loaderCompat };
 }

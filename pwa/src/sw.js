@@ -609,12 +609,15 @@ self.addEventListener('message', (event) => {
 //     "#open=<screen>[&tx=<hex>]" within this app's scope, nothing else;
 //   - when the browser wakes this worker for Periodic Background Sync (Chrome / Edge, an installed
 //     app), the reminders the page left for later ('w:<id>:notify-reminders' in the app's own
-//     store) that are due are shown, if notifications are still on, and then forgotten.
+//     store) that are due are shown, if notifications and "Reminders when BEAM Campfire is closed"
+//     (prefs.notify.wakeUps) are still on, and then forgotten. With that switch off (the
+//     default), a wake-up shows nothing and asks the browser for no more of them.
 
 const OPEN_LINK = /^#open=[a-zA-Z]+(&tx=[0-9a-f]{1,128})?$/;
 const APP_DB = 'beam-campfire-app';
 const APP_STORE = 'kv';
 const REMINDERS_SUFFIX = ':notify-reminders';
+const SYNC_TAG = 'campfire-reminders'; // lib/notify.js SYNC_TAG
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -664,6 +667,11 @@ async function showDueReminders(now = Date.now()) {
     const prefs = (await idb(read.get('prefs'))) || {};
     const n = prefs.notify || {};
     const on = n.on === true || (n.on === undefined && prefs.paymentNotifications === true);
+    if (n.wakeUps !== true || !on) {
+      // Not turned on (an earlier release asked for wake-ups by itself), or notifications are off: no more of them.
+      if (self.registration.periodicSync) await self.registration.periodicSync.unregister(SYNC_TAG).catch(() => {});
+      return 0;
+    }
     const keys = (await idb(read.getAllKeys(IDBKeyRange.bound('w:', 'w:\uffff')))).filter((k) => typeof k === 'string' && k.endsWith(REMINDERS_SUFFIX));
     let shown = 0;
     for (const k of keys) {
@@ -693,6 +701,6 @@ async function showDueReminders(now = Date.now()) {
 }
 
 self.addEventListener('periodicsync', (event) => {
-  if (event.tag !== 'campfire-reminders') return;
+  if (event.tag !== SYNC_TAG) return;
   event.waitUntil(showDueReminders().catch(() => 0));
 });
