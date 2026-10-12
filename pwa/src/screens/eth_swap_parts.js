@@ -20,6 +20,8 @@
  *   "What does it cost?" the network fee "about" and "at most". The buttons stay in sight.
  *   "Is that fee right?" paying with ETH, a fee above 10% of it is said in words and the swap waits
  *   for a tick: a server's fee figure is never paid unseen.
+ *   "Is my server's price honest?" a second listed server priced the same route: agreed (one line),
+ *   more than 2% apart (said with both figures, and a tick before the swap), or not reachable (said).
  *
  * Pools list (beside the form from 900 px, a sheet on a phone) and price protection (a sheet):
  *   read-only and a four-way choice; one tap from the form.
@@ -37,6 +39,7 @@ import { toChecksumAddress } from '../lib/eth/crypto.js';
 import { signAndBroadcast, permitSigner, walletAsset } from '../lib/eth/uniswap_app.js';
 import { ethBadge, highFeeBlock } from './eth_ui.js';
 import { feeShare, isHighFee } from '../lib/eth/send.js';
+import { secondOpinionWords } from '../lib/eth/second_opinion.js';
 
 // ------------------------------------------------------------------ words
 
@@ -248,6 +251,22 @@ export function openAllowSheet(app, { w, svc, approval }) {
 
 // ------------------------------------------------------------------ review
 
+/**
+ * What a second server said about the price (lib/eth/second_opinion.js), for a review sheet:
+ * [line or notice, the tick when the two differ]. ack/onAck: whether the tick is ticked.
+ */
+export function secondOpinionBlock(check, { server, amount, ack, onAck, testid = 'second-opinion' }) {
+  const words = secondOpinionWords(check, { server, amount });
+  if (words.kind === 'ok') return [h('p', { class: 'small', 'data-testid': testid, 'data-status': check.status, text: words.text })];
+  const n = notice(words.kind === 'warn' ? 'warn' : 'info', words.text);
+  n.dataset.testid = testid;
+  n.dataset.status = check ? check.status : 'unchecked';
+  if (!words.ack) return [n];
+  const box = h('input', { type: 'checkbox', 'data-testid': `${testid}-ack`, checked: ack });
+  box.addEventListener('change', () => onAck(box.checked));
+  return [n, h('label', { class: 'check-row' }, box, h('span', { text: words.ack }))];
+}
+
 /** The price-change warning from 3 %, and from 10 % the box to tick before the swap can be sent. */
 export function impactBlock(q, block, ack, onAck) {
   const warn = notice(block ? 'error' : 'warn', h('strong', { text: `This swap moves the price ${percentText(q.priceImpact)}. ` }), 'The pools are small for this amount, so you get noticeably less than the current rate. A smaller amount gets a better price.');
@@ -265,20 +284,22 @@ export function impactBlock(q, block, ack, onAck) {
  * transaction hash once it has left (or may have), null when the person went
  * back without swapping.
  */
-export function openReviewSheet(app, { w, svc, review: first, acceptImpact }) {
+export function openReviewSheet(app, { w, svc, review: first, acceptImpact, check = null }) {
   let review = first;
   let busy = false;
   let error = null;
   let ack = Boolean(acceptImpact);
   // Paying with ETH, a fee above 10% of it waits for the person's tick (lib/eth/send.js isHighFee).
   let feeAck = false;
+  // Two servers more than 2% apart on the price: the swap waits for the person's tick.
+  let gapAck = !check || check.status !== 'differ';
   return new Promise((resolve) => {
     const sheet = openSheet(
       (close, rerender) => {
         const q = review.quote;
         const share = q.tokenIn.isEth ? feeShare(review.expectedGasCost, q.amountIn) : null;
         const highFee = isHighFee(share);
-        const blocked = (review.impact === 'block' && !ack) || (highFee && !feeAck);
+        const blocked = (review.impact === 'block' && !ack) || (highFee && !feeAck) || !gapAck;
         const swap = async () => {
           if (busy || blocked) return;
           const ok = await confirmIdentity(app, { title: 'Confirm the swap', detail: `${amtShown(q.amountIn, q.tokenIn)} for at least ${amtShown(review.minimumOut, q.tokenOut, { floor: true })}`, cta: 'Confirm' });
@@ -360,6 +381,16 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact }) {
             ack = v;
             rerender();
           })),
+          ...secondOpinionBlock(check, {
+            server: w.rpc.host.name,
+            amount: (v) => amtShown(v, q.tokenOut),
+            ack: gapAck,
+            onAck: (v) => {
+              gapAck = v;
+              rerender();
+            },
+            testid: 'uni-review-second',
+          }),
           ...(highFee
             ? highFeeBlock({
                 share,

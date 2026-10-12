@@ -100,6 +100,30 @@ async function stackRoute(route) {
   return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: await r.text() });
 }
 
+/**
+ * The other listed Ethereum servers: a swap's price is checked with one of them before its review
+ * (D-7, lib/eth/second_opinion.js). Price questions only (eth_call, eth_blockNumber) go to the
+ * fork; anything else is refused, and every request is kept to check that none names the wallet.
+ */
+const secondAsked = [];
+const PRICE_ONLY = new Set(['eth_call', 'eth_blockNumber']);
+async function secondRoute(route) {
+  const req = route.request();
+  if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+  const body = req.postData() || '';
+  let methods = [];
+  try {
+    methods = [].concat(JSON.parse(body)).map((m) => m.method);
+  } catch {
+    /* not JSON */
+  }
+  const priceOnly = req.method() === 'POST' && methods.length > 0 && methods.every((m) => PRICE_ONLY.has(m));
+  secondAsked.push({ host: new URL(req.url()).hostname, methods, body: body.toLowerCase(), priceOnly });
+  if (!priceOnly) return route.abort();
+  const r = await fetch(ANVIL, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+  return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: await r.text() });
+}
+
 /** One screen, four ways: phone and desktop, light and dark. */
 async function shots4(name) {
   await page.evaluate(() => document.querySelectorAll('.toast').forEach((t) => t.remove()));
@@ -132,8 +156,9 @@ before(async () => {
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(srv.url).origin });
   await ctx.route((u) => u.hostname === 'buybeam.my', buybeamRoute);
   await ctx.route((u) => u.hostname === STACK, stackRoute);
-  // Nothing may reach a real Ethereum server.
-  await ctx.route((u) => ETH_RPC_HOSTS.some((x) => x.host === u.hostname && x.host !== STACK) || u.hostname === 'api.coingecko.com', (r) => r.abort());
+  // Nothing may reach a real Ethereum server: the other listed servers answer price questions from the fork.
+  await ctx.route((u) => ETH_RPC_HOSTS.some((x) => x.host === u.hostname && x.host !== STACK), secondRoute);
+  await ctx.route((u) => u.hostname === 'api.coingecko.com', (r) => r.abort());
   ({ page, rec } = await recordedPage(ctx, { label: 'buy' }));
   console.log(`# screenshots: ${SHOTS}`);
 });
@@ -414,6 +439,9 @@ test('on the fork: buy WBEAM with ETH, then sell some back; what arrived is what
     assert.match(await page.textContent(tid('uni-review-fee')), /about [\d.]+ ETH.*at most [\d.]+ ETH/);
     assert.equal(await page.textContent(tid('uni-review-cta')), 'Swap 0.01 ETH');
     assert.equal(await page.isVisible(tid('uni-review-permit')), false, 'paying with ETH signs no permit');
+    // D-7: the same route priced on a second listed server (the fork behind it): it agrees.
+    assert.equal(await page.getAttribute(tid('uni-review-second'), 'data-status'), 'agree');
+    assert.match(await page.textContent(tid('uni-review-second')), /^Price checked with a second server \(PublicNode\)\.$/);
     // Price protection can still be changed here: only the minimum moves.
     const min1 = await page.textContent(tid('uni-review-minimum'));
     await page.click(tid('uni-review-protection'));
@@ -505,9 +533,15 @@ test('on the fork: buy WBEAM with ETH, then sell some back; what arrived is what
     await shots4('24-eth-home-after');
   }));
 
-test('IP privacy: only this origin, the BEAM node, buybeam.my (mocked here) and the chosen Ethereum server; no CSP violation', async () => {
+test('IP privacy: only this origin, the BEAM node, buybeam.my (mocked here), the chosen Ethereum server and, for a swap\'s price only, a second one; no CSP violation', async () => {
   const hosts = foreignHosts(rec, srv.url).sort();
-  const allowed = ['https://buybeam.my', `https://${STACK}`];
+  // A second listed server is asked a swap's price only (D-7), never anything naming the wallet.
+  if (!skipFork) assert.ok(secondAsked.length > 0, 'the swap price was checked with a second server');
+  for (const a of secondAsked) {
+    assert.ok(a.priceOnly, `a second server was asked ${a.methods.join(', ')}`);
+    assert.ok(!eth || !a.body.includes(eth.address.slice(2).toLowerCase()), 'the wallet address went to a second server');
+  }
+  const allowed = ['https://buybeam.my', `https://${STACK}`, ...new Set(secondAsked.map((a) => `https://${a.host}`))];
   for (const x of hosts) assert.ok(allowed.includes(x), `unexpected host ${x}`);
   assert.deepEqual(rec.csp, []);
   assert.deepEqual(await page.evaluate(() => window.__cspViolations), []);

@@ -1,6 +1,8 @@
 // Ethereum JSON-RPC over one server the person chose from hosts.js, and no
-// other: no fallback, no second opinion, because every server sees the IP
-// address together with the Ethereum address it is asked about.
+// other: no fallback, because every server sees the IP address together with
+// the Ethereum address it is asked about. (The one second opinion, a swap's
+// price, asks another listed server no question about the address:
+// lib/eth/second_opinion.js.)
 //
 // Requests carry no cookies or credentials (credentials:'omit'), skip the
 // HTTP cache (cache:'no-store': balances and nonces must be fresh), refuse

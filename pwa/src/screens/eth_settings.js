@@ -5,7 +5,8 @@
  *       3 + the password (or Face ID).
  * Exit-intent reasons and answers:
  *   - "Which server should I pick?" -> Stack Wallet's is preselected (as on desktop); each one sees the
- *     IP with the address, so only the one picked is ever used - no silent fallback.
+ *     IP with the address, so only the one picked is ever asked about it - no silent fallback
+ *     (a swap's price alone is checked with a second listed server, which never sees the address).
  *   - "Can I use my own node?" -> no, and why: the app's security policy names every server it may
  *     contact, so a typed-in one cannot be reached.
  *   - "Who knows my history?" -> the history switch says who is asked, and what is shown when it's off.
@@ -117,7 +118,7 @@ export default function ethSettings(app) {
       h(
         'div',
         { class: 'card list' },
-        h('div', { class: 'row field-row' }, h('span', { class: 'ico' }, icon('globe')), h('span', { class: 'main' }, h('div', { class: 't', text: 'Ethereum server' }), h('div', { class: 's wrap', text: 'Sees your IP with your address. Only this one is used.' })), sel),
+        h('div', { class: 'row field-row' }, h('span', { class: 'ico' }, icon('globe')), h('span', { class: 'main' }, h('div', { class: 't', text: 'Ethereum server' }), h('div', { class: 's wrap', text: 'Sees your IP with your address. Only this one is asked about your address.' })), sel),
         h(
           'label',
           { class: 'row' },
