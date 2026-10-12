@@ -8,7 +8,10 @@
 //   The root may be a symlink; it is resolved on every request, so tests can
 //   switch releases by re-pointing it.
 // - Proxies /recovery/mainnet_recovery.bin (BEAM's recovery file, which has no
-//   CORS headers) by streaming it: nothing is written to disk.
+//   CORS headers) by streaming it: nothing is written to disk. Like a deployment,
+//   it answers any origin there (headersFor(): copies without a relay use it).
+// - Sends Strict-Transport-Security like a deployment (SECURITY_HEADERS); browsers
+//   ignore it on plain http, so it changes nothing here.
 // - Proxies /explorer/status (independent chain height), so the page itself
 //   only ever talks to this origin and the BEAM node.
 // - Listens on loopback only and refuses Host headers that are not loopback
@@ -26,7 +29,7 @@ import { createReadStream } from 'node:fs';
 import { stat, realpath, writeFile, readFile } from 'node:fs/promises';
 import { join, normalize, sep, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SECURITY_HEADERS, headersFor, mimeFor, RECOVERY_UPSTREAM, EXPLORER_UPSTREAMS } from './headers.mjs';
+import { SECURITY_HEADERS, headersFor, mimeFor, RECOVERY_UPSTREAM, EXPLORER_UPSTREAMS, RECOVERY_RELAY } from './headers.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pwaRoot = join(here, '..');
@@ -77,7 +80,7 @@ function upstreamGet(url, method, timeoutMs) {
 async function proxyRecovery(req, res) {
   if (recoveryFile) {
     const st = await stat(String(recoveryFile));
-    res.writeHead(200, baseHeaders({ 'Content-Type': 'application/octet-stream', 'Content-Length': st.size }));
+    res.writeHead(200, { ...headersFor(RECOVERY_RELAY), 'Content-Type': 'application/octet-stream', 'Content-Length': st.size });
     if (req.method === 'HEAD') return res.end();
     log('recovery from local file', st.size);
     return createReadStream(String(recoveryFile)).pipe(res);
@@ -88,7 +91,7 @@ async function proxyRecovery(req, res) {
   } catch (e) {
     return send(res, 502, `recovery upstream: ${e.message}`);
   }
-  const h = baseHeaders({ 'Content-Type': 'application/octet-stream' });
+  const h = { ...headersFor(RECOVERY_RELAY), 'Content-Type': 'application/octet-stream' };
   if (up.headers['content-length']) h['Content-Length'] = up.headers['content-length'];
   if (up.headers['last-modified']) h['Last-Modified'] = up.headers['last-modified'];
   res.writeHead(up.statusCode === 200 ? 200 : 502, h);
@@ -192,8 +195,13 @@ const server = (host) =>
         if (resultFile) await writeFile(String(resultFile), line + '\n', { flag: 'a' });
         return send(res, 200, '{"ok":true}', 'application/json');
       }
+      if (p === RECOVERY_RELAY && req.method === 'OPTIONS') {
+        // Another copy's resumed download asks first (If-Range is not a simple header).
+        res.writeHead(204, headersFor(RECOVERY_RELAY));
+        return res.end();
+      }
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'method not allowed');
-      if (p === '/recovery/mainnet_recovery.bin') return proxyRecovery(req, res);
+      if (p === RECOVERY_RELAY) return proxyRecovery(req, res);
       if (p === '/explorer/status') return proxyExplorer(req, res);
       return serveFile(req, res, p);
     } catch (e) {

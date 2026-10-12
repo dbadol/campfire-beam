@@ -125,13 +125,14 @@ test('deploy configs carry the same headers', () => {
   assert.ok(nginx.includes('location = /explorer/status') && nginx.includes('location = /recovery/mainnet_recovery.bin'));
 });
 
-test('the loader gets its own policy (it may fetch signed updates from any https copy); pages keep theirs; release files are readable by any copy, the proxies are not', () => {
+test('the loader gets its own policy (it may fetch signed updates from any https copy); pages keep theirs; release files and the recovery relay are readable by any copy, the explorer proxy is not', () => {
   assert.equal(LOADER_CSP, "default-src 'none'; connect-src 'self' https:");
   for (const p of ['sw-0123456789abcdef.js', '/sw-0123456789abcdef.js', 'sw.js']) assert.equal(headersFor(p)['Content-Security-Policy'], LOADER_CSP, p);
   for (const p of ['index.html', 'app.js', 'lib/sw-0123456789abcdef.js', 'vendor/engine/wasm-client.worker.js', 'release.json']) assert.equal(headersFor(p)['Content-Security-Policy'], CSP, p);
   assert.ok(!CSP.includes('https:;') && !/connect-src[^;]* https:( |;|$)/.test(CSP), 'the page policy names its hosts, never all of https');
   for (const p of ['index.html', 'release.json', 'release.sig', 'manifest.json', 'vendor/engine/wasm-client.wasm', 'sw-0123456789abcdef.js']) assert.equal(headersFor(p)['Access-Control-Allow-Origin'], '*', p);
-  for (const p of PROXY_PATHS) assert.equal(headersFor(p)['Access-Control-Allow-Origin'], undefined, p);
+  // The recovery relay is read by every copy without one (lib/recovery.js); the explorer proxy by this origin only.
+  assert.deepEqual(PROXY_PATHS.map((p) => headersFor(p)['Access-Control-Allow-Origin']), ['*', undefined]);
   // Everything else is the same set on every path.
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (k !== 'Content-Security-Policy') assert.equal(headersFor('sw-0123456789abcdef.js')[k], v, k);
   const headers = readFileSync(join(pwa, 'deploy', '_headers'), 'utf8');
