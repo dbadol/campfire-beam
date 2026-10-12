@@ -1,0 +1,453 @@
+// One tab at a time (lib/one_tab.js), driven by a fake navigator.locks (one lock manager shared by
+// the "tabs", with ifAvailable, steal, signal and query as the Web Locks spec has them) and a fake
+// BroadcastChannel whose messages a frozen tab only receives once it thaws.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { OneTab, OtherTabError, LOCK_NAME } from '../../src/lib/one_tab.js';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MS = { noAnswerMs: 60, slowMs: 200, capMs: 80, presenceMs: 25, ttlMs: 0 };
+
+/** One browser's lock manager. client() is one tab's navigator.locks. */
+function lockManager() {
+  let held = null;
+  const queue = [];
+  const frozen = new Map(); // clientId -> settlements held back until thaw()
+  let clients = 0;
+  const abortError = () => Object.assign(new Error('The request was aborted.'), { name: 'AbortError' });
+  const deliver = (entry, fn) => {
+    if (frozen.has(entry.clientId)) frozen.get(entry.clientId).push(fn);
+    else fn();
+  };
+  function grant(entry) {
+    held = entry;
+    Promise.resolve().then(() => {
+      let ret;
+      try {
+        ret = entry.cb({ name: entry.name, mode: 'exclusive' });
+      } catch (e) {
+        return finish(entry, () => entry.reject(e));
+      }
+      Promise.resolve(ret).then(
+        (v) => finish(entry, () => entry.resolve(v)),
+        (e) => finish(entry, () => entry.reject(e)),
+      );
+    });
+  }
+  function finish(entry, settle) {
+    if (held !== entry) return; // taken by a steal: already settled
+    held = null;
+    settle();
+    if (!held && queue.length) grant(queue.shift());
+  }
+  return {
+    get holder() {
+      return held ? held.clientId : null;
+    },
+    get queued() {
+      return queue.length;
+    },
+    /** The tab's page is frozen: it learns nothing (no rejection) until thaw(). */
+    freeze(clientId) {
+      frozen.set(clientId, []);
+    },
+    thaw(clientId) {
+      const q = frozen.get(clientId) || [];
+      frozen.delete(clientId);
+      q.forEach((fn) => fn());
+    },
+    client() {
+      const clientId = `client-${++clients}`;
+      return {
+        clientId,
+        request(name, opts, cb) {
+          return new Promise((resolve, reject) => {
+            const entry = { name, clientId, cb, resolve, reject };
+            if (opts.steal) {
+              if (held) {
+                const old = held;
+                held = null;
+                deliver(old, () => old.reject(abortError()));
+              }
+              return grant(entry);
+            }
+            if (opts.ifAvailable) {
+              if (held || queue.length) return Promise.resolve().then(() => cb(null)).then(resolve, reject);
+              return grant(entry);
+            }
+            if (opts.signal) {
+              if (opts.signal.aborted) return reject(abortError());
+              opts.signal.addEventListener('abort', () => {
+                const i = queue.indexOf(entry);
+                if (i >= 0) {
+                  queue.splice(i, 1);
+                  reject(abortError());
+                }
+              });
+            }
+            if (!held && !queue.length) grant(entry);
+            else queue.push(entry);
+          });
+        },
+        async query() {
+          return { held: held ? [{ name: held.name, mode: 'exclusive', clientId: held.clientId }] : [], pending: queue.map((e) => ({ name: e.name, mode: 'exclusive', clientId: e.clientId })) };
+        },
+      };
+    },
+  };
+}
+
+/** One browser's BroadcastChannel: messages go to the other instances of the same name. */
+function channelBus() {
+  const members = new Set();
+  return class FakeChannel {
+    constructor(name) {
+      this.name = name;
+      this.onmessage = null;
+      this.paused = false;
+      this.inbox = [];
+      members.add(this);
+    }
+    postMessage(data) {
+      const copy = structuredClone(data);
+      for (const m of members) if (m !== this && m.name === this.name) setImmediate(() => m.deliver(copy));
+    }
+    deliver(data) {
+      if (this.paused) return this.inbox.push(data);
+      if (this.onmessage) this.onmessage({ data });
+    }
+    resume() {
+      this.paused = false;
+      this.inbox.splice(0).forEach((d) => this.deliver(d));
+    }
+    close() {
+      members.delete(this);
+    }
+  };
+}
+
+function browser({ locks = true } = {}) {
+  const lm = lockManager();
+  const Channel = channelBus();
+  const tab = (extra = {}) => {
+    const l = locks ? lm.client() : null;
+    const t = new OneTab({ locks: l, Channel, win: null, ...MS, ...extra });
+    t.left = [];
+    t.onLeft((how) => t.left.push(how));
+    t.lockClient = l;
+    return t;
+  };
+  return { lm, tab };
+}
+
+test('the lock is free: the tab holds it for the page; a second tab is told another has it', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  assert.equal(a.state, 'idle');
+  assert.equal(a.mayWrite(), true, 'outside a page (unit tests, tools) nothing is claimed and nothing is stopped');
+  assert.equal(a.canOpen(), true);
+  assert.equal(await a.claim(), 'held');
+  assert.equal(a.mode, 'locks');
+  assert.equal(lm.holder, a.lockClient.clientId);
+  assert.equal(a.clientId, a.lockClient.clientId, 'it knows its own client id (to look the lock up later)');
+  assert.equal(await a.claim(), 'held', 'asking again changes nothing');
+  assert.equal(await b.claim(), 'busy');
+  assert.equal(lm.holder, a.lockClient.clientId, 'ifAvailable: the second tab neither waits nor takes it');
+  assert.equal(lm.queued, 0);
+  assert.equal(b.canOpen(), false);
+  assert.equal(b.mayWrite(), false);
+  assert.equal(await b.confirmWrite(), false);
+  assert.equal(a.canOpen(), true);
+  assert.equal(await a.confirmWrite(), true);
+  assert.equal(LOCK_NAME, 'beam-campfire-one-tab');
+});
+
+test('"Use it here instead": the holder locks and saves while it still holds the lock, lets go, and the asking tab gets it', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  await a.claim();
+  await b.claim();
+  const events = [];
+  a.onLetGo(async () => {
+    events.push(['a locks and saves', a.holds(), await a.confirmWrite(), a.canOpen()]);
+    await sleep(15);
+    events.push('a saved');
+  });
+  let noAnswer = 0;
+  const r = await b.takeOver({ onNoAnswer: () => noAnswer++ });
+  events.push('b holds');
+  assert.equal(r, 'held');
+  assert.deepEqual(events, [['a locks and saves', true, true, false], 'a saved', 'b holds'], 'the lock moved only after A saved; A opened nothing new meanwhile');
+  assert.deepEqual(a.left, ['handed']);
+  assert.equal(a.state, 'gone');
+  assert.equal(a.how, 'handed');
+  assert.equal(a.mayWrite(), false);
+  assert.equal(await a.confirmWrite(), false);
+  assert.equal(a.canOpen(), false);
+  assert.equal(await a.claim(), 'gone', 'a tab that let go must reload before it holds the wallet again');
+  assert.equal(b.canOpen(), true);
+  assert.equal(await b.confirmWrite(), true);
+  assert.equal(lm.holder, b.lockClient.clientId);
+  await sleep(MS.slowMs + 30);
+  assert.equal(noAnswer, 0, 'an answered hand-over never offers "Take over anyway"');
+});
+
+test('a frozen holder: nothing is taken by waiting; "Take over anyway" steals, and the frozen tab never writes again', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  let aSaved = 0;
+  a.onLetGo(async () => {
+    aSaved++;
+  });
+  await a.claim();
+  await b.claim();
+  // A is frozen: its page hears nothing (no message, no lock news) until it thaws.
+  a.ch.paused = true;
+  lm.freeze(a.lockClient.clientId);
+  let offered = null;
+  const done = b.takeOver({ onNoAnswer: (x) => (offered = x) });
+  await sleep(MS.noAnswerMs + 40);
+  assert.deepEqual(offered, { acked: false }, 'no answer within the wait: "Take over anyway" is offered');
+  assert.equal(b.state, 'asking');
+  assert.equal(lm.holder, a.lockClient.clientId, 'waiting alone takes nothing');
+  assert.equal(lm.queued, 1, 'B waits for the lock with a normal request');
+  assert.equal(await b.stealNow(), 'held');
+  assert.equal(await done, 'held');
+  assert.equal(lm.holder, b.lockClient.clientId);
+  assert.equal(lm.queued, 0, "B's waiting request was withdrawn: it can never be granted later");
+  // A is still frozen and believes it holds the lock. Its next write looks the lock up first.
+  assert.equal(a.state, 'held');
+  assert.equal(await a.confirmWrite(), false, 'the frozen tab finds out at its next write, from the lock manager');
+  assert.deepEqual(a.left, ['stolen']);
+  assert.equal(a.mayWrite(), false);
+  // It thaws: the queued "take-over" and the lock's AbortError arrive late and change nothing.
+  lm.thaw(a.lockClient.clientId);
+  a.ch.resume();
+  await sleep(20);
+  assert.equal(aSaved, 0, 'a tab that lost the lock never saves (it would overwrite the new tab)');
+  assert.deepEqual(a.left, ['stolen'], 'told once');
+  assert.equal(await a.confirmWrite(), false);
+  assert.equal(b.canOpen(), true);
+});
+
+test('a frozen holder that hears the request before the news of the steal neither saves nor says it handed over', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  let aSaved = 0;
+  a.onLetGo(async () => {
+    aSaved++;
+  });
+  await a.claim();
+  await b.claim();
+  a.ch.paused = true;
+  lm.freeze(a.lockClient.clientId);
+  await b.takeOver({ onNoAnswer: () => b.stealNow() });
+  // It thaws, and its BroadcastChannel runs before the lock's AbortError reaches it.
+  a.ch.resume();
+  await sleep(20);
+  assert.equal(aSaved, 0, 'the late request was not acted on: the lock manager says the lock is B\'s');
+  assert.equal(a.how, 'stolen');
+  assert.deepEqual(a.left, ['stolen']);
+  lm.thaw(a.lockClient.clientId);
+  await sleep(10);
+  assert.deepEqual(a.left, ['stolen'], 'told once');
+  assert.equal(lm.holder, b.lockClient.clientId);
+});
+
+test('stolen while awake: the AbortError alone tells the old holder, at once', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  a.onLetGo(() => new Promise(() => {})); // would never finish: B must steal
+  await a.claim();
+  await b.claim();
+  a.ch.paused = true; // it does not hear the request
+  const p = b.takeOver({ onNoAnswer: () => b.stealNow() });
+  assert.equal(await p, 'held');
+  await sleep(10);
+  assert.equal(a.state, 'gone');
+  assert.equal(a.how, 'stolen');
+  assert.deepEqual(a.left, ['stolen']);
+  assert.equal(lm.holder, b.lockClient.clientId);
+});
+
+test('after a steal, handing over again goes to the tab that asks, and the stealing tab is not granted twice', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  const c = tab();
+  await a.claim();
+  await b.claim();
+  await c.claim();
+  a.ch.paused = true;
+  lm.freeze(a.lockClient.clientId);
+  await b.takeOver({ onNoAnswer: () => b.stealNow() });
+  b.onLetGo(async () => {});
+  assert.equal(await c.takeOver(), 'held');
+  assert.equal(lm.holder, c.lockClient.clientId);
+  await sleep(20);
+  assert.equal(lm.holder, c.lockClient.clientId, "B's withdrawn request did not come back");
+  assert.deepEqual(b.left, ['handed']);
+  assert.equal(c.canOpen(), true);
+});
+
+test('the holder answers but locking takes long: "Take over anyway" waits for the longer time', async () => {
+  const { tab } = browser();
+  const a = tab({ capMs: 2000 });
+  const b = tab();
+  let release;
+  a.onLetGo(() => new Promise((r) => (release = r)));
+  await a.claim();
+  await b.claim();
+  let offered = null;
+  const done = b.takeOver({ onNoAnswer: (x) => (offered = x) });
+  await sleep(MS.noAnswerMs + 30);
+  assert.equal(offered, null, 'it answered: no offer at the short wait');
+  assert.equal(a.state, 'letting-go');
+  release();
+  assert.equal(await done, 'held');
+  assert.equal(offered, null);
+});
+
+test('a hand-over whose locking hangs lets go after the cap, and from then on that tab writes nothing', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  a.onLetGo(() => new Promise(() => {}));
+  await a.claim();
+  await b.claim();
+  const t0 = Date.now();
+  assert.equal(await b.takeOver(), 'held');
+  assert.ok(Date.now() - t0 >= MS.capMs - 5, 'it waited for the cap');
+  assert.equal(a.how, 'handed');
+  assert.equal(a.mayWrite(), false);
+  assert.equal(await a.confirmWrite(), false);
+  assert.equal(lm.holder, b.lockClient.clientId);
+});
+
+test('a tab that let go can ask for the wallet back, but must reload to use it (its memory is the old copy)', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  a.onLetGo(async () => {});
+  b.onLetGo(async () => {});
+  await a.claim();
+  await b.claim();
+  await b.takeOver();
+  assert.equal(a.state, 'gone');
+  assert.equal(await a.takeOver(), 'held');
+  assert.equal(lm.holder, a.lockClient.clientId);
+  assert.deepEqual(b.left, ['handed']);
+  assert.equal(a.holds(), true);
+  assert.equal(a.canOpen(), false, 'spent: no wallet opens in this page');
+  assert.equal(a.mayWrite(), false, 'spent: nothing is written from this page');
+  assert.equal(await a.confirmWrite(), false);
+});
+
+test('in a page nothing writes before claim() answers; start-up work waits until the tab holds the wallet', async () => {
+  const { tab } = browser();
+  const a = tab({ strictIdle: true });
+  const b = tab({ strictIdle: true });
+  assert.equal(a.mayWrite(), false);
+  assert.equal(await a.confirmWrite(), false);
+  assert.equal(a.canOpen(), false, 'no wallet opens before the tab holds the lock');
+  const ran = [];
+  a.whenHeld(() => ran.push('a'));
+  b.whenHeld(() => ran.push('b'));
+  assert.deepEqual(ran, []);
+  await a.claim();
+  await b.claim();
+  assert.deepEqual(ran, ['a'], 'only the holder runs it');
+  a.whenHeld(() => ran.push('a again'));
+  assert.deepEqual(ran, ['a', 'a again'], 'at once once held');
+  a.onLetGo(async () => {});
+  await b.takeOver();
+  assert.deepEqual(ran, ['a', 'a again', 'b'], 'the other tab runs it when it takes over');
+});
+
+test('a write refused while it is not this tab: OtherTabError says so', () => {
+  const e = new OtherTabError();
+  assert.equal(e.code, 'other_tab');
+  assert.match(e.message, /open in another tab/);
+});
+
+test('the lock looked up, not trusted: a confirmed check is reused only briefly', async () => {
+  let clock = 1000;
+  const { lm, tab } = browser();
+  const a = tab({ ttlMs: 500, now: () => clock });
+  const b = tab({ now: () => clock });
+  await a.claim();
+  await b.claim();
+  lm.freeze(a.lockClient.clientId);
+  a.ch.paused = true;
+  await b.takeOver({ onNoAnswer: () => b.stealNow() });
+  // Inside the short window after A's last check a write still passes: A was not frozen long
+  // (a steal is offered only after NO_ANSWER_MS without an answer, far longer than this window).
+  assert.equal(await a.confirmWrite(), true);
+  clock += 600;
+  assert.equal(await a.confirmWrite(), false);
+  assert.deepEqual(a.left, ['stolen']);
+});
+
+// ------------------------------------------------------------ without Web Locks
+
+test('without Web Locks: a BroadcastChannel presence check; the second tab is told, and the hand-over works', async () => {
+  const { tab } = browser({ locks: false });
+  const a = tab();
+  const b = tab();
+  a.onLetGo(async () => {});
+  assert.equal(await a.claim(), 'held');
+  assert.equal(a.mode, 'presence');
+  assert.equal(await b.claim(), 'busy');
+  assert.equal(b.mayWrite(), false);
+  assert.equal(await b.takeOver(), 'held');
+  assert.equal(a.state, 'gone');
+  assert.equal(a.how, 'handed');
+  assert.equal(b.canOpen(), true);
+  assert.equal(await a.confirmWrite(), false);
+});
+
+test('without Web Locks: two tabs starting together - exactly one goes on', async () => {
+  const { tab } = browser({ locks: false });
+  const a = tab();
+  const b = tab();
+  const [ra, rb] = await Promise.all([a.claim(), b.claim()]);
+  assert.deepEqual([ra, rb].sort(), ['busy', 'held']);
+});
+
+test('without Web Locks: "Take over anyway" tells a frozen tab to stop; once thawed it neither saves nor writes', async () => {
+  const { tab } = browser({ locks: false });
+  const a = tab();
+  const b = tab();
+  let aSaved = 0;
+  a.onLetGo(async () => {
+    aSaved++;
+  });
+  await a.claim();
+  await b.claim();
+  a.ch.paused = true;
+  let offered = null;
+  const p = b.takeOver({ onNoAnswer: (x) => (offered = x) });
+  await sleep(MS.noAnswerMs + 30);
+  assert.deepEqual(offered, { acked: false });
+  await b.stealNow();
+  assert.equal(await p, 'held');
+  a.ch.resume(); // the old "take-over" (stale by now) and "stolen" arrive
+  await sleep(20);
+  assert.equal(aSaved, 0, 'the stale request was not acted on: saving now would overwrite the new tab');
+  assert.equal(a.state, 'gone');
+  assert.equal(a.how, 'stolen');
+  assert.equal(a.mayWrite(), false);
+});
+
+test('neither Web Locks nor BroadcastChannel: no guard (the page goes on)', async () => {
+  const t = new OneTab({ locks: null, Channel: null, win: null, ...MS });
+  assert.equal(t.mode, 'none');
+  assert.equal(await t.claim(), 'held');
+  assert.equal(t.canOpen(), true);
+  assert.equal(await t.confirmWrite(), true);
+});
