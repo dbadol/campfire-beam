@@ -11,6 +11,8 @@ const MS = { noAnswerMs: 60, slowMs: 200, capMs: 80, presenceMs: 25, ttlMs: 0 };
 /** One browser's lock manager. client() is one tab's navigator.locks. */
 function lockManager() {
   let held = null;
+  // query(): 'ok' (as the spec has it), 'no-client-id' (LockInfo without clientId) or 'throws'.
+  let queryMode = 'ok';
   const queue = [];
   const frozen = new Map(); // clientId -> settlements held back until thaw()
   let clients = 0;
@@ -46,6 +48,9 @@ function lockManager() {
     },
     get queued() {
       return queue.length;
+    },
+    set queryMode(m) {
+      queryMode = m;
     },
     /** The tab's page is frozen: it learns nothing (no rejection) until thaw(). */
     freeze(clientId) {
@@ -90,7 +95,9 @@ function lockManager() {
           });
         },
         async query() {
-          return { held: held ? [{ name: held.name, mode: 'exclusive', clientId: held.clientId }] : [], pending: queue.map((e) => ({ name: e.name, mode: 'exclusive', clientId: e.clientId })) };
+          if (queryMode === 'throws') throw Object.assign(new Error('The operation is insecure.'), { name: 'SecurityError' });
+          const info = (e) => ({ name: e.name, mode: 'exclusive', ...(queryMode === 'no-client-id' ? {} : { clientId: e.clientId }) });
+          return { held: held ? [info(held)] : [], pending: queue.map(info) };
         },
       };
     },
@@ -391,6 +398,90 @@ test('the lock looked up, not trusted: a confirmed check is reused only briefly'
   clock += 600;
   assert.equal(await a.confirmWrite(), false);
   assert.deepEqual(a.left, ['stolen']);
+});
+
+// Re-audit RE1-1: a lock manager that cannot be asked (query() rejects, or gives no clientId) used to
+// leave the page trusting its own flag, so a frozen holder whose lock was stolen kept flushing its
+// old copy over the new tab's. Now it fails closed: such a page does not hold the wallet.
+for (const [mode, label] of [
+  ['no-client-id', 'gives no clientId'],
+  ['throws', 'rejects'],
+]) {
+  test(`a lock manager whose query() ${label}: no tab runs a wallet, each says so and lets the lock go`, async () => {
+    const { lm, tab } = browser();
+    lm.queryMode = mode;
+    const a = tab();
+    const b = tab();
+    const ran = [];
+    a.whenHeld(() => ran.push('a'));
+    assert.equal(await a.claim(), 'gone');
+    assert.equal(a.how, 'unchecked');
+    assert.deepEqual(a.left, ['unchecked']);
+    assert.equal(a.canOpen(), false);
+    assert.equal(a.mayWrite(), false);
+    assert.equal(await a.confirmWrite(), false);
+    assert.deepEqual(ran, [], 'start-up work that touches storage never runs');
+    assert.equal(lm.holder, null, 'the lock is let go: it guards nothing here');
+    assert.equal(await b.claim(), 'gone', 'the next tab finds the same and refuses too');
+    assert.equal(b.how, 'unchecked');
+    assert.equal(await a.claim(), 'gone', 'a reload is needed to ask again');
+  });
+}
+
+test("the audit's PoC: the lock manager stops answering while a frozen holder's lock is stolen - the old holder never writes again", async () => {
+  for (const mode of ['no-client-id', 'throws']) {
+    const { lm, tab } = browser();
+    const a = tab();
+    const b = tab();
+    let aSaved = 0;
+    a.onLetGo(async () => {
+      aSaved++;
+    });
+    assert.equal(await a.claim(), 'held');
+    await b.claim();
+    a.ch.paused = true;
+    lm.freeze(a.lockClient.clientId);
+    await b.takeOver({ onNoAnswer: () => b.stealNow() });
+    assert.equal(lm.holder, b.lockClient.clientId, 'B stole the lock');
+    lm.queryMode = mode;
+    assert.equal(await a.confirmWrite(), false, `${mode}: A's next flush is refused (it used to pass)`);
+    assert.equal(a.mayWrite(), false);
+    assert.equal(aSaved, 0);
+    assert.ok(['unchecked', 'stolen'].includes(a.how), a.how);
+  }
+});
+
+test('the lock manager stops answering while this tab holds the wallet: it stops, refuses the write and lets the lock go', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  assert.equal(await a.claim(), 'held');
+  assert.equal(await a.confirmWrite(), true);
+  lm.queryMode = 'throws';
+  assert.equal(await a.confirmWrite(), false);
+  assert.equal(a.how, 'unchecked');
+  assert.deepEqual(a.left, ['unchecked']);
+  await sleep(5);
+  assert.equal(lm.holder, null, 'let go: another tab may ask (and, while the browser cannot be asked, is refused too)');
+  assert.equal(await b.claim(), 'gone');
+  lm.queryMode = 'ok';
+  const c = tab();
+  assert.equal(await c.claim(), 'held', 'once the browser answers again a new page goes on');
+});
+
+test('"Use it here instead" in a browser that cannot be asked: the asking tab does not hold the wallet either', async () => {
+  const { lm, tab } = browser();
+  const a = tab();
+  const b = tab();
+  a.onLetGo(async () => {});
+  await a.claim();
+  await b.claim();
+  lm.queryMode = 'no-client-id';
+  const r = await b.takeOver();
+  assert.equal(r, 'gone');
+  assert.equal(b.how, 'unchecked');
+  assert.equal(b.canOpen(), false);
+  assert.equal(await b.confirmWrite(), false);
 });
 
 // ------------------------------------------------------------ without Web Locks

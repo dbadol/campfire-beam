@@ -20,6 +20,8 @@
 //      wait; once it runs again it handles the late request without saving, says it moved, has
 //      stopped, and writes nothing; both wallets open.
 //   5. The holder closes: a tab showing "open in another tab" goes on by itself to Unlock.
+//   6. A browser whose lock manager cannot be asked (query() rejects; re-audit RE1-1): the tab fails
+//      closed - no IndexedDB, no engine, "Close your other BEAM Campfire tabs", and the lock let go.
 //   Both screens at 390 px, light and dark; the primary button fits a 375 x 667 phone.
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -299,4 +301,40 @@ test('5. the tab holding the wallet closes: a tab showing "open in another tab" 
   await waitScreen(p3, 'unlock', 30000);
   assert.equal((await tabState(p3)).state, 'held');
   assert.equal(await screenOf(p2), 'movedTab', 'the tab that lost the wallet earlier stays as it is (it reloads only when asked)');
+});
+
+test('6. a lock manager that cannot be asked: the tab runs no wallet and says to close the other tabs (fails closed)', { timeout: 3 * 60000 }, async () => {
+  const { page: p4 } = await recordedPage(ctx, { label: 'tab4' });
+  await p4.addInitScript(() => {
+    window.__idbUsed = [];
+    const f = window.indexedDB;
+    const open = f.open.bind(f);
+    f.open = (n, v) => (window.__idbUsed.push(n), v === undefined ? open(n) : open(n, v));
+    // As a browser whose lock manager refuses to say who holds what.
+    LockManager.prototype.query = function query() {
+      return Promise.reject(new DOMException('The operation is insecure.', 'SecurityError'));
+    };
+  });
+  const p3 = ctx.pages().find((p) => p !== p2 && p !== p4 && !p.isClosed());
+  if (p3) await p3.close(); // the wallet is free: p4 gets the lock, then cannot check it
+  await p4.goto(srv.url);
+  await waitScreen(p4, 'movedTab', 60000);
+  const t4 = await tabState(p4);
+  assert.equal(t4.how, 'unchecked');
+  assert.equal(t4.spent, true);
+  assert.equal(await p4.getAttribute('[data-testid="one-tab-moved"]', 'data-how'), 'unchecked');
+  assert.equal(await p4.textContent('.one-tab h1'), 'Close your other BEAM Campfire tabs');
+  assert.equal(await p4.textContent('.one-tab .hero p'), 'This browser cannot keep BEAM Campfire to one tab. Close every other BEAM Campfire tab, then reload.');
+  assert.equal(await p4.textContent(tid('one-tab-reload')), 'Reload');
+  assert.deepEqual(await p4.evaluate(() => window.__idbUsed), [], 'no IndexedDB database opened');
+  assert.equal(await p4.evaluate(() => typeof window.BeamModule), 'undefined', 'the wallet engine was not loaded');
+  for (const s of ['welcome', 'unlock', 'home']) {
+    await p4.evaluate((n) => window.__campfire.go(n), s);
+    assert.equal(await screenOf(p4), 'movedTab', `asking for ${s}`);
+  }
+  // The lock it could not check was let go: a page of a browser that answers takes it at once.
+  const held = await p2.evaluate(async () => (await navigator.locks.query()).held.map((l) => l.name));
+  assert.deepEqual(held, [], 'nobody holds the lock');
+  await both(p4, 'onetab-06-unchecked');
+  await fitsSmallPhone(p4, tid('one-tab-reload'), 'cannot keep to one tab');
 });

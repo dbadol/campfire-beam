@@ -22,6 +22,12 @@
 // A page that let go or lost the lock is spent: it reloads before it can hold the wallet again
 // (its memory still has the old copy of the files).
 //
+// The lookup fails closed (re-audit RE1-1): a lock manager that rejects query(), or lists the lock
+// without a clientId, cannot tell this page whether the lock is still its own, so the page does not
+// hold the wallet (how: 'unchecked'): it runs no wallet, lets the lock go and asks the person to
+// close the other tabs and reload. Trusting the page's own flag there let a frozen holder whose lock
+// was stolen flush its old copy over the new tab's.
+//
 // Without the Web Locks API (Safari before 15.4, old browsers) a BroadcastChannel presence check
 // stands in: "anyone here?", wait PRESENCE_MS for an answer. Its limits: a tab that is frozen or
 // slow to answer within that time is not seen (both tabs then run, as before this guard); two tabs
@@ -92,7 +98,8 @@ export class OneTab {
     this.mode = this.locks ? 'locks' : this.Channel ? 'presence' : 'none';
     Object.assign(this, { win, setTimer, clearTimer, now, id, noAnswerMs, slowMs, capMs, presenceMs, ttlMs, strictIdle });
     this.state = 'idle';
-    this.how = null; // why it is gone: 'handed' | 'stolen'
+    this.how = null; // why it is gone: 'handed' | 'stolen' | 'unchecked' (the lock could not be looked up)
+    this.unchecked = false; // a lookup could not be made: the next loss is said as 'unchecked'
     this.spent = false; // let go once: never writes or opens a wallet again in this page
     this.ch = null;
     this.seq = 0; // lock requests made
@@ -138,8 +145,8 @@ export class OneTab {
   async confirmWrite() {
     if (!this.mayWrite()) return false;
     if (this.state === 'idle') return true;
-    if (this.mode !== 'locks' || !this.clientId) return true;
-    if (this.now() - this.checkedAt < this.ttlMs && this.now() >= this.checkedAt) return true;
+    if (this.mode !== 'locks') return true;
+    if (this.clientId && this.now() - this.checkedAt < this.ttlMs && this.now() >= this.checkedAt) return true;
     if (!(await this.lookUp())) {
       this.lost();
       return false;
@@ -147,16 +154,29 @@ export class OneTab {
     return this.mayWrite();
   }
 
-  /** Whether the browser's lock manager says this page holds the lock (its own flag when it cannot ask). */
+  /**
+   * Whether the browser's lock manager says this page holds the lock. Without Web Locks: its own
+   * flag. With them, a lookup that cannot be made (query() rejects, or no clientId to compare) is
+   * "not this page's" (RE1-1: fail closed), and the loss that follows is said as 'unchecked'.
+   */
   async lookUp() {
-    if (this.mode !== 'locks' || !this.clientId) return this.holds();
+    if (this.mode !== 'locks') return this.holds();
+    if (!this.clientId) {
+      this.unchecked = true;
+      return false;
+    }
     let q;
     try {
       q = await this.locks.query();
     } catch {
-      return this.holds();
+      this.unchecked = true;
+      return false;
     }
     const mine = ((q && q.held) || []).find((l) => l.name === this.name);
+    if (mine && !mine.clientId) {
+      this.unchecked = true;
+      return false;
+    }
     if (!mine || mine.clientId !== this.clientId) return false;
     this.checkedAt = this.now();
     return this.holds();
@@ -194,7 +214,8 @@ export class OneTab {
         if (this.mode === 'locks') {
           if (await this.request({ ifAvailable: true })) {
             await this.becomeHolder();
-            return 'held';
+            // A lock this page cannot look up guards nothing: it was let go ('unchecked').
+            return this.holds() ? 'held' : 'gone';
           }
           this.open();
           this.state = 'busy';
@@ -333,7 +354,15 @@ export class OneTab {
     this.state = 'held';
     this.how = null;
     this.open();
-    if (this.mode === 'locks') await this.learnClientId();
+    if (this.mode === 'locks') {
+      await this.learnClientId();
+      // Fail closed (RE1-1): without its clientId this page could never check, at a write, that the
+      // lock is still its own. It does not hold the wallet: no wallet runs, the lock is let go.
+      if (!this.clientId && !this.spent) {
+        this.unchecked = true;
+        this.lost();
+      }
+    }
     if (this.spent) return;
     for (const fn of this.heldWaiters.splice(0)) {
       try {
@@ -353,7 +382,7 @@ export class OneTab {
         this.checkedAt = this.now();
       }
     } catch {
-      /* no lookup: the flag alone guards writes */
+      /* no lookup: clientId stays null and becomeHolder() refuses (fail closed) */
     }
   }
 
@@ -362,7 +391,7 @@ export class OneTab {
     this.clearTimer(ask.timer);
     this.ask = null;
     await this.becomeHolder();
-    ask.resolve('held');
+    ask.resolve(this.holds() ? 'held' : 'gone');
   }
 
   askFailed(ask, e) {
@@ -401,11 +430,16 @@ export class OneTab {
     this.post('let-go');
   }
 
-  /** The lock is no longer this page's (taken, or found taken). */
+  /**
+   * The lock is no longer this page's (taken, or found taken), or this page cannot tell whether it
+   * is ('unchecked'): then the lock is also let go, since it guards nothing here.
+   */
   lost() {
     if (this.state === 'gone') return;
+    const r = this.unchecked ? this.release : null;
     this.release = null;
-    this.leave('stolen');
+    this.leave(this.unchecked ? 'unchecked' : 'stolen');
+    if (r) r();
   }
 
   leave(how) {

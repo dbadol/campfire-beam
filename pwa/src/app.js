@@ -249,9 +249,12 @@ export const app = {
     await flushEngine();
   },
 
-  /** This tab let the wallet go ('handed'), or another tab took it while this one was frozen ('stolen'). */
+  /**
+   * This tab let the wallet go ('handed'), another tab took it while this one was frozen ('stolen'),
+   * or this browser cannot say whose it is ('unchecked', lib/one_tab.js RE1-1).
+   */
   leftForOtherTab(how) {
-    if (how === 'stolen') {
+    if (how === 'stolen' || how === 'unchecked') {
       // Nothing is saved from here any more (lib/engine.js refuses the flush): just stop.
       this.dbPass = null;
       this.setup = null;
