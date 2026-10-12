@@ -18,7 +18,7 @@
 // uses its own contract id), so any dApp could otherwise ask for them.
 
 import { decodeInvokeData, InvokeDataError, FLAG_SAVE_SPEND_MAX } from './invoke_data.js';
-import { RPC, RpcError } from './rpc.js';
+import { RPC, RpcError, hasHiddenText } from './rpc.js';
 
 export const BANS_CID = 'af4550f1f8a6051ffeffea06e0cb978f8076fdfc2101d2273d4e62c86540bc5e';
 export const VAULT_ANON_CID = 'a3385e50cf33afc9f769ee1d82d56b73046d680d343977f36d9a303d7bcdc4da';
@@ -51,7 +51,7 @@ export const KNOWN_CONTRACTS = Object.freeze({
 export class PolicyRefusal extends Error {
   constructor(reason, message) {
     super(message);
-    this.reason = reason; // 'unreadable' | 'privileged' | 'spend_ceiling' | 'forbidden_contract' | 'reserved_key'
+    this.reason = reason; // 'unreadable' | 'privileged' | 'spend_ceiling' | 'hidden_text' | 'forbidden_contract' | 'reserved_key'
   }
 }
 
@@ -77,6 +77,10 @@ export function checkContractData(raw) {
     throw new PolicyRefusal('spend_ceiling', 'BEAM Campfire refused this request: it asks for permission to spend more later than it shows you now. Nothing was sent.');
   }
   for (const e of data.entries) {
+    // Without confirm_comment the approve sheet shows these comments, which the dApp wrote.
+    if (hasHiddenText(e.comment)) {
+      throw new PolicyRefusal('hidden_text', "BEAM Campfire refused this request: its description contains hidden characters that could change how it reads. Nothing was sent.");
+    }
     if (e.contractId && FORBIDDEN_CONTRACTS.has(e.contractId)) {
       throw new PolicyRefusal('forbidden_contract', `BEAM Campfire refused this request: it calls ${KNOWN_CONTRACTS[e.contractId]}, which holds your names and the payments sent to them. Nothing was sent.`);
     }

@@ -140,3 +140,13 @@ test("none of the wallet's own shaders can set a spend ceiling (no SetMaxSpend i
     assert.deepEqual(imports.filter((n) => /MaxSpend/i.test(n)), [], s.file);
   }
 });
+
+// Without confirm_comment the sheet shows the entries' own comments (get_FullComment), which the
+// dApp writes into its contract data.
+test("a call whose own comment hides characters is refused; a plain one is not", () => {
+  for (const c of ['Claim\u202e 5 FOMO', 'a\u200bb', 'a\u0007b']) {
+    assert.throws(() => checkContractData(new Uint8Array(invokeData([invokeEntry({ contractId: cid(0xa1), comment: c })]))), refused('hidden_text'), JSON.stringify(c));
+    assert.throws(() => checkContractData(new Uint8Array(invokeData([invokeEntry({ contractId: cid(0xa1), comment: 'ok' }), invokeEntry({ contractId: cid(0xa2), comment: c })]))), refused('hidden_text'));
+  }
+  checkContractData(new Uint8Array(invokeData([invokeEntry({ contractId: cid(0xa1), comment: 'Amm trade' })])));
+});

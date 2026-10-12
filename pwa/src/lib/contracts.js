@@ -64,12 +64,14 @@
 //     Every asset has 8 decimals; amountText is the engine's own decimal string.
 //
 //   ContractError { code, message, rpc }
-//     codes: no_wallet, locked, closed, open, timeout, rpc, rejected (the person said
+//     codes: no_wallet, locked, closed, open, reserved_name (an app or publisher name that reads
+//     as the wallet's own), timeout, rpc, rejected (the person said
 //     no), privileged (the engine refused invoke data that would re-run app code at a
 //     privilege this app was not given: wasm patch 0112), shader, unexpected, plus
 //     whatever an expect() refusal names.
 
 import { SHADERS } from './shaders.js';
+import { canonical } from './lookalike.js';
 import { decodeInvokeData, FLAG_DEPENDENT, FLAG_SAVE_APP_INVOKE, FLAG_SAVE_SPEND_MAX } from './dapps/invoke_data.js';
 
 export const NATIVE_APP_NAME = 'BEAM Campfire';
@@ -582,6 +584,14 @@ export function setConsentPresenter(fn) {
   };
 }
 
+/**
+ * A name that reads as the wallet's own, however it is spelt: accents, Cyrillic or Greek
+ * letters, digits for letters, other spacing, or with words around it ("BEAM Campfire
+ * Security"). The approve sheet and the notifications show an app's and a publisher's name.
+ */
+const NATIVE_KEY = canonical(NATIVE_APP_NAME);
+export const readsAsWallet = (name) => canonical(String(name || '')).includes(NATIVE_KEY);
+
 function cleanName(s) {
   // eslint-disable-next-line no-control-regex
   return String(s || '').replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩]/g, '').trim().slice(0, 64);
@@ -593,7 +603,8 @@ async function open({ appName, appUrl = '', appId = null, unchecked = false, pub
   if (b.closing) throw new ContractError('locked', 'The wallet is locked.');
   const name = cleanName(appName);
   if (!name) throw new ContractError('open', 'An app needs a name.');
-  if (!native && name.toLowerCase().replace(/\s+/g, ' ') === NATIVE_APP_NAME.toLowerCase()) throw new ContractError('open', 'That name belongs to the wallet itself.');
+  if (!native && readsAsWallet(name)) throw new ContractError('reserved_name', "Its name reads like BEAM Campfire's own, so its requests could pass for the wallet's.");
+  if (!native && publisher && readsAsWallet(publisher.name)) throw new ContractError('reserved_name', "Its publisher's name reads like BEAM Campfire's own, so its requests could pass for the wallet's.");
   const id = appId || b.M.WasmWalletClient.GenerateAppID(name, String(appUrl || ''));
   // One app is opened at a time: with two createAppAPI calls in flight at once, at any privilege,
   // the engine stops the page (measured 2026-10-11: two dApps, or the wallet's two apps, opened

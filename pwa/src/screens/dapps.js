@@ -30,7 +30,7 @@ import { DEFAULT_LIMITS } from '../lib/dapps/zip.js';
 import { InstallError, readFilePackage, catalogueEntryFor, catalogueNameCopiedBy, installErrorText } from '../lib/dapps/file_package.js';
 import { installed, iconDataUrl } from '../lib/dapps/installed.js';
 import { remoteOriginFor } from '../lib/dapps/frame_policy.js';
-import { openApp } from '../lib/contracts.js';
+import { openApp, readsAsWallet } from '../lib/contracts.js';
 
 export { runnerStats };
 
@@ -215,6 +215,8 @@ export default function dapps(app, params = {}) {
         throw new InstallError('cantOpenFile', 'the file could not be read');
       }
       const pkg = await readFilePackage(bytes);
+      // It could not be opened (lib/contracts.js): its name would pass for the wallet's on approvals.
+      if (readsAsWallet(pkg.manifest.name)) throw new InstallError('walletName', 'the name reads as the wallet');
       const same = catalogueEntryFor(pkg);
       done();
       if (destroyed) return;
@@ -376,7 +378,7 @@ export default function dapps(app, params = {}) {
    */
   async function start(e, carry = null) {
     app.touch();
-    const status = { text: '', fraction: null, error: null };
+    const status = { text: '', fraction: null, error: null, removable: false };
     let sheet = null;
     const show = () => {
       if (!sheet || sheet.closed) return;
@@ -388,7 +390,9 @@ export default function dapps(app, params = {}) {
         status.error
           ? notice('error', status.error)
           : h('div', { class: 'dapp-progress', 'data-testid': 'dapp-progress' }, h('p', { class: 'lead', text: status.text }), progressBar(status.fraction)),
-        status.error ? h('button', { class: 'btn btn-primary', 'data-testid': 'dapp-retry', onclick: () => { close(); start(e); } }, 'Try again') : null,
+        // Trying again cannot help a dApp refused for its name: removing it is the way on.
+        status.error && status.removable ? h('button', { class: 'btn btn-primary', 'data-testid': 'dapp-remove-refused', onclick: () => { close(); removeSheet(e); } }, `Remove ${e.name}`) : null,
+        status.error && !status.removable ? h('button', { class: 'btn btn-primary', 'data-testid': 'dapp-retry', onclick: () => { close(); start(e); } }, 'Try again') : null,
         h('button', { class: 'btn btn-text', 'data-testid': 'dapp-cancel', onclick: () => { if (downloadCtl) downloadCtl.abort(); close(); } }, status.error ? 'Back to dApps' : 'Cancel'),
       ],
       { dismissable: false, label: `Opening ${e.name}` },
@@ -443,6 +447,7 @@ export default function dapps(app, params = {}) {
       if (sheet.closed || destroyed) return;
       if (err instanceof PackageError && err.code === 'aborted') return sheet.close();
       status.error = plainError(e, err);
+      status.removable = Boolean(err && err.code === 'reserved_name' && e.file);
       show();
     }
   }
@@ -456,6 +461,7 @@ export default function dapps(app, params = {}) {
     }
     if (err && err.code === 'timeout') return `Your wallet did not answer in time; it may still be finishing what the last dApp asked. Try again in a moment.`;
     if (err && (err.code === 'locked' || err.code === 'no_wallet')) return 'The wallet was locked. Unlock it and open the dApp again.';
+    if (err && err.code === 'reserved_name') return `${e.name} was not opened. ${err.message}`;
     return `${e.name} could not be opened: ${(err && err.message) || err}`;
   }
 

@@ -185,7 +185,8 @@ test('every refusal has words that name the next step and blame nobody', () => {
     assert.equal(t(code), "This file isn't a dApp package BEAM Campfire can install safely, so nothing was installed. Ask the dApp's publisher for a new copy.");
   }
   assert.match(installErrorText(new Error('x'), 'Tiny dApp'), /Nothing was changed\. Try again\./);
-  for (const s of [t('storage'), t('invalidFile'), t('reservedGuid', { dappName: 'Beam DEX' })]) assert.doesNotMatch(s, /\byou (did|made|picked a wrong)\b/i);
+  assert.equal(t('walletName'), "This dApp's name reads like BEAM Campfire's own, so its requests could pass for the wallet's. Nothing was installed. Ask its publisher for a copy under its own name.");
+  for (const s of [t('storage'), t('invalidFile'), t('reservedGuid', { dappName: 'Beam DEX' }), t('walletName')]) assert.doesNotMatch(s, /\byou (did|made|picked a wrong)\b/i);
 });
 
 // ------------------------------------------------------------ frame policy

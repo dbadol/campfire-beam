@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fakeEngine, TXID } from './helpers/fake_engine.mjs';
-import { bindSession, unbindSession, openApp, nativeApp, setConsentPresenter, consentLog, contractsState, ContractError, consentRequest, decimalToGroth, parseShaderJson, NATIVE_APP_NAME, ENGINE_PRIVILEGE_REFUSAL } from '../../src/lib/contracts.js';
+import { bindSession, unbindSession, openApp, nativeApp, setConsentPresenter, consentLog, contractsState, ContractError, consentRequest, decimalToGroth, parseShaderJson, NATIVE_APP_NAME, ENGINE_PRIVILEGE_REFUSAL, readsAsWallet } from '../../src/lib/contracts.js';
 
 const tick = () => new Promise((r) => setImmediate(r));
 const pwa = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -247,8 +247,23 @@ test('events reach the app that subscribed', async () => {
 });
 
 test("an app may not borrow the wallet's own name", async () => {
-  await assert.rejects(openApp({ appName: 'BEAM  campfire' }), (e) => e.code === 'open');
+  await assert.rejects(openApp({ appName: 'BEAM  campfire' }), (e) => e.code === 'reserved_name');
   await assert.rejects(openApp({ appName: '‮' }), (e) => e.code === 'open');
+});
+
+test("an app or its publisher may not use a name that reads as the wallet's own", async () => {
+  const pub = (name) => ({ key: '02' + 'ab'.repeat(32), name });
+  // Accents, Cyrillic and Greek letters, digits for letters, other spacing, extra words.
+  for (const appName of ['BEAM Campf\u00edre', '\u0412\u0415\u0410\u041c Campfire', 'BEAM C\u0430mpfire', '8EAM Campf1re', 'BEAM-Campfire', 'BEAMCAMPFIRE', 'BEAM Campfire Security', 'Official BEAM Campfire']) {
+    await assert.rejects(openApp({ appName }), (e) => e.code === 'reserved_name', appName);
+  }
+  for (const name of ['BEAM Campf\u00edre', 'B\u0395AM Campfire', 'BEAM Campfire Team']) {
+    await assert.rejects(openApp({ appName: 'Some dApp', publisher: pub(name) }), (e) => e.code === 'reserved_name', name);
+  }
+  // Names that only share a word still open.
+  for (const appName of ['Campfire Games', 'Beam DEX', 'BEAM NFT Gallery']) assert.equal((await openApp({ appName, publisher: pub('Campfire Studio') })).appName, appName);
+  assert.equal(readsAsWallet(NATIVE_APP_NAME), true);
+  assert.equal(readsAsWallet(''), false);
 });
 
 test('engine amounts: decimal text to groth, nothing else accepted', () => {
