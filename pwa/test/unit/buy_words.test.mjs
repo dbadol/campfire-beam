@@ -55,7 +55,7 @@ test('the smallest buy in the coin: a little over, three significant digits, exa
 
 test('every refusal has a title, never blames the person, and offers one fix', () => {
   const btc = coin(BTC);
-  for (const code of [...ERROR_CODES, 'blocked', 'network', 'unexpected_answer', 'unknown']) {
+  for (const code of [...ERROR_CODES, 'blocked', 'network', 'unexpected_answer', 'wrong_deposit_address', 'unknown']) {
     const p = problemText(new BuyBeamError(code), { coin: btc });
     assert.ok(p.title, code);
     assert.ok(p.fix && p.fixLabel, code);

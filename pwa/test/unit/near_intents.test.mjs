@@ -26,6 +26,7 @@ import {
   isFinalState,
   ETH_ON_ETHEREUM,
   MANAGER_KEY,
+  QUOTE_MAX_AGE_MS,
 } from '../../src/lib/intents/oneclick.js';
 import { makeSwap, swapToJson, swapFromJson, withStatus, sameSwap, sealedIntentsStore, memoryIntentsStore, INTENTS_RECORD } from '../../src/lib/intents/store.js';
 import { durationText, feeText, problemWords, statusWords, swapSteps, stateLine, sendText, wbeamSpend, KEEP_FOR_GAS, isWaiting, isExpired, untilText, whoSees } from '../../src/lib/intents/words.js';
@@ -225,6 +226,31 @@ test('a deposit address is refused unless signed by 1Click and exactly what was 
   const q = await t4.c.quote(askOf(t4.j, BTC));
   assert.equal(q.dry, true);
   assert.equal(q.depositAddress, null);
+});
+
+test('D-8: a signed quote for another deadline, or an old one, is refused: no deposit address from it', async () => {
+  // 1Click's signature covers the deadline asked for and the time it quoted; both are checked against this request.
+  const signedByOneClick = async () => true;
+  const later = fixtureClient('quote_btc_real.json', (m) => ((m.quoteRequest.deadline = new Date(Date.parse(m.quoteRequest.deadline) + 60000).toISOString()), m), signedByOneClick);
+  await assert.rejects(later.c.quote(askOf(later.j, BTC)), (e) => e instanceof OneClickError && e.code === 'mismatch', 'a quote made for another request');
+  const none = fixtureClient('quote_btc_real.json', (m) => (delete m.quoteRequest.deadline, m), signedByOneClick);
+  await assert.rejects(none.c.quote(askOf(none.j, BTC)), (e) => e.code === 'mismatch');
+  // The same instant written another way is the same deadline.
+  const plain = fixtureClient('quote_btc_real.json', (m) => ((m.quoteRequest.deadline = m.quoteRequest.deadline.replace('Z', '+00:00')), m), signedByOneClick);
+  assert.equal((await plain.c.quote(askOf(plain.j, BTC))).depositAddress, plain.j.quote.depositAddress);
+  // A quote timestamped long before this request (replayed, or held back on the way): stale, said as such.
+  const old = fixtureClient('quote_btc_real.json', (m) => ((m.timestamp = new Date(Date.parse(m.quoteRequest.deadline) - 3600000 - QUOTE_MAX_AGE_MS - 1000).toISOString()), m), signedByOneClick);
+  const e = await old.c.quote(askOf(old.j, BTC)).catch((x) => x);
+  assert.ok(e instanceof OneClickError && e.code === 'stale', String(e));
+  assert.match(problemWords(e, { coin: BTC }).title, /old price/);
+  assert.equal(problemWords(e, { coin: BTC }).fix, 'tryAgain');
+  const dryOld = fixtureClient('quote_dry_btc.json', (m) => ((m.timestamp = new Date(Date.parse(m.quoteRequest.deadline) - 3600000 - QUOTE_MAX_AGE_MS - 1000).toISOString()), m));
+  await assert.rejects(dryOld.c.quote(askOf(dryOld.j, BTC)), (x) => x.code === 'stale', 'a price-only quote too');
+  const noTime = fixtureClient('quote_btc_real.json', (m) => ((m.timestamp = 'yesterday'), m), signedByOneClick);
+  await assert.rejects(noTime.c.quote(askOf(noTime.j, BTC)), (x) => x.code === 'stale' || x.code === 'unexpected');
+  // A few minutes of clock difference either way is not stale.
+  const skewed = fixtureClient('quote_btc_real.json', (m) => ((m.timestamp = new Date(Date.parse(m.quoteRequest.deadline) - 3600000 + 4 * 60000).toISOString()), m), signedByOneClick);
+  assert.ok((await skewed.c.quote(askOf(skewed.j, BTC))).depositAddress);
 });
 
 test('every way of not getting an answer has its own code; 1Click\'s own words are kept', async () => {

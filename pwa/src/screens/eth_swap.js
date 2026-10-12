@@ -10,7 +10,10 @@
  *   - "Is it still working?" -> "Getting the best price from every Uniswap pool…" while the pools
  *     are read; the route that wins is named ("ETH → WBEAM · v4 · 1%").
  *   - "Will I get a bad price?" -> the rate in plain words, the price change from the swap (amber
- *     from 3%, a tick box from 10%), and "at least …" under the price protection.
+ *     from 3%, a tick box from 10%), and "at least …" under the price protection. Before the review
+ *     the same route is priced on a second listed server; more than 2% apart is said, with a tick.
+ *   - "Is my server telling the truth?" -> "Price checked with a second server (PublicNode)" in the
+ *     review, or what differs and by how much.
  *   - "What does it cost?" -> the network fee in ETH before anything is signed.
  *   - "I have BTC, not ETH" -> "Pay with BTC, ZEC or LTC" at the top (NEAR Intents brings it in as ETH).
  *   - "I wanted BEAM in my BEAM wallet" -> one link at the top.
@@ -25,7 +28,7 @@ import { compactUnits, percentText } from '../lib/compact.js';
 import { UniswapNoRoute } from '../lib/eth/uniswap/quoter.js';
 import { DEFAULT_SLIPPAGE, IMPACT_WARNING, IMPACT_BLOCK, PERMIT_GAS, UniPriceMoved, UniRouteChanged } from '../lib/eth/uniswap/service.js';
 import { EthRpcError } from '../lib/eth/rpc.js';
-import { SWAP_TOKENS, WBEAM_TOKEN, uniswapFor, walletAsset } from '../lib/eth/uniswap_app.js';
+import { SWAP_TOKENS, WBEAM_TOKEN, uniswapFor, walletAsset, secondQuote } from '../lib/eth/uniswap_app.js';
 import { serverProblem } from './eth_ui.js';
 import { payWithCoinEntry } from './near_intents_entry.js';
 import { amtShown, short, ethAbout, bipsText, rateText, routeText, routeNote, kv, tokenBadge, loadPools, poolsList, pickSlippage, openAllowSheet, openReviewSheet, impactBlock } from './eth_swap_parts.js';
@@ -376,9 +379,14 @@ export default function ethSwap(app, params = {}) {
       render();
       const review = await svc.reviewSwap({ quote: q, slippageBips: draft.slippage, owner: w.state.address });
       if (!alive) return;
+      // The minimum comes from this one server's price: priced again on another listed server first.
+      busy = 'Checking the price with a second server…';
+      render();
+      const check = await secondQuote(w, review.quote);
+      if (!alive) return;
       busy = null;
       render();
-      const hash = await openReviewSheet(app, { w, svc, review, acceptImpact: impactAck });
+      const hash = await openReviewSheet(app, { w, svc, review, acceptImpact: impactAck, check });
       if (!alive) return;
       if (hash) {
         app.uniDraft = { ...draft, amount: '' };

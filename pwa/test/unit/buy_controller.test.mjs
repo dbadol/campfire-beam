@@ -112,6 +112,15 @@ test('orders: the buy is in the store before placeOrder returns', async () => {
   assert.deepEqual(r.controller.orders('other'), []);
 });
 
+test('D-10: an order whose deposit address is another chain\'s is refused and never kept', async () => {
+  const r = rig();
+  r.server.depositAddress = '0x1111111111111111111111111111111111111111';
+  await assert.rejects(r.place(), (e) => e.code === 'wrong_deposit_address');
+  assert.equal(r.store.writes.length, 0, 'nothing to pay was saved');
+  assert.deepEqual(r.controller.orders('w1'), []);
+  assert.equal(r.server.requests.filter((q) => q.method === 'POST').length, 1, 'not asked again: buybeam.my answered');
+});
+
 test('orders: a POST that got no answer is sent again as it was: the same order comes back', async () => {
   const r = rig();
   r.server.queue('/order', new TypeError('Failed to fetch'));

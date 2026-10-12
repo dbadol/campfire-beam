@@ -40,7 +40,7 @@
 //         planLock, sign, broadcast, known, succeeded, lockResult, isPaid
 //   prices prices.js PriceFeed: usd(ids)
 
-import { SEND_FEE, CLAIM_FEE, BEAM_CONFIRMATIONS, routeById } from './routes.js';
+import { SEND_FEE, CLAIM_FEE, BEAM_CONFIRMATIONS, ROUTES, routeById, grothToEth } from './routes.js';
 import { BridgeError, checkSendAmounts, ethReceiver } from './beam_pipe.js';
 import { STATES, DIRECTIONS, makeCrossing, changeCrossing, isOpen, checkUnique, crossingToJson } from './store.js';
 import { readConditions, quoteToEthereum, quoteToBeam, makeQuote, makeBlock, BLOCKS, REVIEW_AGE_MS, TIMING, coinText, sourceGrid } from './quote.js';
@@ -62,6 +62,9 @@ export const systemClock = Object.freeze({
   now: () => Date.now(),
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 });
+
+/** Said while one server's reverted receipt is being checked against BEAM. */
+const REVERT_SEEN = 'Your Ethereum server says Ethereum refused this lock, which would mean nothing was locked. A server can be wrong, so BEAM Campfire watches BEAM for it for 30 minutes before saying so.';
 
 const STORAGE_FAILED = (sym) => `Campfire could not write to this device's storage, so it did not send your ${sym}. Nothing was moved.`;
 const ELSEWHERE = 'Collected outside this screen (on another device with the same wallet, perhaps).';
@@ -559,6 +562,78 @@ export class BridgeController {
     return c;
   }
 
+  // ------------------------------------------------------------- waiting on BEAM
+
+  /**
+   * Every message the bridge holds on BEAM for this wallet's receive key, unclaimed, on every
+   * route, whatever this device's records say (a record can be lost, or end wrongly): the
+   * pipes' own view_incoming. → {items: [{route, msgId, amount (groth), crossingId (the record
+   * following it, or null)}], failed: [route ids whose pipe did not answer], at}.
+   */
+  async waiting() {
+    const items = [];
+    const failed = [];
+    for (const route of ROUTES) {
+      let list;
+      try {
+        list = await this.beam.incoming(route);
+      } catch {
+        failed.push(route.id);
+        continue;
+      }
+      for (const m of list) {
+        const c = this.#tracking(route, m.msgId);
+        items.push(Object.freeze({ route, msgId: m.msgId, amount: m.amount, crossingId: c ? c.id : null }));
+      }
+    }
+    return Object.freeze({ items: Object.freeze(items), failed: Object.freeze(failed), at: this.clock.now() });
+  }
+
+  /** The record following e2b message msgId of route, if any. */
+  #tracking(route, msgId) {
+    return [...this.#records.values()].find((o) => o.route === route.id && o.direction === DIRECTIONS.toBeam && o.msgId === msgId) || null;
+  }
+
+  /**
+   * Collects e2b message msgId of route (one waiting() listed): through the record following it
+   * when there is one, else through a new record (origin 'found', ready to collect) written
+   * first, so the claim is followed like any other. The claim is built, checked and shown for
+   * the person's consent as collect() does. Throws when nothing was sent.
+   */
+  async collectWaiting(routeId, msgId) {
+    const route = routeById(routeId);
+    const tracked = this.#tracking(route, msgId);
+    if (tracked) {
+      if (tracked.state === STATES.delivered) return this.collect(tracked.id);
+      throw new BridgeError('alreadySent', isOpen(tracked) ? 'This is already being collected: it is under your moves.' : 'It was already collected: it is in your BEAM wallet.');
+    }
+    const listed = (await this.beam.incoming(route)).find((m) => m.msgId === msgId);
+    const m = await this.beam.remoteMessage(route, msgId);
+    if (!listed || !m) throw new BridgeError('alreadySent', 'It is no longer waiting on BEAM: it was collected.');
+    if (m.amount !== listed.amount) throw new BridgeError('unexpectedTransaction', 'The bridge gives two different amounts for it. Nothing was collected.');
+    const now = this.clock.now();
+    const c = makeCrossing({
+      id: newId(now),
+      route: route.id,
+      direction: DIRECTIONS.toBeam,
+      state: STATES.delivered,
+      beamWalletId: this.beamWalletId,
+      ethWalletId: this.ethWalletId,
+      ethAddress: this.eth.owner,
+      amount: grothToEth(route, m.amount),
+      receives: m.amount,
+      relayerFee: 0n,
+      beamNetworkFee: CLAIM_FEE,
+      msgId,
+      origin: 'found',
+      createdAt: now,
+      updatedAt: now,
+      deliveredAt: now,
+    });
+    await this.#save(c);
+    return this.collect(c.id);
+  }
+
   async #markCollectedElsewhere(c) {
     const ours = c.claimTxId !== null && (await this.beam.txStatus(c.claimTxId).catch(() => null))?.state === 'completed';
     await this.#saveQuietly(this.#ch(c, { state: STATES.claimed, lastError: ours ? null : ELSEWHERE, finishedAt: this.clock.now() }));
@@ -782,9 +857,18 @@ export class BridgeController {
           return [lastError === c.lastError ? c : this.#ch(c, { lastError }), P.ethReceiptMs];
         }
         if (!lock.success) {
-          return [this.#ch(c, { state: STATES.lockFailed, lastError: 'Ethereum refused the lock, so nothing was locked. Only its network fee was spent.', height: lock.blockNumber, finishedAt: now() }), P.toBeamMs];
+          // One server's receipt, which a broken or lying server can make up. A lock that in fact
+          // went through reaches BEAM within minutes: BEAM is watched for it for the delivery
+          // window before "nothing was locked" is said.
+          const seen = c.revertSeenAt ?? now();
+          const m = await this.#incomingMatch(c, route);
+          if (m) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: m.msgId, height: lock.blockNumber, deliveredAt: now(), revertSeenAt: null, lastError: null }));
+          if (now() - seen >= TIMING.deliveryWaitMs) {
+            return [this.#ch(c, { state: STATES.lockFailed, lastError: 'Ethereum refused the lock, and nothing reached BEAM in the 30 minutes after, so nothing was locked. Only its network fee was spent.', height: lock.blockNumber, finishedAt: now() }), P.toBeamMs];
+          }
+          return [c.revertSeenAt ? c : this.#ch(c, { revertSeenAt: seen, height: lock.blockNumber, lastError: REVERT_SEEN }), P.toBeamMs];
         }
-        const locked = this.#ch(c, { state: STATES.locked, msgId: lock.msgId, height: lock.blockNumber, lockedAt: now(), lastError: null });
+        const locked = this.#ch(c, { state: STATES.locked, msgId: lock.msgId, height: lock.blockNumber, lockedAt: now(), lastError: null, revertSeenAt: null });
         try {
           checkUnique(locked, this.#records.values());
         } catch {
@@ -796,10 +880,8 @@ export class BridgeController {
         if (c.lockHash && c.msgId === null) return this.#stepToBeam(this.#ch(c, { state: STATES.locking }));
         if (c.msgId !== null) return [c, P.toBeamMs];
         // No hash: look on BEAM for what the lock would have brought.
-        const taken = new Set([...this.#records.values()].filter((o) => o.route === c.route && o.direction === c.direction && o.msgId !== null).map((o) => o.msgId));
-        for (const m of await this.beam.incoming(route)) {
-          if (m.amount === c.receives && !taken.has(m.msgId)) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: m.msgId, deliveredAt: now(), lastError: null }));
-        }
+        const m = await this.#incomingMatch(c, route);
+        if (m) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: m.msgId, deliveredAt: now(), lastError: null }));
         return [c, P.toBeamMs];
       }
       case STATES.locked:
@@ -839,6 +921,13 @@ export class BridgeController {
       default:
         return [c, P.toBeamMs];
     }
+  }
+
+  /** An unclaimed message for this wallet on BEAM that could be c's: c's amount, not another record's. */
+  async #incomingMatch(c, route) {
+    const taken = new Set([...this.#records.values()].filter((o) => o.id !== c.id && o.route === c.route && o.direction === c.direction && o.msgId !== null).map((o) => o.msgId));
+    for (const m of await this.beam.incoming(route)) if (m.amount === c.receives && !taken.has(m.msgId)) return m;
+    return null;
   }
 
   #claimDidNotGo(c, why) {

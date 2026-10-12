@@ -136,12 +136,24 @@ class EthWallet {
     return this.state;
   }
 
+  /**
+   * Hashes that may have taken `e`'s nonce, from what this wallet already holds: another
+   * transaction of the outbox with the same nonce, and the history index's. Each is still checked
+   * on the server before it counts (send.js findNonceTaker).
+   */
+  nonceTwins(e) {
+    const me = e.from.toLowerCase();
+    const out = this.state.outbox.filter((o) => o.hash !== e.hash && o.from.toLowerCase() === me && o.nonce === e.nonce).map((o) => o.hash);
+    for (const t of this.state.history.txs) if (t.from === me && t.nonce !== null && String(t.nonce) === e.nonce && t.hash !== e.hash) out.push(t.hash);
+    return out;
+  }
+
   /** One look at every open transaction this device sent. */
   async followOpen() {
     let changed = false;
     for (const e of this.state.outbox.filter(isOpen)) {
-      const next = await followOnce(this.app, this.rpc, e, { ethId: this.ethId, kv: this.kv });
-      if (next.state !== e.state || next.receipt !== e.receipt) changed = true;
+      const next = await followOnce(this.app, this.rpc, e, { ethId: this.ethId, kv: this.kv, candidates: this.nonceTwins(e) });
+      if (next.state !== e.state || next.receipt !== e.receipt || next.unsureSince !== e.unsureSince || next.refusedAt !== e.refusedAt) changed = true;
     }
     if (changed) await this.reloadOutbox();
     return changed;

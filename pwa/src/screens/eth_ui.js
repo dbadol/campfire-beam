@@ -5,7 +5,7 @@ import { icon } from '../lib/icons.js';
 import { assetBadge, notice } from '../lib/ui.js';
 import { formatUnits, isRoundedDown, DISPLAY_DECIMALS } from '../lib/eth/units.js';
 import { ETH } from '../lib/eth/tokens.js';
-import { compactUnits } from '../lib/compact.js';
+import { compactUnits, percentText } from '../lib/compact.js';
 import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC } from '../lib/eth/hosts.js';
 import { ethPrefs } from '../lib/eth/wallet.js';
 
@@ -72,14 +72,16 @@ export function shortAddress(address) {
 export function serverProblem(app, error, { retry, switched }) {
   const cur = ethPrefs(app).host;
   const alt = ETH_RPC_HOSTS.find((x) => x.id === (cur.id === DEFAULT_ETH_RPC ? 'publicnode' : DEFAULT_ETH_RPC));
+  // Network fee figures Ethereum cannot have (lib/eth/rpc.js walletFees): refused, never paid.
+  const badFees = Boolean(error && error.code === 'bad_fees');
   // The server's own words (HTTP codes and the like) stay out of sight, for whoever debugs it.
   return h(
     'div',
-    { 'data-testid': 'eth-server-problem', title: error && error.message ? error.message : '' },
+    { 'data-testid': 'eth-server-problem', 'data-code': badFees ? 'bad_fees' : null, title: error && error.message ? error.message : '' },
     notice(
       'error',
-      h('strong', { text: `${cur.name}'s Ethereum server didn't answer. ` }),
-      'Your coins are safe on Ethereum; only this view is out of date.',
+      h('strong', { text: badFees ? `${cur.name}'s Ethereum server gave a network fee that can't be right. ` : `${cur.name}'s Ethereum server didn't answer. ` }),
+      badFees ? 'Nothing was sent, and nothing was paid. Try again in a minute, or use another server.' : 'Your coins are safe on Ethereum; only this view is out of date.',
       h(
         'div',
         { class: 'btn-row prompt-actions' },
@@ -95,6 +97,21 @@ export function serverProblem(app, error, { retry, switched }) {
       ),
     ),
   );
+}
+
+/**
+ * A network fee that is a large share of what leaves (lib/eth/send.js isHighFee), said in words,
+ * with the tick the send waits for: [notice, tick]. share: the fee as a share of the amount;
+ * fee: the fee as text ("0.000273 ETH"); verb: 'send' | 'swap'.
+ */
+export function highFeeBlock({ share, fee, verb = 'send', ack, onAck, testid = 'eth-high-fee' }) {
+  const part = share > 1 ? `is more than what you ${verb}` : `is ${percentText(share)} of what you ${verb}`;
+  const n = notice('warn', h('strong', { text: `The network fee, about ${fee}, ${part}. ` }), "Ethereum charges it for every transaction, whatever the amount. If it looks wrong, wait a few minutes or pick another Ethereum server in Settings.");
+  n.dataset.testid = testid;
+  const box = h('input', { type: 'checkbox', 'data-testid': `${testid}-ack`, checked: ack });
+  box.addEventListener('change', () => onAck(box.checked));
+  const Verb = verb.charAt(0).toUpperCase() + verb.slice(1);
+  return [n, h('label', { class: 'check-row' }, box, h('span', { text: `${Verb} anyway, paying about ${fee} in fees` }))];
 }
 
 const STATE_TEXT = {
@@ -124,6 +141,7 @@ export function activityRow(item, onclick) {
   const open = item.state === 'signed' || item.state === 'pending';
   const bad = item.state === 'failed' || item.state === 'replaced' || item.state === 'rejected';
   const title =
+    (item.doubt === 'unsure' ? 'Not sure yet' : item.doubt === 'refused' ? 'Not sent yet' : null) ||
     swapTitle(item) ||
     STATE_TEXT[item.state] ||
     (item.direction === 'in' ? `Received ${item.asset.symbol}` : item.direction === 'self' ? `Sent ${item.asset.symbol} to yourself` : `Sent ${item.asset.symbol}`);

@@ -14,7 +14,9 @@ import { addToOutbox } from './outbox.js';
 import { broadcast } from './send.js';
 import { ETH, TOKENS } from './tokens.js';
 import { UniswapService } from './uniswap/service.js';
-import { loadKnownPools } from './uniswap/discovery.js';
+import { loadKnownPools, UniswapDiscovery } from './uniswap/discovery.js';
+import { UniswapQuoter } from './uniswap/quoter.js';
+import { secondOpinion } from './second_opinion.js';
 import { ETH_TOKEN, uniTokenOf } from './uniswap/models.js';
 import { store } from '../store.js';
 
@@ -38,19 +40,43 @@ export const poolStore = Object.freeze({
 let known = null;
 const services = new Map(); // server id -> UniswapService
 
+function knownPools() {
+  if (!known) known = loadKnownPools().catch((e) => {
+    known = null;
+    throw e;
+  });
+  return known;
+}
+
 /** The Uniswap service for the wallet's chosen server (one per server, so pool rankings are kept between screens). */
 export async function uniswapFor(w) {
   const rpc = w.rpc;
   const id = rpc.host.id;
   const hit = services.get(id);
   if (hit && hit.rpc === rpc) return hit;
-  if (!known) known = loadKnownPools().catch((e) => {
-    known = null;
-    throw e;
-  });
-  const svc = new UniswapService({ rpc, known: await known, store: poolStore });
+  const svc = new UniswapService({ rpc, known: await knownPools(), store: poolStore });
   services.set(id, svc);
   return svc;
+}
+
+/**
+ * The amount out of `quote`'s route (the same pools, the same shares) as priced on `rpc`: only
+ * eth_calls of the pools and quoters, nothing about the wallet. A throwaway pool store: the
+ * second server's answers never become the chosen server's pool list.
+ */
+export function routeOutOn(rpc, quote, known) {
+  return new UniswapQuoter({ rpc, discovery: new UniswapDiscovery({ rpc, known }) })
+    .requote(quote)
+    .then((q) => q.amountOut);
+}
+
+/**
+ * The reviewed quote's route priced again on another listed Ethereum server (lib/eth/second_opinion.js).
+ * Resolves to secondOpinion()'s {status, host, mine, theirs, gap}. makeRpc: for tests.
+ */
+export async function secondQuote(w, quote, { makeRpc = null } = {}) {
+  const pools = await knownPools();
+  return secondOpinion({ chosenId: w.rpc.host.id, mine: quote.amountOut, quoteOn: (rpc) => routeOutOn(rpc, quote, pools), ...(makeRpc ? { makeRpc } : {}) });
 }
 
 /** The Permit2 permit signed with the wallet's key: 65 bytes r ‖ s ‖ v. */

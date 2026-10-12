@@ -191,3 +191,14 @@ test('a failed write leaves the store as it was', async () => {
   await store.save(full({ id: 'x3', msgId: 3 }));
   assert.deepEqual((await created(kv, dbPass).all()).map((c) => c.id).sort(), ['x1', 'x3']);
 });
+
+test('D-4: a lock being checked against BEAM (revertSeenAt) and coins found waiting (origin) survive JSON; any other origin is refused', () => {
+  const c = full({ state: STATES.locking, revertSeenAt: T + 60000, origin: 'found' });
+  const back = crossingFromJson(JSON.parse(JSON.stringify(crossingToJson(c))));
+  assert.equal(back.revertSeenAt, T + 60000);
+  assert.equal(back.origin, 'found');
+  assert.equal(full().origin, null);
+  assert.equal(full().revertSeenAt, null);
+  assert.throws(() => full({ origin: 'elsewhere' }), /origin/);
+  assert.throws(() => full({ revertSeenAt: 'soon' }), /revertSeenAt/);
+});

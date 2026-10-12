@@ -250,7 +250,7 @@ test("walletFees: the desktop app's arithmetic (feeHistory(5, latest, [50]), 2 Ã
   const history = (bases, tips) => ({ oldestBlock: '0x1', baseFeePerGas: bases.map((b) => '0x' + b.toString(16)), reward: tips.map((t) => ['0x' + t.toString(16)]) });
   let asked;
   const make = (h) => new EthRpc('stackwallet', { fetch: fakeServer((m, p) => ((asked = [m, p]), h)).fetch });
-  const f = await walletFees(make(history([10n, 11n, 12n, 13n, 14n, 2000000000n], [5000000000n, 1000000000n, 3000000000n, 2000000000n, 4000000000n])));
+  const f = await walletFees(make(history([1600000000n, 1700000000n, 1800000000n, 1900000000n, 1950000000n, 2000000000n], [5000000000n, 1000000000n, 3000000000n, 2000000000n, 4000000000n])));
   assert.deepEqual(asked, ['eth_feeHistory', ['0x5', 'latest', [50]]]);
   assert.equal(f.baseFee, 2000000000n, 'the last entry is the next block');
   assert.equal(f.maxPriorityFeePerGas, 3000000000n, 'median of the sorted tips');
@@ -258,7 +258,7 @@ test("walletFees: the desktop app's arithmetic (feeHistory(5, latest, [50]), 2 Ã
   // Four tips: the upper median (index n/2), as Dart's ~/ gives.
   assert.equal((await walletFees(make(history([1n, 1n], [4n * MIN_TIP_WEI, MIN_TIP_WEI, 3n * MIN_TIP_WEI, 2n * MIN_TIP_WEI])))).maxPriorityFeePerGas, 3n * MIN_TIP_WEI);
   // Tiny or missing tips are lifted to 0.01 gwei.
-  const low = await walletFees(make(history([7n, 100n], [1n, 2n, 3n])));
+  const low = await walletFees(make(history([100n, 100n], [1n, 2n, 3n])));
   assert.equal(low.maxPriorityFeePerGas, 10000000n);
   assert.equal(low.maxFeePerGas, 200n + 10000000n);
   assert.equal((await walletFees(make({ baseFeePerGas: ['0x64'], reward: [] }))).maxPriorityFeePerGas, MIN_TIP_WEI);

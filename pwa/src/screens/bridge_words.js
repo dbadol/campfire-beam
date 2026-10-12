@@ -9,9 +9,10 @@ import { coin, exact, ago, sourceDecimals, sourceSymbol, destinationDecimals, de
 /** mood: progress | success | warning | error; needsYou: it waits for the person (Collect), not for a chain. */
 const words = (title, detail, short, mood, needsYou = false) => Object.freeze({ title, detail, short, mood, needsYou });
 
-/** "1,000 BEAM → Ethereum". */
+/** "1,000 BEAM → Ethereum"; coins found waiting on BEAM: "0.5 bETH found on BEAM". */
 export function headline(c) {
   const r = routeById(c.route);
+  if (c.origin === 'found') return `${arrivesCoin(c)} found on BEAM`;
   return `${coin(c.amount, sourceDecimals(r, c.direction), sourceSymbol(r, c.direction))} → ${destinationChain(c.direction)}`;
 }
 
@@ -66,6 +67,8 @@ export function crossingWords(c, { blocksLeft = null, now = Date.now() } = {}) {
         'progress',
       );
     case STATES.locking:
+      // One server said the lock reverted: BEAM is watched for it before that is believed (controller.js).
+      if (c.revertSeenAt) return words('Checking whether it reached the bridge', err || 'BEAM Campfire watches BEAM for it before saying anything is lost.', 'Checking', 'warning');
       return words(`Sending ${out} to the bridge`, withError('Waiting for Ethereum, usually under a minute.'), 'Waiting for Ethereum', 'progress');
     case STATES.locked:
       return words('On its way to BEAM', 'Ethereum has it. The bridge brings it to BEAM, usually within 2 minutes; then you collect it.', 'On its way', 'progress');
@@ -79,7 +82,7 @@ export function crossingWords(c, { blocksLeft = null, now = Date.now() } = {}) {
     case STATES.delivered:
       return words(
         'Ready to collect',
-        withError(`It is on BEAM. Collecting it is a BEAM transaction with a ${coin(c.beamNetworkFee, BEAM_DECIMALS, 'BEAM')} network fee.`),
+        withError(`${c.origin === 'found' ? 'BEAM Campfire found it waiting on BEAM for this wallet.' : 'It is on BEAM.'} Collecting it is a BEAM transaction with a ${coin(c.beamNetworkFee, BEAM_DECIMALS, 'BEAM')} network fee.`),
         'Collect',
         err ? 'warning' : 'progress',
         true,
@@ -125,6 +128,8 @@ export function crossingSteps(c, { blocksLeft = null, now = Date.now() } = {}) {
   }
   const locked = c.msgId !== null;
   const onBeam = s === STATES.delivered || s === STATES.claiming || s === STATES.claimed;
+  // Found waiting on BEAM: how it got there is not this device's to say.
+  if (c.origin === 'found') return [step('Found waiting on BEAM', 'done', at), step('Collected in your BEAM wallet', s === STATES.claimed ? 'done' : 'active', s === STATES.delivered ? 'Your turn' : null)];
   const steps = [];
   if (c.approveHashes.length || s === STATES.approving) {
     steps.push(step(`Bridge allowed to take your ${routeById(c.route).ethSymbol}`, s === STATES.approving ? 'active' : s === STATES.lockFailed && !c.lockHash ? 'failed' : 'done', at));

@@ -7,6 +7,13 @@
  *   - "Did it go through?" -> live status in words: waiting for Ethereum -> confirmed, with the block.
  *   - "It failed - is my money gone?" -> says what was spent (only the network fee) and that the
  *     amount stayed; "replaced" and "not sent" say plainly that nothing more will happen.
+ *     "Replaced" only once the server showed the transaction that took its place (signed by this
+ *     wallet: lib/eth/send.js), which is named here.
+ *   - "The server says it was replaced, but shows nothing" -> "Not sure yet": don't send it again
+ *     yet (the first one may still go through and it would be paid twice); the same payment keeps
+ *     being offered and checked; Etherscan is one tap to look for yourself.
+ *   - "The server refused it - did it leave?" -> "Not sent yet": most likely not, but the server
+ *     may have passed it on, so it is checked for half an hour before it says "Not sent".
  *   - "The app lost signal while sending" -> it was saved before sending; the same bytes go again by
  *     themselves, never a second payment.
  *   - "Can I check elsewhere?" -> the hash copies with a tap, and Etherscan is one tap.
@@ -22,7 +29,14 @@ import { amountText, ethText, ethMaxText, groupedAddress } from './eth_ui.js';
 
 const FOLLOW_MS = 4000;
 
-function texts(state, assetSym) {
+function texts(state, assetSym, { unsure = false, refused = false } = {}) {
+  const open = state === 'signed' || state === 'pending';
+  // The server says this payment's place was taken but cannot show by what: it may still go through.
+  if (unsure && open)
+    return { title: 'Not sure yet', icon: 'clock', cls: 'wait', kind: 'warn', note: "Don't send it again yet. Your Ethereum server says another transaction from this wallet took this payment's place, but it can't show that transaction, so this payment may still go through. The same payment (never a second one) keeps being offered, and this screen updates by itself." };
+  // The server refused the bytes, but may have passed them on first.
+  if (refused && state === 'signed')
+    return { title: 'Not sent yet', icon: 'clock', cls: 'wait', kind: 'warn', note: "Don't send it again yet. Your Ethereum server refused this payment, so it has most likely not left, but it may have passed it on before refusing. BEAM Campfire keeps checking it, and offering the same payment (never a second one), for half an hour; if it never reaches Ethereum, this then says \"Not sent\"." };
   switch (state) {
     case 'signed':
       return { title: 'Sending', icon: 'clock', cls: 'wait', kind: 'info', note: 'Saved on this device and being handed to Ethereum. If the connection drops, the same payment is sent again by itself - never twice.' };
@@ -33,7 +47,7 @@ function texts(state, assetSym) {
     case 'failed':
       return { title: 'Payment failed', icon: 'close', cls: 'bad', kind: 'error', note: `Ethereum refused it, so no ${assetSym} was sent. Only the network fee was spent.` };
     case 'replaced':
-      return { title: 'Replaced', icon: 'close', cls: 'bad', kind: 'info', note: 'Another transaction from this wallet, sent from another device with the same words, took its place. This payment will not happen, and its amount did not leave.' };
+      return { title: 'Replaced', icon: 'close', cls: 'bad', kind: 'info', note: 'Another transaction from this wallet, sent from this device or another one with the same words, took its place. This payment will not happen, and its amount did not leave.' };
     case 'rejected':
       return { title: 'Not sent', icon: 'close', cls: 'bad', kind: 'error', note: "Ethereum's server refused it, so it never left. Nothing was spent." };
     default:
@@ -56,14 +70,14 @@ export default function ethTx(app, p = {}) {
     const amount = entry ? BigInt(entry.amount) : item ? item.amount : 0n;
     const to = entry ? entry.to : item && item.direction !== 'in' ? item.counterparty : null;
     const from = !entry && item && item.direction === 'in' ? item.counterparty : null;
-    const t = texts(state, asset.symbol);
+    const t = texts(state, asset.symbol, { unsure: Boolean(entry && entry.unsureSince), refused: Boolean(entry && entry.refusedAt) });
     const title = !entry && item && item.direction === 'in' ? (state === 'failed' ? 'Failed' : `Received ${asset.symbol}`) : t.title;
     const fee = entry ? entryFee(entry) : item && item.fee != null ? { wei: item.fee, final: true } : null;
     const block = entry && entry.receipt ? entry.receipt.blockNumber : item ? item.blockNumber : null;
     put(
       body,
       h('div', { class: `status-icon ${t.cls}` }, icon(t.icon)),
-      h('h2', { class: 'title center', 'data-testid': 'eth-tx-title', 'data-state': state, text: title }),
+      h('h2', { class: 'title center', 'data-testid': 'eth-tx-title', 'data-state': state, 'data-unsure': entry && entry.unsureSince ? 'true' : null, 'data-refused': entry && entry.refusedAt && state === 'signed' ? 'true' : null, text: title }),
       h('div', { class: 'big-amount', 'data-testid': 'eth-tx-amount', text: amountText(amount, asset) }),
       h(
         'div',
@@ -74,6 +88,7 @@ export default function ethTx(app, p = {}) {
         block ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Block' }), h('span', { class: 'v', 'data-testid': 'eth-tx-block', text: block.toLocaleString('en-US') })) : null,
         entry ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Sent' }), h('span', { class: 'v', text: fmtDate(Math.floor(entry.createdAt / 1000)) })) : null,
         h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Transaction' }), h('button', { class: 'v mono btn-text', 'data-testid': 'eth-tx-hash', 'data-hash': p.hash, onclick: () => copyText(p.hash, 'Transaction hash copied'), text: shorten(p.hash, 10, 8) })),
+        entry && state === 'replaced' && entry.replacedBy ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Replaced by' }), h('button', { class: 'v mono btn-text', 'data-testid': 'eth-tx-replaced-by', 'data-hash': entry.replacedBy, onclick: () => copyText(entry.replacedBy, 'Transaction hash copied'), text: shorten(entry.replacedBy, 10, 8) })) : null,
       ),
       t.note && (entry || item) ? notice(t.kind, t.note) : null,
       entry && entry.error && (state === 'signed' || state === 'rejected') ? h('p', { class: 'small', 'data-testid': 'eth-tx-error', text: `The server said: ${entry.error}` }) : null,

@@ -436,6 +436,11 @@ test('relayer gas: eth_feeHistory(0xa, latest, [50]); no answer or a useless one
   assert.equal(gas.at, 12345);
   chain.feeHistory = () => ({ baseFeePerGas: [] });
   await assert.rejects(service(chain).relayerGas(), code('noPrice'));
+  // D-2: base fees Ethereum cannot have (5,000 gwei, or a jump between blocks) are no price either.
+  chain.feeHistory = () => ({ baseFeePerGas: Array(11).fill('0x48c27395000'), reward: Array(10).fill(['0x3b9aca00']) });
+  await assert.rejects(service(chain).relayerGas(), (e) => e.code === 'noPrice' && /cannot be Ethereum's \(a base fee of 5000 gwei\)/.test(e.message));
+  chain.feeHistory = () => ({ baseFeePerGas: [...Array(10).fill('0x3b9aca00'), '0x77359400'], reward: Array(10).fill(['0x3b9aca00']) });
+  await assert.rejects(service(chain).relayerGas(), (e) => e.code === 'noPrice' && /jump/.test(e.message));
   chain.down = true;
   await assert.rejects(service(chain).relayerGas(), code('noPrice'));
 });
