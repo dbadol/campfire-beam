@@ -304,7 +304,7 @@ test('backup shows the no-phrase notice and never words; Rescan is offered witho
   await shot(page, 'import-10-delete-wording');
   await page.evaluate(() => window.__campfire.go('changePassword'));
   await waitScreen(page, 'changePassword');
-  assert.match(await page.textContent('main'), /original wallet\.db file keeps the password it had/);
+  assert.match(await page.textContent('main'), /The original wallet\.db file, and the copy inside this browser, still open with the password the file had/);
   await page.evaluate(() => window.__campfire.go('home'));
   await waitScreen(page, 'home');
 });

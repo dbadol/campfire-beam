@@ -33,7 +33,7 @@ export default function ownerKey(app, params = {}) {
     return { el: h('div') };
   }
   const passkey = hasPasskey(app);
-  const pw = h('input', { class: 'input', type: 'password', autocomplete: 'current-password', 'aria-label': T.passwordLabel, placeholder: 'Password', 'data-testid': 'okey-pw' });
+  const pw = h('input', { class: 'input', type: 'password', autocomplete: 'off', 'aria-label': T.passwordLabel, placeholder: 'Password', 'data-testid': 'okey-pw' });
   const msg = h('div', { class: 'okey-msg', 'aria-live': 'polite', 'data-testid': 'okey-msg' });
   const keyText = h('p', { class: 'mono owner-key', 'data-testid': 'owner-key' });
   const cta = primary(T.cta, () => show(), { 'data-testid': 'okey-show' });

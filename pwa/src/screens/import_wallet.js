@@ -51,7 +51,8 @@ export default function importWalletScreen(app) {
   });
 
   const msg = h('div', { 'aria-live': 'polite', 'data-testid': 'import-msg' });
-  const pw = h('input', { class: 'input', type: 'password', autocomplete: 'current-password', enterkeyhint: 'go', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', 'aria-label': IMPORT_TEXT.passwordLabel, 'data-testid': 'import-pw' });
+  // The file's password becomes this wallet's: never offered to the browser's password manager (lib/auth_ui.js).
+  const pw = h('input', { class: 'input', type: 'password', autocomplete: 'off', enterkeyhint: 'go', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', 'aria-label': IMPORT_TEXT.passwordLabel, 'data-testid': 'import-pw' });
   const showBtn = h('button', { class: 'btn btn-text btn-small inside', type: 'button', 'aria-label': 'Show password' }, icon('eye'));
   showBtn.addEventListener('click', () => {
     pw.type = pw.type === 'password' ? 'text' : 'password';

@@ -33,6 +33,7 @@ import { screen, primary, notice, openSheet, toast, focusSoon, onHidden } from '
 import { generatePhrase } from '../lib/engine.js';
 import { isImported, openWithPasswordFor, markExported, isAdding } from '../lib/session.js';
 import { prepareExport, deliverExport, cloudPlatform, CLOUD_MIN_PASSWORD } from '../lib/export.js';
+import { passwordWeakness } from '../lib/password_strength.js';
 import { NO_PHRASE_NOTICE, formatFileSize } from '../lib/wallet_file.js';
 import { OWNER_KEY_TEXT } from '../lib/owner_key.js';
 import { walletDataCard } from './wallet_data.js';
@@ -201,7 +202,8 @@ function cloudCard(app) {
 
 /**
  * The cloud copy: BEAM Campfire password (who is asking) -> if it is shorter than
- * CLOUD_MIN_PASSWORD, a longer one for this copy only -> prepare -> a fresh tap to save it.
+ * CLOUD_MIN_PASSWORD or easy to guess (lib/password_strength.js; a password set before those rules),
+ * a stronger one for this copy only -> prepare -> a fresh tap to save it.
  */
 function cloudSheet(app) {
   const where = cloudPlatform();
@@ -212,11 +214,12 @@ function cloudSheet(app) {
   let file = null;
   let busy = false;
   let message = null;
-  const field = (attrs) => h('input', { class: 'input', type: 'password', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', ...attrs });
-  const pw = field({ autocomplete: 'current-password', 'aria-label': 'BEAM Campfire password', placeholder: 'Password', 'data-testid': 'cloud-pw' });
-  // Not saved by the browser: a password kept in the same account as the copy would protect nothing.
-  const pw1 = field({ autocomplete: 'off', 'aria-label': 'Password for the copy', placeholder: `At least ${CLOUD_MIN_PASSWORD} characters`, 'data-testid': 'cloud-pw1' });
-  const pw2 = field({ autocomplete: 'off', 'aria-label': 'The same password again', placeholder: 'The same password again', 'data-testid': 'cloud-pw2' });
+  // Not saved by the browser (any of them): a password kept in the same account as the copy, or in
+  // the same browser profile as the wallet, would protect nothing.
+  const field = (attrs) => h('input', { class: 'input', type: 'password', autocomplete: 'off', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', ...attrs });
+  const pw = field({ 'aria-label': 'BEAM Campfire password', placeholder: 'Password', 'data-testid': 'cloud-pw' });
+  const pw1 = field({ 'aria-label': 'Password for the copy', placeholder: `At least ${CLOUD_MIN_PASSWORD} characters`, 'data-testid': 'cloud-pw1' });
+  const pw2 = field({ 'aria-label': 'The same password again', placeholder: 'The same password again', 'data-testid': 'cloud-pw2' });
   openSheet((close, rerender) => {
     const prepare = async () => {
       busy = true;
@@ -250,7 +253,7 @@ function cloudSheet(app) {
       }
       busy = false;
       message = null;
-      if (pw.value.length >= CLOUD_MIN_PASSWORD) {
+      if (!passwordWeakness(pw.value, { min: CLOUD_MIN_PASSWORD })) {
         filePw = pw.value;
         sameAsApp = true;
         pw.value = '';
@@ -262,8 +265,9 @@ function cloudSheet(app) {
     };
     const chosen = () => {
       if (busy) return;
-      if (pw1.value.length < CLOUD_MIN_PASSWORD) {
-        message = notice('warn', `Use at least ${CLOUD_MIN_PASSWORD} characters.`);
+      const weak = passwordWeakness(pw1.value, { min: CLOUD_MIN_PASSWORD });
+      if (weak) {
+        message = notice('warn', weak.text);
         return rerender();
       }
       if (pw1.value !== pw2.value) {
@@ -299,7 +303,7 @@ function cloudSheet(app) {
       focusSoon(pw1);
       return [
         h('h2', { text: 'Choose a password for the copy' }),
-        h('p', { class: 'lead', 'data-testid': 'cloud-choose-lead', text: `Your BEAM Campfire password is short for a file kept in ${t.place}. Choose one of at least ${CLOUD_MIN_PASSWORD} characters for this copy. You need it to open the copy, so write it down, not in the same account as the copy.` }),
+        h('p', { class: 'lead', 'data-testid': 'cloud-choose-lead', text: `Your BEAM Campfire password is easy to guess, or too short for a file kept in ${t.place}. Choose one of at least ${CLOUD_MIN_PASSWORD} characters, not a common one, for this copy. You need it to open the copy, so write it down, not in the same account as the copy.` }),
         h('label', { class: 'field' }, 'Password for the copy', pw1),
         h('label', { class: 'field' }, 'Again', pw2),
         message,
@@ -337,7 +341,7 @@ function exportSheet(app) {
   let file = null;
   let busy = false;
   let message = null;
-  const pw = h('input', { class: 'input', type: 'password', autocomplete: 'current-password', 'aria-label': 'BEAM Campfire password', placeholder: 'Password', 'data-testid': 'export-pw' });
+  const pw = h('input', { class: 'input', type: 'password', autocomplete: 'off', 'aria-label': 'BEAM Campfire password', placeholder: 'Password', 'data-testid': 'export-pw' });
   openSheet((close, rerender) => {
     const prepare = async () => {
       if (busy) return;
