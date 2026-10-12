@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEX_CID, tradeFee, tradeArgs, poolsViewArgs, parsePools, parseQuote, bestQuote, receivable, tradable, swapExpectation, minReceive, priceImpactBps, feeIsLarge, bpsText, DexError, PROTECTIONS, valueInBeam, swapValue, feeShareBps } from '../../src/lib/dex.js';
+import { DEX_CID, tradeFee, tradeArgs, poolsViewArgs, parsePools, parseQuote, bestQuote, receivable, tradable, swapExpectation, minReceive, rebuildFloor, leastReceive, priceImpactBps, feeIsLarge, bpsText, DexError, PROTECTIONS, valueInBeam, swapValue, feeShareBps } from '../../src/lib/dex.js';
+import { readFileSync } from 'node:fs';
 import { approveLabel, shortfall, shortAmount, spentUnits } from '../../src/screens/consent.js';
 
 const pool = (aid1, aid2, kind, tok1, tok2, lp = 900 + kind, ctl = 1000n) => ({ aid1, aid2, kind, tok1: BigInt(tok1), tok2: BigInt(tok2), ctl: BigInt(ctl), lpToken: lp });
@@ -168,7 +169,7 @@ test('price impact and the small-swap fee warning', () => {
 test('consent wording: outcome on the button, the short asset named', () => {
   const unit = (id) => ({ 0: 'BEAM', 174: 'FOMO' })[id] || `Asset #${id}`;
   const swap = { kind: 'contract', intent: { action: 'swap' }, fee: 1100000n, spends: [{ assetId: 0, amount: 1000000n }], receives: [{ assetId: 174, amount: 37176133894n }] };
-  assert.equal(approveLabel(swap, unit), 'Swap 0.01 BEAM for 371.76 FOMO');
+  assert.equal(approveLabel(swap, unit), 'Swap 0.01 BEAM for ≈371.76 FOMO', 'a rebuild may still receive a little less');
   assert.equal(approveLabel({ ...swap, intent: null }, unit), 'Pay 0.01 BEAM, get 371.76 FOMO');
   assert.equal(approveLabel({ ...swap, intent: null, receives: [] }, unit), 'Pay 0.01 BEAM');
   assert.equal(approveLabel({ ...swap, intent: null, spends: [] }, unit), 'Approve and get 371.76 FOMO');
@@ -181,4 +182,46 @@ test('consent wording: outcome on the button, the short asset named', () => {
   assert.equal(shortfall(swap, () => 10n ** 12n), null);
   assert.equal(spentUnits(swap, unit), 'BEAM');
   assert.equal(spentUnits({ ...swap, spends: [{ assetId: 174, amount: 1n }] }, unit), 'FOMO or BEAM');
+});
+
+// After the person approves, a swap that misses its block is rebuilt at the new price for up to
+// five blocks, and the core signs a variant that receives v when v + floor(v / 100) >= the
+// approved amount (contract_transaction.cpp IsSpendWithinLimitsUns: dv <= v0 / 100, implicit 1%).
+const coreAccepts = (approved, v) => approved <= v || approved - v <= v / 100n;
+
+test('rebuildFloor is the least a rebuilt swap may receive, by the core rule', () => {
+  for (let a = 0n; a <= 2000n; a++) {
+    const f = rebuildFloor(a);
+    assert.ok(a === 0n ? f === 0n : coreAccepts(a, f), `${a}: ${f} accepted`);
+    if (f > 0n) assert.ok(!coreAccepts(a, f - 1n), `${a}: ${f - 1n} refused`);
+  }
+  for (const a of [37176133894n, 36804372556n, 99999999999999n]) {
+    const f = rebuildFloor(a);
+    assert.ok(coreAccepts(a, f) && !coreAccepts(a, f - 1n), String(a));
+  }
+  assert.equal(rebuildFloor(101n), 100n);
+});
+
+test('"at least" is what a swap is sure to get: the protection, then what a rebuild may still take', () => {
+  const q = { payAsset: 0, receiveAsset: 174, pay: 1000000n, receive: 37176133894n };
+  const least = leastReceive(q);
+  assert.equal(least, rebuildFloor(minReceive(q)));
+  assert.ok(least < minReceive(q), 'below the protection floor: the shown minimum must include the rebuild');
+  assert.equal(leastReceive(q, 10n), rebuildFloor(minReceive(q, 10n)));
+  // The check compares the worst a built swap could end as with "at least".
+  const req = (get) => ({ kind: 'contract', spends: [{ assetId: 0, amount: 1000000n }], receives: [{ assetId: 174, amount: get }] });
+  const check = swapExpectation(q);
+  let edge = minReceive(q);
+  while (rebuildFloor(edge - 1n) >= least) edge -= 1n;
+  assert.equal(check(req(edge)), null, 'its worst case is exactly "at least"');
+  assert.ok(rebuildFloor(edge) >= least);
+  assert.equal(check(req(edge - 1n)).code, 'priceMoved', 'its worst case is below "at least"');
+  assert.ok(rebuildFloor(edge - 1n) < least);
+});
+
+test('the swap screen shows "at least" and hands it to the approve sheet', () => {
+  const src = readFileSync(new URL('../../src/screens/swap.js', import.meta.url), 'utf8');
+  assert.match(src, /'data-testid': 'swap-get-least', text: `, at least \$\{formatAmount\(least\)\}`/);
+  assert.match(src, /rows: \[\['You get at least', `\$\{formatAmount\(least\)\} \$\{unit\(q\.receiveAsset\)\}`\]\]/);
+  assert.match(readFileSync(new URL('../../src/screens/consent.js', import.meta.url), 'utf8'), /action === 'swap' \? 'You get about' :/, 'the approve sheet calls the engine amount "about"');
 });
