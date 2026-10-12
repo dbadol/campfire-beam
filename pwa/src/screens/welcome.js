@@ -12,10 +12,33 @@
  *   - "I have a wallet.db but no words" -> its own button.
  *   - "Will I lose it if Safari clears data?" -> the Home Screen guide says when that happens.
  *   - "What does it cost?" -> nothing to install or sign up; network fees are shown before paying.
+ * On an address other websites share (<user>.github.io, lib/shared_origin.js) the ONE job is to send
+ * the person to BEAM Campfire's own address; primary CTA "Go to pwa.buybeam.my" (1 tap). Exit-intent:
+ * "Am I on the wrong site / is this a fake?" -> it says plainly why not here and where, without blame.
  */
 import { h } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { screen, primary, secondary } from '../lib/ui.js';
+import { screen, primary, secondary, notice } from '../lib/ui.js';
+import { onSharedOrigin, HOME_HOST, HOME_URL } from '../lib/shared_origin.js';
+
+/**
+ * In place of Create / Restore / Import on an address other websites share: why not here, and the
+ * one way on. A wallet already kept here still opens (unlock never comes this way).
+ */
+export function sharedOriginParts() {
+  const here = typeof location !== 'undefined' ? location.hostname : '';
+  return {
+    body: h(
+      'div',
+      { 'data-testid': 'shared-origin' },
+      notice('info', `This copy of BEAM Campfire is at ${here}, an address other websites share, and they could read a wallet kept here. Wallets are created, restored and imported at BEAM Campfire's own address, ${HOME_HOST}.`),
+    ),
+    actions: [
+      h('a', { class: 'btn btn-primary', href: HOME_URL, rel: 'noopener noreferrer', 'data-testid': 'shared-origin-go' }, `Go to ${HOME_HOST}`),
+      h('p', { class: 'small center', text: `This copy is here so that installed apps can still get signed updates if ${HOME_HOST} is ever gone.` }),
+    ],
+  };
+}
 
 export function isIosSafariTab() {
   const ua = navigator.userAgent;
@@ -25,12 +48,13 @@ export function isIosSafariTab() {
 }
 
 export default function welcome(app) {
-  const guide = isIosSafariTab() && !app.prefs.a2hsDismissed ? a2hsGuide(app) : null;
+  const shared = onSharedOrigin() ? sharedOriginParts() : null;
+  const guide = !shared && isIosSafariTab() && !app.prefs.a2hsDismissed ? a2hsGuide(app) : null;
   const el = screen(
     {
       topbar: false,
       cls: 'welcome',
-      actions: [
+      actions: shared ? shared.actions : [
         primary('Create a new wallet', () => {
           app.setup = { mode: 'create' };
           app.go('backup');
@@ -53,7 +77,7 @@ export default function welcome(app) {
       h('h1', { text: 'BEAM Campfire' }),
       h('p', { text: 'Your privacy. Your wallet. Your BEAM.' }),
     ),
-    guide,
+    shared ? shared.body : guide,
   );
   return { el };
 }

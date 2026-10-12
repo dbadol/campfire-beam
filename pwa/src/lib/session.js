@@ -9,6 +9,7 @@ import { createWalletDb, deleteWalletDb, walletExists, adoptImport, discardImpor
 import { importedRecord } from './wallet_file.js';
 import { refreshPersistence } from './storage.js';
 import { listWallets, placeFor, saveRecord, dbPathOf, nextName, cleanName, nameProblem, closeOpenWallet, loadPrefs, rememberOpened, removeWallet } from './wallets.js';
+import { refuseOnSharedOrigin } from './shared_origin.js';
 
 const setWalletRecord = (r) => saveRecord(r);
 
@@ -52,6 +53,8 @@ async function opened(app, record, dbPass) {
  * under the user's password. The words are dropped from memory here.
  */
 export async function createWallet(app, password) {
+  // Never on an address other sites share (lib/shared_origin.js): before anything is touched.
+  refuseOnSharedOrigin();
   const setup = app.setup;
   if (!setup || !Array.isArray(setup.words) || setup.words.length !== 12) throw new Error('No recovery words to create the wallet from.');
   const id = toHex(randomBytes(8));
@@ -100,6 +103,7 @@ export function isAdding(app) {
  * wallet and the person is not adding another one.
  */
 export async function prepareImport(app) {
+  refuseOnSharedOrigin();
   if (!isAdding(app) && (app.record || (await listWallets()).length)) {
     const e = new Error('A wallet already exists on this device.');
     e.code = 'exists';
@@ -115,7 +119,7 @@ export async function prepareImport(app) {
  * unlock password in Settings.
  */
 export async function importWallet(app, password) {
-  await prepareImport(app);
+  await prepareImport(app); // refuses on an address other sites share, too
   const id = toHex(randomBytes(8));
   const envelope = await sealWithPassword(password, password, id);
   await closeCurrent(app);

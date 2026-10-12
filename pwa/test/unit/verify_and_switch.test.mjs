@@ -149,3 +149,10 @@ test('nginx and Caddy serve the folder it switches, never the checkout', () => {
   assert.match(readFileSync(join(deploy, 'nginx.conf'), 'utf8'), /\n    root \/srv\/beam-campfire\/current;\n/);
   assert.match(readFileSync(join(deploy, 'Caddyfile'), 'utf8'), /\n\troot \* \/srv\/beam-campfire\/current\n/);
 });
+
+test("the hosting README pins the same release key as keys/release_public.jwk", () => {
+  const readme = readFileSync(join(dirname(script), 'hosting_README.md'), 'utf8');
+  const pinned = JSON.parse(readme.match(/echo '(\{"kty":"EC"[^']+\})'/)[1]);
+  const key = JSON.parse(readFileSync(join(dirname(script), '..', 'keys', 'release_public.jwk'), 'utf8'));
+  assert.deepEqual([pinned.kty, pinned.crv, pinned.x, pinned.y], [key.kty, key.crv, key.x, key.y]);
+});

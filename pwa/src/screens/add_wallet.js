@@ -15,12 +15,20 @@
 import { h, put } from '../lib/dom.js';
 import { screen, primary, secondary, notice } from '../lib/ui.js';
 import { listWallets, nextName, nameProblem, nameOf, cleanName, MAX_NAME } from '../lib/wallets.js';
+import { onSharedOrigin } from '../lib/shared_origin.js';
+import { sharedOriginParts } from './welcome.js';
 
 export default function addWallet(app) {
   // A fresh start: words or a choice from an add flow left midway do not linger (Settings -> Backup
   // must never take a leftover "adding" for a new wallet).
   if (app.setup && Array.isArray(app.setup.words)) app.setup.words.fill('');
   app.setup = null;
+  const back = () => (app.dbPass ? app.back('home') : app.go('unlock'));
+  // An address other websites share keeps the wallets it has, but takes no new one (lib/shared_origin.js).
+  if (onSharedOrigin()) {
+    const shared = sharedOriginParts();
+    return { el: screen({ title: 'Add a wallet', back, actions: shared.actions }, h('p', { class: 'lead', text: 'Your wallets here stay as they are and keep working.' }), shared.body) };
+  }
   let list = null;
   const msg = h('div', { 'aria-live': 'polite', 'data-testid': 'add-msg' });
   const input = h('input', { class: 'input', type: 'text', maxlength: String(MAX_NAME), autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', 'aria-label': 'Wallet name', 'data-testid': 'add-name' });
@@ -48,7 +56,7 @@ export default function addWallet(app) {
   const el = screen(
     {
       title: 'Add a wallet',
-      back: () => (app.dbPass ? app.back('home') : app.go('unlock')),
+      back,
       actions: [
         primary('Create a new wallet', () => go('create', 'backup'), { 'data-testid': 'add-create' }),
         secondary('Restore with 12 words', () => go('restore', 'restore'), { 'data-testid': 'add-restore' }),
