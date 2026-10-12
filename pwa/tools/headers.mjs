@@ -79,6 +79,12 @@ export const SECURITY_HEADERS = {
   // this page only; dApp frames keep camera=() (lib/dapps/frame_policy.js) and are sandboxed
   // into an opaque origin, which 'self' never matches.
   'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()',
+  // HSTS: after one visit the browser goes straight to https for a year, so a first http:// link
+  // or typed address on a hostile network cannot be answered with an imitation that asks for the
+  // recovery words. This host only: includeSubDomains or preload would bind every site under the
+  // parent domain (the owner's decision, not this file's). A response the loader builds from its
+  // cache carries it too; browsers take it from network responses only, so there it changes nothing.
+  'Strict-Transport-Security': 'max-age=31536000',
 };
 
 // The loader (sw-<hash>.js) is a worker, not a page: the policy on ITS response

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CSP, LOADER_CSP, SECURITY_HEADERS, caddyHeaderLines } from '../../tools/headers.mjs';
+import { CSP, LOADER_CSP, SECURITY_HEADERS, caddyHeaderLines, headersFor } from '../../tools/headers.mjs';
 
 const deploy = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'deploy');
 const read = (name) => readFileSync(join(deploy, name), 'utf8');
@@ -33,4 +33,14 @@ test('Caddyfile: the loader gets its own policy, pages the page policy, never bo
 test('nginx: the loader rule matches the loader at the root only, as headersFor() does', () => {
   const nginx = read('nginx.conf');
   assert.ok(nginx.includes(`"~^/sw(-[0-9a-f]+)?\\.js$" "${LOADER_CSP}";`), 'anchored: /lib/sw-….js is a page file, not the loader');
+});
+
+test('HSTS on every response, in every deploy config (audit C3/E-2)', () => {
+  // One year, this host only. includeSubDomains/preload would bind every *.buybeam.my site: the owner's call.
+  const HSTS = 'max-age=31536000';
+  assert.equal(SECURITY_HEADERS['Strict-Transport-Security'], HSTS);
+  for (const p of ['index.html', 'sw-0123456789abcdef.js', 'release.json', 'recovery/mainnet_recovery.bin', 'explorer/status']) assert.equal(headersFor(p)['Strict-Transport-Security'], HSTS, p);
+  assert.ok(read('nginx.conf').includes(`add_header Strict-Transport-Security "${HSTS}" always;`), 'nginx');
+  assert.ok(caddyAllBlock(read('Caddyfile')).includes(`\t\tStrict-Transport-Security "${HSTS}"`), 'Caddy');
+  assert.match(read('_headers'), new RegExp(`\\n/\\*\\n(?:  [^\\n]+\\n)*  Strict-Transport-Security: ${HSTS}\\n`), '_headers');
 });

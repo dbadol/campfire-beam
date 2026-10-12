@@ -14,6 +14,7 @@ wallet.example.org {
 		Referrer-Policy "no-referrer"
 		X-Content-Type-Options "nosniff"
 		Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()"
+		Strict-Transport-Security "max-age=31536000"
 		Cache-Control "no-cache"
 	}
 	# On its own: deleting a field defers a header directive to the end of the response,
