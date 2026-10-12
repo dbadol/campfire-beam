@@ -183,6 +183,10 @@ p { margin: 0; }
 .notice.info { background: var(--info-bg); color: var(--info); }
 .notice.success { background: var(--success-bg); color: var(--success); }
 .notice .grow { flex: 1; }
+.notice ul.plain-list { margin: 6px 0 0; padding-left: 18px; }
+.notice ul.plain-list li + li { margin-top: 6px; }
+.delete-flight .notice .grow { min-width: 0; }
+.delete-flight .prompt-actions { flex-wrap: wrap; }
 .selftest-log { white-space: pre-wrap; }
 
 label.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500; color: var(--text-2); }

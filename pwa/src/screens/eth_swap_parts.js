@@ -10,6 +10,8 @@
  *       token and amount.
  * Exit-intent: "Why another transaction?" answered in one line; "Is this unlimited?" no, the exact
  *   amount is named on the button; USDT's two steps are said before they happen; the fee is shown.
+ *   A transaction of this wallet "Not sure yet" or "Not sent yet" (an earlier permission refused by the
+ *   server, say): nothing is signed, and the sheet names it with the way out (lib/eth/doubt.js).
  *
  * Review sheet
  * Spec: ONE job: show exactly what the swap does before anything is signed.
@@ -22,6 +24,7 @@
  *   for a tick: a server's fee figure is never paid unseen.
  *   "Is my server's price honest?" a second listed server priced the same route: agreed (one line),
  *   more than 2% apart (said with both figures, and a tick before the swap), or not reachable (said).
+ *   A transaction of this wallet in doubt: nothing is signed; named, with the way out (lib/eth/doubt.js).
  *
  * Pools list (beside the form from 900 px, a sheet on a phone) and price protection (a sheet):
  *   read-only and a four-way choice; one tap from the form.
@@ -37,7 +40,7 @@ import { SLIPPAGE_CHOICES, PERMIT_LIFE_SECONDS, UniGasChanged, UniRouteChanged }
 import { EthRpcError } from '../lib/eth/rpc.js';
 import { toChecksumAddress } from '../lib/eth/crypto.js';
 import { signAndBroadcast, permitSigner, walletAsset } from '../lib/eth/uniswap_app.js';
-import { ethBadge, highFeeBlock } from './eth_ui.js';
+import { ethBadge, highFeeBlock, doubtNotice } from './eth_ui.js';
 import { feeShare, isHighFee } from '../lib/eth/send.js';
 import { secondOpinionWords } from '../lib/eth/second_opinion.js';
 
@@ -172,6 +175,7 @@ export function openAllowSheet(app, { w, svc, approval }) {
   let txs = null;
   let phase = 'choose'; // choose | sending | waiting | failed
   let error = null;
+  let doubt = null; // a transaction of this wallet in doubt: nothing is signed (lib/eth/doubt.js)
   let hash = null;
   return new Promise((resolve) => {
     const sheet = openSheet(
@@ -181,6 +185,12 @@ export function openAllowSheet(app, { w, svc, approval }) {
         const most = txs ? txs.reduce((s, x) => s + x.maxGasCost, 0n) : null;
         const allow = async () => {
           if (busy || !txs) return;
+          doubt = await w.freshDoubt().catch(() => null);
+          if (doubt) {
+            phase = 'choose';
+            error = null;
+            return rerender();
+          }
           const ok = await confirmIdentity(app, { title: `Allow ${t.symbol}`, detail: `Uniswap may move exactly ${amt(approval.amount, t)}`, cta: 'Confirm' });
           if (!ok) return;
           phase = 'sending';
@@ -201,8 +211,14 @@ export function openAllowSheet(app, { w, svc, approval }) {
             }
             close(true);
           } catch (e) {
-            phase = 'failed';
-            error = e instanceof EthRpcError ? `Your Ethereum server said: "${e.message}". Nothing was approved.` : e.message;
+            if (e && e.code === 'in_doubt') {
+              phase = 'choose';
+              doubt = e.entry;
+              error = null;
+            } else {
+              phase = 'failed';
+              error = e instanceof EthRpcError ? `Your Ethereum server said: "${e.message}". Nothing was approved.` : e.message;
+            }
             rerender();
           }
         };
@@ -219,6 +235,7 @@ export function openAllowSheet(app, { w, svc, approval }) {
             kv('Network fee', likely === null ? '…' : `about ${ethAbout(likely)}`, { 'data-testid': 'uni-approve-fee' }, most === null ? null : `at most ${ethAtMost(most)}`),
           ),
           phase === 'waiting' ? notice('info', h('strong', { text: 'Waiting for Ethereum to confirm… ' }), 'Usually under a minute. The swap review opens by itself.') : null,
+          doubt ? doubtNotice(app, doubt, { inSheet: true, testid: 'uni-approve-doubt' }) : null,
           phase === 'failed' && error ? (() => {
             const n = notice('error', h('strong', { text: "The permission didn't go through. " }), error);
             n.dataset.testid = 'uni-approve-failed';
@@ -293,6 +310,7 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact, chec
   let feeAck = false;
   // Two servers more than 2% apart on the price: the swap waits for the person's tick.
   let gapAck = !check || check.status !== 'differ';
+  let doubt = null; // a transaction of this wallet in doubt: nothing is signed (lib/eth/doubt.js)
   return new Promise((resolve) => {
     const sheet = openSheet(
       (close, rerender) => {
@@ -302,6 +320,11 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact, chec
         const blocked = (review.impact === 'block' && !ack) || (highFee && !feeAck) || !gapAck;
         const swap = async () => {
           if (busy || blocked) return;
+          doubt = await w.freshDoubt().catch(() => null);
+          if (doubt) {
+            error = null;
+            return rerender();
+          }
           const ok = await confirmIdentity(app, { title: 'Confirm the swap', detail: `${amtShown(q.amountIn, q.tokenIn)} for at least ${amtShown(review.minimumOut, q.tokenOut, { floor: true })}`, cta: 'Confirm' });
           if (!ok) return;
           busy = true;
@@ -334,7 +357,8 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact, chec
             close(r.entry.hash);
           } catch (e) {
             busy = false;
-            error = `Nothing was sent. ${e.message}`;
+            if (e && e.code === 'in_doubt') doubt = e.entry;
+            else error = `Nothing was sent. ${e.message}`;
             rerender();
           }
         };
@@ -411,6 +435,7 @@ export function openReviewSheet(app, { w, svc, review: first, acceptImpact, chec
             n.dataset.testid = 'uni-review-error';
             return n;
           })() : null,
+          doubt ? doubtNotice(app, doubt, { inSheet: true, testid: 'uni-review-doubt' }) : null,
           h(
             'div',
             { class: 'sheet-actions' },

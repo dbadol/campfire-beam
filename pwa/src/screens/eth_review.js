@@ -10,13 +10,15 @@
  *     A fee above 10% of an ETH payment is said in words ("about … is 27% of what you send"), and
  *     the Send button waits for a tick: a server's fee figure is never paid unseen.
  *   - "Can I undo it?" -> no, said before the button.
+ *   - A payment of this wallet became "Not sure yet" or "Not sent yet" while this sheet was open: nothing
+ *     is signed, and the sheet says which one and the way out (lib/eth/doubt.js).
  */
 import { h, shorten } from '../lib/dom.js';
 import { openSheet, notice } from '../lib/ui.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
 import { prepareSend, signAndSend, costRose, SendError } from '../lib/eth/send.js';
 import { ETH } from '../lib/eth/tokens.js';
-import { amountText, exactText, ethText, ethMaxText, groupedAddress, highFeeBlock } from './eth_ui.js';
+import { amountText, exactText, ethText, ethMaxText, groupedAddress, highFeeBlock, doubtNotice } from './eth_ui.js';
 
 /** Re-checked before signing when the review is older than this. */
 const FRESH_MS = 60000;
@@ -41,6 +43,13 @@ export function openEthReview(app, w, first) {
       busy = true;
       message = null;
       try {
+        // Another transaction in doubt: this one waits (it could go through beside it).
+        const doubt = await w.freshDoubt();
+        if (doubt) {
+          busy = false;
+          message = doubtNotice(app, doubt, { inSheet: true, testid: 'eth-review-doubt' });
+          return rerender();
+        }
         if (Date.now() - prepared.preparedAt > FRESH_MS) {
           const fresh = await prepareSend(w.rpc, { from: w.state.address, asset: p.asset, recipient: p.recipient, amount: p.amount, balances: w.balances() });
           if (costRose(prepared, fresh)) {
@@ -66,8 +75,11 @@ export function openEthReview(app, w, first) {
         app.go('ethTx', { hash: r.entry.hash, justSent: true }, { replace: true });
       } catch (e) {
         busy = false;
-        const why = e instanceof SendError ? e.message : `${e.message}${/\.$/.test(e.message) ? '' : '.'}`;
-        message = notice('error', `Nothing was sent. ${why}`);
+        if (e && e.code === 'in_doubt') message = doubtNotice(app, e.entry, { inSheet: true, testid: 'eth-review-doubt' });
+        else {
+          const why = e instanceof SendError ? e.message : `${e.message}${/\.$/.test(e.message) ? '' : '.'}`;
+          message = notice('error', `Nothing was sent. ${why}`);
+        }
         rerender();
       }
     };

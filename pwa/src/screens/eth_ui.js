@@ -6,8 +6,9 @@ import { assetBadge, notice } from '../lib/ui.js';
 import { formatUnits, isRoundedDown, DISPLAY_DECIMALS } from '../lib/eth/units.js';
 import { ETH } from '../lib/eth/tokens.js';
 import { compactUnits, percentText } from '../lib/compact.js';
-import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC } from '../lib/eth/hosts.js';
+import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC, txExplorerUrl } from '../lib/eth/hosts.js';
 import { ethPrefs } from '../lib/eth/wallet.js';
+import { doubtOf, doubtNameParts, doubtNoun, DOUBT_TITLE, DOUBT_WHY, DOUBT_WAY_OUT } from '../lib/eth/doubt.js';
 
 // Fixed colours, never taken from a token contract.
 const TOKEN_COLORS = { USDT: '#26a17b', USDC: '#2775ca', WBTC: '#f09242', DAI: '#f5ac37' };
@@ -69,19 +70,35 @@ export function shortAddress(address) {
  * switches by itself: another server is another party that sees the IP
  * address with the Ethereum address.
  */
+/**
+ * A network fee walletFees() refused (lib/eth/rpc.js 'bad_fees'), in words: {title, detail}. Far
+ * above what BEAM Campfire pays ('high': Ethereum has been that dear, for minutes), or figures that
+ * cannot be right ('jump'). Either way nothing was signed.
+ */
+export function badFeesWords(error, serverName) {
+  if (error && error.data && error.data.problem === 'high') {
+    return {
+      title: 'The network fee is far above anything BEAM Campfire will pay. ',
+      detail: `${serverName}'s Ethereum server says Ethereum is that expensive right now. It has been, but only for minutes at a time. Nothing was sent, and nothing was paid. Try again in a few minutes, or use another server.`,
+    };
+  }
+  return { title: `${serverName}'s Ethereum server gave a network fee that can't be right. `, detail: 'Nothing was sent, and nothing was paid. Try again in a minute, or use another server.' };
+}
+
 export function serverProblem(app, error, { retry, switched }) {
   const cur = ethPrefs(app).host;
   const alt = ETH_RPC_HOSTS.find((x) => x.id === (cur.id === DEFAULT_ETH_RPC ? 'publicnode' : DEFAULT_ETH_RPC));
-  // Network fee figures Ethereum cannot have (lib/eth/rpc.js walletFees): refused, never paid.
+  // Network fee figures refused (lib/eth/rpc.js walletFees): never paid.
   const badFees = Boolean(error && error.code === 'bad_fees');
+  const fees = badFees ? badFeesWords(error, cur.name) : null;
   // The server's own words (HTTP codes and the like) stay out of sight, for whoever debugs it.
   return h(
     'div',
     { 'data-testid': 'eth-server-problem', 'data-code': badFees ? 'bad_fees' : null, title: error && error.message ? error.message : '' },
     notice(
       'error',
-      h('strong', { text: badFees ? `${cur.name}'s Ethereum server gave a network fee that can't be right. ` : `${cur.name}'s Ethereum server didn't answer. ` }),
-      badFees ? 'Nothing was sent, and nothing was paid. Try again in a minute, or use another server.' : 'Your coins are safe on Ethereum; only this view is out of date.',
+      h('strong', { text: fees ? fees.title : `${cur.name}'s Ethereum server didn't answer. ` }),
+      fees ? fees.detail : 'Your coins are safe on Ethereum; only this view is out of date.',
       h(
         'div',
         { class: 'btn-row prompt-actions' },
@@ -112,6 +129,91 @@ export function highFeeBlock({ share, fee, verb = 'send', ack, onAck, testid = '
   box.addEventListener('change', () => onAck(box.checked));
   const Verb = verb.charAt(0).toUpperCase() + verb.slice(1);
   return [n, h('label', { class: 'check-row' }, box, h('span', { text: `${Verb} anyway, paying about ${fee} in fees` }))];
+}
+
+/** Where a transaction of the outbox is followed: a swap's or permission's own screen, or a payment's. */
+export function openEntry(app, entry) {
+  app.go(entry.kind ? 'ethSwapTx' : 'ethTx', { hash: entry.hash });
+}
+
+/**
+ * Why nothing new can be sent while `entry` is in doubt (lib/eth/doubt.js), with the ways out: see
+ * it, or pick another server in Settings. inSheet: words only (a sheet stays where it is; its
+ * screen behind shows the buttons once it closes).
+ */
+export function doubtNotice(app, entry, { inSheet = false, testid = 'eth-doubt' } = {}) {
+  const { lead, address } = doubtNameParts(entry);
+  const n = notice(
+    'warn',
+    h(
+      'strong',
+      {},
+      `${lead.charAt(0).toUpperCase()}${lead.slice(1)} `,
+      address ? h('span', { class: 'addr-inline', text: address }) : null,
+      `${address ? ' ' : ''}is "${DOUBT_TITLE[doubtOf(entry)]}". `,
+    ),
+    `${DOUBT_WHY} ${DOUBT_WAY_OUT}`,
+    inSheet
+      ? null
+      : h(
+          'div',
+          { class: 'btn-row prompt-actions' },
+          h('button', { class: 'btn btn-secondary btn-small', onclick: () => openEntry(app, entry), 'data-testid': `${testid}-see` }, `See the ${doubtNoun(entry)}`),
+          h('button', { class: 'btn btn-text btn-small', onclick: () => app.go('ethSettings'), 'data-testid': `${testid}-settings` }, 'Settings'),
+        ),
+  );
+  n.dataset.testid = testid;
+  n.dataset.hash = entry.hash;
+  return n;
+}
+
+/** Ethereum Home's one line above Send while a transaction is in doubt; tapping it opens that transaction. */
+export function doubtLine(app, entry) {
+  const n = notice('warn', h('span', { text: `Sending is paused: a ${doubtNoun(entry)} is "${DOUBT_TITLE[doubtOf(entry)]}". ` }), h('button', { class: 'btn btn-text btn-small inline', onclick: () => openEntry(app, entry), 'data-testid': 'eth-doubt-line-see' }, 'See it'));
+  n.dataset.testid = 'eth-doubt-line';
+  n.dataset.hash = entry.hash;
+  return n;
+}
+
+/**
+ * While the screen is open, visible and a transaction is in doubt: follow it every few seconds
+ * (the same one look Ethereum Home takes), and call onChange when the doubt may have changed.
+ * Returns stop().
+ */
+export function followDoubt(app, getWallet, onChange, { every = 4000 } = {}) {
+  let busy = false;
+  const t = setInterval(async () => {
+    const w = getWallet();
+    if (busy || !w || !app.dbPass || document.visibilityState !== 'visible' || !w.doubt()) return;
+    busy = true;
+    try {
+      await w.followOpen();
+    } catch {
+      /* the next look tries again */
+    } finally {
+      busy = false;
+    }
+    onChange();
+  }, every);
+  return () => clearInterval(t);
+}
+
+/**
+ * "Not sent" is one server's verdict after half an hour of refusals (lib/eth/send.js
+ * REFUSAL_WATCH_MS), said as such, with Etherscan one tap away (release audit BM-2).
+ */
+export const NOT_SENT_NOTE =
+  "Your Ethereum server refused it for half an hour and never showed it on Ethereum, so most likely it never left and nothing was spent. That is the server's word, not Ethereum's. BEAM Campfire looks for it again each time you open your Ethereum wallet.";
+
+/** The "Not sent" notice of a payment's or swap's screen: NOT_SENT_NOTE, what the server said, and Etherscan. */
+export function notSentNotice(hash, serverSaid = null) {
+  const n = notice(
+    'error',
+    `${NOT_SENT_NOTE}${serverSaid ? ` The server said: ${serverSaid}` : ''}`,
+    h('div', {}, h('a', { class: 'btn btn-text btn-small inline', href: txExplorerUrl(hash), target: '_blank', rel: 'noopener noreferrer', 'data-testid': 'eth-not-sent-explorer' }, 'Check it on Etherscan')),
+  );
+  n.dataset.testid = 'eth-not-sent';
+  return n;
 }
 
 const STATE_TEXT = {

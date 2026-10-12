@@ -49,8 +49,10 @@ const SECP_N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd036414
 const KEY_WARNING = 'This wallet has no recovery words. The private key is the only way back to it: keep it somewhere safe and never share it.';
 
 let srv, browser, ctx, page, rec;
-let mode = 'fork'; // 'fork' | 'down'
+let mode = 'fork'; // 'fork' | 'down' | 'refuse' (eth_sendRawTransaction refused, the rest from the fork) | 'dear' (fee history: 5,000 gwei)
 const rpcMethods = [];
+// More rows for the history index (/export), for a test that needs it to show a transaction mined.
+const indexExtra = [];
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
 
 async function stackRoute(route) {
@@ -62,16 +64,26 @@ async function stackRoute(route) {
     // The index: one made-up 1 ETH payment in, long ago; no token history (an empty body, as the index answers).
     if (url.searchParams.get('emitter')) return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: '' });
     const me = url.searchParams.get('addrs');
-    const data = [{ blockHash: `0x${'b1'.repeat(32)}`, blockNumber: 22000000, from: '0x1111111111111111111111111111111111111111', to: me, gas: 21000, gasPrice: 1000000000, gasUsed: 21000, hash: `0x${'e1'.repeat(32)}`, nonce: 3, receipt: { effectiveGasPrice: 1000000000, gasUsed: 21000, logs: [], status: 1 }, timestamp: 1767225600, value: '1000000000000000000' }];
+    const data = [{ blockHash: `0x${'b1'.repeat(32)}`, blockNumber: 22000000, from: '0x1111111111111111111111111111111111111111', to: me, gas: 21000, gasPrice: 1000000000, gasUsed: 21000, hash: `0x${'e1'.repeat(32)}`, nonce: 3, receipt: { effectiveGasPrice: 1000000000, gasUsed: 21000, logs: [], status: 1 }, timestamp: 1767225600, value: '1000000000000000000' }, ...indexExtra];
     return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ data }) });
   }
   if (req.method() !== 'POST') return route.fulfill({ status: 404, headers: cors, body: '' });
   const body = req.postData();
+  let j = null;
   try {
-    const j = JSON.parse(body);
+    j = JSON.parse(body);
     for (const m of [].concat(j)) rpcMethods.push(m.method);
   } catch {
     /* not JSON: anvil says so */
+  }
+  // Ethereum far dearer than BEAM Campfire pays (as on 2022-05-01, above 8,000 gwei for a few blocks).
+  if (mode === 'dear' && j && !Array.isArray(j) && j.method === 'eth_feeHistory') {
+    const base = `0x${(5000n * 10n ** 9n).toString(16)}`;
+    return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: j.id, result: { oldestBlock: '0x1', baseFeePerGas: Array(6).fill(base), gasUsedRatio: Array(5).fill(0.5), reward: Array(5).fill(['0x3b9aca00']) } }) });
+  }
+  // A server that refuses the bytes (it may still have passed them on): "Not sent yet".
+  if (mode === 'refuse' && j && !Array.isArray(j) && j.method === 'eth_sendRawTransaction') {
+    return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: j.id, error: { code: -32000, message: 'transaction underpriced' } }) });
   }
   const r = await fetch(ANVIL, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
   return route.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: await r.text() });
@@ -477,6 +489,246 @@ test('on the fork: 0.01 ETH and 12.5 WBEAM sent through the screens; receipts an
     await page.waitForSelector(`${tid('eth-status')}[data-state="ok"]`, { timeout: 60000 });
     assert.equal(await page.isVisible(tid('eth-server-problem')), false);
   }));
+
+test('BM-1: a payment the server refused holds back the next one: Home, Send, Buy WBEAM and Move to BEAM say so; settled, they open up', { skip: skip || false, timeout: 6 * 60000 }, () =>
+  withFork(async () => {
+    const to = toChecksumAddress(freshAddress());
+    await setBalance(ACCOUNT0, 5n * ETHER);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-balance')}[data-wei="${5n * ETHER}"]`, { timeout: 30000 });
+    assert.equal(await page.isVisible(tid('eth-doubt-line')), false, 'nothing in doubt: no line');
+
+    // The server refuses the payment's bytes: "Not sent yet" (it may have passed them on first).
+    mode = 'refuse';
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(tid('eth-send-fee'));
+    await page.waitForFunction(() => !/Checking/.test(document.querySelector('[data-testid="eth-send-fee"]').textContent), null, { timeout: 30000 });
+    await page.fill(tid('eth-send-to'), to);
+    await page.fill(tid('eth-send-amount'), '0.001');
+    await page.waitForFunction(() => document.querySelector('[data-testid="eth-send-review"]').textContent === 'Send 0.001 ETH');
+    await page.click(tid('eth-send-review'));
+    await page.click(tid('eth-review-send'));
+    await page.fill(tid('auth-pw'), PASSWORD);
+    await page.click(tid('auth-submit'));
+    await waitScreen(page, 'ethTx');
+    await page.waitForSelector(`${tid('eth-tx-title')}[data-refused="true"]`, { timeout: 30000 });
+    assert.equal(await page.textContent(tid('eth-tx-title')), 'Not sent yet');
+    const hash = await page.getAttribute(tid('eth-tx-hash'), 'data-hash');
+
+    // Home: one line above Send, opening that payment.
+    await page.click(tid('eth-tx-done'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-doubt-line')}[data-hash="${hash}"]`);
+    assert.equal(await page.textContent(tid('eth-doubt-line')), 'Sending is paused: a payment is "Not sent yet". See it');
+    await shots4('25-home-doubt');
+
+    // Send: named at the top with the way out; the button stays grey whatever is typed.
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${hash}"]`);
+    const words = await page.textContent(tid('eth-doubt'));
+    assert.match(words, /^Your payment of 0\.001 ETH to 0x[0-9a-fA-F]{4}…[0-9a-fA-F]{4} is "Not sent yet"\. It may still go through, so nothing new is sent from this Ethereum wallet until it is settled, or both could go through\./);
+    assert.match(words, /Wait until BEAM Campfire knows what happened to it, or choose another Ethereum server in Settings: it is checked there\./);
+    await page.fill(tid('eth-send-to'), to);
+    await page.fill(tid('eth-send-amount'), '0.002');
+    await sleep(400);
+    assert.equal(await page.isDisabled(tid('eth-send-review')), true, 'no second payment while the first is in doubt');
+    assert.equal(await page.textContent(tid('eth-send-review')), 'Sending is paused (see above)');
+    await shots4('26-send-doubt');
+    await page.click(tid('eth-doubt-settings'));
+    await waitScreen(page, 'ethSettings');
+
+    // Buy WBEAM: the same, above the button.
+    await page.evaluate(() => window.__campfire.go('ethSwap'));
+    await waitScreen(page, 'ethSwap');
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${hash}"]`, { timeout: 30000 });
+    await page.fill(tid('uni-pay-amount'), '0.001');
+    await page.waitForFunction(() => /Paused until your last Ethereum transaction is settled/.test(document.querySelector('[data-testid="uni-reason"]').textContent), null, { timeout: 30000 });
+    assert.equal(await page.isDisabled(tid('uni-swap-cta')), true);
+    await shots4('27-swap-doubt');
+
+    // Move to BEAM signs from the same account: the same.
+    await page.evaluate(() => window.__campfire.go('bridgeMove', { dir: 'toBeam', back: 'ethHome' }));
+    await waitScreen(page, 'bridgeMove');
+    await page.waitForSelector(`${tid('bridge-eth-doubt')}[data-hash="${hash}"]`, { timeout: 60000 });
+    await shots4('28-bridge-doubt');
+
+    // The server takes the bytes again: the same payment (never a second) is offered by itself,
+    // mined, and the move opens up without a tap.
+    const sends = rpcMethods.filter((m) => m === 'eth_sendRawTransaction').length;
+    mode = 'fork';
+    await page.waitForSelector(tid('bridge-eth-doubt'), { state: 'detached', timeout: 60000 });
+    assert.equal((await mined(hash)).status, '0x1', 'the very payment that was in doubt');
+    assert.equal(BigInt(await raw('eth_getBalance', [to, 'latest'])), 10n ** 15n, 'paid once');
+    assert.ok(rpcMethods.filter((m) => m === 'eth_sendRawTransaction').length > sends);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-activity-row')}[data-hash="${hash}"][data-state="confirmed"]`, { timeout: 30000 });
+    assert.equal(await page.isVisible(tid('eth-doubt-line')), false);
+  }));
+
+test('BM-1: a payment that falls in doubt while the review is open is not signed, and the sheet says why', { skip: skip || false, timeout: 4 * 60000 }, () =>
+  withFork(async () => {
+    await setBalance(ACCOUNT0, 5n * ETHER);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(tid('eth-send-fee'));
+    await page.waitForFunction(() => !/Checking/.test(document.querySelector('[data-testid="eth-send-fee"]').textContent), null, { timeout: 30000 });
+    await page.fill(tid('eth-send-to'), toChecksumAddress(freshAddress()));
+    await page.fill(tid('eth-send-amount'), '0.001');
+    await page.waitForFunction(() => document.querySelector('[data-testid="eth-send-review"]').textContent === 'Send 0.001 ETH');
+    await page.click(tid('eth-send-review'));
+    await page.waitForSelector(tid('eth-review-send'));
+    // Meanwhile a payment of this wallet is refused by its server (written as lib/eth/send.js does).
+    const doubtful = `0x${'a7'.repeat(32)}`;
+    const write = (patch) =>
+      page.evaluate(
+        async ({ hash, from, to, patch }) => {
+          const { app } = await import('./app.js');
+          const { ethWallet } = await import('./lib/eth/wallet.js');
+          const { addToOutbox, updateOutbox } = await import('./lib/eth/outbox.js');
+          const w = await ethWallet(app);
+          if (patch) await updateOutbox(app, hash, patch, { ethId: w.ethId });
+          else await addToOutbox(app, { hash, raw: `0x02${'a7'.repeat(40)}`, nonce: '901', from, to, asset: 'ETH', token: null, amount: '2000000000000000', gasLimit: '21000', maxFeePerGas: '30000000000', maxPriorityFeePerGas: '1000000000', createdAt: Date.now(), sentAt: null, state: 'signed', receipt: null, error: 'transaction underpriced', refusedAt: Date.now() }, { ethId: w.ethId });
+          await w.reloadOutbox();
+        },
+        { hash: doubtful, from: ACCOUNT0, to: toChecksumAddress(freshAddress()), patch },
+      );
+    await write(null);
+    const counts = rpcMethods.filter((m) => m === 'eth_getTransactionCount').length;
+    await page.click(tid('eth-review-send'));
+    await page.waitForSelector(`${tid('eth-review-doubt')}[data-hash="${doubtful}"]`);
+    assert.equal(await page.isVisible(tid('auth-pw')), false, 'not even the password is asked');
+    assert.match(await page.textContent(tid('eth-review-doubt')), /is "Not sent yet"\. It may still go through/);
+    assert.equal(rpcMethods.filter((m) => m === 'eth_getTransactionCount').length, counts, 'no nonce asked');
+    await shots4('32-review-doubt');
+    // Settled (never sent): nothing holds the next payment back.
+    await write({ state: 'rejected' });
+    await page.click(tid('eth-review-change'));
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    assert.equal(await page.isVisible(tid('eth-doubt-line')), false);
+  }));
+
+/** An outbox entry of ACCOUNT0 that never reached Ethereum, refused for 40 minutes and ended as never sent; `over` changes it. */
+const fake = (n, over = {}) => ({ hash: `0x${n.repeat(32)}`, raw: `0x02${n.repeat(40)}`, nonce: '900', from: ACCOUNT0, to: toChecksumAddress(freshAddress()), asset: 'ETH', token: null, amount: '2000000000000000', gasLimit: '21000', maxFeePerGas: '30000000000', maxPriorityFeePerGas: '1000000000', createdAt: Date.now() - 40 * 60000, sentAt: null, state: 'rejected', receipt: null, error: 'transaction underpriced', refusedAt: Date.now() - 40 * 60000, ...over });
+
+/** Writes an outbox entry (or changes one) in the page, as lib/eth/send.js would, and reloads the wallet's copy. */
+async function outboxWrite({ add = null, hash = null, patch = null }) {
+  await page.evaluate(async ({ add, hash, patch }) => {
+    const { app } = await import('./app.js');
+    const { ethWallet } = await import('./lib/eth/wallet.js');
+    const { addToOutbox, updateOutbox } = await import('./lib/eth/outbox.js');
+    const w = await ethWallet(app);
+    if (add) await addToOutbox(app, add, { ethId: w.ethId });
+    if (hash) await updateOutbox(app, hash, patch, { ethId: w.ethId });
+    await w.reloadOutbox();
+  }, { add, hash, patch });
+}
+
+test('BM-2: "Not sent" is the server\'s word: a block (its receipt, or the history index) turns it into confirmed', { skip: skip || false, timeout: 4 * 60000 }, () =>
+  withFork(async () => {
+    await setBalance(ACCOUNT0, 5n * ETHER);
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    // A payment that never reached Ethereum, ended as never sent after half an hour of refusals.
+    const lost = fake('c3');
+    await outboxWrite({ add: lost });
+    await page.evaluate((h) => window.__campfire.go('ethTx', { hash: h }), lost.hash);
+    await waitScreen(page, 'ethTx');
+    await page.waitForSelector(`${tid('eth-tx-title')}[data-state="rejected"]`);
+    const note = await page.textContent(tid('eth-not-sent'));
+    assert.match(note, /most likely it never left and nothing was spent\. That is the server's word, not Ethereum's\./);
+    assert.ok(!/so it never left/.test(note));
+    assert.equal(await page.getAttribute(tid('eth-not-sent-explorer'), 'href'), `https://etherscan.io/tx/${lost.hash}`, 'Etherscan one tap away, in the notice');
+    assert.equal(await page.getAttribute(tid('eth-tx-explorer'), 'href'), `https://etherscan.io/tx/${lost.hash}`);
+    await sleep(1500); // its receipt asked again: none, so it stays as it was
+    assert.equal(await page.getAttribute(tid('eth-tx-title'), 'data-state'), 'rejected');
+    await shots4('29-tx-not-sent');
+
+    // A payment the chain has (mined on the fork) that a server's refusals had ended as "Not sent":
+    // opening Ethereum Home asks for its receipt again, and it is confirmed.
+    const to = toChecksumAddress(freshAddress());
+    await page.click(tid('eth-tx-done'));
+    await ethHomeReady();
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(tid('eth-send-fee'));
+    await page.waitForFunction(() => !/Checking/.test(document.querySelector('[data-testid="eth-send-fee"]').textContent), null, { timeout: 30000 });
+    await page.fill(tid('eth-send-to'), to);
+    await page.fill(tid('eth-send-amount'), '0.001');
+    await page.waitForFunction(() => document.querySelector('[data-testid="eth-send-review"]').textContent === 'Send 0.001 ETH');
+    await page.click(tid('eth-send-review'));
+    await page.click(tid('eth-review-send'));
+    await page.fill(tid('auth-pw'), PASSWORD);
+    await page.click(tid('auth-submit'));
+    await waitScreen(page, 'ethTx');
+    await page.waitForSelector(`${tid('eth-tx-title')}[data-state="confirmed"]`, { timeout: 60000 });
+    const minedHash = await page.getAttribute(tid('eth-tx-hash'), 'data-hash');
+    await outboxWrite({ hash: minedHash, patch: { state: 'rejected', receipt: null, refusedAt: Date.now() - 40 * 60000 } });
+    await page.evaluate(() => window.__campfire.go('ethHome'));
+    await ethHomeReady();
+    await page.waitForSelector(`${tid('eth-activity-row')}[data-hash="${minedHash}"][data-state="confirmed"]`, { timeout: 30000 });
+
+    // The history index shows another "Not sent" one in a block: the block wins, and the entry is written down.
+    const shown = fake('d4');
+    await outboxWrite({ add: shown });
+    indexExtra.push({ blockHash: `0x${'b2'.repeat(32)}`, blockNumber: 22000100, from: ACCOUNT0.toLowerCase(), to: shown.to.toLowerCase(), gas: 21000, gasPrice: 1000000000, gasUsed: 21000, hash: shown.hash, nonce: 900, receipt: { effectiveGasPrice: 1000000000, gasUsed: 21000, logs: [], status: 1 }, timestamp: 1767225700, value: shown.amount });
+    try {
+      await page.evaluate(() => window.__campfire.go('ethReceive'));
+      await page.evaluate(() => window.__campfire.go('ethHome'));
+      await ethHomeReady();
+      await page.waitForSelector(`${tid('eth-activity-row')}[data-hash="${shown.hash}"][data-state="confirmed"]`, { timeout: 30000 });
+      const stored = await page.evaluate(async (h) => {
+        const { app } = await import('./app.js');
+        const { ethWallet } = await import('./lib/eth/wallet.js');
+        const w = await ethWallet(app);
+        const e = w.state.outbox.find((x) => x.hash === h);
+        return e && { state: e.state, block: e.receipt && e.receipt.blockNumber };
+      }, shown.hash);
+      assert.deepEqual(stored, { state: 'confirmed', block: 22000100 });
+      assert.equal(await page.getAttribute(`${tid('eth-activity-row')}[data-hash="${lost.hash}"]`, 'data-state'), 'rejected', 'the one nobody shows stays "Not sent"');
+      await shots4('30-home-after-recheck');
+    } finally {
+      indexExtra.length = 0;
+    }
+  }));
+
+test('BM-2: a swap "Not sent" is the server\'s word too, with Etherscan in it', { skip: skip || false, timeout: 2 * 60000 }, async () => {
+  const swapLost = fake('e5', { kind: 'swap', tokenOut: WBEAM.address, tokenOutSymbol: 'WBEAM', quotedOut: '1000000000', minimumOut: '990000000', pools: 1 });
+  await outboxWrite({ add: swapLost });
+  await page.evaluate((h) => window.__campfire.go('ethSwapTx', { hash: h }), swapLost.hash);
+  await waitScreen(page, 'ethSwapTx');
+  await page.waitForSelector(`${tid('uni-tx-title')}[data-state="rejected"]`);
+  assert.match(await page.textContent(tid('eth-not-sent')), /That is the server's word, not Ethereum's\..*The server said: transaction underpriced/);
+  assert.equal(await page.getAttribute(tid('eth-not-sent-explorer'), 'href'), `https://etherscan.io/tx/${swapLost.hash}`);
+  await shots4('33-swap-not-sent');
+  await page.evaluate(() => window.__campfire.go('ethHome'));
+  await ethHomeReady();
+});
+
+test('BM-6: a fee far above what BEAM Campfire pays is said as such, not as impossible; nothing is signed', { skip: skip || false, timeout: 2 * 60000 }, async () => {
+  await page.evaluate(() => window.__campfire.go('ethHome'));
+  await ethHomeReady();
+  mode = 'dear';
+  try {
+    await page.click(tid('eth-send'));
+    await waitScreen(page, 'ethSend');
+    await page.waitForSelector(`${tid('eth-server-problem')}[data-code="bad_fees"]`, { timeout: 30000 });
+    const said = await page.textContent(tid('eth-server-problem'));
+    assert.match(said, /^The network fee is far above anything BEAM Campfire will pay\. Stack Wallet's Ethereum server says Ethereum is that expensive right now\. It has been, but only for minutes at a time\. Nothing was sent, and nothing was paid\./);
+    assert.doesNotMatch(said, /can't be right|cannot have|gwei/);
+    await shots4('31-send-fee-too-high');
+  } finally {
+    mode = 'fork';
+  }
+  await page.evaluate(() => window.__campfire.go('ethHome'));
+  await ethHomeReady();
+});
 
 test('lock forgets the Ethereum wallet; unlocking opens it again', { skip: skip || false, timeout: 2 * 60000 }, async () => {
   await page.click(tid('lock'));

@@ -65,6 +65,18 @@ export const systemClock = Object.freeze({
 
 /** Said while one server's reverted receipt is being checked against BEAM. */
 const REVERT_SEEN = 'Your Ethereum server says Ethereum refused this lock, which would mean nothing was locked. A server can be wrong, so BEAM Campfire watches BEAM for it for 30 minutes before saying so.';
+/** A reverted lock at the end of the watch, when nothing on BEAM could be this move's alone. */
+const LOCK_FAILED = 'Ethereum refused the lock, and nothing reached BEAM in the 30 minutes after, so nothing was locked. Only its network fee was spent.';
+/** The same, when coins of its amount did reach BEAM but another move of this list may have sent them. */
+export const LOCK_FAILED_SHARED =
+  'Your Ethereum server says Ethereum refused the lock. Coins of this amount did reach BEAM, but another of your moves may have sent them, so they are not counted here: if any are listed under "Waiting for you on BEAM", collect them there.';
+/**
+ * How long a lock its server called reverted can still be the one behind a message on BEAM (had the
+ * server lied, its message arrived long before): until then it counts as a possible owner.
+ */
+const RIVAL_MS = 24 * 60 * 60 * 1000;
+/** A lock whose receipt names a message another record already follows (release audit BM-3). */
+const HANDED_OVER = 'Ethereum names the bridge message of this lock, and another move in this list already follows it: its coins are collected there, once. Nothing is lost, and nothing more happens here.';
 
 const STORAGE_FAILED = (sym) => `Campfire could not write to this device's storage, so it did not send your ${sym}. Nothing was moved.`;
 const ELSEWHERE = 'Collected outside this screen (on another device with the same wallet, perhaps).';
@@ -859,12 +871,13 @@ export class BridgeController {
         if (!lock.success) {
           // One server's receipt, which a broken or lying server can make up. A lock that in fact
           // went through reaches BEAM within minutes: BEAM is watched for it for the delivery
-          // window before "nothing was locked" is said.
+          // window before "nothing was locked" is said. A message is taken by amount only when no
+          // other move of this list could have made it (release audit BM-3).
           const seen = c.revertSeenAt ?? now();
-          const m = await this.#incomingMatch(c, route);
-          if (m) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: m.msgId, height: lock.blockNumber, deliveredAt: now(), revertSeenAt: null, lastError: null }));
+          const look = await this.#incomingLook(c, route);
+          if (look.match) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: look.match.msgId, height: lock.blockNumber, deliveredAt: now(), revertSeenAt: null, lastError: null }));
           if (now() - seen >= TIMING.deliveryWaitMs) {
-            return [this.#ch(c, { state: STATES.lockFailed, lastError: 'Ethereum refused the lock, and nothing reached BEAM in the 30 minutes after, so nothing was locked. Only its network fee was spent.', height: lock.blockNumber, finishedAt: now() }), P.toBeamMs];
+            return [this.#ch(c, { state: STATES.lockFailed, lastError: look.shared ? LOCK_FAILED_SHARED : LOCK_FAILED, height: lock.blockNumber, finishedAt: now() }), P.toBeamMs];
           }
           return [c.revertSeenAt ? c : this.#ch(c, { revertSeenAt: seen, height: lock.blockNumber, lastError: REVERT_SEEN }), P.toBeamMs];
         }
@@ -872,16 +885,18 @@ export class BridgeController {
         try {
           checkUnique(locked, this.#records.values());
         } catch {
-          return [this.#ch(c, { state: STATES.unknown, height: lock.blockNumber, lastError: 'Ethereum names a bridge message another crossing already has. Campfire will not collect anything for this one.' }), P.toBeamMs];
+          // Another record follows that message (found waiting on BEAM, say): its coins are collected
+          // there. This one ends, rather than asking Ethereum the same question for ever.
+          return [this.#ch(c, { state: STATES.claimed, msgId: null, height: lock.blockNumber, lockedAt: now(), revertSeenAt: null, finishedAt: now(), lastError: HANDED_OVER }), P.toBeamMs];
         }
         return this.#stepToBeam(locked);
       }
       case STATES.unknown: {
         if (c.lockHash && c.msgId === null) return this.#stepToBeam(this.#ch(c, { state: STATES.locking }));
         if (c.msgId !== null) return [c, P.toBeamMs];
-        // No hash: look on BEAM for what the lock would have brought.
-        const m = await this.#incomingMatch(c, route);
-        if (m) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: m.msgId, deliveredAt: now(), lastError: null }));
+        // No hash: look on BEAM for what the lock would have brought (only one no other move could own).
+        const { match } = await this.#incomingLook(c, route);
+        if (match) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: match.msgId, deliveredAt: now(), lastError: null }));
         return [c, P.toBeamMs];
       }
       case STATES.locked:
@@ -923,11 +938,29 @@ export class BridgeController {
     }
   }
 
-  /** An unclaimed message for this wallet on BEAM that could be c's: c's amount, not another record's. */
-  async #incomingMatch(c, route) {
-    const taken = new Set([...this.#records.values()].filter((o) => o.id !== c.id && o.route === c.route && o.direction === c.direction && o.msgId !== null).map((o) => o.msgId));
-    for (const m of await this.beam.incoming(route)) if (m.amount === c.receives && !taken.has(m.msgId)) return m;
-    return null;
+  /**
+   * An unclaimed message for this wallet on BEAM that is c's by amount: {match, shared}. match: c's
+   * amount, not another record's, and no other move of this list could have made it (one of the
+   * same amount whose lock may have gone out and whose message is not known yet, or one ended as
+   * "nothing locked" on its server's word within RIVAL_MS: a receipt names its message, an amount
+   * does not; release audit BM-3). shared: such a message is there, but another move may own it,
+   * so it is left for "Waiting for you on BEAM".
+   */
+  async #incomingLook(c, route) {
+    const others = [...this.#records.values()].filter((o) => o.id !== c.id && o.route === c.route && o.direction === c.direction);
+    const taken = new Set(others.filter((o) => o.msgId !== null).map((o) => o.msgId));
+    const now = this.clock.now();
+    const mayOwn = (o) =>
+      (o.state === STATES.locking && o.lockHash !== null) ||
+      o.state === STATES.unknown ||
+      // Ended as "nothing locked" on one server's word: it may have lied.
+      (o.state === STATES.lockFailed && o.revertSeenAt !== null && now - o.revertSeenAt < RIVAL_MS);
+    const rival = others.some((o) => o.msgId === null && o.receives === c.receives && mayOwn(o));
+    for (const m of await this.beam.incoming(route)) {
+      if (m.amount !== c.receives || taken.has(m.msgId)) continue;
+      return rival ? { match: null, shared: true } : { match: m, shared: false };
+    }
+    return { match: null, shared: false };
   }
 
   #claimDidNotGo(c, why) {

@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { copySecret, clearSecretClipboard, secretOnClipboard } from '../../src/lib/ui.js';
+import { copySecret, copyText, clearSecretClipboard, secretOnClipboard } from '../../src/lib/ui.js';
 
 const src = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -116,4 +116,27 @@ test('the screens copy keys and codes with copySecret (and the lock clears them)
     assert.ok(!/copyText\(/.test(t), f);
   }
   for (const f of ['screens/backup.js', 'screens/eth_words.js', 'screens/confirm_words.js']) assert.ok(!/copy(Text|Secret)\(|clipboard/.test(readFileSync(join(src, f), 'utf8')), f);
+});
+
+test('BM-5: something copied since (an address, with copyText) cancels the wipe: it is never emptied later', async () => {
+  const e = env();
+  await copySecret('OWNERKEY', 'Owner key copied', { clearMs: 30, nav: e.nav, doc: e.doc, win: e.win, say: e.say });
+  assert.equal(secretOnClipboard(), true);
+  assert.equal(await copyText('0x70997970C51812dc3A010C7d01b50e0d17dc79C8', 'Address copied', { nav: e.nav, say: e.say }), true);
+  assert.equal(e.said.at(-1), 'Address copied');
+  assert.equal(secretOnClipboard(), false, 'nothing waits to be emptied');
+  assert.equal(e.count(), 0, 'every listener removed');
+  await sleep(120);
+  e.fire('pointerdown');
+  assert.equal(e.clip, '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', 'the address is still there to paste');
+  // A copy that fails leaves the secret where it was: its wipe still runs.
+  const f = env();
+  await copySecret('CODE-1234', 'Code copied', { clearMs: 30, nav: f.nav, doc: f.doc, win: f.win, say: f.say });
+  f.focused = false;
+  assert.equal(await copyText('0xabc', 'Address copied', { nav: f.nav, say: f.say }), false);
+  assert.equal(secretOnClipboard(), true);
+  f.focused = true;
+  await sleep(120);
+  assert.equal(f.clip, '');
+  assert.equal(secretOnClipboard(), false);
 });

@@ -434,13 +434,26 @@ test('6. deleting B (not open) leaves A and C exactly as they were: files and re
   await page.evaluate(() => window.__campfire.go('wallets'));
   await waitScreen(page, 'wallets');
   await page.click('[data-testid="wallet-row"][data-name="Spending"]');
+  // B keeps saved airdrop codes and a purchase (sealed: B is not open, so they can only be seen, not opened).
+  await page.evaluate(async (id) => {
+    const { rawStore } = await import(new URL('lib/store.js', location.href).href);
+    await rawStore.set(`w:${id}:airdropCodes`, { v: 2, walletId: id, kdf: 'hkdf-sha256', salt: 'AAAA', iv: 'AAAA', ct: 'AAAA' });
+    await rawStore.set(`w:${id}:buybeam`, { v: 1, kind: 'buybeam-orders', walletId: id, kdf: 'hkdf-sha256', salt: 'AAAA', iv: 'AAAA', ct: 'AAAA' });
+  }, W.B.id);
   await page.click(tid('wallet-delete'));
   await waitScreen(page, 'deleteWallet');
   await page.waitForSelector(tid('delete-others'));
   assert.match(await page.textContent(tid('delete-what')), /removes Spending/);
   assert.match(await page.textContent(tid('delete-others')), /Only Spending is deleted\. Your other 2 wallets stay as they are\./);
+  // BM-4: what may still be under way is said, and Delete waits for "Delete anyway".
+  await page.waitForSelector(tid('delete-in-flight'));
+  assert.equal(await page.getAttribute(tid('delete-in-flight'), 'data-kinds'), 'airdrop buy');
+  assert.match(await page.textContent(tid('delete-in-flight-unseen')), /saved airdrop codes and purchases at buybeam\.my, the only record of any still under way\. BEAM Campfire can't look inside them without the wallet's password/);
+  assert.equal(await page.isVisible('[data-testid^="delete-way-"]'), false, 'not open: no way in from here');
   await both(page, 'mw-08-delete-one');
   await page.fill(tid('delete-confirm'), 'DELETE');
+  assert.equal(await page.isDisabled(tid('delete-submit')), true, 'typed, not yet ticked');
+  await page.check(tid('delete-flight-ack'));
   await page.click(tid('delete-submit'));
   await waitScreen(page, 'wallets', 60000);
   await page.waitForFunction(() => document.querySelectorAll('[data-testid="wallet-row"]').length === 2, null, { timeout: 30000 });
@@ -463,13 +476,40 @@ test('6. deleting B (not open) leaves A and C exactly as they were: files and re
 });
 
 test('7. deleting the open wallet brings the other up locked, and it opens', { timeout: 5 * 60000 }, async () => {
+  // BM-4, BC-6: Savings (open) keeps an open bridge move, a batch of airdrop codes nobody claimed
+  // and a purchase under way, sealed as the app writes them; nothing is sent anywhere.
+  await page.evaluate(async () => {
+    const at = (p) => new URL(p, location.href).href;
+    const { app } = await import(at('app.js'));
+    const { walletStore } = await import(at('lib/wallets.js'));
+    const { bridgeStoreFor, makeCrossing, STATES } = await import(at('lib/bridge/store.js'));
+    const { codeVault, codeHash, AIRDROP_CID } = await import(at('lib/airdrop.js'));
+    const { sealedBuyStore, makeOrder } = await import(at('lib/buy/store.js'));
+    const kv = walletStore(app.record);
+    const now = Date.now();
+    await bridgeStoreFor(app, kv).save(makeCrossing({ id: 'e2e-move', route: 'eth', direction: 'toBeam', state: STATES.delivered, amount: 10n ** 16n, receives: 1000000n, relayerFee: 3000000000000n, beamNetworkFee: 12100000n, beamWalletId: app.record.id, ethWalletId: 'e2e', ethAddress: '0x7a3e5b1c2d4f6e8a9b0c1d2e3f4a5b6c7d8e91c4', msgId: 999999, createdAt: now, updatedAt: now }));
+    const code = 'ABCD-EFGH-JKLM-NPQR';
+    await codeVault({ kv, walletId: app.record.id, secret: app.dbPass, imported: Boolean(app.record.imported) }).put({ localId: 'e2e-batch', contractId: AIRDROP_CID, assetId: 0, createdAt: new Date(now).toISOString(), txId: null, txStatus: 'confirmed', codes: [{ code, hash: await codeHash(code), value: '100000', status: 'available' }] });
+    await sealedBuyStore(app, { kv }).save(makeOrder({ depositAddress: 'bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx2s', assetId: 'coin:btc', symbol: 'BTC', chain: 'btc', decimals: 8, sendAmount: '0.0123', sendAmountRaw: 1230000n, beamAddress: `${'1'.repeat(64)}aa`, beamWalletId: app.record.id, refundAddress: 'bc1qfake0refund0address0for0tests0only00000', createdAt: now, lastState: 'awaiting_deposit' }));
+  });
   await page.evaluate(() => window.__campfire.go('settings'));
   await waitScreen(page, 'settings');
   await page.click(tid('delete-wallet'));
   await waitScreen(page, 'deleteWallet');
   await page.waitForSelector(tid('delete-others'));
   assert.match(await page.textContent(tid('delete-others')), /Only Savings is deleted\. Your other wallet stays as it is\./);
+  await page.waitForSelector(tid('delete-in-flight'));
+  assert.equal(await page.getAttribute(tid('delete-in-flight'), 'data-kinds'), 'bridge airdrop buy');
+  const said = await page.$$eval(`${tid('delete-in-flight')} li`, (els) => els.map((e) => e.textContent));
+  assert.match(said[0], /^1 bridge move still under way\. The coins are not lost/);
+  assert.match(said[1], /^1 airdrop batch with codes that may not all be claimed\. The codes are kept only here: save them as a CSV file first/);
+  assert.match(said[2], /^1 purchase at buybeam\.my still under way\. Its deposit address is kept only here/);
+  assert.deepEqual(await page.$$eval('[data-testid^="delete-way-"]', (els) => els.map((e) => e.textContent)), ['Bridge moves', 'My batches', 'Purchases']);
+  await both(page, 'mw-09-delete-in-flight');
   await page.fill(tid('delete-confirm'), 'DELETE');
+  assert.equal(await page.isDisabled(tid('delete-submit')), true, 'typed, not yet ticked');
+  await page.check(tid('delete-flight-ack'));
+  assert.equal(await page.isDisabled(tid('delete-submit')), false);
   await page.click(tid('delete-submit'));
   await waitScreen(page, 'unlock', 60000);
   assert.match(await page.textContent(tid('deleted-notice')), /Savings was deleted from this device/);

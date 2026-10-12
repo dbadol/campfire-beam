@@ -436,9 +436,10 @@ test('relayer gas: eth_feeHistory(0xa, latest, [50]); no answer or a useless one
   assert.equal(gas.at, 12345);
   chain.feeHistory = () => ({ baseFeePerGas: [] });
   await assert.rejects(service(chain).relayerGas(), code('noPrice'));
-  // D-2: base fees Ethereum cannot have (5,000 gwei, or a jump between blocks) are no price either.
+  // D-2: base fees far above what BEAM Campfire pays (5,000 gwei; BM-6: Ethereum has charged that,
+  // for minutes, so it is not called impossible), or a jump between blocks, are no price either.
   chain.feeHistory = () => ({ baseFeePerGas: Array(11).fill('0x48c27395000'), reward: Array(10).fill(['0x3b9aca00']) });
-  await assert.rejects(service(chain).relayerGas(), (e) => e.code === 'noPrice' && /cannot be Ethereum's \(a base fee of 5000 gwei\)/.test(e.message));
+  await assert.rejects(service(chain).relayerGas(), (e) => e.code === 'noPrice' && e.message === "Your Ethereum server says Ethereum's gas price is a base fee of 5000 gwei, far above anything BEAM Campfire will pay.");
   chain.feeHistory = () => ({ baseFeePerGas: [...Array(10).fill('0x3b9aca00'), '0x77359400'], reward: Array(10).fill(['0x3b9aca00']) });
   await assert.rejects(service(chain).relayerGas(), (e) => e.code === 'noPrice' && /jump/.test(e.message));
   chain.down = true;
@@ -698,4 +699,31 @@ test("isPaid reads the pipe's map at the route's slot; a value a bool never has 
   await assert.rejects(s.isPaid(beam, 639), code('badPipe'));
   chain.down = true;
   await assert.rejects(s.isPaid(beam, 639), code('network'));
+});
+
+test('sign (BM-1): while the wallet has a transaction in doubt, nothing is asked and the key is never opened', async () => {
+  const { sk, address } = await ethKeyFromMnemonic(JUNK);
+  const owner = address.toLowerCase();
+  const chain = lockChain({ owner });
+  let keyUses = 0;
+  const withKey = async (fn) => {
+    keyUses++;
+    return fn({ sk: Uint8Array.from(sk), address });
+  };
+  const doubt = Object.assign(new Error('Your payment of 0.01 ETH to 0x7099…79C8 is "Not sure yet".'), { code: 'in_doubt' });
+  let inDoubt = true;
+  const s = new EthPipe({ rpc: chain.rpc(), owner, withKey, maySign: async () => {
+    if (inDoubt) throw doubt;
+  } });
+  const plan = await s.planLock(eth, { value: 10n ** 16n, fee: 10n ** 12n, receiverKey: refKey });
+  const asked = chain.requests.length;
+  await assert.rejects(s.sign(plan.steps[0]), (e) => e === doubt);
+  assert.equal(chain.requests.length, asked, 'no freeze check, no chain id, no nonce');
+  assert.equal(keyUses, 0);
+  // Settled: a new plan is signed as before.
+  inDoubt = false;
+  const plan2 = await s.planLock(eth, { value: 10n ** 16n, fee: 10n ** 12n, receiverKey: refKey });
+  const signed = await s.sign(plan2.steps[0]);
+  assert.equal(parseSignedTransaction(signed.raw).from.toLowerCase(), owner);
+  assert.equal(keyUses, 1);
 });

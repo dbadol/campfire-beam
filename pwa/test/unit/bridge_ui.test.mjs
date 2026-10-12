@@ -182,3 +182,23 @@ test('the lock screen says where a move is, never its amount or address', () => 
   assert.equal(lockedNote(crossing({ route: 'eth', direction: 'toBeam', state: STATES.delivered, receives: 1000000n, amount: E18 / 100n, relayerFee: 1n, beamNetworkFee: CLAIM_FEE })), 'Your move to BEAM is ready to collect.');
   assert.equal(lockedNote(crossing({ state: STATES.paid })), null);
 });
+
+test('BM-3: a move whose message another move follows says so, and that nothing is lost', async () => {
+  const toBeam = { route: 'eth', direction: 'toBeam', amount: E18 / 100n, receives: 1000000n, relayerFee: 3000000000000n, beamNetworkFee: CLAIM_FEE, height: 26156200 };
+  const lastError = 'Ethereum names the bridge message of this lock, and another move in this list already follows it: its coins are collected there, once. Nothing is lost, and nothing more happens here.';
+  const c = crossing({ ...toBeam, state: STATES.claimed, msgId: null, lockHash: `0x${'02'.repeat(32)}`, finishedAt: Date.now(), lastError });
+  const w = crossingWords(c);
+  assert.deepEqual([w.title, w.short, w.mood, w.needsYou], ['Followed by another move', 'Under another move', 'success', false]);
+  assert.equal(w.detail, lastError);
+  assert.deepEqual(crossingSteps(c).map((x) => [x.label, x.status]), [
+    ['Sent to the bridge on Ethereum', 'done'],
+    ['Followed by another move in this list', 'done'],
+  ]);
+  // Refused on one server's word while coins of its amount reached BEAM that another move may own.
+  const { LOCK_FAILED_SHARED } = await import('../../src/lib/bridge/controller.js');
+  const shared = crossingWords(crossing({ ...toBeam, state: STATES.lockFailed, msgId: null, lockHash: `0x${'03'.repeat(32)}`, revertSeenAt: Date.now(), lastError: LOCK_FAILED_SHARED }));
+  assert.deepEqual([shared.title, shared.short, shared.mood], ['Refused, says your Ethereum server', 'Check Waiting for you', 'warning']);
+  assert.match(shared.detail, /collect them there\.$/);
+  // A move collected the usual way keeps its words.
+  assert.equal(crossingWords(crossing({ ...toBeam, state: STATES.claimed, msgId: 9 })).title, '0.01 bETH is in your BEAM wallet');
+});
