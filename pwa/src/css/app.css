@@ -326,6 +326,10 @@ details.more[open] summary { margin-bottom: 6px; }
 /* Welcome: three choices fit a 375 x 667 screen; a smaller hero when the Home Screen guide shows. */
 .welcome .hero { padding-top: 12px; }
 .hero.compact { gap: 4px; padding: 4px 0 0; }
+/* One tab at a time (screens/one_tab.js): a sentence for a title, so a little smaller than the name. */
+.one-tab .hero { padding-top: 40px; gap: 12px; }
+.one-tab .hero h1 { font-size: 24px; line-height: 1.25; text-wrap: balance; }
+.one-tab .hero p, .one-tab .actions .small { text-wrap: balance; }
 .hero.compact img { width: 40px; height: 47px; }
 .hero.compact h1 { font-size: 24px; margin-top: 2px; }
 .hero.compact p { font-size: 15px; }

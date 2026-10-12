@@ -32,6 +32,7 @@ import { isSplitTx, readAllCoins, parseCoin, privateReady, PRIVATE_LIMIT_HOURS }
 import { listOwn, expiresAtMs, cleanLabel } from './addresses.js';
 import { txWatcher, wordsFor, settingsOf, leavingEvents, remindersFor, plainReminders, dueReminders, awaySummary, snapshotOf, awayLine, underway } from './notify_rules.js';
 import { randomBytes, b64, unb64, dbPassKey, dbPassKdf, KDF_PBKDF2, PBKDF2_MIN_ITERATIONS, PBKDF2_MAX_ITERATIONS } from './envelope.js';
+import { oneTab } from './one_tab.js';
 
 export const SYNC_TAG = 'campfire-reminders';
 const ICON = 'icons/icon-192.png';
@@ -479,13 +480,17 @@ export async function forgetPlainNotes(kv = rawStore) {
 
 export function installNotify(app) {
   appRef = app;
-  if (typeof indexedDB !== 'undefined') forgetPlainNotes().catch(() => {});
   if (app.lockHooks) app.lockHooks.add(forgetSnapshotKeys);
-  // An earlier release asked for wake-ups by itself; now only the switch does.
-  rawStore
-    .get('prefs')
-    .then((p) => (wakeUpsWanted(p) ? null : dropWakeUps()))
-    .catch(() => {});
+  // Start-up tidying that touches the app's store: only in the tab that holds the wallet
+  // (lib/one_tab.js), once it does; a second tab opens no storage at all.
+  oneTab().whenHeld(() => {
+    if (typeof indexedDB !== 'undefined') forgetPlainNotes().catch(() => {});
+    // An earlier release asked for wake-ups by itself; now only the switch does.
+    rawStore
+      .get('prefs')
+      .then((p) => (wakeUpsWanted(p) ? null : dropWakeUps()))
+      .catch(() => {});
+  });
   const watch = txWatcher();
   const run = catchUp();
   let summarised = false;
