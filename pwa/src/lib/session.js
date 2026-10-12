@@ -11,6 +11,7 @@ import { refreshPersistence } from './storage.js';
 import { listWallets, placeFor, saveRecord, dbPathOf, nextName, cleanName, nameProblem, closeOpenWallet, loadPrefs, rememberOpened, removeWallet } from './wallets.js';
 import { passwordWeakness, MIN_PASSWORD } from './password_strength.js';
 import { refuseOnSharedOrigin } from './shared_origin.js';
+import { oneTab } from './one_tab.js';
 
 const setWalletRecord = (r) => saveRecord(r);
 
@@ -81,13 +82,16 @@ export async function createWallet(app, password) {
     // history; a new seed has none, so it starts at the tip without scanning).
     const restored = setup.mode === 'restore';
     const record = { id, name, createdAt: Date.now(), restored, scan: restored, envelopes: { password: envelope, passkey: null }, setupDone: false, slot0 };
-    await createWalletDb(words, dbPass, dbPathOf(record));
-    try {
-      await saveRecord(record);
-    } catch (e) {
-      await deleteWalletDb(dbPathOf(record)).catch(() => {});
-      throw e;
-    }
+    // The file and its record: a hand-over to another tab waits for both (re-audit RE1-5).
+    await oneTab().whileBusy(async () => {
+      await createWalletDb(words, dbPass, dbPathOf(record));
+      try {
+        await saveRecord(record);
+      } catch (e) {
+        await deleteWalletDb(dbPathOf(record)).catch(() => {});
+        throw e;
+      }
+    });
     if (setup.words) setup.words.fill('');
     setup.words = null;
     await opened(app, record, dbPass);
@@ -135,13 +139,16 @@ export async function importWallet(app, password) {
   await closeCurrent(app);
   const { slot0, name } = await placeNewWallet(app);
   const record = { ...importedRecord(id, envelope), name, slot0 };
-  await adoptImport(dbPathOf(record));
-  try {
-    await saveRecord(record);
-  } catch (e) {
-    await deleteWalletDb(dbPathOf(record)).catch(() => {});
-    throw e;
-  }
+  // The file and its record: a hand-over to another tab waits for both (re-audit RE1-5).
+  await oneTab().whileBusy(async () => {
+    await adoptImport(dbPathOf(record));
+    try {
+      await saveRecord(record);
+    } catch (e) {
+      await deleteWalletDb(dbPathOf(record)).catch(() => {});
+      throw e;
+    }
+  });
   app.setup = null;
   await opened(app, record, password);
   await refreshPersistence(app, { request: true });

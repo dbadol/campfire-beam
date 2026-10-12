@@ -257,10 +257,12 @@ export const app = {
    */
   leftForOtherTab(how) {
     if (how === 'away') return location.reload();
-    if (how === 'stolen' || how === 'unchecked') {
+    // A create or import that finished just before the hand-over may have opened its wallet after
+    // the lock ran (lib/session.js): nothing of it stays here.
+    this.dbPass = null;
+    this.setup = null;
+    if (how !== 'handed') {
       // Nothing is saved from here any more (lib/engine.js refuses the flush): just stop.
-      this.dbPass = null;
-      this.setup = null;
       this.nav.clear();
       this.runLockHooks();
       wallet.stop().catch(() => {});

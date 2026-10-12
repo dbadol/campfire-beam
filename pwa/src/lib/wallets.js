@@ -25,6 +25,7 @@
 import { rawStore, getPrefs, setPrefs, DEFAULT_PREFS } from './store.js';
 import { DB_DIR, DB_PATH, useWalletPath, deleteWalletDb } from './engine.js';
 import { setTheme } from './theme.js';
+import { oneTab } from './one_tab.js';
 import { WALLET_PREFIX, WALLET_KEYS, WALLET_KEY_PREFIXES, WALLET_PREF_KEYS, prefixOf, isWalletId, inSlot0, setScopeRecord, runRemovedHooks } from './wallet_scope.js';
 
 export { walletKey, walletStore, onWalletRemoved, WALLET_PREF_KEYS } from './wallet_scope.js';
@@ -312,9 +313,12 @@ export async function removeWallet(app, target, { kv = rawStore, deleteDb = dele
   if (selected || running) await app.wallet.stop();
   const gone = list.find((r) => r.id === target.id);
   const passkey = gone && gone.envelopes && gone.envelopes.passkey;
-  await deleteDb(dbPathOf(target));
-  if (others.length) await kv.batch(await removalOps(target, kv));
-  else await kv.clear();
+  // The file and the keys: a hand-over to another tab waits for both (re-audit RE1-6).
+  await oneTab().whileBusy(async () => {
+    await deleteDb(dbPathOf(target));
+    if (others.length) await kv.batch(await removalOps(target, kv));
+    else await kv.clear();
+  });
   await runRemovedHooks(target.id);
   if (passkey && typeof passkey.credId === 'string') await quietly(() => signal(passkey.credId));
   await quietly(closeNotifications);

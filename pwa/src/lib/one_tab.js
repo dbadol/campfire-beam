@@ -22,6 +22,10 @@
 // A page that let go or lost the lock is spent: it reloads before it can hold the wallet again
 // (its memory still has the old copy of the files).
 //
+// A hand-over waits for a step whose parts must not be split (whileBusy: a new or imported wallet's
+// file and its record, a deleted wallet's file and its keys; re-audit RE1-5, RE1-6), within the same
+// LET_GO_CAP_MS.
+//
 // The lookup fails closed (re-audit RE1-1): a lock manager that rejects query(), or lists the lock
 // without a clientId, cannot tell this page whether the lock is still its own, so the page does not
 // hold the wallet (how: 'unchecked'): it runs no wallet, lets the lock go and asks the person to
@@ -107,6 +111,7 @@ export class OneTab {
     Object.assign(this, { win, setTimer, clearTimer, now, id, noAnswerMs, slowMs, capMs, presenceMs, ttlMs, awayGraceMs, strictIdle });
     this.state = 'idle';
     this.how = null; // why it is gone: 'handed' | 'stolen' | 'unchecked' (the lock could not be looked up) | 'away' (back/forward cache)
+    this.busy = new Set(); // steps a hand-over waits for (whileBusy)
     this.unchecked = false; // a lookup could not be made: the next loss is said as 'unchecked'
     this.awayAt = null; // without Web Locks: when this holding page went into the back/forward cache
     this.spent = false; // let go once: never writes or opens a wallet again in this page
@@ -201,6 +206,31 @@ export class OneTab {
   whenHeld(fn) {
     if (this.holds() && !this.spent) return void fn();
     this.heldWaiters.push(fn);
+  }
+
+  /**
+   * Runs fn() so that a hand-over to another tab first waits for it (bounded by LET_GO_CAP_MS): a
+   * step whose parts must not be split, such as a wallet's file and its record. Returns fn's result.
+   */
+  whileBusy(fn) {
+    let p;
+    try {
+      p = Promise.resolve(fn());
+    } catch (e) {
+      p = Promise.reject(e);
+    }
+    const done = p.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.busy.add(done);
+    done.then(() => this.busy.delete(done));
+    return p;
+  }
+
+  /** Resolves once no whileBusy step is running. */
+  async settled() {
+    while (this.busy.size) await Promise.all([...this.busy]);
   }
 
   /** fn(): locks the wallet and saves; called when another tab asks for it. Resolves when done. */
@@ -425,12 +455,25 @@ export class OneTab {
     // and nothing may be saved - the other tab's data is newer.
     if (!(await this.lookUp())) return this.lost();
     this.post('letting-go');
-    if (this.letGoHandler) {
+    let capped = false;
+    if (this.letGoHandler || this.busy.size) {
       let timer = null;
+      // First what must not be split (a wallet's file and its record), then lock and save; the cap
+      // bounds both. Past the cap nothing more of it runs as part of the hand-over.
+      const work = (async () => {
+        await this.settled();
+        if (this.state === 'letting-go' && !capped && this.letGoHandler) await this.letGoHandler();
+      })().catch((e) => console.warn('[campfire] one tab: locking for the other tab', e && e.message));
       try {
-        await Promise.race([Promise.resolve().then(() => this.letGoHandler()), new Promise((r) => (timer = this.setTimer(r, this.capMs)))]);
-      } catch (e) {
-        console.warn('[campfire] one tab: locking for the other tab', e && e.message);
+        await Promise.race([
+          work,
+          new Promise((r) => {
+            timer = this.setTimer(() => {
+              capped = true;
+              r();
+            }, this.capMs);
+          }),
+        ]);
       } finally {
         this.clearTimer(timer);
       }

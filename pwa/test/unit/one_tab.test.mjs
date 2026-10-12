@@ -302,6 +302,53 @@ test('after a steal, handing over again goes to the tab that asks, and the steal
   assert.equal(c.canOpen(), true);
 });
 
+test('a hand-over waits for a step that must not be split, then locks and saves; the asking tab gets the wallet after both', async () => {
+  const { lm, tab } = browser();
+  const a = tab({ capMs: 2000 });
+  const b = tab();
+  const events = [];
+  a.onLetGo(async () => {
+    events.push(['locks and saves', await a.confirmWrite()]);
+  });
+  await a.claim();
+  await b.claim();
+  let finish;
+  const step = a.whileBusy(async () => {
+    events.push('file');
+    await new Promise((r) => (finish = r));
+    events.push(['record', await a.confirmWrite()]);
+    return 'made';
+  });
+  const done = b.takeOver();
+  await sleep(30);
+  assert.equal(a.state, 'letting-go');
+  assert.equal(lm.holder, a.lockClient.clientId, 'not handed over in the middle of the step');
+  assert.deepEqual(events, ['file']);
+  finish();
+  assert.equal(await step, 'made', 'whileBusy gives back what the step returns');
+  assert.equal(await done, 'held');
+  assert.deepEqual(events, ['file', ['record', true], ['locks and saves', true]], 'the record was written while this tab still held the wallet');
+  assert.equal(a.how, 'handed');
+  assert.equal(a.busy.size, 0);
+});
+
+test('a step that fails still lets the hand-over go on; whileBusy passes the failure on', async () => {
+  const { tab } = browser();
+  const a = tab();
+  const b = tab();
+  a.onLetGo(async () => {});
+  await a.claim();
+  await b.claim();
+  const step = a.whileBusy(async () => {
+    await sleep(10);
+    throw new Error('storage refused');
+  });
+  const done = b.takeOver();
+  await assert.rejects(step, /storage refused/);
+  assert.equal(await done, 'held');
+  assert.equal(a.how, 'handed');
+});
+
 test('the holder answers but locking takes long: "Take over anyway" waits for the longer time', async () => {
   const { tab } = browser();
   const a = tab({ capMs: 2000 });
