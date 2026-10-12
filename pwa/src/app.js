@@ -14,6 +14,7 @@ import { refreshPersistence } from './lib/storage.js';
 import { reconcileOwnNode } from './lib/own_node.js';
 import { BUILT, APP_VERSION } from './lib/version.js';
 import { toast, canAutofocus } from './lib/ui.js';
+import { installAutoLock } from './lib/auto_lock.js';
 
 import welcome from './screens/welcome.js';
 import backup from './screens/backup.js';
@@ -255,20 +256,8 @@ installConsent(app);
 // A banner (and, when allowed, a system notification) when a payment arrives while the app is open.
 installPaymentNotices(app);
 
-window.addEventListener('pointerdown', () => app.touch(), { passive: true });
-window.addEventListener('keydown', () => app.touch(), { passive: true });
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') {
-    app.hiddenAt = Date.now();
-  } else {
-    if (app.hiddenAt && Date.now() - app.hiddenAt >= app.autoLockMs() && app.lockAllowedNow()) app.lock('timeout');
-    app.hiddenAt = null;
-    app.touch();
-  }
-});
-setInterval(() => {
-  if (document.visibilityState === 'visible' && Date.now() - app.lastActivity >= app.autoLockMs() && app.lockAllowedNow()) app.lock('timeout');
-}, 15000);
+// Auto-lock, on screen and out of sight (lib/auto_lock.js): out of sight it locks there and then.
+installAutoLock(app);
 
 async function boot() {
   if (BUILT && swSupported()) {
