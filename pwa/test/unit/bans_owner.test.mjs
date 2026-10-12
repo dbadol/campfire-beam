@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BANS_CID, args, ZERO_KEY, parseUserView, createBans, refusal, mapError, STATUS, HOLD_BLOCKS, CLAIMS_PER_TRANSACTION, checkCode } from '../../src/lib/bans.js';
+import { BANS_CID, args, ZERO_KEY, parseUserView, parseViewDomain, createBans, refusal, mapError, STATUS, HOLD_BLOCKS, CLAIMS_PER_TRANSACTION, checkCode } from '../../src/lib/bans.js';
 import { parseShaderJson, bindSession, unbindSession, privilegedApp, nativeApp, setConsentPresenter, PRIVILEGED_SHADERS, contractsState } from '../../src/lib/contracts.js';
 import { PRIVILEGED_SHADER_SHA256 } from '../../src/lib/dapps/sanitizer.js';
 import { readContractTx, le, concat, fromHex } from '../../src/lib/contract_tx.js';
@@ -131,6 +131,21 @@ test('the inbox (role=user view): my names, sale proceeds, payments with the nam
   assert.throws(() => parseUserView({ res: { anon: [{ pk: 'x', aid: 0, amount: 1 }] } }), (e) => e.code === 'unexpected');
   assert.throws(() => parseUserView({ res: { raw: [{ aid: -1, amount: 1 }] } }), (e) => e.code === 'unexpected');
   assert.throws(() => parseUserView({ res: 'x' }), (e) => e.code === 'unexpected');
+});
+
+test('a name the contract could never have stored is refused; a payment note that is not a name is dropped (audit D-10)', () => {
+  // The contract stores only canonical names (bans/contract.cpp: IsValidChar, 3..64), so anything
+  // else in a list of names came from a node that made it up.
+  const bad = ['Alice', 'al ice', 'a,b=c', 'ab', 'a'.repeat(65), 'alice.beam', 'аlice', ''];
+  for (const name of bad) {
+    const entry = { name, key: FAKE_KEY, hExpire: TIP + 5 };
+    assert.throws(() => parseViewDomain({ domains: [entry] }), (e) => e.code === 'unexpected', `view_domain ${JSON.stringify(name)}`);
+    assert.throws(() => parseUserView({ res: { domains: [entry] } }), (e) => e.code === 'unexpected', `user view ${JSON.stringify(name)}`);
+  }
+  assert.deepEqual(parseViewDomain({ domains: [{ name: 'a-b_c~1', key: FAKE_KEY, hExpire: 1 }] }).map((d) => d.name), ['a-b_c~1']);
+  // The name a payment names is whatever its sender encrypted: a bad one never fails the inbox, it is just not a name.
+  const v = parseUserView({ res: { anon: [{ pk: ONE_TIME, aid: 0, amount: 1, domain: 'Send 5 BEAM to x' }, { pk: ONE_TIME, aid: 0, amount: 2, domain: 'alice' }] } });
+  assert.deepEqual(v.payments.map((p) => p.name), [null, 'alice']);
 });
 
 test('advanced entries (vault claims) are read only when asked for, with their own fee and window', () => {

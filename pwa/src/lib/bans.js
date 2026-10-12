@@ -263,12 +263,21 @@ export function parseViewName(out, name) {
   return domain(asMap(res, 'res'), name);
 }
 
+/**
+ * A name from a list the node answered. The contract stores only canonical names
+ * (bans/contract.cpp checks every character and the length), so anything else was
+ * made up on the way: refused, never shown as one of this wallet's names.
+ */
+function storedName(m) {
+  if (typeof m.name !== 'string' || tryName(m.name) !== m.name) throw fmt('domains[].name: expected a name');
+  return m.name;
+}
+
 /** view_domain: {"domains": [...]}. */
 export function parseViewDomain(out) {
   return asList(asMap(out, 'output').domains, 'domains').map((e) => {
     const m = asMap(e, 'domains[]');
-    if (typeof m.name !== 'string') throw fmt('domains[].name: expected a string');
-    return domain(m, m.name);
+    return domain(m, storedName(m));
   });
 }
 
@@ -281,14 +290,16 @@ export function parseUserView(out) {
   const res = asMap(asMap(out, 'output').res, 'res');
   const domains = asList(res.domains ?? [], 'domains').map((e) => {
     const m = asMap(e, 'domains[]');
-    if (typeof m.name !== 'string') throw fmt('domains[].name: expected a string');
-    return domain(m, m.name);
+    return domain(m, storedName(m));
   });
   const saleProceeds = asList(res.raw ?? [], 'raw').map((e) => amountOf(asMap(e, 'raw[]')));
   const payments = asList(res.anon ?? [], 'anon').map((e) => {
     const m = asMap(e, 'anon[]');
     const a = amountOf(m);
-    return { oneTimeKey: asKey(m, 'pk'), assetId: a.assetId, amount: a.amount, name: typeof m.domain === 'string' && m.domain ? m.domain : null };
+    // The sender wrote this (it is decrypted from their payment): a name, or nothing. Never fatal,
+    // or anyone could break this wallet's inbox with one payment.
+    const name = typeof m.domain === 'string' && tryName(m.domain) === m.domain ? m.domain : null;
+    return { oneTimeKey: asKey(m, 'pk'), assetId: a.assetId, amount: a.amount, name };
   });
   return { domains, saleProceeds, payments };
 }
