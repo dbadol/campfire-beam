@@ -199,6 +199,15 @@ test('BM-3: a move whose message another move follows says so, and that nothing 
   const shared = crossingWords(crossing({ ...toBeam, state: STATES.lockFailed, msgId: null, lockHash: `0x${'03'.repeat(32)}`, revertSeenAt: Date.now(), lastError: LOCK_FAILED_SHARED }));
   assert.deepEqual([shared.title, shared.short, shared.mood], ['Refused, says your Ethereum server', 'Check Waiting for you', 'warning']);
   assert.match(shared.detail, /collect them there\.$/);
+  // Re-audit RE2-3: once nothing of its amount waits for the person, the coins were another move's.
+  const { LOCK_FAILED_TAKEN, LOCK_REFUSED } = await import('../../src/lib/bridge/controller.js');
+  const taken = crossingWords(crossing({ ...toBeam, state: STATES.lockFailed, msgId: null, lockHash: `0x${'03'.repeat(32)}`, revertSeenAt: Date.now(), lastError: LOCK_FAILED_TAKEN }));
+  assert.deepEqual([taken.title, taken.short, taken.mood], ['Refused, says your Ethereum server', 'Refused', 'warning']);
+  assert.match(taken.detail, /turned out to be another move's/);
+  // A lock its server refused for the whole watch: the server's word, never "nothing was sent".
+  const refused = crossingWords(crossing({ ...toBeam, state: STATES.lockFailed, msgId: null, lockHash: `0x${'04'.repeat(32)}`, revertSeenAt: Date.now(), lastError: LOCK_REFUSED }));
+  assert.deepEqual([refused.title, refused.short, refused.mood], ['Refused by your Ethereum server', 'Not sent', 'error']);
+  assert.equal(refused.detail, LOCK_REFUSED);
   // A move collected the usual way keeps its words.
   assert.equal(crossingWords(crossing({ ...toBeam, state: STATES.claimed, msgId: 9 })).title, '0.01 bETH is in your BEAM wallet');
 });

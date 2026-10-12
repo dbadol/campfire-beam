@@ -4,7 +4,7 @@
 
 import { BEAM_DECIMALS, BEAM_CONFIRMATIONS, routeById } from '../lib/bridge/routes.js';
 import { STATES, DIRECTIONS, isOpen } from '../lib/bridge/store.js';
-import { LOCK_FAILED_SHARED } from '../lib/bridge/controller.js';
+import { LOCK_FAILED_SHARED, LOCK_FAILED_TAKEN, LOCK_REFUSED } from '../lib/bridge/controller.js';
 import { coin, exact, ago, sourceDecimals, sourceSymbol, destinationDecimals, destinationSymbol, destinationChain } from './bridge_text.js';
 
 /** mood: progress | success | warning | error; needsYou: it waits for the person (Collect), not for a chain. */
@@ -102,6 +102,10 @@ export function crossingWords(c, { blocksLeft = null, now = Date.now() } = {}) {
     case STATES.lockFailed:
       // Refused on one server's word while coins of its amount reached BEAM that another move may own.
       if (err === LOCK_FAILED_SHARED) return words('Refused, says your Ethereum server', err, 'Check Waiting for you', 'warning');
+      // ... whose coins turned out to be another move's (re-audit RE2-3).
+      if (err === LOCK_FAILED_TAKEN) return words('Refused, says your Ethereum server', err, 'Refused', 'warning');
+      // Refused for the whole watch: the server's word, as a refused payment (re-audit RE2-3).
+      if (err === LOCK_REFUSED) return words('Refused by your Ethereum server', err, 'Not sent', 'error');
       return words('Nothing was moved', err || `The bridge did not take your ${r.ethSymbol}.`, 'Not sent', 'error');
     case STATES.unknown:
       return words(

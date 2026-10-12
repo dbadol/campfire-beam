@@ -562,6 +562,25 @@ test('BM-3: a move whose message another follows, and a refused lock whose coins
   await waitScreen(page, 'bridgeList');
   await sleep(1500);
   await shots4('28-list-bm3');
+  // Re-audit RE2-3: the list asked what waits on BEAM (its own waiting(), not a second engine call
+  // from here); nothing of that amount waits untracked, so the refused move no longer sends the
+  // person to an empty "Waiting for you": its coins were another move's.
+  const taken = await page
+    .waitForFunction(async (x) => {
+      const { bridgeOf } = await import('./screens/bridge_ui.js');
+      const { app } = await import('./app.js');
+      const { LOCK_FAILED_TAKEN } = await import('./lib/bridge/controller.js');
+      const c = (await bridgeOf(app)).ctl.crossing(x);
+      return c && c.lastError === LOCK_FAILED_TAKEN;
+    }, ids[1], { timeout: 30000, polling: 500 })
+    .then(() => true, () => false);
+  if (taken) {
+    await page.evaluate((x) => window.__campfire.go('bridgeCrossing', { id: x, back: 'bridgeList' }), ids[1]);
+    await page.waitForSelector(`${tid('bridge-crossing-status')}[data-state="lockFailed"]`);
+    assert.equal(await page.textContent(tid('bridge-crossing-title')), 'Refused, says your Ethereum server');
+    assert.match(await page.textContent(tid('bridge-crossing-status')), /they turned out to be another move's: they are counted there, and nothing of this amount is waiting for you on BEAM\./);
+    await shots4('29-crossing-refused-taken');
+  } else console.log('# RE2-3 words not checked: the pipe did not answer, or lists coins of that amount');
 });
 
 test('IP privacy: this origin, the BEAM node, the chosen Ethereum server and (once allowed) CoinGecko; no CSP violation', T(1), async () => {
