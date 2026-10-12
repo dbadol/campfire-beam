@@ -113,7 +113,7 @@ test('watchLoader replays the early record: a takeover before the app started is
 // service worker (sw-b….js) is being installed" and stopped the wallet: a false alarm that trains
 // people to ignore the real one. The recorded move is expected in every window now, and checked
 // there the same way (the bytes at that name against the signed hash) once it takes over.
-async function otherWindowMoves({ record, install, takeOver = install, served }) {
+async function otherWindowMoves({ record, install, takeOver = install, served, firstWindowChecked = false, recordAge = 0 }) {
   const { createHash } = await import('node:crypto');
   const prev = { window: globalThis.window, navigator: Object.getOwnPropertyDescriptor(globalThis, 'navigator'), localStorage: globalThis.localStorage, fetch: globalThis.fetch, document: globalThis.document };
   const store = new Map();
@@ -139,14 +139,21 @@ async function otherWindowMoves({ record, install, takeOver = install, served })
     await watchLoader({ onIntrusion: (w) => (why = w), onMoved: () => moved++ });
     assert.equal(why, null, 'nothing yet');
     // Window 1, after the Update was approved and the address served the signed loader:
-    if (record) store.set('campfire-loader-check', JSON.stringify({ path: record, sha256: sha, at: Date.now() }));
+    if (record) store.set('campfire-loader-check', JSON.stringify({ path: record, sha256: sha, at: Date.now() - recordAge }));
     sw.install(`https://wallet.example/${install}`);
     await new Promise((r) => setTimeout(r, 10));
     const afterInstall = why;
+    // Re-audit RE2-4: window 1 took over first and its own check of the bytes has answered (the same
+    // shared record, the same address); this window's takeover is delivered after that.
+    let firstAnswer = null;
+    if (firstWindowChecked) {
+      const { checkMovedLoader } = await import(`../../src/lib/loader.js?window-one=${Date.now()}-${Math.random()}`);
+      firstAnswer = await checkMovedLoader(Date.now(), record);
+    }
     sw.controller = { scriptURL: `https://wallet.example/${takeOver}` };
     sw.fire('controllerchange');
     await new Promise((r) => setTimeout(r, 30));
-    return { afterInstall, why, moved, asked, record: store.get('campfire-loader-check') };
+    return { afterInstall, why, moved, asked, firstAnswer, record: store.get('campfire-loader-check') };
   } finally {
     globalThis.window = prev.window;
     if (prev.navigator) Object.defineProperty(globalThis, 'navigator', prev.navigator);
@@ -166,7 +173,25 @@ test('another window moving to the loader it recorded: no alarm here; checked on
   assert.equal(r.why, null, 'its takeover too, once its bytes check out');
   assert.equal(r.moved, 1, 'the page is told it moved (it reloads into the new release, or offers to)');
   assert.ok(r.asked.some((a) => a.url === `https://wallet.example/${B}` && a.sw === 'script'), 'the bytes at that name were checked the way the browser installs them');
-  assert.equal(r.record, undefined, 'one answer ends the check');
+  assert.ok(r.record, 'a good answer keeps the record for the other windows (a day at most)');
+});
+
+test('re-audit RE2-4: a window whose takeover arrives after the first window\'s check answered is not alarmed; it checks the same signed hash', async () => {
+  const r = await otherWindowMoves({ record: B, install: B, served: 'signed', firstWindowChecked: true });
+  assert.equal(r.firstAnswer, 'same', "window 1's check answered");
+  assert.equal(r.afterInstall, null);
+  assert.equal(r.why, null, 'no "the service worker controlling this page changed"');
+  assert.equal(r.moved, 1);
+  assert.equal(r.asked.filter((a) => a.url === `https://wallet.example/${B}`).length, 2, 'each window checked the bytes itself');
+  // Other bytes: the first window's answer ends the record, and the late window still alarms.
+  const bad = await otherWindowMoves({ record: B, install: B, served: 'other', firstWindowChecked: true });
+  assert.equal(bad.firstAnswer, 'other');
+  assert.equal(bad.record, undefined, 'an answer of other bytes ends it');
+  assert.match(String(bad.why), /changed|other code/);
+  assert.equal(bad.moved, 0);
+  // A record older than a day is dropped, and a takeover then alarms as before.
+  const old = await otherWindowMoves({ record: B, install: B, served: 'signed', recordAge: 86400000 + 1000 });
+  assert.match(String(old.afterInstall), /is being installed/);
 });
 
 test('the recorded loader serving other bytes than signed: the alarm, in this window too', async () => {
@@ -174,6 +199,7 @@ test('the recorded loader serving other bytes than signed: the alarm, in this wi
   assert.equal(r.afterInstall, null);
   assert.match(String(r.why), /serves other code under the new loader's name/);
   assert.equal(r.moved, 0);
+  assert.equal(r.record, undefined, 'other bytes end the record');
 });
 
 test('without a recorded move, or a different loader than recorded: the alarm, as before', async () => {

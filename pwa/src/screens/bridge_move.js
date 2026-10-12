@@ -246,7 +246,7 @@ export default function bridgeMove(app, params = {}) {
       if (toEth() && !wallet.state.sync.canSend) n.push(notice('info', 'Your BEAM wallet is catching up with the network. Moving to Ethereum works once it is up to date.'));
       // Moving to BEAM signs from the Ethereum wallet: a transaction of it in doubt holds this back.
       const doubt = !toEth() ? s.w.doubt() : null;
-      if (doubt) n.push(doubtNotice(app, doubt, { testid: 'bridge-eth-doubt' }));
+      if (doubt) n.push(doubtNotice(app, doubt, { testid: 'bridge-eth-doubt', onForgotten: () => render() }));
       // Collecting on BEAM needs BEAM: said before typing, not after.
       if (!toEth() && bal && balFor === key() && bal.beam < CLAIM_FEE && !(q && q.block && q.block.code === BLOCKS.noClaimFee)) {
         n.push(blockNotice({ code: BLOCKS.noClaimFee, title: `Your BEAM wallet needs ${coin(CLAIM_FEE, 8, 'BEAM')} to collect it`, detail: `Coins moved to BEAM are collected with a BEAM transaction. Your BEAM wallet has ${coin(bal.beam, 8, 'BEAM')}. Receive a little BEAM first, then move.` }));

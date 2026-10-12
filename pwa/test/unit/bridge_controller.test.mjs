@@ -1009,3 +1009,125 @@ test('BM-3: a move whose receipt names a message another move already follows fi
   assert.equal(rig.c.crossings.filter((c) => c.msgId === 160).length, 1);
   assert.deepEqual(rig.sends(), ['claim eth'], 'one claim');
 });
+
+// ---------------------------------------------------------------- BM-3 residuals (re-audit RE2-3)
+
+test('RE2-3: a "shared" refusal whose coins turned out to be another move\'s says so once nothing of its amount waits for the person', async () => {
+  const { LOCK_FAILED_SHARED, LOCK_FAILED_TAKEN } = await import('../../src/lib/bridge/controller.js');
+  // The audit's PoC A: A reverted; B's message on BEAM before B's receipt; A ends "shared"; then B's receipt names it.
+  const rig = new Rig();
+  let a = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  let b = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  rig.eth.mineLock(a.lockHash, { success: false });
+  rig.beam.deliver(ethRoute, 150, b.receives);
+  a = await rig.after(15 * S, a.id);
+  a = await rig.after(TIMING.deliveryWaitMs, a.id);
+  assert.equal(a.state, STATES.lockFailed);
+  assert.equal(a.lastError, LOCK_FAILED_SHARED, 'at the end of its watch, the coins could have been its own');
+  rig.eth.mineLock(b.lockHash, { msgId: 150 });
+  b = await rig.after(15 * S, b.id);
+  assert.equal(b.msgId, 150);
+  const w = await rig.c.waiting();
+  assert.deepEqual(w.items.map((i) => [i.msgId, i.crossingId]), [[150, b.id]], 'nothing waits for the person: 150 is B\'s');
+  a = rig.c.crossing(a.id);
+  assert.equal(a.state, STATES.lockFailed, 'still final');
+  assert.equal(a.lastError, LOCK_FAILED_TAKEN);
+  assert.match(a.lastError, /turned out to be another move's/);
+  assert.ok(!/collect them there/.test(a.lastError), 'no longer sends the person to an empty list');
+  assert.equal((await rig.store.byId(a.id)).lastError, LOCK_FAILED_TAKEN, 'written down');
+  // Two reverted moves, one message: listed to collect, so both stay "shared" until it is collected.
+  const two = new Rig();
+  let x = await two.move(ethRoute, toBeam, ethUnits(0.01));
+  let y = await two.move(ethRoute, toBeam, ethUnits(0.01));
+  two.eth.mineLock(x.lockHash, { success: false });
+  two.eth.mineLock(y.lockHash, { success: false });
+  two.beam.deliver(ethRoute, 151, x.receives);
+  x = await two.after(15 * S, x.id);
+  x = await two.after(TIMING.deliveryWaitMs, x.id);
+  await two.c.waiting();
+  assert.equal(two.c.crossing(x.id).lastError, LOCK_FAILED_SHARED, 'its coins wait under "Waiting for you"');
+  assert.equal(two.c.crossing(y.id).lastError, LOCK_FAILED_SHARED);
+  await two.c.collectWaiting('eth', 151);
+  await two.c.waiting();
+  assert.equal(two.c.crossing(x.id).lastError, LOCK_FAILED_TAKEN, 'collected under the move found waiting');
+  assert.deepEqual(two.sends(), ['claim eth'], 'one claim');
+});
+
+test('RE2-3: a lock still "locking" after RIVAL_MS no longer keeps a reverted move of its amount from its own message', async () => {
+  // The audit's PoC B: B's lock broadcast fails every time (no server answer), B stays locking.
+  const rig = new Rig();
+  rig.eth.mode = 'throwBeforeBroadcast';
+  rig.eth.modeStep = 0;
+  const b = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  assert.equal(b.state, STATES.locking);
+  assert.ok(b.lockHash);
+  // A day later (and an hour), a move of the same amount whose server says "reverted" while its message arrives.
+  rig.clock.advance(25 * 60 * MIN);
+  rig.eth.mode = 'ok';
+  let a = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  rig.eth.mineLock(a.lockHash, { success: false });
+  rig.beam.deliver(ethRoute, 140, a.receives);
+  a = await rig.after(15 * S, a.id);
+  assert.equal(a.state, STATES.delivered, 'B is no rival any more: the message is A\'s alone');
+  assert.equal(a.msgId, 140);
+  await rig.c.collect(a.id);
+  assert.deepEqual(rig.sends(), ['claim eth']);
+});
+
+test('RE2-3: a lock its server refuses for the whole delivery window ends like a refused payment; one that went out after all is found', async () => {
+  const { LOCK_REFUSED } = await import('../../src/lib/bridge/controller.js');
+  const refusal = () => Object.assign(new Error('insufficient funds for gas * price + value'), { code: -32000 });
+  // Refused every time, nothing on BEAM: after 30 minutes it ends, said as the server's word.
+  const rig = new Rig();
+  rig.eth.onBroadcast = async (tx) => {
+    if (tx.kind === 'lock') throw refusal();
+  };
+  let c = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  assert.equal(c.state, STATES.locking);
+  c = await rig.after(15 * S, c.id);
+  assert.equal(c.state, STATES.locking);
+  assert.ok(c.revertSeenAt, 'the watch started');
+  assert.match(c.lastError, /refused this lock/);
+  assert.match(c.lastError, /may have passed it on/);
+  c = await rig.after(TIMING.deliveryWaitMs, c.id);
+  assert.equal(c.state, STATES.lockFailed);
+  assert.equal(c.lastError, LOCK_REFUSED);
+  assert.match(LOCK_REFUSED, /most likely it never left and nothing was locked\. That is the server's word, not Ethereum's\./);
+  assert.ok(!/nothing was sent/i.test(LOCK_REFUSED));
+  // Refused, but it had passed the lock on: its message reaches BEAM and it is this move's.
+  const two = new Rig();
+  two.eth.onBroadcast = async (tx) => {
+    if (tx.kind === 'lock') throw refusal();
+  };
+  let d = await two.move(ethRoute, toBeam, ethUnits(0.01));
+  d = await two.after(15 * S, d.id);
+  two.beam.deliver(ethRoute, 170, d.receives);
+  d = await two.after(15 * S, d.id);
+  assert.equal(d.state, STATES.delivered);
+  assert.equal(d.msgId, 170);
+  // A server that takes the bytes again ends the watch.
+  const three = new Rig();
+  let refuse = true;
+  three.eth.onBroadcast = async (tx) => {
+    if (tx.kind === 'lock' && refuse) throw refusal();
+  };
+  let e = await three.move(ethRoute, toBeam, ethUnits(0.01));
+  e = await three.after(15 * S, e.id);
+  assert.ok(e.revertSeenAt);
+  refuse = false;
+  e = await three.after(15 * S, e.id);
+  assert.equal(e.state, STATES.locking);
+  assert.equal(e.revertSeenAt, null, 'taken: the watch ends');
+  e = await three.after(TIMING.deliveryWaitMs, e.id);
+  assert.equal(e.state, STATES.locking, 'never ended as refused');
+  // "nonce too low" is not a refusal of these bytes: it is left to its receipt.
+  const four = new Rig();
+  four.eth.onBroadcast = async (tx) => {
+    if (tx.kind === 'lock') throw Object.assign(new Error('nonce too low'), { code: -32000 });
+  };
+  let f = await four.move(ethRoute, toBeam, ethUnits(0.01));
+  f = await four.after(15 * S, f.id);
+  f = await four.after(TIMING.deliveryWaitMs, f.id);
+  assert.equal(f.state, STATES.locking);
+  assert.equal(f.revertSeenAt, null);
+});

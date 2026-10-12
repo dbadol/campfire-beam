@@ -26,7 +26,8 @@ import { classifyRecipient, describeNameProblem, canReceivePayments, display, fi
 import { readNamePin, NAME_PIN_UNREAD } from '../lib/contacts.js';
 import { bans, day } from './names.js';
 import { hiddenIds } from '../lib/hidden_tokens.js';
-import { recipientButtons, contactLine, noteField, scannedAmount } from './send_extras.js';
+import { recipientButtons, contactLine, noteField, scannedAmount, otherWalletHint } from './send_extras.js';
+import { listWallets } from '../lib/wallets.js';
 
 /** How a payment to a name goes out: through BEAM's name vault, a contract call. */
 const NAME_MODE = { fee: NAME_CALL_FEE, label: 'Name payment' };
@@ -40,6 +41,22 @@ export default function send(app) {
   addr.value = draft.address;
   const pasteBtn = h('button', { class: 'btn btn-secondary btn-small', type: 'button', 'data-testid': 'paste' }, icon('paste'), 'Paste');
   const addrHint = h('p', { class: 'hint', 'data-testid': 'address-hint' });
+  // Another wallet of this device as the receiver (re-audit RE1-12): how a regular payment to it goes.
+  const otherHint = h('p', { class: 'hint', 'data-testid': 'send-other-wallet-hint', hidden: true });
+  let walletCount = 1;
+  let checkedMode = null;
+  const showOtherHint = () => {
+    const t = otherWalletHint({ wallets: walletCount, mode: checkedMode });
+    otherHint.textContent = t || '';
+    otherHint.hidden = !t;
+  };
+  listWallets().then(
+    (l) => {
+      walletCount = l.length;
+      showOtherHint();
+    },
+    () => {},
+  );
   // A name whose owner changed since this wallet paid it: both keys, and paying the new one is a choice.
   const nameBox = h('div', { class: 'send-slot', 'aria-live': 'polite' });
   const contactInfo = contactLine(app);
@@ -204,6 +221,8 @@ export default function send(app) {
   async function validate() {
     const a = addr.value.trim();
     draft.address = a;
+    checkedMode = null;
+    showOtherHint();
     const seq = ++checkSeq;
     put(nameBox);
     if (!a) {
@@ -231,6 +250,8 @@ export default function send(app) {
       const r = await wallet.validateAddress(a);
       if (seq !== checkSeq) return;
       const m = r && r.is_valid ? sendModeFor(r.type) : null;
+      checkedMode = m && !r.is_mine ? m : null;
+      showOtherHint();
       if (!m) {
         check = { state: 'bad' };
         addrHint.textContent = "This isn't a BEAM address. Copy it again from the person you're paying.";
@@ -315,6 +336,7 @@ export default function send(app) {
     },
     h('label', { class: 'field' }, h('span', { class: 'banner' }, h('span', { class: 'grow', text: 'To' }), ...pickBtns, pasteBtn), addr),
     addrHint,
+    otherHint,
     nameBox,
     contactInfo.el,
     assetField,

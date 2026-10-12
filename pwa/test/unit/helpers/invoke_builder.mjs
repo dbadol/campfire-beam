@@ -48,11 +48,13 @@ export function invokeEntry({ contractId, method = 2, flags = 0, spend = {}, sig
   ];
 }
 
+// appArgs: an object, or an array of [key, value] pairs (a dApp can repeat a key; an object cannot).
 export function invokeData(entries, { firstFlags = 0, appShader = [0, 0x61, 0x73, 0x6d], appArgs = { action: 'steal' }, privilege = 0, spendMax = { 0: 100000000000 } } = {}) {
+  const pairs = Array.isArray(appArgs) ? appArgs : Object.entries(appArgs);
   return [
     ...yu(entries.length),
     ...entries.flat(),
-    ...(firstFlags & FLAG_SAVE_APP_INVOKE ? [...yBuf(appShader), ...yBuf([]), ...yu(Object.keys(appArgs).length), ...Object.entries(appArgs).flatMap(([k, v]) => [...yStr(k), ...yStr(v)]), ...yu(privilege)] : []),
+    ...(firstFlags & FLAG_SAVE_APP_INVOKE ? [...yBuf(appShader), ...yBuf([]), ...yu(pairs.length), ...pairs.flatMap(([k, v]) => [...yStr(k), ...yStr(v)]), ...yu(privilege)] : []),
     ...(firstFlags & FLAG_SAVE_SPEND_MAX ? [...yu(Object.keys(spendMax).length), ...Object.entries(spendMax).flatMap(([k, v]) => [...yu(k), ...ys(v)])] : []),
   ];
 }

@@ -19,6 +19,7 @@
 //   send it again yet. Cleared once it is mined, shown replaced, or the server sees it again.
 // refusedAt: set (ms) while an open entry's bytes are refused by the server: it may still have
 //   passed them on, so the screens say "not sent yet" and not to send it again yet.
+// doubtLookAt: when a look last left such an entry in doubt (lib/eth/doubt.js mayForget).
 
 import { sealData, openData } from './sealed.js';
 import { ETH_OUTBOX_KEY } from './record.js';
@@ -97,6 +98,20 @@ export function updateOutbox(app, hash, patch, { ethId, kv = store } = {}) {
     list[i] = next;
     await sealData(app, ETH_OUTBOX_KEY, list, { ethId, kv });
     return next;
+  });
+}
+
+/**
+ * Removes the entry `hash` alone when when(entry) says so (checked on the stored entry, inside the
+ * one-write-at-a-time chain). Returns the removed entry, or null.
+ */
+export function removeFromOutbox(app, hash, { ethId, kv = store, when = () => true } = {}) {
+  return serial(async () => {
+    const list = await loadOutbox(app, { ethId, kv });
+    const gone = list.find((e) => e.hash === hash);
+    if (!gone || !when(gone)) return null;
+    await sealData(app, ETH_OUTBOX_KEY, list.filter((e) => e !== gone), { ethId, kv });
+    return gone;
   });
 }
 

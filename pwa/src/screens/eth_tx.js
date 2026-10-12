@@ -28,7 +28,7 @@ import { ethWallet } from '../lib/eth/wallet.js';
 import { entryFee } from '../lib/eth/send.js';
 import { txExplorerUrl } from '../lib/eth/hosts.js';
 import { tokenBySymbol, ETH } from '../lib/eth/tokens.js';
-import { amountText, ethText, ethMaxText, groupedAddress, notSentNotice } from './eth_ui.js';
+import { amountText, ethText, ethMaxText, groupedAddress, notSentNotice, indexSaysNotice } from './eth_ui.js';
 
 const FOLLOW_MS = 4000;
 
@@ -97,6 +97,8 @@ export default function ethTx(app, p = {}) {
         entry && state === 'replaced' && entry.replacedBy ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Replaced by' }), h('button', { class: 'v mono btn-text', 'data-testid': 'eth-tx-replaced-by', 'data-hash': entry.replacedBy, onclick: () => copyText(entry.replacedBy, 'Transaction hash copied'), text: shorten(entry.replacedBy, 10, 8) })) : null,
       ),
       t.note && (entry || item) ? notice(t.kind, t.note) : null,
+      // A verified "Replaced" the history index contradicts: its word beside it (RE2-5).
+      entry && state === 'replaced' && w && w.indexSays(entry.hash) ? indexSaysNotice(w.indexSays(entry.hash), 'payment') : null,
       entry && state === 'rejected' ? notSentNotice(entry.hash) : null,
       entry && entry.error && (state === 'signed' || state === 'rejected') ? h('p', { class: 'small', 'data-testid': 'eth-tx-error', text: `The server said: ${entry.error}` }) : null,
     );

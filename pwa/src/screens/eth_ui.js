@@ -2,13 +2,13 @@
 // "server didn't answer" notice with its two ways out, and activity rows.
 import { h, shorten, fmtDate } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
-import { assetBadge, notice } from '../lib/ui.js';
+import { assetBadge, notice, openSheet, toast } from '../lib/ui.js';
 import { formatUnits, isRoundedDown, DISPLAY_DECIMALS } from '../lib/eth/units.js';
 import { ETH } from '../lib/eth/tokens.js';
 import { compactUnits, percentText } from '../lib/compact.js';
 import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC, txExplorerUrl } from '../lib/eth/hosts.js';
-import { ethPrefs } from '../lib/eth/wallet.js';
-import { doubtOf, doubtNameParts, doubtNoun, DOUBT_TITLE, DOUBT_WHY, DOUBT_WAY_OUT } from '../lib/eth/doubt.js';
+import { ethPrefs, ethWallet } from '../lib/eth/wallet.js';
+import { doubtOf, doubtNameParts, doubtNoun, doubtWayOut, mayForget, DOUBT_TITLE, DOUBT_WHY, FORGET_WARNING } from '../lib/eth/doubt.js';
 
 // Fixed colours, never taken from a token contract.
 const TOKEN_COLORS = { USDT: '#26a17b', USDC: '#2775ca', WBTC: '#f09242', DAI: '#f5ac37' };
@@ -138,11 +138,14 @@ export function openEntry(app, entry) {
 
 /**
  * Why nothing new can be sent while `entry` is in doubt (lib/eth/doubt.js), with the ways out: see
- * it, or pick another server in Settings. inSheet: words only (a sheet stays where it is; its
- * screen behind shows the buttons once it closes).
+ * it, or pick another server (or turn on History) in Settings; after a day of failed looks, forget
+ * it (re-audit RE2-2). inSheet: words only (a sheet stays where it is; its screen behind shows the
+ * buttons once it closes). onForgotten: the screen shows itself again once it is forgotten.
  */
-export function doubtNotice(app, entry, { inSheet = false, testid = 'eth-doubt' } = {}) {
+export function doubtNotice(app, entry, { inSheet = false, testid = 'eth-doubt', onForgotten = null } = {}) {
   const { lead, address } = doubtNameParts(entry);
+  const noun = doubtNoun(entry);
+  const forgettable = !inSheet && mayForget(entry);
   const n = notice(
     'warn',
     h(
@@ -152,19 +155,68 @@ export function doubtNotice(app, entry, { inSheet = false, testid = 'eth-doubt' 
       address ? h('span', { class: 'addr-inline', text: address }) : null,
       `${address ? ' ' : ''}is "${DOUBT_TITLE[doubtOf(entry)]}". `,
     ),
-    `${DOUBT_WHY} ${DOUBT_WAY_OUT}`,
+    `${DOUBT_WHY} ${doubtWayOut({ history: ethPrefs(app).history })}`,
+    forgettable ? ` It has been like this for over a day: you can also forget it.` : '',
     inSheet
       ? null
       : h(
           'div',
           { class: 'btn-row prompt-actions' },
-          h('button', { class: 'btn btn-secondary btn-small', onclick: () => openEntry(app, entry), 'data-testid': `${testid}-see` }, `See the ${doubtNoun(entry)}`),
+          h('button', { class: 'btn btn-secondary btn-small', onclick: () => openEntry(app, entry), 'data-testid': `${testid}-see` }, `See the ${noun}`),
           h('button', { class: 'btn btn-text btn-small', onclick: () => app.go('ethSettings'), 'data-testid': `${testid}-settings` }, 'Settings'),
         ),
+    // Its own row: three buttons do not fit a phone's width.
+    forgettable ? h('div', { class: 'btn-row prompt-actions' }, h('button', { class: 'btn btn-secondary btn-small', onclick: () => forgetSheet(app, entry, onForgotten), 'data-testid': `${testid}-forget` }, `Forget this ${noun}`)) : null,
   );
   n.dataset.testid = testid;
   n.dataset.hash = entry.hash;
+  if (forgettable) n.dataset.forgettable = 'true';
   return n;
+}
+
+/**
+ * "Forget this payment", behind a plain warning (lib/eth/doubt.js FORGET_WARNING): that entry only
+ * leaves this wallet's list, and sending opens up again. onDone() once it is forgotten (else the
+ * screen is shown again).
+ */
+export function forgetSheet(app, entry, onDone = null) {
+  const noun = doubtNoun(entry);
+  let message = null;
+  openSheet(
+    (close, rerender) => [
+      h('h2', { 'data-testid': 'eth-forget-title', text: `Forget this ${noun}?` }),
+      notice('warn', h('strong', { 'data-testid': 'eth-forget-warning', text: FORGET_WARNING })),
+      h('p', { class: 'lead', text: 'BEAM Campfire stops waiting for it, and you can send from this Ethereum wallet again. If it does go through, your balance shows it.' }),
+      message,
+      h(
+        'div',
+        { class: 'sheet-actions' },
+        h(
+          'button',
+          {
+            class: 'btn btn-danger',
+            'data-testid': 'eth-forget-confirm',
+            onclick: async () => {
+              try {
+                const w = await ethWallet(app);
+                if (w) await w.forget(entry.hash);
+                close();
+                toast(`${noun.charAt(0).toUpperCase()}${noun.slice(1)} forgotten`);
+                if (onDone) onDone();
+                else app.go(app.currentName, app.params, { replace: true });
+              } catch (e) {
+                message = notice('error', `It was not forgotten: ${e.message}`);
+                rerender();
+              }
+            },
+          },
+          `Forget this ${noun}`,
+        ),
+        h('button', { class: 'btn btn-text', 'data-testid': 'eth-forget-keep', onclick: () => close() }, 'Keep waiting'),
+      ),
+    ],
+    { label: `Forget this ${noun}` },
+  );
 }
 
 /** Ethereum Home's one line above Send while a transaction is in doubt; tapping it opens that transaction. */
@@ -204,6 +256,21 @@ export function followDoubt(app, getWallet, onChange, { every = 4000 } = {}) {
  */
 export const NOT_SENT_NOTE =
   "Your Ethereum server refused it for half an hour and never showed it on Ethereum, so most likely it never left and nothing was spent. That is the server's word, not Ethereum's. BEAM Campfire looks for it again each time you open your Ethereum wallet.";
+
+/**
+ * Beside a verified "Replaced" that Stack Wallet's index lists in a block (re-audit RE2-5): both are
+ * said, and "Replaced" stays until the chosen server shows this one's own receipt. said: {state,
+ * blockNumber} (lib/eth/wallet.js indexSays); noun: 'payment' | 'swap' | 'permission'.
+ */
+export function indexSaysNotice(said, noun = 'payment') {
+  const where = `in block ${Number(said.blockNumber).toLocaleString('en-US')}`;
+  const n = notice(
+    'warn',
+    `Stack Wallet's history index says this ${noun} ${said.state === 'failed' ? `failed ${where}` : `is ${where}`}. Your Ethereum server showed another transaction from this wallet in its place, so it stays "Replaced" here until your server shows this ${noun} in a block too. Etherscan can tell you which is right.`,
+  );
+  n.dataset.testid = 'eth-index-says';
+  return n;
+}
 
 /** The "Not sent" notice of a payment's or swap's screen: NOT_SENT_NOTE, what the server said, and Etherscan. */
 export function notSentNotice(hash, serverSaid = null) {

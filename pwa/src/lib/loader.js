@@ -205,14 +205,16 @@ function writeMoveCheck(v) {
  * asked the way the browser asked to install it, against the signed hash noted
  * before the move. 'other' means the browser may have installed bytes BEAM
  * Campfire did not sign. Best effort (see loaderBytes; and a worker that
- * controls this page can answer this request itself). One answer, or a day
- * without one, ends it.
+ * controls this page can answer this request itself). Other bytes, or a day,
+ * end the record; a good answer keeps it, so a window whose takeover arrives
+ * later (a frozen or suspended one) still finds the move expected and checks
+ * the same signed hash itself (re-audit RE2-4).
  */
 export async function checkMovedLoader(now = Date.now(), path = LOADER) {
   const p = readMoveCheck();
   if (!p || p.path !== path) return 'unknown';
   const v = await loaderBytes(path, typeof p.sha256 === 'string' ? p.sha256 : null, { asInstall: true });
-  if (v !== 'unknown' || now - p.at > DAY_MS) writeMoveCheck(null);
+  if (v === 'other' || now - p.at > DAY_MS) writeMoveCheck(null);
   return v;
 }
 

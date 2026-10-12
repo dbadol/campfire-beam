@@ -71,10 +71,25 @@ const LOCK_FAILED = 'Ethereum refused the lock, and nothing reached BEAM in the 
 export const LOCK_FAILED_SHARED =
   'Your Ethereum server says Ethereum refused the lock. Coins of this amount did reach BEAM, but another of your moves may have sent them, so they are not counted here: if any are listed under "Waiting for you on BEAM", collect them there.';
 /**
- * How long a lock its server called reverted can still be the one behind a message on BEAM (had the
- * server lied, its message arrived long before): until then it counts as a possible owner.
+ * The same, once nothing of its amount waits for the person any more (re-audit RE2-3): the coins
+ * were the other move's (its receipt named them, or they were collected under it).
+ */
+export const LOCK_FAILED_TAKEN =
+  "Your Ethereum server says Ethereum refused the lock. Coins of this amount did reach BEAM, but they turned out to be another move's: they are counted there, and nothing of this amount is waiting for you on BEAM.";
+/** Said while the server refuses the lock's bytes: it may have passed them on first (re-audit RE2-3). */
+const LOCK_REFUSED_SEEN = (sym, e) =>
+  `Your Ethereum server refused this lock (${plain(e)}). It may have passed it on before refusing, so BEAM Campfire keeps offering the same signed transaction (never a second one) and watches BEAM for your ${sym} for 30 minutes.`;
+/** A lock its server refused for the whole delivery window, as a refused payment ends (lib/eth/send.js REFUSAL_WATCH_MS). */
+export const LOCK_REFUSED =
+  "Your Ethereum server refused this lock for half an hour and never showed it on Ethereum, so most likely it never left and nothing was locked. That is the server's word, not Ethereum's.";
+/**
+ * How long a lock its server called reverted (or refused) can still be the one behind a message on
+ * BEAM (had the server lied, its message arrived long before): until then it counts as a possible
+ * owner. A lock still waiting for its receipt counts this long from when its move started.
  */
 const RIVAL_MS = 24 * 60 * 60 * 1000;
+/** The server refused these bytes themselves (a JSON-RPC error), not because their nonce is used or they are already known. */
+const bytesRefused = (e) => Boolean(e) && typeof e.code === 'number' && !/nonce too low|already known|already used|replacement/i.test(String(e.message));
 /** A lock whose receipt names a message another record already follows (release audit BM-3). */
 const HANDED_OVER = 'Ethereum names the bridge message of this lock, and another move in this list already follows it: its coins are collected there, once. Nothing is lost, and nothing more happens here.';
 
@@ -598,7 +613,22 @@ export class BridgeController {
         items.push(Object.freeze({ route, msgId: m.msgId, amount: m.amount, crossingId: c ? c.id : null }));
       }
     }
+    await this.#settleShared(items, failed);
     return Object.freeze({ items: Object.freeze(items), failed: Object.freeze(failed), at: this.clock.now() });
+  }
+
+  /**
+   * A refusal that ended "shared" sends the person to "Waiting for you on BEAM". Once nothing of its
+   * amount waits there untracked (another move's receipt named it, or it was collected under
+   * another move), its words say the coins were another move's (re-audit RE2-3). Only on routes
+   * whose pipe answered.
+   */
+  async #settleShared(items, failed) {
+    for (const c of [...this.#records.values()]) {
+      if (c.state !== STATES.lockFailed || c.lastError !== LOCK_FAILED_SHARED || failed.includes(c.route)) continue;
+      if (items.some((i) => i.route.id === c.route && i.crossingId === null && i.amount === c.receives)) continue;
+      await this.#saveQuietly(this.#ch(c, { lastError: LOCK_FAILED_TAKEN }));
+    }
   }
 
   /** The record following e2b message msgId of route, if any. */
@@ -865,6 +895,19 @@ export class BridgeController {
         if (!lock) {
           // Pending, or the server does not have it: the same bytes again.
           const e = await this.#sendAgainIfLost(c.lockHash, c.lockRaw);
+          if (bytesRefused(e)) {
+            // Refused: most likely never sent, but the server may have passed it on first. Watched
+            // on BEAM for the delivery window (from the first refusal: revertSeenAt), then ended as
+            // a refused payment ends (re-audit RE2-3); until then it is a possible owner of a message.
+            const seen = c.revertSeenAt ?? now();
+            const look = await this.#incomingLook(c, route);
+            if (look.match) return this.#stepToBeam(this.#ch(c, { state: STATES.delivered, msgId: look.match.msgId, deliveredAt: now(), revertSeenAt: null, lastError: null }));
+            if (now() - seen >= TIMING.deliveryWaitMs) return [this.#ch(c, { state: STATES.lockFailed, lastError: look.shared ? LOCK_FAILED_SHARED : LOCK_REFUSED, finishedAt: now() }), P.toBeamMs];
+            const lastError = LOCK_REFUSED_SEEN(route.ethSymbol, e);
+            return [c.revertSeenAt && lastError === c.lastError ? c : this.#ch(c, { revertSeenAt: seen, lastError }), P.ethReceiptMs];
+          }
+          // Taken (or known) again after refusals: the watch ends.
+          if (!e && c.revertSeenAt !== null && c.lastError && c.lastError.startsWith('Your Ethereum server refused this lock (')) return [this.#ch(c, { revertSeenAt: null, lastError: null }), P.ethReceiptMs];
           const lastError = e ? `Ethereum does not have your ${route.ethSymbol} lock yet, and sending the same signed transaction again failed (${plain(e)}). Campfire keeps trying.` : c.lastError;
           return [lastError === c.lastError ? c : this.#ch(c, { lastError }), P.ethReceiptMs];
         }
@@ -951,7 +994,9 @@ export class BridgeController {
     const taken = new Set(others.filter((o) => o.msgId !== null).map((o) => o.msgId));
     const now = this.clock.now();
     const mayOwn = (o) =>
-      (o.state === STATES.locking && o.lockHash !== null) ||
+      // A lock still waiting for its receipt, for a day at most (re-audit RE2-3: one its server
+      // never takes must not hold every later move of its amount back for ever).
+      (o.state === STATES.locking && o.lockHash !== null && now - o.createdAt < RIVAL_MS) ||
       o.state === STATES.unknown ||
       // Ended as "nothing locked" on one server's word: it may have lied.
       (o.state === STATES.lockFailed && o.revertSeenAt !== null && now - o.revertSeenAt < RIVAL_MS);

@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { homedir, tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { decodeInvokeData, FLAG_DEPENDENT, FLAG_SAVE_APP_INVOKE } from '../../src/lib/dapps/invoke_data.js';
+import { decodeInvokeData, InvokeDataError, FLAG_DEPENDENT, FLAG_SAVE_APP_INVOKE } from '../../src/lib/dapps/invoke_data.js';
 import { checkContractData, checkRebuild, storedArgsProblem, PolicyRefusal } from '../../src/lib/dapps/policy.js';
 import { DappSession } from '../../src/lib/dapps/session.js';
 import { CATALOGUE, REBUILD_BODIES } from '../../src/lib/dapps/catalogue.js';
@@ -157,7 +157,8 @@ test("the audit's shape: BEAM's DEX body stored with another contract's id is re
   await assert.rejects(checkRebuild(shaped({ ...trade, cid: cid(0xa7) }), { unchecked: false }), refused, 'cid of another contract');
   await assert.rejects(checkRebuild(shaped(trade), { unchecked: false }), refused, 'no cid at all');
   await assert.rejects(checkRebuild(shaped({ ...trade, cid: DEX, cidAmm: cid(0xa7) }), { unchecked: false }), refused, 'a contract argument the DEX body is not redone with');
-  await assert.rejects(checkRebuild(shaped({ ...trade, cid: DEX, ' cid': cid(0xa7) }), { unchecked: false }), refused, 'a spaced copy of the key');
+  // A spaced copy of the key is now refused while decoding, before the pin is looked at (RE2-1).
+  assert.throws(() => shaped({ ...trade, cid: DEX, ' cid': cid(0xa7) }), PolicyRefusal, 'a spaced copy of the key');
   await checkRebuild(shaped({ ...trade, cid: DEX }), { unchecked: false });
   await checkRebuild(shaped({ ...trade, cid: DEX.toUpperCase() }), { unchecked: false });
 });
@@ -178,4 +179,32 @@ test('every pinned body names the contract it is for; the stored contract argume
   assert.ok(storedArgsProblem({ action: 'user_lock', CID: ACCUM }, accum), 'keys are exact');
   assert.ok(storedArgsProblem(null, accum));
   assert.ok(storedArgsProblem({ cid: ACCUM }, null), 'a body that names no contract is never redone');
+});
+
+// Re-audit RE2-1: the core keeps the FIRST value of a repeated stored-args key (a std::map filled
+// with insert, yas keyval.hpp), while the decoder here kept the LAST. [cid=<attacker>, cid=<DEX>]
+// then passed the BC-4 pin while the rebuild ran BEAM's AMM body against the attacker's contract.
+// A repeated key, or two keys that are the same once trimmed, is refused when decoding.
+test('a stored-args key given twice (or twice once trimmed) is refused when decoding, whatever the order', async (t) => {
+  const stored = (appArgs, appShader = [0, 0x61, 0x73, 0x6d]) =>
+    new Uint8Array(invokeData([invokeEntry({ contractId: DEX, method: 7, flags: FLAG_DEPENDENT | FLAG_SAVE_APP_INVOKE, spend: { 0: 1 }, comment: 'Amm trade' })], { firstFlags: FLAG_SAVE_APP_INVOKE, appShader, appArgs, privilege: 0 }));
+  const twice = /stored arguments name .* twice/;
+  for (const pairs of [
+    [['action', 'pool_trade'], ['cid', cid(0xa7)], ['cid', DEX]],
+    [['action', 'pool_trade'], ['cid', DEX], ['cid', cid(0xa7)]],
+    [['action', 'pool_trade'], ['cid', DEX], ['cid', DEX]],
+    [['action', 'pool_trade'], [' cid', cid(0xa7)], ['cid', DEX]],
+    [['action', 'pool_trade'], ['cid', DEX], ['cid ', cid(0xa7)]],
+    [['action', 'pool_trade'], ['action', 'pool_trade'], ['cid', DEX]],
+  ]) {
+    assert.throws(() => decodeInvokeData(stored(pairs)), (e) => e instanceof InvokeDataError && twice.test(e.message), JSON.stringify(pairs.map(([k]) => k)));
+    assert.throws(() => checkContractData(stored(pairs)), PolicyRefusal);
+  }
+  // One of each still decodes, as before.
+  assert.deepEqual(decodeInvokeData(stored([['action', 'pool_trade'], ['cid', DEX]])).appArgs, { action: 'pool_trade', cid: DEX });
+  // The audit's exact bytes, with BEAM's own pinned DEX body: refused before the pin is looked at.
+  if (!existsSync(swapFixture)) return t.skip('desktop fixtures not next to the PWA');
+  const body = [...checkContractData(swapRaw()).appShader];
+  assert.throws(() => checkContractData(stored([['action', 'pool_trade'], ['cid', cid(0xa7)], ['cid', DEX]], body)), PolicyRefusal);
+  await checkRebuild(checkContractData(stored([['action', 'pool_trade'], ['cid', DEX]], body)), { unchecked: false });
 });

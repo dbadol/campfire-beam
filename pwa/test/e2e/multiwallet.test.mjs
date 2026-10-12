@@ -345,6 +345,26 @@ test('3. a payment under way: switching says so first; staying is the main butto
   });
 });
 
+// Re-audit RE1-12: one wallet runs at a time, so Send says how a regular payment to another wallet
+// of this device goes (its offline address, or switch after sending and back).
+test('3b. Send to another wallet of this device: one line on how it goes; not for its own address', { timeout: 5 * 60000 }, async () => {
+  await page.evaluate(() => window.__campfire.go('send'));
+  await waitScreen(page, 'send');
+  await page.fill(tid('send-address'), W.A.addresses[0]);
+  await page.waitForFunction(() => /^Regular address\./.test(document.querySelector('[data-testid="address-hint"]').textContent), null, { timeout: 30000 });
+  await page.waitForSelector(`${tid('send-other-wallet-hint')}:not([hidden])`);
+  assert.equal(await page.textContent(tid('send-other-wallet-hint')), 'Paying another of your wallets here? A regular payment needs both open, and only one can be: use its offline address, or after sending, switch to it and then back.');
+  await both(page, 'mw-05b-send-other-wallet');
+  await fitsSmallPhone(page, tid('review'), 'Send with the other-wallet line');
+  // This wallet's own address: refused as before, and no such line.
+  await page.fill(tid('send-address'), W.B.addresses[0]);
+  await page.waitForFunction(() => /one of your own addresses/.test(document.querySelector('[data-testid="address-hint"]').textContent), null, { timeout: 30000 });
+  assert.equal(await page.isVisible(tid('send-other-wallet-hint')), false);
+  await page.fill(tid('send-address'), '');
+  await page.evaluate(() => window.__campfire.go('home'));
+  await waitScreen(page, 'home');
+});
+
 test('4. Settings -> Wallets: the list, the open one marked, rename', { timeout: 5 * 60000 }, async () => {
   // An add flow left midway leaves nothing behind: Backup is this wallet's, never new words.
   await startAdd('Wallet 4');

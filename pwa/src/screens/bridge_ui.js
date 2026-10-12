@@ -25,7 +25,7 @@ import { assertNothingInDoubt } from '../lib/eth/doubt.js';
 import { EthPipe } from '../lib/bridge/eth_pipe.js';
 import { BeamPipe } from '../lib/bridge/beam_pipe.js';
 import { PriceFeed } from '../lib/bridge/prices.js';
-import { BridgeController, beamSide, LOCK_FAILED_SHARED } from '../lib/bridge/controller.js';
+import { BridgeController, beamSide, LOCK_FAILED_SHARED, LOCK_REFUSED } from '../lib/bridge/controller.js';
 import { bridgeStoreFor, isOpen } from '../lib/bridge/store.js';
 import { setMoveBadge } from './eth_screens.js';
 import { headline, crossingWords, lockedNote } from './bridge_words.js';
@@ -62,6 +62,7 @@ function crossingTeller(app, ctl) {
       if (c.state === 'delivered') tellOther(app, { kind: 'moves', title: 'Your coins reached BEAM: collect them', body: 'Open the bridge and tap Collect to put them in this wallet.', tag: `bridge-${c.id}`, url: '#open=bridgeList', banner: !BRIDGE_SCREENS.has(app.currentName) });
       else if (c.state === 'paid') tellOther(app, { kind: 'moves', title: 'Your coins reached your Ethereum wallet', body: 'The bridge paid them.', tag: `bridge-${c.id}`, url: '#open=bridgeList' });
       else if (c.state === 'lockFailed' && c.lastError === LOCK_FAILED_SHARED) tellOther(app, { kind: 'moves', title: 'Check your move to BEAM', body: 'Your Ethereum server says it was refused, but coins of its amount reached BEAM. Tap to see.', tag: `bridge-${c.id}`, url: '#open=bridgeList', banner: !BRIDGE_SCREENS.has(app.currentName) });
+      else if (c.state === 'lockFailed' && c.lastError === LOCK_REFUSED) tellOther(app, { kind: 'moves', title: 'A move to BEAM did not go through', body: 'Your Ethereum server refused it. Tap to see why.', tag: `bridge-${c.id}`, url: '#open=bridgeList', banner: !BRIDGE_SCREENS.has(app.currentName) });
       else if (c.state === 'lockFailed') tellOther(app, { kind: 'moves', title: 'A move to BEAM did not go through', body: 'Nothing was locked. Tap to see why.', tag: `bridge-${c.id}`, url: '#open=bridgeList', banner: !BRIDGE_SCREENS.has(app.currentName) });
     }
   };

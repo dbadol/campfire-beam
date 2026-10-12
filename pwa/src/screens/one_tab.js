@@ -5,6 +5,8 @@
  *       Taps from app open: 0 to see it, 1 to have the wallet here.
  * movedTab - Spec: ONE job: say the wallet moved to another tab (locked and saved here first), and
  *       bring it back. Primary CTA: "Use it here instead". Taps: 1.
+ *       how 'unchecked' (this browser cannot say which tab holds the wallet, re-audit RE1-1): ONE job:
+ *       say to close the other tabs and reload. Primary CTA: "Reload". Taps: 1 (after closing them).
  * Exit-intent reasons and answers:
  *   - "Is my wallet gone / broken?" -> the lead says why there is one tab at a time: so the wallet's
  *     data stays intact; the moved screen says it was locked and saved before it moved.
@@ -24,7 +26,12 @@ export const MOVED_TITLE = 'BEAM Campfire moved to another tab';
 export const MOVED_LEAD = {
   handed: 'It works in one tab at a time. Your wallet was locked and saved here before it moved.',
   stolen: 'It works in one tab at a time. Another tab took it over, so your wallet is locked here.',
+  // Locking and saving had not finished when the hand-over's time ran out (lib/one_tab.js, RE1-7).
+  capped: 'It works in one tab at a time. Your wallet was locked here before it moved, but it may not have saved its last few seconds.',
 };
+export const UNCHECKED_TITLE = 'Close your other BEAM Campfire tabs';
+export const UNCHECKED_LEAD = 'This browser cannot keep BEAM Campfire to one tab. Close every other BEAM Campfire tab, then reload.';
+const UNCHECKED_HINT = 'Your wallet stays locked in this tab until then.';
 const USE_HERE = 'Use it here instead';
 const HOW_IT_MOVES = 'Your wallet locks in the other tab first, then opens here.';
 const POLL_MS = 2000;
@@ -34,7 +41,8 @@ export function otherTab(app) {
 }
 
 export function movedTab(app, p = {}) {
-  const how = p.how === 'stolen' ? 'stolen' : 'handed';
+  if (p.how === 'unchecked') return uncheckedTab();
+  const how = p.how === 'stolen' || p.how === 'capped' ? p.how : 'handed';
   return oneTabScreen(app, { title: MOVED_TITLE, lead: MOVED_LEAD[how], testid: 'one-tab-moved', spent: true, how });
 }
 
@@ -117,5 +125,22 @@ function oneTabScreen(app, { title, lead, testid, spent, how = null }) {
     h('div', { class: 'hero', 'data-testid': testid, 'data-how': how || '' }, h('img', { src: 'img/logo.svg', alt: '' }), h('h1', { text: title }), h('p', { text: lead })),
     note,
   );
-  return { el, destroy: stopPolling };
+  // Left (another screen took over, e.g. this tab found it cannot check the lock): nothing of this
+  // screen acts any more, not even a hand-over that answers late.
+  return {
+    el,
+    destroy() {
+      gone = true;
+      stopPolling();
+    },
+  };
+}
+
+/** The lock could not be looked up in this browser (lib/one_tab.js, RE1-1): no wallet runs here. */
+function uncheckedTab() {
+  const el = screen(
+    { topbar: false, cls: 'one-tab', actions: [primary('Reload', () => location.reload(), { 'data-testid': 'one-tab-reload' }), h('p', { class: 'small center', role: 'status', 'data-testid': 'one-tab-status', text: UNCHECKED_HINT })] },
+    h('div', { class: 'hero', 'data-testid': 'one-tab-moved', 'data-how': 'unchecked' }, h('img', { src: 'img/logo.svg', alt: '' }), h('h1', { text: UNCHECKED_TITLE }), h('p', { text: UNCHECKED_LEAD })),
+  );
+  return { el };
 }

@@ -37,7 +37,7 @@ import { signTransaction, verifyRpcTransaction, MAINNET_CHAIN_ID } from './tx.js
 import { walletFees, gasWithHeadroom, EthRpcError } from './rpc.js';
 import { withEthKey } from './vault.js';
 import { addToOutbox, updateOutbox } from './outbox.js';
-import { assertNothingInDoubt } from './doubt.js';
+import { assertNothingInDoubt, doubtOf } from './doubt.js';
 import { ETH, TOKENS, tokenByAddress } from './tokens.js';
 import { formatUnits } from './units.js';
 import { ROUTES } from '../bridge/routes.js';
@@ -378,14 +378,23 @@ export async function followOnce(app, rpc, entry, { ethId, kv, candidates = [], 
       // a server that lost them takes them back, one whose nonce really moved on refuses them.
       const sent = (await broadcast(app, rpc, entry, { ethId, kv, now })).entry;
       if (sent.state !== 'signed' && sent.state !== 'pending') return sent;
-      if (sent.unsureSince) return sent;
-      return (await updateOutbox(app, entry.hash, { unsureSince: t }, { ethId, kv })) || { ...sent, unsureSince: t };
+      // This look failed as the ones before it did: written down, so a day of them can be told
+      // (lib/eth/doubt.js mayForget; at most once per NONCE_LOOK_MS, as the look itself).
+      const patch = { unsureSince: sent.unsureSince || t, doubtLookAt: t };
+      return (await updateOutbox(app, entry.hash, patch, { ethId, kv })) || { ...sent, ...patch };
     }
   }
   lastLook.delete(entry.hash);
   // Unknown to the server and its nonce still free: the bytes go again, and a refusal that has
   // lasted REFUSAL_WATCH_MS ends it as never sent.
-  if (state === 'unknown') return (await broadcast(app, rpc, entry, { ethId, kv, now, giveUp: true })).entry;
+  if (state === 'unknown') {
+    const sent = (await broadcast(app, rpc, entry, { ethId, kv, now, giveUp: true })).entry;
+    // Still refused (a server that says the nonce is free yet refuses the bytes as used): written
+    // down at most once per NONCE_LOOK_MS, as above.
+    const t = now();
+    if (doubtOf(sent) !== 'refused' || t - (sent.doubtLookAt ?? -Infinity) < NONCE_LOOK_MS) return sent;
+    return (await updateOutbox(app, entry.hash, { doubtLookAt: t }, { ethId, kv })) || { ...sent, doubtLookAt: t };
+  }
   if (state === 'pending') return entry.state === 'pending' && !entry.unsureSince && !entry.refusedAt ? entry : (await updateOutbox(app, entry.hash, { state: 'pending', unsureSince: null, refusedAt: null }, { ethId, kv })) || entry;
   const patch = receipt ? minedPatch(receipt) : { state, unsureSince: null, refusedAt: null };
   return (await updateOutbox(app, entry.hash, patch, { ethId, kv })) || { ...entry, ...patch };

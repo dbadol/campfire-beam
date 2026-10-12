@@ -22,12 +22,28 @@
 // A page that let go or lost the lock is spent: it reloads before it can hold the wallet again
 // (its memory still has the old copy of the files).
 //
+// A hand-over waits for a step whose parts must not be split (whileBusy: a new or imported wallet's
+// file and its record, a deleted wallet's file and its keys; re-audit RE1-5, RE1-6), within the same
+// LET_GO_CAP_MS. A hand-over that reaches the cap goes anyway and says so (how: 'capped', RE1-7):
+// what the page was still saving then is refused, so its last few seconds may be missing.
+//
+// The lookup fails closed (re-audit RE1-1): a lock manager that rejects query(), or lists the lock
+// without a clientId, cannot tell this page whether the lock is still its own, so the page does not
+// hold the wallet (how: 'unchecked'): it runs no wallet, lets the lock go and asks the person to
+// close the other tabs and reload. Trusting the page's own flag there let a frozen holder whose lock
+// was stolen flush its old copy over the new tab's.
+//
 // Without the Web Locks API (Safari before 15.4, old browsers) a BroadcastChannel presence check
 // stands in: "anyone here?", wait PRESENCE_MS for an answer. Its limits: a tab that is frozen or
 // slow to answer within that time is not seen (both tabs then run, as before this guard); two tabs
 // starting within the same moment are told apart by an id, which covers the usual case but not a
 // channel that drops messages; and "Take over anyway" only tells the other tab to stop (nothing can
 // make a frozen tab stop before it thaws). Without BroadcastChannel either there is no guard.
+// Two holes closed there (re-audit RE1-2): a page going into the back/forward cache (pagehide with
+// persisted) no longer says "let-go" - it may come back still holding - and leaves when it is
+// restored (how: 'away'; the app reloads it), refusing any write once it has been away longer than
+// AWAY_GRACE_MS (its own save on the way out still goes); and a tab that is asking for the wallet
+// answers "here?", so a tab starting during a hand-over does not go on as well.
 //
 // No dependencies: lib/engine.js and lib/store.js import this, and the unit tests drive it with a
 // fake navigator.locks and BroadcastChannel (test/unit/one_tab.test.mjs).
@@ -43,6 +59,8 @@ export const LET_GO_CAP_MS = 30000;
 export const PRESENCE_MS = 300;
 /** How long a confirmed lock lookup is trusted (a frozen page's clock jumps past it). */
 export const CHECK_TTL_MS = 500;
+/** Without Web Locks: writes a page makes this long after going into the back/forward cache (its save on the way out). */
+export const AWAY_GRACE_MS = 2000;
 
 export class OtherTabError extends Error {
   constructor(message = 'BEAM Campfire is open in another tab.') {
@@ -82,6 +100,7 @@ export class OneTab {
     capMs = LET_GO_CAP_MS,
     presenceMs = PRESENCE_MS,
     ttlMs = CHECK_TTL_MS,
+    awayGraceMs = AWAY_GRACE_MS,
     // In a page, nothing writes before claim() has answered (a second tab must not, even once);
     // elsewhere (unit tests, tools) there is no claim and writes go ahead.
     strictIdle = typeof window !== 'undefined',
@@ -90,9 +109,12 @@ export class OneTab {
     this.locks = locks && typeof locks.request === 'function' ? locks : null;
     this.Channel = typeof Channel === 'function' ? Channel : null;
     this.mode = this.locks ? 'locks' : this.Channel ? 'presence' : 'none';
-    Object.assign(this, { win, setTimer, clearTimer, now, id, noAnswerMs, slowMs, capMs, presenceMs, ttlMs, strictIdle });
+    Object.assign(this, { win, setTimer, clearTimer, now, id, noAnswerMs, slowMs, capMs, presenceMs, ttlMs, awayGraceMs, strictIdle });
     this.state = 'idle';
-    this.how = null; // why it is gone: 'handed' | 'stolen'
+    this.how = null; // why it is gone: 'handed' | 'capped' (handed at the cap) | 'stolen' | 'unchecked' (the lock could not be looked up) | 'away' (back/forward cache)
+    this.busy = new Set(); // steps a hand-over waits for (whileBusy)
+    this.unchecked = false; // a lookup could not be made: the next loss is said as 'unchecked'
+    this.awayAt = null; // without Web Locks: when this holding page went into the back/forward cache
     this.spent = false; // let go once: never writes or opens a wallet again in this page
     this.ch = null;
     this.seq = 0; // lock requests made
@@ -138,8 +160,14 @@ export class OneTab {
   async confirmWrite() {
     if (!this.mayWrite()) return false;
     if (this.state === 'idle') return true;
-    if (this.mode !== 'locks' || !this.clientId) return true;
-    if (this.now() - this.checkedAt < this.ttlMs && this.now() >= this.checkedAt) return true;
+    if (this.awayAt !== null && !(this.now() - this.awayAt <= this.awayGraceMs)) {
+      // Restored from the back/forward cache, and this runs before its pageshow: another tab may
+      // hold the wallet by now (the fallback cannot look it up).
+      this.leave('away');
+      return false;
+    }
+    if (this.mode !== 'locks') return true;
+    if (this.clientId && this.now() - this.checkedAt < this.ttlMs && this.now() >= this.checkedAt) return true;
     if (!(await this.lookUp())) {
       this.lost();
       return false;
@@ -147,16 +175,29 @@ export class OneTab {
     return this.mayWrite();
   }
 
-  /** Whether the browser's lock manager says this page holds the lock (its own flag when it cannot ask). */
+  /**
+   * Whether the browser's lock manager says this page holds the lock. Without Web Locks: its own
+   * flag. With them, a lookup that cannot be made (query() rejects, or no clientId to compare) is
+   * "not this page's" (RE1-1: fail closed), and the loss that follows is said as 'unchecked'.
+   */
   async lookUp() {
-    if (this.mode !== 'locks' || !this.clientId) return this.holds();
+    if (this.mode !== 'locks') return this.holds();
+    if (!this.clientId) {
+      this.unchecked = true;
+      return false;
+    }
     let q;
     try {
       q = await this.locks.query();
     } catch {
-      return this.holds();
+      this.unchecked = true;
+      return false;
     }
     const mine = ((q && q.held) || []).find((l) => l.name === this.name);
+    if (mine && !mine.clientId) {
+      this.unchecked = true;
+      return false;
+    }
     if (!mine || mine.clientId !== this.clientId) return false;
     this.checkedAt = this.now();
     return this.holds();
@@ -166,6 +207,31 @@ export class OneTab {
   whenHeld(fn) {
     if (this.holds() && !this.spent) return void fn();
     this.heldWaiters.push(fn);
+  }
+
+  /**
+   * Runs fn() so that a hand-over to another tab first waits for it (bounded by LET_GO_CAP_MS): a
+   * step whose parts must not be split, such as a wallet's file and its record. Returns fn's result.
+   */
+  whileBusy(fn) {
+    let p;
+    try {
+      p = Promise.resolve(fn());
+    } catch (e) {
+      p = Promise.reject(e);
+    }
+    const done = p.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.busy.add(done);
+    done.then(() => this.busy.delete(done));
+    return p;
+  }
+
+  /** Resolves once no whileBusy step is running. */
+  async settled() {
+    while (this.busy.size) await Promise.all([...this.busy]);
   }
 
   /** fn(): locks the wallet and saves; called when another tab asks for it. Resolves when done. */
@@ -194,7 +260,8 @@ export class OneTab {
         if (this.mode === 'locks') {
           if (await this.request({ ifAvailable: true })) {
             await this.becomeHolder();
-            return 'held';
+            // A lock this page cannot look up guards nothing: it was let go ('unchecked').
+            return this.holds() ? 'held' : 'gone';
           }
           this.open();
           this.state = 'busy';
@@ -333,7 +400,15 @@ export class OneTab {
     this.state = 'held';
     this.how = null;
     this.open();
-    if (this.mode === 'locks') await this.learnClientId();
+    if (this.mode === 'locks') {
+      await this.learnClientId();
+      // Fail closed (RE1-1): without its clientId this page could never check, at a write, that the
+      // lock is still its own. It does not hold the wallet: no wallet runs, the lock is let go.
+      if (!this.clientId && !this.spent) {
+        this.unchecked = true;
+        this.lost();
+      }
+    }
     if (this.spent) return;
     for (const fn of this.heldWaiters.splice(0)) {
       try {
@@ -353,7 +428,7 @@ export class OneTab {
         this.checkedAt = this.now();
       }
     } catch {
-      /* no lookup: the flag alone guards writes */
+      /* no lookup: clientId stays null and becomeHolder() refuses (fail closed) */
     }
   }
 
@@ -362,7 +437,7 @@ export class OneTab {
     this.clearTimer(ask.timer);
     this.ask = null;
     await this.becomeHolder();
-    ask.resolve('held');
+    ask.resolve(this.holds() ? 'held' : 'gone');
   }
 
   askFailed(ask, e) {
@@ -381,12 +456,25 @@ export class OneTab {
     // and nothing may be saved - the other tab's data is newer.
     if (!(await this.lookUp())) return this.lost();
     this.post('letting-go');
-    if (this.letGoHandler) {
+    let capped = false;
+    if (this.letGoHandler || this.busy.size) {
       let timer = null;
+      // First what must not be split (a wallet's file and its record), then lock and save; the cap
+      // bounds both. Past the cap nothing more of it runs as part of the hand-over.
+      const work = (async () => {
+        await this.settled();
+        if (this.state === 'letting-go' && !capped && this.letGoHandler) await this.letGoHandler();
+      })().catch((e) => console.warn('[campfire] one tab: locking for the other tab', e && e.message));
       try {
-        await Promise.race([Promise.resolve().then(() => this.letGoHandler()), new Promise((r) => (timer = this.setTimer(r, this.capMs)))]);
-      } catch (e) {
-        console.warn('[campfire] one tab: locking for the other tab', e && e.message);
+        await Promise.race([
+          work,
+          new Promise((r) => {
+            timer = this.setTimer(() => {
+              capped = true;
+              r();
+            }, this.capMs);
+          }),
+        ]);
       } finally {
         this.clearTimer(timer);
       }
@@ -394,18 +482,23 @@ export class OneTab {
     if (this.state !== 'letting-go') return; // lost meanwhile
     // Taken while locking (the other tab gave up waiting): its saves from then on were refused.
     if (!(await this.lookUp())) return this.lost();
-    this.leave('handed');
+    this.leave(capped ? 'capped' : 'handed');
     const r = this.release;
     this.release = null;
     if (r) r();
     this.post('let-go');
   }
 
-  /** The lock is no longer this page's (taken, or found taken). */
+  /**
+   * The lock is no longer this page's (taken, or found taken), or this page cannot tell whether it
+   * is ('unchecked'): then the lock is also let go, since it guards nothing here.
+   */
   lost() {
     if (this.state === 'gone') return;
+    const r = this.unchecked ? this.release : null;
     this.release = null;
-    this.leave('stolen');
+    this.leave(this.unchecked ? 'unchecked' : 'stolen');
+    if (r) r();
   }
 
   leave(how) {
@@ -430,9 +523,20 @@ export class OneTab {
       this.ch = null;
     }
     if (this.win && typeof this.win.addEventListener === 'function') {
-      // Closing: the lock goes with the page; tabs waiting in the fallback learn it here.
-      this.win.addEventListener('pagehide', () => {
-        if (this.holds()) this.post('let-go');
+      // Closing: the lock goes with the page; tabs waiting in the fallback learn it here. Into the
+      // back/forward cache (persisted) the fallback's page keeps "holding" and may come back: it says
+      // nothing (a tab asking meanwhile offers "Take over anyway" after its wait), and when it is
+      // restored it leaves (RE1-2). Its own save on the way out runs after this and still goes.
+      this.win.addEventListener('pagehide', (e) => {
+        if (!this.holds()) return;
+        if (this.mode === 'presence' && e && e.persisted) {
+          if (this.awayAt === null) this.awayAt = this.now();
+          return;
+        }
+        this.post('let-go');
+      });
+      this.win.addEventListener('pageshow', (e) => {
+        if (e && e.persisted && this.awayAt !== null && this.state !== 'gone') this.leave('away');
       });
     }
   }
@@ -464,7 +568,8 @@ export class OneTab {
         if (this.ask && this.ask.onFreed) this.ask.onFreed();
         break;
       case 'here?':
-        if (this.holds()) this.post('here');
+        // A tab asking for the wallet answers too: it is about to hold it (RE1-2).
+        if (this.holds() || this.state === 'asking') this.post('here');
         else if (this.state === 'claiming') {
           // Two tabs starting together: the later one did not exist when the first asked, so the
           // first says it is starting too; both then let the lower id go on.

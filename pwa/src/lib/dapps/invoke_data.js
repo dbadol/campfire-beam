@@ -170,9 +170,18 @@ export function decodeInvokeData(raw, { allowAdvanced = false } = {}) {
       contractShaderLength = r.byteBuffer().length;
       const n = r.seqSize(2);
       appArgs = {};
+      // The core loads these into a std::map with insert (yas keyval.hpp), so a repeated key keeps
+      // its FIRST value there; a plain object here would keep the last, and a check on it would
+      // read another argument than the one the core redoes the call with (re-audit RE2-1). The
+      // policy also trims keys, so two keys that differ only by spaces count as the same.
+      const seen = new Set();
       for (let i = 0; i < n; i++) {
         const k = r.string();
-        appArgs[k] = r.string();
+        const v = r.string();
+        const key = k.trim();
+        if (seen.has(key) || Object.prototype.hasOwnProperty.call(appArgs, k)) throw new InvokeDataError(`raw_data: the stored arguments name "${key}" twice`);
+        seen.add(key);
+        appArgs[k] = v;
       }
       appPrivilege = r.u32();
     }

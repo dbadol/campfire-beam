@@ -766,6 +766,116 @@ test('BM-1: doubt in words: which transaction, "Not sure yet" / "Not sent yet", 
   assert.ok(!/nothing was sent/i.test(m), 'never "nothing was sent" about the doubtful one');
 });
 
+// Re-audit RE2-2: a "Not sure yet" that no listed server can settle (no state at past blocks, History
+// off) never cleared, and the notice named only exits that do not work then (wait; another
+// server). Now the notice names History from Stack Wallet when it is off, and once the payment has
+// been in doubt for a day with every look since failing the same way, it can be forgotten: that
+// entry only, after a plain warning, and sending opens up again.
+const HOUR = 3600000;
+/** A public pool whose count says the nonce moved on, that knows neither the hash nor any old state, and refuses the bytes. */
+function stuckServer(EthRpcError, { count = 1n, refuse = 'nonce too low' } = {}) {
+  return {
+    async getTransactionCount(addr, tag) {
+      if (tag === 'latest' || tag === 'pending') return count;
+      throw new EthRpcError(-32000, 'missing trie node: state not available for block');
+    },
+    async getTransactionReceipt() {
+      return null;
+    },
+    async getTransactionByHash() {
+      return null;
+    },
+    async blockNumber() {
+      return 23000000;
+    },
+    async getBlockByNumber() {
+      return null;
+    },
+    async sendRawTransaction() {
+      throw new EthRpcError(-32000, refuse);
+    },
+  };
+}
+
+test('RE2-2: "Not sure yet" that no server can settle: after a day of failed looks it can be forgotten, that payment only', async () => {
+  const D = await import('../../src/lib/eth/doubt.js');
+  const { EthRpcError } = await import('../../src/lib/eth/rpc.js');
+  const { app, kv, ethId } = await walletWithKey();
+  const rpc = stuckServer(EthRpcError);
+  const doubtful = entry({ hash: F.h(0x4101), from: ME, nonce: '0', state: 'pending', sentAt: 1000, createdAt: 2000 });
+  const older = entry({ hash: F.h(0x4102), from: ME, nonce: '5', state: 'confirmed', createdAt: 1500, receipt: { blockNumber: 9, status: 1, gasUsed: '21000', effectiveGasPrice: '1' } });
+  await addToOutbox(app, older, { ethId, kv });
+  await addToOutbox(app, doubtful, { ethId, kv });
+  let t = 10000;
+  const now = () => t;
+  const stored = async () => (await loadOutbox(app, { ethId, kv })).find((e) => e.hash === doubtful.hash);
+  const look = async () => followOnce(app, rpc, await stored(), { ethId, kv, candidates: [], now });
+  let e = await look();
+  assert.equal(D.doubtOf(e), 'unsure');
+  assert.equal(D.mayForget(e), false, 'just in doubt');
+  await assert.rejects(D.forgetInDoubt(app, doubtful.hash, { ethId, kv }), (x) => x.code === 'not_yet');
+  t += 23 * HOUR;
+  e = await look();
+  assert.equal(D.doubtOf(e), 'unsure');
+  assert.equal(D.mayForget(e), false, 'not a day yet');
+  t += 2 * HOUR;
+  assert.equal(D.mayForget(await stored()), false, 'a day has passed, but no look has failed since then');
+  e = await look();
+  assert.equal(D.mayForget(e), true, 'in doubt for a day, and the look a day on failed the same way');
+  await assert.rejects(D.assertNothingInDoubt(app, { ethId, kv }), (x) => x.code === 'in_doubt');
+  await D.forgetInDoubt(app, doubtful.hash, { ethId, kv });
+  assert.deepEqual((await loadOutbox(app, { ethId, kv })).map((x) => x.hash), [older.hash], 'only that entry is gone');
+  await D.assertNothingInDoubt(app, { ethId, kv });
+  await assert.rejects(D.forgetInDoubt(app, older.hash, { ethId, kv }), (x) => x.code === 'not_in_doubt', 'a settled one is never forgotten');
+  assert.equal(D.FORGET_WARNING, 'It may still go through. If it does and you send again, both go through.');
+});
+
+test('RE2-2: a doubt that cleared and came back starts its day again; "Not sent yet" a server keeps contradicting can be forgotten too', async () => {
+  const D = await import('../../src/lib/eth/doubt.js');
+  const { EthRpcError } = await import('../../src/lib/eth/rpc.js');
+  const { app, kv, ethId } = await walletWithKey();
+  let t = 50000;
+  const now = () => t;
+  // Unsure, then the server sees it again (pending: the doubt clears), then unsure again.
+  const a = entry({ hash: F.h(0x4201), from: ME, nonce: '0', state: 'pending', sentAt: 1, createdAt: 2 });
+  await addToOutbox(app, a, { ethId, kv });
+  const stored = async (hash) => (await loadOutbox(app, { ethId, kv })).find((e) => e.hash === hash);
+  await followOnce(app, stuckServer(EthRpcError), await stored(a.hash), { ethId, kv, now });
+  t += 30 * HOUR;
+  const seen = { ...stuckServer(EthRpcError, { count: 0n }), getTransactionByHash: async () => ({ hash: a.hash }) };
+  assert.equal(D.doubtOf(await followOnce(app, seen, await stored(a.hash), { ethId, kv, now })), null, 'the server sees it again');
+  t += HOUR;
+  let e = await followOnce(app, stuckServer(EthRpcError), await stored(a.hash), { ethId, kv, now });
+  assert.equal(D.doubtOf(e), 'unsure');
+  assert.equal(D.mayForget(e), false, 'its day starts again');
+  await updateOutbox(app, a.hash, { state: 'confirmed', unsureSince: null }, { ethId, kv });
+  // Refused: the count says the nonce is free, yet the broadcast says "nonce too low": never decided.
+  const b = entry({ hash: F.h(0x4202), from: ME, nonce: '0', state: 'signed', refusedAt: t, createdAt: 3 });
+  await addToOutbox(app, b, { ethId, kv });
+  const contradicts = stuckServer(EthRpcError, { count: 0n });
+  e = await followOnce(app, contradicts, await stored(b.hash), { ethId, kv, now });
+  assert.equal(D.doubtOf(e), 'refused');
+  t += 25 * HOUR;
+  e = await followOnce(app, contradicts, await stored(b.hash), { ethId, kv, now });
+  assert.equal(D.doubtOf(e), 'refused');
+  assert.equal(D.mayForget(e), true);
+});
+
+test('RE2-2: the way out names History from Stack Wallet when it is off', async () => {
+  const D = await import('../../src/lib/eth/doubt.js');
+  const pay = entry({ hash: F.h(0x4301), state: 'pending', unsureSince: 5 });
+  const on = D.doubtMessage(pay);
+  assert.ok(on.endsWith(D.DOUBT_WAY_OUT), 'History on (the default): as before');
+  assert.ok(!/History/.test(on));
+  const off = D.doubtMessage(pay, { history: false });
+  assert.ok(off.endsWith(`${D.DOUBT_WAY_OUT} ${D.HISTORY_WAY_OUT}`), off);
+  assert.equal(D.HISTORY_WAY_OUT, 'Or turn on History from Stack Wallet in Settings: it then finds what took its place, if anything did.');
+  const { app, kv, ethId } = await walletWithKey();
+  await addToOutbox(app, pay, { ethId, kv });
+  await assert.rejects(D.assertNothingInDoubt({ ...app, prefs: { ethHistory: false } }, { ethId, kv }), (x) => x.code === 'in_doubt' && x.message.endsWith(D.HISTORY_WAY_OUT));
+  await assert.rejects(D.assertNothingInDoubt(app, { ethId, kv }), (x) => x.code === 'in_doubt' && !/History/.test(x.message));
+});
+
 test('BM-1: a Uniswap swap or permission is refused while a transaction is in doubt, before the key is opened', async () => {
   const D = await import('../../src/lib/eth/doubt.js');
   const { signAndBroadcast } = await import('../../src/lib/eth/uniswap_app.js');
@@ -802,12 +912,18 @@ test('BM-2: a payment the index shows mined is mined, whatever "rejected" or "re
   // Mined but failed: the fee was spent, the amount stayed.
   shown = H.mergeActivity({ address: ME, outbox: [rejected], txs: [{ ...minedTx, failed: true }], transfers: [] }).find((i) => i.hash === hash);
   assert.equal(shown.state, 'failed');
-  // "Replaced" loses to the index too; a swap shows through its token transfer.
+  // "Replaced" was shown with evidence (the transaction that took its nonce, signed by this wallet,
+  // with a receipt): an index row does not outrank it (re-audit RE2-5). It stays "Replaced", with
+  // what the index says beside it, until the chosen server serves this hash's own receipt.
   const replaced = entry({ hash, state: 'replaced', replacedBy: F.h(9), replacedIn: 120, kind: 'swap' });
   const xfer = { hash, blockNumber: 124, timestamp: 1700000001, logIndex: 0, from: F.ME, to: F.BOB, amount: 5n, token: WBEAM };
   shown = H.mergeActivity({ address: ME, outbox: [replaced], txs: [], transfers: [xfer] }).find((i) => i.hash === hash);
-  assert.equal(shown.state, 'confirmed');
-  assert.equal(shown.blockNumber, 124);
+  assert.equal(shown.state, 'replaced');
+  assert.equal(shown.blockNumber, null);
+  assert.equal(H.mergeActivity({ address: ME, outbox: [replaced], txs: [{ ...minedTx, fee: 21000n * GWEI }], transfers: [] }).find((i) => i.hash === hash).fee, null, "no fee from the index's word");
+  assert.deepEqual(shown.indexSays, { state: 'confirmed', blockNumber: 124 });
+  assert.deepEqual(H.minedInIndex({ outbox: [replaced], txs: [], transfers: [xfer] }), [], 'not written down from the index');
+  assert.equal(H.mergeActivity({ address: ME, outbox: [rejected], txs: [minedTx], transfers: [] }).find((i) => i.hash === hash).indexSays, null);
   // Not in a block (the index's own pending row) or another hash: the entry's word stands.
   shown = H.mergeActivity({ address: ME, outbox: [rejected], txs: [{ ...minedTx, blockNumber: null }, { ...minedTx, hash: F.h(5) }], transfers: [] }).find((i) => i.hash === hash);
   assert.equal(shown.state, 'rejected');
@@ -857,6 +973,48 @@ test('BM-2: "rejected" entries are looked at again (their receipt, once per look
   assert.equal(e.receipt.gasUsed, '21000');
   assert.equal(e.refusedAt, null);
   assert.equal(entryFee(e).final, true);
+  forgetEthWallet();
+});
+
+test('RE2-5: a verified "Replaced" the index contradicts flips only once the chosen server serves this hash\'s own receipt', async () => {
+  const H = await import('../../src/lib/eth/history.js');
+  const { app, kv, ethId } = await walletWithKey();
+  const chain = fakeChain();
+  const hash = F.h(0x5501);
+  const replaced = entry({ hash, from: ME, nonce: '4', state: 'replaced', replacedBy: F.h(0x5502), replacedIn: 120, createdAt: 10 });
+  await addToOutbox(app, replaced, { ethId, kv });
+  const w = await ethWallet(app, { kv });
+  w._rpc = chain.rpc;
+  await w.reloadOutbox();
+  const indexRow = { hash, from: ME.toLowerCase(), to: F.ALICE, value: 10n ** 16n, blockNumber: 130, timestamp: 1700000000, failed: false, fee: 21000n * GWEI, nonce: 4, contractCall: false };
+  w.state.history = { txs: [indexRow], transfers: [], error: null, at: 1 };
+  // The index alone writes nothing down: the evidence stays.
+  assert.equal(await w.settleFromIndex(), false);
+  let e = (await loadOutbox(app, { ethId, kv }))[0];
+  assert.equal(e.state, 'replaced');
+  assert.equal(e.replacedBy, F.h(0x5502));
+  assert.deepEqual(w.indexSays(hash), { state: 'confirmed', blockNumber: 130 });
+  // Each look asks the chosen server for this hash's receipt: none, so nothing changes.
+  const before = chain.st.calls.length;
+  assert.equal(await w.recheckRejected(), false);
+  assert.deepEqual(chain.st.calls.slice(before), ['eth_getTransactionReceipt']);
+  assert.equal((await loadOutbox(app, { ethId, kv }))[0].state, 'replaced');
+  // A "Replaced" the index does not contradict is not asked about at all.
+  w.state.history = { txs: [], transfers: [], error: null, at: 1 };
+  const quiet = chain.st.calls.length;
+  assert.equal(await w.recheckRejected(), false);
+  assert.equal(chain.st.calls.length, quiet);
+  // The server serves its receipt: then, and only then, it is mined.
+  w.state.history = { txs: [indexRow], transfers: [], error: null, at: 1 };
+  chain.st.mined.set(hash, { transactionHash: hash, status: '0x1', blockNumber: '0x82', blockHash: F.h(0xb082), from: ME.toLowerCase(), to: F.ALICE, gasUsed: '0x5208', effectiveGasPrice: '0x1', logs: [] });
+  assert.equal(await w.recheckRejected(), true);
+  e = (await loadOutbox(app, { ethId, kv }))[0];
+  assert.equal(e.state, 'confirmed');
+  assert.equal(e.receipt.blockNumber, 130);
+  assert.equal(e.replacedBy, null);
+  assert.equal(e.replacedIn, null);
+  assert.equal(H.mergeActivity({ address: ME, outbox: [e], txs: [indexRow], transfers: [] }).find((i) => i.hash === hash).state, 'confirmed');
+  w.state.history = { txs: [], transfers: [], error: null, at: null };
   forgetEthWallet();
 });
 
