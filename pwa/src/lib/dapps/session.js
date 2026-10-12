@@ -7,8 +7,8 @@
 // 3. parameter rules (sanitizer.js): no contract_file, no create_tx: true,
 //    no hidden parameters on payments, no privileged shader;
 // 4. process_invoke_data: the raw data is read in full and refused (-32020)
-//    when it asks for privilege, calls BEAM names or signs with a key BEAM
-//    Campfire's own features use (policy.js); sign_message with such a key
+//    when it asks for privilege or a spend ceiling, calls BEAM names or signs
+//    with a key BEAM Campfire's own features use (policy.js); sign_message with such a key
 //    is refused too, and any other sign_message is put to the person first;
 // 5. forwarded to this dApp's own app API in BEAM's engine (lib/contracts.js openApp), which
 //    applies the core's app rules again, scopes transactions and addresses

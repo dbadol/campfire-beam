@@ -8,13 +8,16 @@
 //   payments sent to them with the person's key; no dApp may call them.
 // - No wallet keys: a call (or a message signature) with a key BEAM
 //   Campfire's own features use could give away what those keys control.
+// - No spend ceiling: a stored ceiling (SaveSpendMax) is what the core lets
+//   a rebuilt dependent call spend later without asking again, and the
+//   approve sheet never shows it (see checkContractData).
 //
 // A contract call signs with key hashes chosen by its app shader; the core
 // derives the private key from the wallet's master key and that hash, where
 // the hash is SHA-256("bvm.m.key\0" || id). The ids below are public (BANS
 // uses its own contract id), so any dApp could otherwise ask for them.
 
-import { decodeInvokeData, InvokeDataError } from './invoke_data.js';
+import { decodeInvokeData, InvokeDataError, FLAG_SAVE_SPEND_MAX } from './invoke_data.js';
 import { RPC, RpcError } from './rpc.js';
 
 export const BANS_CID = 'af4550f1f8a6051ffeffea06e0cb978f8076fdfc2101d2273d4e62c86540bc5e';
@@ -48,7 +51,7 @@ export const KNOWN_CONTRACTS = Object.freeze({
 export class PolicyRefusal extends Error {
   constructor(reason, message) {
     super(message);
-    this.reason = reason; // 'unreadable' | 'privileged' | 'forbidden_contract' | 'reserved_key'
+    this.reason = reason; // 'unreadable' | 'privileged' | 'spend_ceiling' | 'forbidden_contract' | 'reserved_key'
   }
 }
 
@@ -63,6 +66,15 @@ export function checkContractData(raw) {
   }
   if (data.appPrivilege !== null && data.appPrivilege !== 0) {
     throw new PolicyRefusal('privileged', "BEAM Campfire refused this request: it asks the wallet to run the dApp's own code with extra privileges. Nothing was sent.");
+  }
+  // The approve sheet shows what the engine reports, the entries' own spend (get_FullSpend). A
+  // stored ceiling is not part of it, yet when a dependent call misses its block the core re-runs
+  // the stored app body and signs any variant that spends up to the ceiling, without asking again
+  // (contract_transaction.cpp IsSpendWithinLimits, RebuildHft). Without one it holds a rebuild to
+  // 1% over what was approved. No BEAM shader sets a ceiling (Env::SetMaxSpend is used nowhere in
+  // bvm/Shaders; BEAM's DEX trades rely on the 1%), so none is accepted from a dApp.
+  if (data.spendMax !== null || data.entries.some((e) => e.flags & FLAG_SAVE_SPEND_MAX)) {
+    throw new PolicyRefusal('spend_ceiling', 'BEAM Campfire refused this request: it asks for permission to spend more later than it shows you now. Nothing was sent.');
   }
   for (const e of data.entries) {
     if (e.contractId && FORBIDDEN_CONTRACTS.has(e.contractId)) {
