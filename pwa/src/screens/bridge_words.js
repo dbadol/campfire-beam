@@ -4,10 +4,17 @@
 
 import { BEAM_DECIMALS, BEAM_CONFIRMATIONS, routeById } from '../lib/bridge/routes.js';
 import { STATES, DIRECTIONS, isOpen } from '../lib/bridge/store.js';
+import { LOCK_FAILED_SHARED } from '../lib/bridge/controller.js';
 import { coin, exact, ago, sourceDecimals, sourceSymbol, destinationDecimals, destinationSymbol, destinationChain } from './bridge_text.js';
 
 /** mood: progress | success | warning | error; needsYou: it waits for the person (Collect), not for a chain. */
 const words = (title, detail, short, mood, needsYou = false) => Object.freeze({ title, detail, short, mood, needsYou });
+
+/**
+ * A move to BEAM whose lock names a bridge message another record of this list already follows
+ * (controller.js, release audit BM-3): it ended there, its coins are collected through that one.
+ */
+const handedOver = (c) => c.direction === DIRECTIONS.toBeam && c.state === STATES.claimed && c.msgId === null && c.origin !== 'found';
 
 /** "1,000 BEAM → Ethereum"; coins found waiting on BEAM: "0.5 bETH found on BEAM". */
 export function headline(c) {
@@ -90,8 +97,11 @@ export function crossingWords(c, { blocksLeft = null, now = Date.now() } = {}) {
     case STATES.claiming:
       return words(`Collecting ${arrives}`, withError('Waiting for the BEAM network, usually a minute or two.'), 'Collecting', 'progress');
     case STATES.claimed:
+      if (handedOver(c)) return words('Followed by another move', err, 'Under another move', 'success');
       return words(`${arrives} is in your BEAM wallet`, err, 'Arrived', 'success');
     case STATES.lockFailed:
+      // Refused on one server's word while coins of its amount reached BEAM that another move may own.
+      if (err === LOCK_FAILED_SHARED) return words('Refused, says your Ethereum server', err, 'Check Waiting for you', 'warning');
       return words('Nothing was moved', err || `The bridge did not take your ${r.ethSymbol}.`, 'Not sent', 'error');
     case STATES.unknown:
       return words(
@@ -130,6 +140,7 @@ export function crossingSteps(c, { blocksLeft = null, now = Date.now() } = {}) {
   const onBeam = s === STATES.delivered || s === STATES.claiming || s === STATES.claimed;
   // Found waiting on BEAM: how it got there is not this device's to say.
   if (c.origin === 'found') return [step('Found waiting on BEAM', 'done', at), step('Collected in your BEAM wallet', s === STATES.claimed ? 'done' : 'active', s === STATES.delivered ? 'Your turn' : null)];
+  if (handedOver(c)) return [step('Sent to the bridge on Ethereum', 'done', at), step('Followed by another move in this list', 'done')];
   const steps = [];
   if (c.approveHashes.length || s === STATES.approving) {
     steps.push(step(`Bridge allowed to take your ${routeById(c.route).ethSymbol}`, s === STATES.approving ? 'active' : s === STATES.lockFailed && !c.lockHash ? 'failed' : 'done', at));

@@ -880,8 +880,10 @@ test('uniqueness: a lock naming a message another crossing has is not collected'
   a = await rig.after(15 * S, a.id);
   b = rig.c.crossing(b.id);
   assert.equal(a.state, STATES.locked);
-  assert.equal(b.state, STATES.unknown);
+  // BM-3: it ends (its coins are followed by the other move), rather than "can't tell" for ever.
+  assert.equal(b.state, STATES.claimed);
   assert.equal(b.msgId, null);
+  assert.match(b.lastError, /another move in this list already follows it/);
 });
 
 test('polling runs only while the caller says visible and unlocked; an explicit look still answers', async () => {
@@ -928,4 +930,82 @@ test('beamSide maps the wallet: tx_status 3 with a height is completed, 2 and 4 
   assert.equal(await side.tipHeight(), 4072900);
   assert.equal(await side.available(0), 5n);
   await assert.rejects(beamSide({ pipe: {}, wallet: { state: { status: {} } } }).tipHeight(), code('network'));
+});
+
+// ---------------------------------------------------------------- one message, one move (BM-3)
+
+test('BM-3: a reverted lock does not take another move\'s message by amount; that move gets it from its receipt; the reverted one ends', async () => {
+  const rig = new Rig();
+  let a = await rig.move(ethRoute, toBeam, ethUnits(0.01)); // its lock really reverts
+  let b = await rig.move(ethRoute, toBeam, ethUnits(0.01)); // the same amount again
+  rig.eth.mineLock(a.lockHash, { success: false });
+  rig.beam.deliver(ethRoute, 150, b.receives); // B's message, on BEAM before this server serves B's receipt
+  a = await rig.after(15 * S, a.id);
+  assert.equal(a.state, STATES.locking, 'not adopted: B may own it');
+  assert.equal(a.msgId, null);
+  assert.ok(a.revertSeenAt);
+  rig.eth.mineLock(b.lockHash, { msgId: 150 });
+  b = await rig.after(15 * S, b.id);
+  assert.equal(b.state, STATES.delivered, "B's receipt names 150: B's");
+  assert.equal(b.msgId, 150);
+  a = await rig.after(TIMING.deliveryWaitMs, a.id);
+  assert.equal(a.state, STATES.lockFailed);
+  assert.equal(a.msgId, null);
+  assert.deepEqual(rig.c.crossings.filter((c) => c.state === STATES.unknown), [], 'nothing left "can\'t tell"');
+  const w = await rig.c.waiting();
+  assert.deepEqual(w.items.map((i) => [i.msgId, i.crossingId]), [[150, b.id]]);
+  await rig.c.collect(b.id);
+  assert.deepEqual(rig.sends(), ['claim eth'], 'collected once, through the move that made it');
+});
+
+test('BM-3: a reverted lock still takes a message nobody else can own (D-4); two reverted ones leave theirs under "Waiting for you"', async () => {
+  // Alone: the message is this move's (its server lied about the revert).
+  const one = new Rig();
+  let x = await one.move(ethRoute, toBeam, ethUnits(0.01));
+  one.eth.mineLock(x.lockHash, { success: false });
+  one.beam.deliver(ethRoute, 140, x.receives);
+  x = await one.after(15 * S, x.id);
+  assert.equal(x.state, STATES.delivered);
+  assert.equal(x.msgId, 140);
+  // Two moves of the same amount, both "reverted", one message: it could be either's, so neither takes it.
+  const two = new Rig();
+  let a = await two.move(ethRoute, toBeam, ethUnits(0.01));
+  let b = await two.move(ethRoute, toBeam, ethUnits(0.01));
+  two.eth.mineLock(a.lockHash, { success: false });
+  two.eth.mineLock(b.lockHash, { success: false });
+  two.beam.deliver(ethRoute, 151, a.receives);
+  a = await two.after(15 * S, a.id);
+  b = two.c.crossing(b.id);
+  assert.equal(a.msgId, null);
+  assert.equal(b.msgId, null);
+  a = await two.after(TIMING.deliveryWaitMs, a.id);
+  b = two.c.crossing(b.id);
+  for (const c of [a, b]) {
+    assert.equal(c.state, STATES.lockFailed);
+    assert.match(c.lastError, /did reach BEAM/);
+    assert.match(c.lastError, /Waiting for you on BEAM/);
+  }
+  const w = await two.c.waiting();
+  assert.deepEqual(w.items.map((i) => [i.msgId, i.crossingId]), [[151, null]], 'listed to collect');
+  await two.c.collectWaiting('eth', 151);
+  assert.deepEqual(two.sends(), ['claim eth']);
+});
+
+test('BM-3: a move whose receipt names a message another move already follows finishes, instead of checking for ever', async () => {
+  const rig = new Rig();
+  let b = await rig.move(ethRoute, toBeam, ethUnits(0.01));
+  // Its message reaches BEAM before this server serves its receipt, and is collected from "Waiting for you".
+  rig.beam.deliver(ethRoute, 160, b.receives);
+  const found = await rig.c.collectWaiting('eth', 160);
+  assert.equal(found.origin, 'found');
+  rig.eth.mineLock(b.lockHash, { msgId: 160 });
+  b = await rig.after(15 * S, b.id);
+  assert.equal(b.state, STATES.claimed, 'final');
+  assert.equal(b.msgId, null);
+  assert.ok(b.finishedAt);
+  assert.match(b.lastError, /another move in this list already follows/);
+  for (let i = 0; i < 3; i++) b = await rig.after(30 * S, b.id);
+  assert.equal(b.state, STATES.claimed, 'nothing more happens to it');
+  assert.equal(rig.c.crossings.filter((c) => c.msgId === 160).length, 1);
+  assert.deepEqual(rig.sends(), ['claim eth'], 'one claim');
 });

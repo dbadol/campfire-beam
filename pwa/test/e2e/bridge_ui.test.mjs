@@ -525,6 +525,45 @@ test('(e) a move ready to collect: "Collect", then the approve sheet in the brid
   await pretendBeam(null);
 });
 
+test('BM-3: a move whose message another follows, and a refused lock whose coins may be another move\'s, say so in the list and on their screen', T(6), async () => {
+  // Two finished moves as the controller now ends them (lib/bridge/controller.js), written into this
+  // wallet's sealed store and picked up by unlocking again. Nothing is sent anywhere.
+  const ids = await page.evaluate(async () => {
+    const { bridgeOf } = await import('./screens/bridge_ui.js');
+    const { makeCrossing } = await import('./lib/bridge/store.js');
+    const { LOCK_FAILED_SHARED } = await import('./lib/bridge/controller.js');
+    const { app } = await import('./app.js');
+    const s = await bridgeOf(app);
+    const now = Date.now();
+    const base = { route: 'eth', direction: 'toBeam', amount: 10n ** 16n, receives: 1000000n, relayerFee: 3000000000000n, beamNetworkFee: 12100000n, ethNetworkFee: 200000000000000n, beamWalletId: s.ctl.beamWalletId, ethWalletId: s.ctl.ethWalletId, ethAddress: s.eth.owner, height: 26156200, createdAt: now - 50 * 60000, updatedAt: now };
+    const handed = makeCrossing({ ...base, id: 'xbm3handed', state: 'claimed', lockHash: `0x${'5a'.repeat(32)}`, finishedAt: now, lastError: 'Ethereum names the bridge message of this lock, and another move in this list already follows it: its coins are collected there, once. Nothing is lost, and nothing more happens here.' });
+    const shared = makeCrossing({ ...base, id: 'xbm3shared', state: 'lockFailed', lockHash: `0x${'6b'.repeat(32)}`, revertSeenAt: now - 31 * 60000, finishedAt: now, lastError: LOCK_FAILED_SHARED });
+    await s.ctl.store.save(handed);
+    await s.ctl.store.save(shared);
+    return [handed.id, shared.id];
+  });
+  await page.evaluate(() => window.__campfire.go('home'));
+  await waitScreen(page, 'home');
+  await page.evaluate(async () => (await import('./app.js')).app.lock('manual'));
+  await unlockWithPassword(page, PASSWORD);
+  await waitScreen(page, 'home', 120000);
+  await page.evaluate((x) => window.__campfire.go('bridgeCrossing', { id: x, back: 'bridgeList' }), ids[0]);
+  await waitScreen(page, 'bridgeCrossing');
+  await page.waitForSelector(`${tid('bridge-crossing-status')}[data-state="claimed"]`);
+  assert.equal(await page.textContent(tid('bridge-crossing-title')), 'Followed by another move');
+  assert.match(await page.textContent(tid('bridge-crossing-status')), /its coins are collected there, once\. Nothing is lost/);
+  await shots4('26-crossing-followed-by-another');
+  await page.evaluate((x) => window.__campfire.go('bridgeCrossing', { id: x, back: 'bridgeList' }), ids[1]);
+  await page.waitForSelector(`${tid('bridge-crossing-status')}[data-state="lockFailed"]`);
+  assert.equal(await page.textContent(tid('bridge-crossing-title')), 'Refused, says your Ethereum server');
+  assert.match(await page.textContent(tid('bridge-crossing-status')), /if any are listed under "Waiting for you on BEAM", collect them there\./);
+  await shots4('27-crossing-refused-shared');
+  await page.evaluate(() => window.__campfire.go('bridgeList', { back: 'home' }));
+  await waitScreen(page, 'bridgeList');
+  await sleep(1500);
+  await shots4('28-list-bm3');
+});
+
 test('IP privacy: this origin, the BEAM node, the chosen Ethereum server and (once allowed) CoinGecko; no CSP violation', T(1), async () => {
   assert.deepEqual(foreignHosts(rec, srv.url).sort(), [`https://${GECKO}`, `https://${STACK}`]);
   assert.deepEqual(rec.csp, []);

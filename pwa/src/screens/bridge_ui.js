@@ -25,8 +25,8 @@ import { assertNothingInDoubt } from '../lib/eth/doubt.js';
 import { EthPipe } from '../lib/bridge/eth_pipe.js';
 import { BeamPipe } from '../lib/bridge/beam_pipe.js';
 import { PriceFeed } from '../lib/bridge/prices.js';
-import { BridgeController, beamSide } from '../lib/bridge/controller.js';
-import { bridgeStoreFor } from '../lib/bridge/store.js';
+import { BridgeController, beamSide, LOCK_FAILED_SHARED } from '../lib/bridge/controller.js';
+import { bridgeStoreFor, isOpen } from '../lib/bridge/store.js';
 import { setMoveBadge } from './eth_screens.js';
 import { headline, crossingWords, lockedNote } from './bridge_words.js';
 import { ago } from './bridge_text.js';
@@ -61,6 +61,7 @@ function crossingTeller(app, ctl) {
       if (first || before === c.state) continue;
       if (c.state === 'delivered') tellOther(app, { kind: 'moves', title: 'Your coins reached BEAM: collect them', body: 'Open the bridge and tap Collect to put them in this wallet.', tag: `bridge-${c.id}`, url: '#open=bridgeList', banner: !BRIDGE_SCREENS.has(app.currentName) });
       else if (c.state === 'paid') tellOther(app, { kind: 'moves', title: 'Your coins reached your Ethereum wallet', body: 'The bridge paid them.', tag: `bridge-${c.id}`, url: '#open=bridgeList' });
+      else if (c.state === 'lockFailed' && c.lastError === LOCK_FAILED_SHARED) tellOther(app, { kind: 'moves', title: 'Check your move to BEAM', body: 'Your Ethereum server says it was refused, but coins of its amount reached BEAM. Tap to see.', tag: `bridge-${c.id}`, url: '#open=bridgeList', banner: !BRIDGE_SCREENS.has(app.currentName) });
       else if (c.state === 'lockFailed') tellOther(app, { kind: 'moves', title: 'A move to BEAM did not go through', body: 'Nothing was locked. Tap to see why.', tag: `bridge-${c.id}`, url: '#open=bridgeList', banner: !BRIDGE_SCREENS.has(app.currentName) });
     }
   };
@@ -213,7 +214,8 @@ export function crossingRow(ctl, c, onclick) {
   return h(
     'button',
     { class: 'row bridge-row', onclick, 'data-testid': 'bridge-row', 'data-id': c.id, 'data-state': c.state },
-    h('span', { class: `ico ${w.mood === 'error' ? 'fail' : w.mood === 'success' ? 'in' : 'swap'}` }, icon(w.mood === 'success' ? 'check' : w.mood === 'error' ? 'close' : 'clock')),
+    // A finished move that wants a look (BM-3: refused, while coins of its amount reached BEAM) is no clock.
+    h('span', { class: `ico ${w.mood === 'error' ? 'fail' : w.mood === 'success' ? 'in' : 'swap'}` }, icon(w.mood === 'success' ? 'check' : w.mood === 'error' ? 'close' : w.mood === 'warning' && !isOpen(c) ? 'alert' : 'clock')),
     h('span', { class: 'main' }, h('div', { class: 't', text: headline(c) }), h('div', { class: 's' }, h('span', { class: `bridge-short ${cls}`, 'data-testid': 'bridge-row-status', text: w.short }), ` · ${ago(c.createdAt)}`)),
     h('span', { class: 'chev' }, icon('chevron')),
   );
