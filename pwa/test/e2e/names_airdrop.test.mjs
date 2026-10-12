@@ -108,6 +108,12 @@ async function tapWithRealBalance(testid, taps = 1) {
   );
 }
 
+/** A fresh test profile is not promised its storage, so Create codes / Move first says the record is kept only here (screens/storage_warning.js): go on. */
+async function passKeptHere(p = page) {
+  const go = await p.waitForSelector('[data-testid="kept-here-go"]', { timeout: 5000 }).catch(() => null);
+  if (go) await go.click();
+}
+
 /** What the engine itself holds: no transaction, nothing available. */
 async function engineTruth() {
   return page.evaluate(async () => {
@@ -475,6 +481,7 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
   await shots('airdrop-06-create-ready');
   // A double tap: one batch.
   await tapWithRealBalance('drop-cta', 2);
+  await passKeptHere();
   const sheet = await readSheet();
   console.log(`# create sheet: ${JSON.stringify(sheet)}`);
   await shots('airdrop-07-create-consent-not-enough');

@@ -56,7 +56,10 @@ test('settings: off until turned on; every kind on by default; the old payment s
   assert.equal(settingsOf({ paymentNotifications: true, notify: { on: false } }).on, false);
   const s = settingsOf({ notify: { on: true, kinds: { out: false } } });
   assert.deepEqual(KINDS.filter((k) => s.kinds[k]), ['in', 'underway', 'contracts', 'moves']);
-  assert.equal(s.amounts, true);
+  // A lock screen is read by whoever holds the phone: amounts only when the person asks.
+  assert.equal(s.amounts, false, 'no amounts by default');
+  assert.equal(settingsOf({ notify: { on: true } }).amounts, false);
+  assert.equal(settingsOf({ notify: { on: true, amounts: true } }).amounts, true);
   assert.equal(settingsOf({ notify: { on: true, amounts: false } }).amounts, false);
   for (const k of KINDS) assert.ok(KIND_WORDS[k].title && KIND_WORDS[k].sub);
 });
@@ -67,24 +70,71 @@ test('leaving the app: a regular payment still under way is said at once; nothin
   assert.ok(evs.every((e) => e.kind === 'underway'));
 });
 
-test('reminders for later: payment still waiting, private coin ready, name expiring, NEAR deposit deadline', () => {
+test('reminders for later: payments still waiting, private coin ready, name expiring, NEAR deposit deadline', () => {
   const now = 1_700_000_000_000;
   const list = remindersFor({
     now,
-    wallet: 'w1',
-    txs: [tx('a', { status: 1 })],
+    txs: [tx('a', { status: 1 }), tx('b', { status: 0, income: false })],
     privateCoins: [{ id: 'p1', spendableAt: now + 3600_000 }, { id: 'p0', spendableAt: now - 1 }],
     names: [{ name: 'alice', expiresAt: now + 10 * DAY_MS }, { name: 'bob', expiresAt: now + 3 * DAY_MS }],
     nearSwaps: [{ id: 'dep1', symbol: 'BTC', sendBefore: now + 3600_000 }],
   });
-  assert.deepEqual(list.map((r) => r.id), ['rem-arr-a', 'rem-priv-p1', 'rem-name-alice-7', 'rem-name-alice-1', 'rem-name-bob-1', 'rem-near-dep1']);
+  assert.deepEqual(list.map((r) => r.id.replace(/\d+$/, 'T')), ['rem-arr-T', 'rem-priv-T', 'rem-name-T', 'rem-name-T', 'rem-name-T', 'rem-near-T']);
   assert.equal(list[0].at, now + REMIND_AFTER_MS);
+  assert.equal(list[0].id, `rem-arr-${now + REMIND_AFTER_MS}`, 'its id is its time');
+  assert.equal(list[0].title, 'Payments are still waiting', 'one reminder for both');
   assert.equal(list[2].at, now + 3 * DAY_MS);
-  assert.ok(list.every((r) => r.wallet === 'w1' && /^#open=/.test(r.url)));
+  assert.equal(list[2].title, 'A BEAM name of yours expires in 7 days');
+  assert.equal(list[4].title, 'A BEAM name of yours expires in 1 day');
+  assert.equal(list[5].title, 'A deposit address closes soon');
+  assert.deepEqual(list.map((r) => r.url), ['#open=activity', '#open=coins', '#open=names', '#open=names', '#open=names', '#open=nearIntents']);
   assert.ok(list.every((r) => !/\d+(\.\d+)? BEAM/.test(`${r.title} ${r.body}`)), 'no amounts in a stored reminder');
   const { due, keep } = dueReminders(list, now + REMIND_AFTER_MS);
-  assert.deepEqual(due.map((r) => r.id), ['rem-arr-a']);
+  assert.deepEqual(due.map((r) => r.id), [`rem-arr-${now + REMIND_AFTER_MS}`]);
   assert.equal(keep.length, 5);
+});
+
+test('a stored reminder names nothing (audit A-4): no payment id, coin, name, address, label, deposit address, symbol, wallet', () => {
+  const now = 1_700_000_000_000;
+  const secrets = ['a'.repeat(32), 'coin-77', 'alice', 'dep1addressxyz', 'BTC', 'From Alex', 'w1', 'Savings', '0011ab'];
+  const list = remindersFor({
+    now,
+    wallet: 'w1',
+    walletName: 'Savings',
+    labels: true,
+    txs: [tx('a'.repeat(32), { status: 1 })],
+    privateCoins: [{ id: 'coin-77', spendableAt: now + 3600_000 }],
+    names: [{ name: 'alice', expiresAt: now + 10 * DAY_MS }],
+    nearSwaps: [{ id: 'dep1addressxyz', symbol: 'BTC', sendBefore: now + 3600_000 }],
+    addresses: [{ address: `0011ab${'cd'.repeat(30)}`, expiresAt: now + 10 * DAY_MS, label: 'From Alex' }],
+  });
+  assert.equal(list.length, 6);
+  const stored = JSON.stringify(list);
+  for (const s of secrets) assert.ok(!stored.includes(s), `"${s}" is in a stored reminder`);
+  assert.ok(list.every((r) => Object.keys(r).sort().join() === 'at,body,id,kind,title,url'), 'no wallet field');
+  assert.ok(list.every((r) => /^rem-(arr|priv|name|addr|near)-\d+$/.test(r.id)));
+});
+
+test('reminders an earlier version stored are rewritten to name nothing, at the same times', async () => {
+  const { plainReminders } = await import('../../src/lib/notify_rules.js');
+  const now = 1_700_000_000_000;
+  const old = [
+    { id: `rem-arr-${'b1'.repeat(16)}`, wallet: 'w1', kind: 'underway', at: now + 1, title: 'Your payment is still waiting', body: 'It finishes only while BEAM Campfire is open. Open it to finish. In Savings.', url: `#open=activity&tx=${'b1'.repeat(16)}` },
+    { id: 'rem-priv-coin-77', wallet: 'w1', kind: 'in', at: now + 2, title: 'A private payment can now be spent', body: 'Open BEAM Campfire to use it.', url: '#open=coins' },
+    { id: 'rem-name-alice-1', wallet: 'w1', kind: 'contracts', at: now + 3, title: 'alice.beam expires in 1 day', body: 'Renew it in BEAM names so it stays yours.', url: '#open=names' },
+    { id: 'rem-name-alice-7', wallet: 'w1', kind: 'contracts', at: now + 4, title: 'alice.beam expires in 7 days', body: 'Renew it in BEAM names so it stays yours.', url: '#open=names' },
+    { id: `rem-addr-0011ab${'cd'.repeat(5)}`, wallet: 'w1', kind: 'in', at: now + 5, title: 'An address of yours (From Alex) expires in 3 days', body: 'x', url: '#open=addresses' },
+    { id: 'rem-addr-ffff', wallet: null, kind: 'in', at: now + 6, title: '3 of your addresses expire in 3 days', body: 'x', url: '#open=addresses' },
+    { id: 'rem-near-dep1addressxyz', wallet: 'w1', kind: 'moves', at: now + 7, title: 'Send your BTC in the next 30 minutes', body: 'x In Savings.', url: '#open=nearIntents' },
+    { id: 'rem-test-odd', at: now, title: 'odd' },
+  ];
+  const got = plainReminders(old);
+  assert.deepEqual(got.map((r) => [r.id, r.at]), [1, 2, 3, 4, 5, 6, 7].map((d, i) => [`rem-${['arr', 'priv', 'name', 'name', 'addr', 'addr', 'near'][i]}-${now + d}`, now + d]));
+  assert.equal(got[2].title, 'A BEAM name of yours expires in 1 day');
+  assert.equal(got[3].title, 'A BEAM name of yours expires in 7 days');
+  assert.equal(got[5].title, '3 of your addresses expire in 3 days');
+  for (const s of ['b1b1', 'coin-77', 'alice', 'From Alex', 'dep1', 'BTC', 'Savings', 'w1', '0011ab']) assert.ok(!JSON.stringify(got).includes(s), s);
+  assert.deepEqual(plainReminders(got), got, 'already plain: kept as they are');
 });
 
 test('while you were away: from the statuses saved on leaving, never older history', () => {
@@ -133,17 +183,17 @@ test('other parts of the app: their own words, without amounts when the person s
   assert.equal(wordsFor({ type: 'free', title: 'Your coins reached your Ethereum wallet', body: 'The bridge paid them.', url: '#open=bridgeList' }, { walletName: 'Savings' }).body, 'The bridge paid them. In Savings.');
 });
 
-test('an address about to expire: 3 days before, the nearest few, one reminder a day, its label only when allowed', async () => {
+test('an address about to expire: 3 days before, the nearest few, one reminder a day, never its label', async () => {
   const { ADDRESS_REMINDERS } = await import('../../src/lib/notify_rules.js');
   const now = 1_700_000_000_000;
   const addr = (n, days, label = '') => ({ address: `${String(n).padStart(2, '0')}${'ab'.repeat(30)}`, expiresAt: now + days * DAY_MS, label });
-  const list = remindersFor({ now, wallet: 'w1', addresses: [addr(1, 10, 'From Alex'), addr(2, 2), addr(3, 20), addr(4, 20.2), { ...addr(5, 30), expired: true }] });
-  assert.deepEqual(list.map((r) => [r.id.slice(0, 11), Math.round((r.at - now) / DAY_MS)]), [['rem-addr-01', 7], ['rem-addr-03', 17]], 'expiring in 2 days is too late for a 3-day notice; 20 and 20.2 share a day');
-  assert.equal(list[0].title, 'An address of yours expires in 3 days', 'no label unless allowed');
+  const list = remindersFor({ now, addresses: [addr(1, 10, 'From Alex'), addr(2, 2), addr(3, 20), addr(4, 20.2), { ...addr(5, 30), expired: true }] });
+  assert.deepEqual(list.map((r) => [r.id, Math.round((r.at - now) / DAY_MS)]), [[`rem-addr-${now + 7 * DAY_MS}`, 7], [`rem-addr-${now + 17 * DAY_MS}`, 17]], 'expiring in 2 days is too late for a 3-day notice; 20 and 20.2 share a day');
+  assert.equal(list[0].title, 'An address of yours expires in 3 days', 'no label');
   assert.equal(list[1].title, '2 of your addresses expire in 3 days');
   assert.equal(list[0].url, '#open=addresses');
   assert.equal(list[0].kind, 'in');
-  assert.equal(remindersFor({ now, addresses: [addr(1, 10, 'From Alex')], labels: true })[0].title, 'An address of yours (From Alex) expires in 3 days');
+  assert.equal(remindersFor({ now, addresses: [addr(1, 10, 'From Alex')], labels: true })[0].title, 'An address of yours expires in 3 days', 'a label is a private note: never in a stored reminder');
   const many = remindersFor({ now, addresses: Array.from({ length: 12 }, (_, i) => addr(i, 5 + i)) });
   assert.equal(many.length, ADDRESS_REMINDERS, 'the nearest few only');
 });

@@ -18,7 +18,7 @@ import { waitHome, waitSynced } from './flows.mjs';
 const PORT = 8824;
 const tid = (id) => `[data-testid="${id}"]`;
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
-const PASSWORD = `in-${Math.random().toString(36).slice(2, 8)}`; // 9 characters: short for the iCloud copy, so its second step shows
+const PASSWORD = `in-${Math.random().toString(36).slice(2, 10)}`; // 11 characters: enough to unlock, short for the iCloud copy, so its second step shows
 
 let tmp, srv, browser, page;
 const checked = [];

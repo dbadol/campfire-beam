@@ -113,6 +113,12 @@ async function pretendBeam(groth) {
   }, groth === null ? null : String(groth));
 }
 
+/** A fresh test profile is not promised its storage, so Create codes / Move first says the record is kept only here (screens/storage_warning.js): go on. */
+async function passKeptHere(p = page) {
+  const go = await p.waitForSelector('[data-testid="kept-here-go"]', { timeout: 5000 }).catch(() => null);
+  if (go) await go.click();
+}
+
 const ctaText = () => page.textContent(tid('bridge-cta'));
 async function waitCta(text, timeout = 60000) {
   await page.waitForFunction((t) => {
@@ -279,6 +285,7 @@ test('(a) to BEAM on the fork: 0.01 ETH and 100 WBEAM locked through the screens
     const remoteEth = await remoteOnMainnet('eth', msgEth);
     const pipeBefore = await pipeHoldings(ETH_ROUTE);
     await page.click(tid('bridge-cta'));
+    await passKeptHere();
     await page.waitForSelector(tid('bridge-review-move-btn'));
     assert.equal(await page.textContent(tid('bridge-review-move-btn')), 'Move 0.01 ETH to BEAM');
     assert.equal(await page.textContent(tid('bridge-review-receive')), '0.01 bETH');
@@ -320,6 +327,7 @@ test('(a) to BEAM on the fork: 0.01 ETH and 100 WBEAM locked through the screens
     const msgW = await nextMsgId(WBEAM_ROUTE);
     const remoteW = await remoteOnMainnet('beam', msgW);
     await page.click(tid('bridge-cta'));
+    await passKeptHere();
     await page.waitForSelector(tid('bridge-review-approval'));
     assert.match(await page.textContent(tid('bridge-review-approval')), /You sign 2 Ethereum transactions.*exactly 100\.02 WBEAM/);
     assert.match(await page.textContent(tid('bridge-review-freeze')), /WBEAM can be paused by its issuer/);
@@ -396,6 +404,7 @@ test('(b) to Ethereum from the unfunded BEAM wallet: the quote, then the approve
   assert.match(await page.textContent(tid('bridge-time')), /^About 1 hour$/);
   await shots4('19-move-to-ethereum');
   await page.click(tid('bridge-cta'));
+  await passKeptHere();
   await page.waitForSelector(`${tid('consent')}[data-bridge="send"]`, { timeout: 120000 });
   assert.equal(await page.textContent(`${tid('consent')} h2`), 'Confirm your move');
   assert.equal(await page.textContent(tid('consent-bridge-amount')), '300 BEAM');

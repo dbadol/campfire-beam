@@ -45,6 +45,12 @@ const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'en-GB' });
 const { page, rec } = await recordedPage(ctx, { label: 'N' });
 
+/** A fresh test profile is not promised its storage, so Create codes / Move first says the record is kept only here (screens/storage_warning.js): go on. */
+async function passKeptHere(p = page) {
+  const go = await p.waitForSelector('[data-testid="kept-here-go"]', { timeout: 5000 }).catch(() => null);
+  if (go) await go.click();
+}
+
 /** Reads the open approve sheet. */
 async function readSheet() {
   await page.waitForSelector(tid('consent'), { timeout: 120000 });
@@ -149,6 +155,7 @@ try {
   if ((await page.textContent(tid('drop-total'))) !== '0.12302 BEAM') throw new Error('refusing: the create screen does not add up to 0.12302 BEAM');
   seen = await txIds();
   await page.click(tid('drop-cta'));
+  await passKeptHere();
   await approveIf('batch', (s) => (s.pay2 || s.get ? 'it moves more than one amount' : s.pay !== '0.00202 BEAM' ? `it pays ${s.pay}` : groth(s.fee) !== DROP_FEE ? `it charges ${s.fee}` : null));
   await waitScreen(page, 'airdropCodes', 120000);
   await page.waitForSelector(tid('code'));

@@ -106,6 +106,12 @@ async function tapWithRealBalance(testid, taps = 1) {
   );
 }
 
+/** A fresh test profile is not promised its storage, so Create codes / Move first says the record is kept only here (screens/storage_warning.js): go on. */
+async function passKeptHere(p = page) {
+  const go = await p.waitForSelector('[data-testid="kept-here-go"]', { timeout: 5000 }).catch(() => null);
+  if (go) await go.click();
+}
+
 /** What the engine itself holds: no transaction, nothing available. */
 async function engineTruth() {
   return page.evaluate(async () => {
@@ -519,6 +525,7 @@ test("airdrop codes: Save as CSV gives the desktop's columns, to the share sheet
   await pretendBalance(100000000n);
   await page.waitForFunction(() => !document.querySelector('[data-testid="drop-cta"]').disabled, null, { timeout: 30000 });
   await tapWithRealBalance('drop-cta');
+  await passKeptHere();
   await readSheet();
   await page.click(tid('consent-cancel'));
   await page.waitForSelector(tid('drop-result'), { timeout: 30000 });

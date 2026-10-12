@@ -8,7 +8,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   listWallets, saveRecord, placeFor, nameOf, nextName, nameProblem, sortWallets, initialWallet, recordKey, dbPathOf, balanceKey,
-  loadPrefs, savePrefs, removalOps, removeWallet, renameWallet, lastBalances, watchBalances, selectWallet, MAX_NAME, FIRST_NAME,
+  loadPrefs, savePrefs, removalOps, removeWallet, renameWallet, forgetStoredBalances, selectWallet, MAX_NAME, FIRST_NAME,
 } from '../../src/lib/wallets.js';
 import {
   mapWalletKey, walletKey, walletStore, keyFor, isWalletKey, inSlot0, WALLET_KEYS, WALLET_KEY_PREFIXES, WALLET_PREF_KEYS, APP_KEYS, APP_KEY_PREFIXES,
@@ -344,6 +344,37 @@ test('removeWallet: a wallet kept running behind the lock for a payment is stopp
   assert.equal(app.record.id, C);
 });
 
+test('deleting leaves less behind (ported from the Firo wallet): the passkey is reported gone, shown notifications close; the last wallet also takes the app caches and the app settings in localStorage', async () => {
+  const kv = await threeWallets();
+  const withKey = { ...(await listWallets(kv)).find((r) => r.id === B), envelopes: { password: env(B), passkey: { v: 1, kind: 'passkey', walletId: B, credId: 'Y3JlZC1C', prfSalt: 'c2FsdA==' } } };
+  await saveRecord(withKey, kv);
+  const storage = new Map([['campfire-theme', 'dark'], ['campfire-update-source', '"https://mirror.example/"'], ['campfire-last-update-check', '{}'], ['other-site-thing', 'x']]);
+  const ls = { get length() { return storage.size; }, key: (i) => [...storage.keys()][i] ?? null, removeItem: (k) => storage.delete(k), getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) };
+  const seen = { signalled: [], closed: 0, caches: 0 };
+  const deps = {
+    kv,
+    deleteDb: async () => {},
+    clearCaches: async () => void seen.caches++,
+    storage: ls,
+    signalPasskeyGone: async (credId) => void seen.signalled.push(credId),
+    closeNotifications: async () => void seen.closed++,
+  };
+  const a = (await listWallets(kv)).find((r) => r.id === A);
+  const { app } = fakeApp(kv, a);
+  await removeWallet(app, (await listWallets(kv)).find((r) => r.id === B), deps);
+  assert.deepEqual(seen.signalled, ['Y3JlZC1C'], 'its passkey: the password manager is told it is gone');
+  assert.equal(seen.closed, 1, 'notifications already shown are closed');
+  assert.equal(seen.caches, 0, 'other wallets still use the own node and the dApps');
+  assert.equal(storage.size, 4, "the app's settings stay while other wallets do");
+  await removeWallet(app, (await listWallets(kv)).find((r) => r.id === C), deps);
+  assert.deepEqual(seen.signalled, ['Y3JlZC1C'], 'no passkey, nothing to tell');
+  // A step that fails never fails the delete.
+  await removeWallet(app, (await listWallets(kv)).find((r) => r.id === A), { ...deps, closeNotifications: async () => { throw new Error('no service worker'); } });
+  assert.equal(seen.caches, 1, 'the last wallet: the own-node address and dApp copies go too');
+  assert.deepEqual([...storage.keys()], ['other-site-thing'], "the last wallet: BEAM Campfire's own localStorage goes (theme, update address)");
+  assert.equal(kv.m.size, 0);
+});
+
 test('rename: the open wallet in memory and in storage; another wallet in storage; names checked', async () => {
   const kv = await threeWallets();
   const list = await listWallets(kv);
@@ -379,37 +410,22 @@ test('initial wallet: the one last opened, else the first slot, else any', () =>
   assert.equal(initialWallet([], {}), null);
 });
 
-test('last known balance: kept only while the open wallet is synced, per wallet, when it changes; malformed entries ignored', async () => {
-  const kv = memKv();
-  let listener = null;
-  const b = { id: B, slot0: false };
-  const app = { record: b, dbPass: 'x', wallet: { run: { dbPath: dbPathOf(b) }, onChange: (fn) => (listener = fn) } };
-  watchBalances(app, kv);
-  watchBalances(app, kv); // once per app
-  const state = (available, sync = 'synced', extra = {}) => ({ status: {}, importing: false, sync: { state: sync }, totals: new Map([[0, { available }]]), ...extra });
-  listener(state(5n, 'syncing'));
-  await new Promise((r) => setImmediate(r));
-  assert.equal(kv.m.size, 0, 'not while catching up');
-  listener(state(150000000n));
-  await new Promise((r) => setImmediate(r));
-  assert.equal(kv.m.get(balanceKey(B)).available, '150000000');
-  const at = kv.m.get(balanceKey(B)).at;
-  listener(state(150000000n));
-  await new Promise((r) => setImmediate(r));
-  assert.equal(kv.m.get(balanceKey(B)).at, at, 'unchanged: not written again');
-  // The engine still runs another wallet (switch in progress): nothing is written for this one.
-  app.wallet.run = { dbPath: DB_PATH };
-  listener(state(1n));
-  app.wallet.run = { dbPath: dbPathOf(b) };
-  app.dbPass = null;
-  listener(state(2n));
-  await new Promise((r) => setImmediate(r));
-  assert.equal(kv.m.get(balanceKey(B)).available, '150000000');
-  await kv.set(balanceKey(A), { available: '-1', at: 1 });
-  await kv.set(balanceKey(C), { available: '7', at: 'x' });
-  const got = await lastBalances([{ id: A }, { id: B }, { id: C }], kv);
-  assert.deepEqual([...got.keys()], [B]);
-  assert.equal(got.get(B).available, 150000000n);
+test('no balance is kept in the clear (audit A-4): an earlier version\'s are removed at start, nothing writes one', async () => {
+  const kv = await threeWallets();
+  assert.equal(kv.m.has(balanceKey(B)), true, 'as an earlier version left them');
+  const others = [...kv.m.entries()].filter(([k]) => !/:balance$/.test(k));
+  assert.equal(await forgetStoredBalances(kv), 3);
+  assert.deepEqual([...kv.m.keys()].filter((k) => /:balance$/.test(k)), []);
+  for (const [k, v] of others) assert.deepEqual(kv.m.get(k), v, `${k} untouched`);
+  assert.equal(await forgetStoredBalances(kv), 0);
+  // Nothing in the app writes one any more; the switcher says "Locked" for another wallet.
+  const files = [];
+  const walk = (d) => readdirSync(d).forEach((f) => (statSync(join(d, f)).isDirectory() ? f !== 'vendor' && walk(join(d, f)) : f.endsWith('.js') && files.push(join(d, f))));
+  walk(SRC);
+  for (const f of files) assert.ok(!/balanceKey\(|watchBalances|lastBalances/.test(readFileSync(f, 'utf8').replace(/export const balanceKey[^\n]*/, '')), f);
+  assert.match(readFileSync(join(SRC, 'app.js'), 'utf8'), /forgetStoredBalances\(\)/);
+  const { balanceText } = await import('../../src/screens/wallets.js');
+  assert.equal(balanceText({ dbPass: null, record: { id: A } }, { id: B }), 'Locked');
 });
 
 test('database files: deleting the first slot removes its plain files and never a folder; another wallet, its folder only', () => {

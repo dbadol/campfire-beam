@@ -30,6 +30,7 @@ import { openBridgeReview } from './bridge_review.js';
 import { bridgeOf, bridgeProblem, pricesChoice, priceQuestion, pricesOff } from './bridge_ui.js';
 import { headline, crossingWords } from './bridge_words.js';
 import {
+import { confirmKeptHere } from './storage_warning.js';
   TO_ETHEREUM,
   TO_BEAM,
   coin,
@@ -403,6 +404,11 @@ export default function bridgeMove(app, params = {}) {
 
   async function onMove() {
     if (busy || ctaState().off) return;
+    // The move's record is kept only in this browser: where it may delete it, say so first (audit A-7).
+    busy = true;
+    const go = await confirmKeptHere(app, 'bridge');
+    busy = false;
+    if (!go || !alive) return;
     let q = quote;
     busy = true;
     error = null;

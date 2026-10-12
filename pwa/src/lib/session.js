@@ -9,13 +9,21 @@ import { createWalletDb, deleteWalletDb, walletExists, adoptImport, discardImpor
 import { importedRecord } from './wallet_file.js';
 import { refreshPersistence } from './storage.js';
 import { listWallets, placeFor, saveRecord, dbPathOf, nextName, cleanName, nameProblem, closeOpenWallet, loadPrefs, rememberOpened, removeWallet } from './wallets.js';
+import { passwordWeakness, MIN_PASSWORD } from './password_strength.js';
 
 const setWalletRecord = (r) => saveRecord(r);
 
-export const MIN_PASSWORD = 8;
+export { MIN_PASSWORD };
 
+/**
+ * null when `pw` may be a new password for the wallet (and matches `confirm`, when given), else what
+ * to change, in words. Long enough and not one of a cracker's first guesses (lib/password_strength.js):
+ * whoever copies this browser's data can guess at it offline. Only new passwords are checked: one
+ * set before these rules keeps unlocking.
+ */
 export function passwordProblem(pw, confirm) {
-  if (!pw || pw.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters.`;
+  const weak = passwordWeakness(pw);
+  if (weak) return weak.text;
   if (confirm !== undefined && pw !== confirm) return "The two passwords don't match.";
   return null;
 }

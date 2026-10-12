@@ -489,7 +489,7 @@ test('saved codes: a record whose code does not match its hash is refused; an od
   await assert.rejects(readSavedBatch({ ...good, codes: [] }), (e) => e.code === 'unexpected');
   // A record the vault cannot read is kept in storage, not shown.
   const kv = memoryKv();
-  const vault = codeVault({ kv, walletId: 'w1', secret: 's'.repeat(64) });
+  const vault = codeVault({ kv, walletId: 'w1', secret: 'ef'.repeat(32) }); // a random secret is 64 hex (lib/envelope.js newDbPassword)
   await vault.put(good);
   await vault.put({ ...good, localId: 'b2', codes: [{ ...good.codes[0], hash: 'ab'.repeat(32) }] });
   assert.deepEqual((await vault.all()).map((b) => b.localId), ['b1']);
