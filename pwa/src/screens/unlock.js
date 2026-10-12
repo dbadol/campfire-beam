@@ -20,6 +20,7 @@ import { resumeBridgeIfAny } from './eth_screens.js';
 import { takeSwitchNote } from '../lib/own_node.js';
 import { nameOf, rememberOpened } from '../lib/wallets.js';
 import { unlockPicker } from './wallets.js';
+import { resealAirdropCodes } from './airdrop.js';
 
 export default function unlock(app, params = {}) {
   if (!app.record) {
@@ -59,6 +60,8 @@ export default function unlock(app, params = {}) {
       }
       // Moves through the bridge are followed again from where they were (only when there are any).
       resumeBridgeIfAny(app);
+      // An imported wallet's airdrop codes kept under the old, fast key derivation: sealed again now.
+      resealAirdropCodes(app);
       const next = app.afterUnlock;
       app.afterUnlock = null;
       app.go(next ? next.name : 'home', next ? next.params : {});
