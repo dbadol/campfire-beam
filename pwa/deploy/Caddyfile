@@ -2,6 +2,8 @@
 # (used only for this app). Caddy gets and renews the HTTPS certificate itself.
 # Files: git clone --depth 1 https://github.com/vsnation/beam-campfire-pwa /srv/beam-campfire
 # tools/build.mjs fails if the header lines below drift from tools/headers.mjs.
+# After every deploy, check what the public address really serves (read-only):
+#   node tools/check_deploy.mjs https://<address>/
 
 wallet.example.org {
 	root * /srv/beam-campfire
