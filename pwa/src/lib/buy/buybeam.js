@@ -20,7 +20,8 @@
 // handle) and the quote's own fields.
 
 import { buyApiBase } from './hosts.js';
-import { EVM_CHAINS, isDepositAddressOf } from './deposit_address.js';
+// The address checks carry hash code: loaded when an order is checked, not on Home's first screen.
+import { EVM_CHAINS } from './chains.js';
 
 // ------------------------------------------------------------------ errors
 
@@ -403,7 +404,10 @@ export class BuyBeamClient {
     // Sandbox orders carry no raw figure: the number must be ours.
     const sameAmount = raw !== null ? raw === amount.raw : this.sandbox && sent === amount.value;
     if (typeof deposit !== 'string' || !deposit.trim() || j.asset_id !== assetId || j.beam_wallet !== beamAddress || !sameAmount || (!this.sandbox && !payable)) throw new BuyBeamError('unexpected_answer');
-    if (!this.sandbox && !isDepositAddressOf(deposit, blockchain)) throw new BuyBeamError('wrong_deposit_address');
+    if (!this.sandbox) {
+      const { isDepositAddressOf } = await import('./deposit_address.js');
+      if (!isDepositAddressOf(deposit, blockchain)) throw new BuyBeamError('wrong_deposit_address');
+    }
     return Object.freeze({
       /** Where the person pays, and the order's only handle. */
       depositAddress: deposit,
