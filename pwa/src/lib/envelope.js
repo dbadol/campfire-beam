@@ -14,6 +14,10 @@
 // Works in browsers and in Node 22 (globalThis.crypto).
 
 export const PBKDF2_MIN_ITERATIONS = 600000;
+// Above this, opening would hang the page for minutes (1,000,000,000 rounds: about two minutes on
+// a computer, far more on a phone): a corrupted or planted envelope. The same ceiling as
+// eth/vault.js and contacts.js.
+export const PBKDF2_MAX_ITERATIONS = 20000000;
 export const KEK_INFO = 'beam-campfire-kek-v1';
 const ENVELOPE_VERSION = 1;
 
@@ -120,6 +124,7 @@ function checkShape(env, kind) {
 export async function sealWithPassword(secret, password, walletId, { iterations = PBKDF2_MIN_ITERATIONS } = {}) {
   if (typeof password !== 'string' || password.length === 0) throw new EnvelopeError('malformed', 'Empty password');
   if (iterations < PBKDF2_MIN_ITERATIONS) throw new EnvelopeError('weak', 'Too few PBKDF2 rounds');
+  if (!Number.isSafeInteger(iterations) || iterations > PBKDF2_MAX_ITERATIONS) throw new EnvelopeError('malformed', 'Implausible PBKDF2 round count');
   const salt = randomBytes(16);
   const env = { v: ENVELOPE_VERSION, kind: 'password', walletId, iterations, salt: b64(salt) };
   return seal(env, await passwordKek(password, salt, iterations), secret);
@@ -129,6 +134,7 @@ export async function openWithPassword(env, password) {
   checkShape(env, 'password');
   if (!Number.isSafeInteger(env.iterations) || env.iterations < PBKDF2_MIN_ITERATIONS)
     throw new EnvelopeError('weak', 'This envelope asks for too few PBKDF2 rounds; refusing it.');
+  if (env.iterations > PBKDF2_MAX_ITERATIONS) throw new EnvelopeError('malformed', 'This envelope asks for an implausible number of PBKDF2 rounds; refusing it.');
   return open(env, await passwordKek(password, unb64(env.salt), env.iterations));
 }
 

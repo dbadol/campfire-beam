@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
-import { sealWithPassword, openWithPassword, sealWithPrf, openWithPrf, newDbPassword, randomBytes, EnvelopeError, PBKDF2_MIN_ITERATIONS, KEK_INFO } from '../../src/lib/envelope.js';
+import { sealWithPassword, openWithPassword, sealWithPrf, openWithPrf, newDbPassword, randomBytes, EnvelopeError, PBKDF2_MIN_ITERATIONS, PBKDF2_MAX_ITERATIONS, KEK_INFO } from '../../src/lib/envelope.js';
 
 const secret = newDbPassword();
 
@@ -41,6 +41,18 @@ test('tampering is detected: ciphertext, IV, wallet id, and a lowered round coun
   await assert.rejects(openWithPassword({ ...e, iterations: 1000 }, 'pw-12345678'), (x) => x.code === 'weak');
   await assert.rejects(openWithPassword({ ...e, iterations: 700000 }, 'pw-12345678'), (x) => x.code === 'wrong_secret');
   await assert.rejects(openWithPassword({ ...e, kind: 'passkey' }, 'pw-12345678'), (x) => x.code === 'malformed');
+});
+
+test('a round count no browser should run is refused at once, not run (audit B2: a planted envelope would hang every unlock)', async () => {
+  assert.equal(PBKDF2_MAX_ITERATIONS, 20000000, 'the same ceiling as eth/vault.js and contacts.js');
+  const e = await sealWithPassword(secret, 'pw-12345678', 'w1');
+  for (const n of [PBKDF2_MAX_ITERATIONS + 1, 1e9, 2 ** 52]) {
+    const t0 = Date.now();
+    await assert.rejects(openWithPassword({ ...e, iterations: n }, 'pw-12345678'), (x) => x instanceof EnvelopeError && x.code === 'malformed', String(n));
+    assert.ok(Date.now() - t0 < 1000, `refused without deriving (${n})`);
+  }
+  await assert.rejects(sealWithPassword(secret, 'pw-12345678', 'w1', { iterations: PBKDF2_MAX_ITERATIONS + 1 }), (x) => x.code === 'malformed');
+  await assert.rejects(sealWithPassword(secret, 'pw-12345678', 'w1', { iterations: 600000.5 }), (x) => x.code === 'malformed');
 });
 
 test('refuses to seal with fewer than 600,000 rounds', async () => {
