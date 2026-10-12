@@ -38,7 +38,8 @@ const PORT = Number(process.env.CAMPFIRE_BUY_PORT || 8860);
 const PASSWORD = `buy-${Math.random().toString(36).slice(2, 10)}`;
 const STACK = 'eth2.stackwallet.com';
 const ETHER = 10n ** 18n;
-const DEPOSIT = 'bc1qfake0deposit0address0for0the0e2e0test000';
+// Made up but well formed: a deposit address must be one of its coin's chain (lib/buy/deposit_address.js).
+const DEPOSIT = 'bc1qutn7eu0klvqq2zs0zsv3ugeg95erw0zpduv8ny';
 const REFUND = 'bc1qfake0refund0address0for0the0e2e0test0000';
 const tid = (id) => `[data-testid="${id}"]`;
 const skipFork = await anvilProblem();

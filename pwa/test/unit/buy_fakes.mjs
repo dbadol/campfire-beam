@@ -8,7 +8,8 @@ export const BEAM_ADDRESS = `${'1'.repeat(64)}aa`;
 export const BEAM_ADDRESS_2 = `${'2'.repeat(64)}bb`;
 export const BTC_REFUND = 'bc1qfake0refund0address0for0tests0only00000';
 export const ETH_REFUND = '0x1111111111111111111111111111111111111111';
-export const DEPOSIT = 'bc1qfake0deposit0address0000000000000000000';
+/** A made-up but well-formed Bitcoin address (bech32 of 20 bytes d0…e3): an order's deposit address must be its coin's chain's. */
+export const DEPOSIT = 'bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx2s';
 export const BTC = 'coin:btc';
 export const ETH = 'coin:eth';
 export const USDT_TRON = 'coin:tron-usdt';

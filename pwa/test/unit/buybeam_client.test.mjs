@@ -219,6 +219,32 @@ test('an order answer that differs from the question is refused', async () => {
   }
 });
 
+test('D-10: a deposit address that is not an address of the coin\'s chain is never shown', async () => {
+  const good = { asset_id: BTC, send_amount_raw: '1230000', beam_wallet: BEAM_ADDRESS, payable: true };
+  const ask = (c) => c.order({ assetId: BTC, amount: amount('0.0123', 8), beamAddress: BEAM_ADDRESS, refundAddress: BTC_REFUND, blockchain: 'btc' });
+  const wrong = {
+    'an Ethereum address': '0x1111111111111111111111111111111111111111',
+    'a Tron address': 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
+    'a Litecoin address': 'ltc1q6rga95756htd0kxemtdaehw7mlswrchry7jd4h',
+    'a Bitcoin testnet address': 'tb1q6rga95756htd0kxemtdaehw7mlswrchrv3jq65',
+    'one mistyped character': DEPOSIT.replace(/x2s$/, 'x3s'),
+    'a payment link': `bitcoin:${DEPOSIT}?amount=0.0123`,
+    'words': 'pay to this address',
+    'spaces around it': ` ${DEPOSIT} `,
+    'a very long text': `bc1q${'q'.repeat(200)}`,
+  };
+  for (const [what, deposit] of Object.entries(wrong)) {
+    const s = new FakeBuyBeam();
+    s.queue('/order', envelope({ ...good, deposit_address: deposit }));
+    assert.equal((await error(ask(client(s)))).code, 'wrong_deposit_address', what);
+  }
+  for (const deposit of [DEPOSIT, '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0']) {
+    const s = new FakeBuyBeam();
+    s.queue('/order', envelope({ ...good, deposit_address: deposit }));
+    assert.equal((await ask(client(s))).depositAddress, deposit);
+  }
+});
+
 test('sandbox: not payable, no raw figure, the same number', async () => {
   const s = new FakeBuyBeam();
   const c = client(s, { sandbox: true });
