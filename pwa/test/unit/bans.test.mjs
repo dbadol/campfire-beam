@@ -10,11 +10,13 @@ import {
   BANS_CID, args, nameProblem, normaliseName, parseName, tryName, describeNameProblem, usdPerPeriod, isKey, requireKey, fingerprint, checkCode, ZERO_KEY,
   parseMyKey, parseViewName, parseViewDomain, parseViewParams, refusal, mapError, isPrivilegeFailure, statusOf, STATUS, canRegister, canReceivePayments,
   holdEndHeight, expiryAfterRegister, expiryAfterExtend, maxExtendPeriods, priceEstimate, classifyRecipient, createBans, consentExpectation, BansError,
-  HOLD_BLOCKS, BLOCKS_PER_PERIOD, dateOf,
+  HOLD_BLOCKS, BLOCKS_PER_PERIOD, dateOf, pinVerdict, nameMessage,
 } from '../../src/lib/bans.js';
 import { parseShaderJson, bindSession, unbindSession, nativeApp, setConsentPresenter } from '../../src/lib/contracts.js';
 import { fakeEngine } from './helpers/fake_engine.mjs';
-import { readContractTx } from '../../src/lib/contract_tx.js';
+import { readContractTx, le, fromHex } from '../../src/lib/contract_tx.js';
+import { VAULT_ANON_CID } from '../../src/lib/dapps/policy.js';
+import { invokeEntry, invokeData, cid, FLAG_SAVE_APP_INVOKE } from './helpers/invoke_builder.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const envelope = (name) => JSON.parse(readFileSync(join(REPO, 'test', 'beam', 'contracts', 'bans', 'fixtures', `${name}.json`), 'utf8'));
@@ -64,14 +66,18 @@ test('argument builders: every argument the shader reads, nothing a name could s
   assert.equal(args.viewDomain(BEAM_OWNER), `role=manager,action=view_domain,cid=${cid},pk=${BEAM_OWNER}`);
   assert.equal(args.register('alice', 2), `role=user,action=domain_register,cid=${cid},name=alice,nPeriods=2`);
   assert.equal(args.extend('alice', 1), `role=user,action=domain_extend,cid=${cid},name=alice,nPeriods=1`);
-  assert.equal(args.pay('alice', 0, 12345n), `role=manager,action=pay,cid=${cid},name=alice,aid=0,amount=12345`);
+  assert.equal(args.sendAnon(BEAM_OWNER, 'alice', 0, 12345n), `role=user,action=send_anon,cid=${VAULT_ANON_CID},pkOwner=${BEAM_OWNER},aid=0,amount=12345,msg=616c696365${'00'.repeat(59)}`);
+  assert.equal(nameMessage('a'.repeat(64)), '61'.repeat(64));
   assert.throws(() => args.register('alice', 0), RangeError);
   assert.throws(() => args.register('alice', 51), RangeError);
   assert.throws(() => args.extend('alice', -1), RangeError);
-  assert.throws(() => args.pay('alice', 0, 0n), RangeError);
-  assert.throws(() => args.pay('alice', -1, 1n), RangeError);
-  assert.throws(() => args.pay('alice', 0x100000000, 1n), RangeError);
-  assert.throws(() => args.pay('alice', 0, 1n << 64n), RangeError);
+  assert.throws(() => args.sendAnon(BEAM_OWNER, 'alice', 0, 0n), RangeError);
+  assert.throws(() => args.sendAnon(BEAM_OWNER, 'alice', -1, 1n), RangeError);
+  assert.throws(() => args.sendAnon(BEAM_OWNER, 'alice', 0x100000000, 1n), RangeError);
+  assert.throws(() => args.sendAnon(BEAM_OWNER, 'alice', 0, 1n << 64n), RangeError);
+  assert.throws(() => args.sendAnon(ZERO_KEY, 'alice', 0, 1n), (e) => e.code === 'invalidKey');
+  assert.throws(() => args.sendAnon(`${BEAM_OWNER},cid=${'00'.repeat(32)}`, 'alice', 0, 1n), (e) => e.code === 'invalidKey');
+  assert.throws(() => args.sendAnon(BEAM_OWNER, 'a,b=c', 0, 1n), (e) => e.code === 'invalidName');
   assert.throws(() => args.viewName('a,b=c'), (e) => e.code === 'invalidName');
   assert.throws(() => args.register('alice,nPeriods=50', 1), (e) => e.code === 'invalidName');
 });
@@ -195,6 +201,8 @@ function fakeDeps(answers, { consent = null, status = { current_height: TIP, cur
     },
     status: async () => status,
   };
+  // Payments to a name: the Anon-Vault app shader in the app, the same recorded answers here.
+  deps.transactVault = (a, o) => deps.transact(a, o);
   return deps;
 }
 
@@ -264,20 +272,23 @@ test('register: an approve sheet that differs from the built kernel is refused u
   assert.equal(consentExpectation(() => null)({ kind: 'contract', spends: [], receives: [], fee: 0n }).code, 'unexpected', 'nothing built, nothing approved');
 });
 
+// pay_beam is what BANS's pay built for 12345 groth to beam.beam (create_tx:false, nothing sent). The vault
+// app's send_anon builds the same deposit (both call vault_anon/app_impl.h OnUser_send_anon with the name
+// zero-padded to 64 bytes); only the random sender key differs.
 test('pay a name: resolved before and after the build, the kernel pays exactly the amount into the vault', async () => {
-  const answers = { view_params: 'view_params', view_name: 'view_name_beam', pay: 'pay_beam' };
+  const answers = { view_name: 'view_name_beam', send_anon: 'pay_beam' };
   let deps = fakeDeps(answers);
   const r = await createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: BEAM_OWNER });
   assert.equal(r.ownerKey, BEAM_OWNER);
   assert.equal(r.fee, 1100000n);
-  assert.deepEqual(deps.calls, ['view_params', 'view_name', 'pay', 'view_name', 'signed']);
+  assert.deepEqual(deps.calls, ['view_name', 'send_anon', 'view_name', 'signed']);
   // Another amount than the request.
   deps = fakeDeps(answers);
   await assert.rejects(createBans(deps).pay('beam', 0, 99999n), (e) => e.code === 'unexpected');
   // A key the person was not shown: stops before anything is built.
   deps = fakeDeps(answers);
   await assert.rejects(createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: FAKE_KEY }), (e) => e.code === 'ownerChanged');
-  assert.ok(!deps.calls.includes('pay'));
+  assert.ok(!deps.calls.includes('send_anon'));
   // The owner changes between the build and the check after it.
   let n = 0;
   deps = fakeDeps({ ...answers, view_name: null });
@@ -289,10 +300,108 @@ test('pay a name: resolved before and after the build, the kernel pays exactly t
   await assert.rejects(createBans(deps).pay('beam', 0, 12345n), (e) => e.code === 'ownerChanged');
   assert.ok(!deps.calls.includes('signed'));
   // Unregistered and long-expired names are not paid.
-  deps = fakeDeps({ view_params: 'view_params', view_name: 'view_name_free' });
+  deps = fakeDeps({ view_name: 'view_name_free' });
   await assert.rejects(createBans(deps).pay('zzzzz', 0, 1n), (e) => e.refusal === 'notRegistered');
-  deps = fakeDeps({ view_params: 'view_params', view_name: { output: `{"res": {"key": "${BEAM_OWNER}","hExpire": 100}}` } });
+  deps = fakeDeps({ view_name: { output: `{"res": {"key": "${BEAM_OWNER}","hExpire": 100}}` } });
   await assert.rejects(createBans(deps).pay('old', 0, 1n), (e) => e.refusal === 'domainExpired');
+});
+
+// ------------------------------------------------------------ a node that lies about a name (audit D-1)
+
+const ATTACKER_CID = cid(0xa7);
+const ATTACKER_KEY = '9c'.repeat(32) + '01';
+const SENDER_AND_NAME = new Array(97).fill(5);
+/** What the BANS shader builds for a payment, aimed at `contractId` (vault_anon Method::Deposit). */
+const depositTo = (contractId, amount, aid = 0) =>
+  invokeData([invokeEntry({ contractId, method: 2, args: [...le(amount, 8), ...le(97, 4), ...fromHex('4f'.repeat(32) + '00'), ...le(aid, 4), ...SENDER_AND_NAME], comment: 'vault_anon send anon', spend: { [aid]: amount } })]);
+const forgedParams = { output: JSON.stringify({ res: { ...params.res, vault: ATTACKER_CID } }) };
+
+test('pay a name: into BEAM\'s own vault whatever the node says the vault is; a build into any other contract is refused (audit D-1)', async () => {
+  assert.equal(VAULT, VAULT_ANON_CID, 'the vault the dApp policy pins is the one view_params answers on mainnet');
+  // A node whose view_params names the attacker's contract: the payment never asks it; it goes to the pinned vault.
+  let deps = fakeDeps({ view_params: forgedParams, view_name: 'view_name_beam', send_anon: 'pay_beam' });
+  assert.equal((await createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: BEAM_OWNER })).txId, TXID);
+  assert.ok(!deps.calls.includes('view_params'));
+  assert.throws(() => parseViewParams(JSON.parse(forgedParams.output)), (e) => e.code === 'wrongVault' && /not BEAM's own/.test(e.message));
+  // Whatever comes back must be one plain deposit into the vault: another contract, a second call, a
+  // signature asked of this wallet, stored app code, other funds or another message size are refused unsigned.
+  const vaultEntry = (o = {}) => invokeEntry({ contractId: VAULT, method: 2, args: [...le(12345, 8), ...le(97, 4), ...fromHex('4f'.repeat(32) + '00'), ...le(0, 4), ...fromHex('8b'.repeat(32) + '00'), ...new Array(64).fill(5)], comment: 'vault_anon send anon', spend: { 0: 12345 }, ...o });
+  const bad = {
+    'another contract': depositTo(ATTACKER_CID, 12345),
+    'two calls': invokeData([vaultEntry(), vaultEntry()]),
+    'a withdrawal': invokeData([vaultEntry({ method: 3, spend: { 0: -12345 } })]),
+    'a signature': invokeData([vaultEntry({ sigs: ['11'.repeat(32)] })]),
+    'stored app code': invokeData([vaultEntry({ flags: FLAG_SAVE_APP_INVOKE })], { firstFlags: FLAG_SAVE_APP_INVOKE }),
+    'more BEAM than the amount': invokeData([vaultEntry({ spend: { 0: 12346 } })]),
+    'another asset': invokeData([vaultEntry({ spend: { 0: 12345, 174: 1 } })]),
+    'another comment': invokeData([vaultEntry({ comment: 'vault_anon send to code' })]),
+    'no message': invokeData([invokeEntry({ contractId: VAULT, method: 2, args: [...le(12345, 8), ...le(0, 4), ...fromHex('4f'.repeat(32) + '00'), ...le(0, 4)], comment: 'vault_anon send anon', spend: { 0: 12345 } })]),
+  };
+  for (const [what, raw] of Object.entries(bad)) {
+    deps = fakeDeps({ view_name: 'view_name_beam', send_anon: { output: '{}', raw_data: raw } });
+    await assert.rejects(createBans(deps).pay('beam', 0, 12345n), (e) => e.code === 'unexpected', what);
+    assert.ok(!deps.calls.includes('signed'), what);
+  }
+  // The same plain deposit goes through.
+  deps = fakeDeps({ view_name: 'view_name_beam', send_anon: { output: '{}', raw_data: invokeData([vaultEntry()]) } });
+  assert.equal((await createBans(deps).pay('beam', 0, 12345n)).txId, TXID);
+  // Claims are built by the BANS shader from the node's settings: from the real vault only.
+  deps = fakeDeps({ view_params: forgedParams, my_key: 'my_key' });
+  deps.transactPrivileged = deps.transact;
+  await assert.rejects(createBans(deps).claimAll(), (e) => e.code === 'wrongVault');
+  assert.ok(!deps.calls.includes('signed'));
+});
+
+test('pay a name: an owner key different from the one this wallet paid before stops, until the person picks the new one', async () => {
+  const lying = { view_name: { output: `{"res": {"key": "${ATTACKER_KEY}","hExpire": 4918184}}` }, send_anon: 'pay_beam' };
+  // Paid before to BEAM_OWNER; the node now says the attacker owns beam: nothing is built.
+  let deps = fakeDeps(lying);
+  await assert.rejects(createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: ATTACKER_KEY, pinnedKey: BEAM_OWNER }), (e) => e.code === 'nameChanged' && e.before === BEAM_OWNER && e.now === ATTACKER_KEY);
+  assert.ok(!deps.calls.includes('send_anon'));
+  // The person saw both keys and chose the new owner: it goes ahead, to exactly that key.
+  deps = fakeDeps(lying);
+  assert.equal((await createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: ATTACKER_KEY, pinnedKey: BEAM_OWNER, acceptedKey: ATTACKER_KEY })).ownerKey, ATTACKER_KEY);
+  // Accepting one new key is not accepting any: a third one stops again.
+  deps = fakeDeps({ ...lying, view_name: { output: `{"res": {"key": "${FAKE_KEY}","hExpire": 4918184}}` } });
+  await assert.rejects(createBans(deps).pay('beam', 0, 12345n, { pinnedKey: BEAM_OWNER, acceptedKey: ATTACKER_KEY }), (e) => e.code === 'nameChanged' && e.now === FAKE_KEY);
+  // The same owner as before, or a first payment: no question.
+  deps = fakeDeps({ view_name: 'view_name_beam', send_anon: 'pay_beam' });
+  assert.equal((await createBans(deps).pay('beam', 0, 12345n, { pinnedKey: BEAM_OWNER })).ownerKey, BEAM_OWNER);
+  // What Send asks before Review.
+  assert.equal(pinVerdict({ pinned: null, now: BEAM_OWNER }), 'first');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: BEAM_OWNER }), 'same');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: ATTACKER_KEY }), 'changed');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: ATTACKER_KEY, accepted: ATTACKER_KEY }), 'accepted');
+  assert.equal(pinVerdict({ pinned: BEAM_OWNER, now: FAKE_KEY, accepted: ATTACKER_KEY }), 'changed');
+});
+
+/** "beam" as the payment's message: the name's bytes, zero-padded to 64 (what BANS pay writes, bans/app.cpp). */
+const BEAM_MSG = `6265616d${'00'.repeat(60)}`;
+
+test("pay a name: built by BEAM's vault app from the owner key the wallet checked, never re-read from the node during the build (audit D-1)", async () => {
+  // A node that answers view_name honestly, and gives the attacker's key to any read made while a payment is built.
+  const builds = [];
+  const deps = fakeDeps({ view_name: 'view_name_beam', pay: 'pay_beam', send_anon: 'pay_beam' });
+  const wrap = (shader, run) => async (a, opts) => {
+    const action = /action=([a-z_]+)/.exec(a)[1];
+    // Whom the deposit goes to, as each shader's source decides it: BANS `manager pay` reads the owner from the
+    // node while it builds (bans/app.cpp ON_METHOD(manager, pay): dn.ReadFromName, then OnUser_send_anon with
+    // d.m_pkOwner); vault_anon `user send_anon` takes it as its pkOwner argument and reads nothing (vault_anon/app.cpp).
+    const to = shader === 'vaultAnon' ? (/pkOwner=([0-9a-f]+)/.exec(a) || [])[1] : action === 'pay' ? ATTACKER_KEY : null;
+    builds.push({ shader, action, to, args: a });
+    return run(a, opts);
+  };
+  const fake = deps.transact;
+  deps.transact = wrap('bans', fake);
+  deps.transactVault = wrap('vaultAnon', fake);
+  const r = await createBans(deps).pay('beam', 0, 12345n, { expectedOwnerKey: BEAM_OWNER });
+  assert.equal(r.txId, TXID);
+  assert.deepEqual(
+    builds.map((b) => [b.shader, b.action, b.to]),
+    [['vaultAnon', 'send_anon', BEAM_OWNER]],
+    'one build, by the vault app, to the key the wallet checked',
+  );
+  assert.equal(builds[0].args, `role=user,action=send_anon,cid=${VAULT_ANON_CID},pkOwner=${BEAM_OWNER},aid=0,amount=12345,msg=${BEAM_MSG}`);
 });
 
 test('renew: only my own name, within 50 years of the next block', async () => {

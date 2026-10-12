@@ -15,10 +15,15 @@ import { connectSources } from '../../src/lib/eth/hosts.js';
 import { CSP } from '../../tools/headers.mjs';
 import { store } from '../../src/lib/store.js';
 import { hiddenKey, loadHidden, hiddenIds, setTokenHidden, hiddenLoaded } from '../../src/lib/hidden_tokens.js';
+import { learnPool, resetLpTokens, confirmLpToken, lpMetadata, contractAssetOwner } from '../../src/lib/lp_tokens.js';
+import { DEX_CID } from '../../src/lib/dex.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const BEAM = 100000000n;
 const pool = (aid1, aid2, tok1, tok2, { ctl = 1000n, lp = 900, kind = 2 } = {}) => ({ aid1, aid2, kind, tok1: BigInt(tok1), tok2: BigInt(tok2), ctl: BigInt(ctl), lpToken: lp });
+// The pricer's rules below use made-up LP token ids: those rows are taken as the DEX's own. In the app
+// lib/lp_tokens.js decides which rows are (the default; see the D-5 test).
+const ANY_LP = { trustLp: () => true };
 
 // ------------------------------------------------------------------ the pricer, on mainnet's pools
 
@@ -83,8 +88,8 @@ test('values round down, never up', () => {
 
 test('an LP token is its share of both reserves; with an unpriced side it is unpriced', () => {
   // Asset 7: 1 unit = 1,000,000 groth: 10 BEAM + 10 BEAM of asset 7 = 20 BEAM; a quarter of the LP supply is 5 BEAM.
-  assert.equal(new AssetPricer([pool(0, 7, 10n * BEAM, 1000, { ctl: 400, lp: 900 })]).valueInGroth(900, 100n), 5n * BEAM);
-  assert.equal(new AssetPricer([pool(7, 8, 1000, 1000, { ctl: 10, lp: 905 })]).valueInGroth(905, 5n), null);
+  assert.equal(new AssetPricer([pool(0, 7, 10n * BEAM, 1000, { ctl: 400, lp: 900 })], ANY_LP).valueInGroth(900, 100n), 5n * BEAM);
+  assert.equal(new AssetPricer([pool(7, 8, 1000, 1000, { ctl: 10, lp: 905 })], ANY_LP).valueInGroth(905, 5n), null);
 });
 
 test('empty and zero holdings are worth zero', () => {
@@ -124,15 +129,43 @@ test('an unverified asset is valued at what its pool would pay: never more than 
 });
 
 test("a pool share of a spam pool is worth at most the pool's BEAM, and is a sale value", () => {
-  const pricer = new AssetPricer([pool(0, 999, 1000n * BEAM, 1, { ctl: 100, lp: 950 })]);
+  const pricer = new AssetPricer([pool(0, 999, 1000n * BEAM, 1, { ctl: 100, lp: 950 })], ANY_LP);
   const whole = pricer.valueInGroth(950, 100n);
   assert.ok(whole <= 2n * 1000n * BEAM && whole >= 1000n * BEAM, String(whole));
   assert.equal(pricer.isSaleValue(950), true);
 });
 
+test('a pool row naming an asset as an LP token values it only when this wallet knows it is one (audit D-5)', async () => {
+  resetLpTokens();
+  // A node answers pools_view with a row that makes an airdropped asset 9100 "BEAM/FOMO LP" with huge reserves.
+  const lie = pool(0, 174, 1000000n * BEAM, 1000000n * BEAM, { ctl: 1000, lp: 9100 });
+  const real = recorded.find((x) => x.lpToken === 175);
+  const pricer = new AssetPricer([...recorded, lie]);
+  assert.equal(pricer.lpPool(9100), null);
+  assert.equal(pricer.valueInGroth(9100, 1000n), null, 'not valued from the made-up reserves');
+  const p = pricer.portfolio(new Map([[0, BEAM], [9100, 1000n]]));
+  assert.equal(p.totalGroth, BEAM, 'not in the total');
+  assert.deepEqual(p.unpriced, [9100]);
+  // A snapshot token keeps its own pool even when a row names it for another one.
+  const swapped = pool(0, 7, 5n * BEAM, 5n * BEAM, { ctl: real.ctl, lp: 175 });
+  assert.equal(new AssetPricer([swapped]).lpPool(175), null);
+  assert.equal(new AssetPricer(recorded).lpPool(175), real);
+  // A pool newer than the snapshot: learnt, then valued as a pool share once its asset record agrees.
+  const newer = pool(0, 204, 10n * BEAM, 1000n * BEAM, { ctl: 400, lp: 205 });
+  learnPool(newer);
+  assert.equal(new AssetPricer([...recorded, newer]).valueInGroth(205, 100n), null, 'learnt, not yet confirmed');
+  const metadata = lpMetadata(0, 204, 2);
+  assert.equal(await confirmLpToken(205, { asset_id: 205, metadata, ownerId: await contractAssetOwner(DEX_CID, metadata) }), true);
+  assert.equal(new AssetPricer([...recorded, newer]).lpPool(205), newer);
+  // The made-up BEAM/FOMO row is still refused: that pool's LP token is 175.
+  learnPool({ lpToken: 9100, aid1: 0, aid2: 174, kind: 2 });
+  assert.equal(new AssetPricer([...recorded, lie]).lpPool(9100), null);
+  resetLpTokens();
+});
+
 test('an LP token of a pool of two tokens values each side through its own BEAM pool', () => {
   // FOMO (174) and BeamX (7) both verified; a 7/174 pool's LP token 910.
-  const pricer = new AssetPricer([pool(0, 7, 100n * BEAM, 50n * BEAM, { lp: 50 }), pool(0, 174, 10n * BEAM, 1000n * BEAM, { lp: 175 }), pool(7, 174, 2n * BEAM, 300n * BEAM, { ctl: 1000, lp: 910 })]);
+  const pricer = new AssetPricer([pool(0, 7, 100n * BEAM, 50n * BEAM, { lp: 50 }), pool(0, 174, 10n * BEAM, 1000n * BEAM, { lp: 175 }), pool(7, 174, 2n * BEAM, 300n * BEAM, { ctl: 1000, lp: 910 })], ANY_LP);
   // Whole pool: 2 BEAMX = 4 BEAM, 300 FOMO = 3 BEAM.
   assert.equal(pricer.valueInGroth(910, 1000n), 7n * BEAM);
   assert.equal(pricer.valueInGroth(910, 5000n), 7n * BEAM, 'never more than the whole pool');
