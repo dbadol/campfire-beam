@@ -784,3 +784,87 @@ test('BM-1: a Uniswap swap or permission is refused while a transaction is in do
   const r = await signAndBroadcast(app, w, tx, { kind: 'swap', asset: ETH, amount: 1n });
   assert.equal(r.sent, true);
 });
+
+// ---------------------------------------------------------------- "Not sent" is not final for ever (BM-2)
+
+test('BM-2: a payment the index shows mined is mined, whatever "rejected" or "replaced" said; the activity row and the entry follow it', async () => {
+  const H = await import('../../src/lib/eth/history.js');
+  const me = ME.toLowerCase();
+  const hash = `0x${'ab'.repeat(32)}`;
+  const rejected = entry({ hash, nonce: '7', state: 'rejected', refusedAt: 1, error: 'insufficient funds' });
+  const minedTx = { hash, from: me, to: F.ALICE, value: 10n ** 16n, blockNumber: 123, timestamp: 1700000000, failed: false, fee: 21000n * GWEI, nonce: 7, contractCall: false };
+  // The audit's PoC: index row mined in block 123, the screen said "Not sent ... Nothing was spent".
+  let shown = H.mergeActivity({ address: ME, outbox: [rejected], txs: [minedTx], transfers: [] }).find((i) => i.hash === hash);
+  assert.equal(shown.state, 'confirmed');
+  assert.equal(shown.blockNumber, 123);
+  assert.equal(shown.fee, 21000n * GWEI, "the index's fee");
+  assert.equal(shown.local, true);
+  // Mined but failed: the fee was spent, the amount stayed.
+  shown = H.mergeActivity({ address: ME, outbox: [rejected], txs: [{ ...minedTx, failed: true }], transfers: [] }).find((i) => i.hash === hash);
+  assert.equal(shown.state, 'failed');
+  // "Replaced" loses to the index too; a swap shows through its token transfer.
+  const replaced = entry({ hash, state: 'replaced', replacedBy: F.h(9), replacedIn: 120, kind: 'swap' });
+  const xfer = { hash, blockNumber: 124, timestamp: 1700000001, logIndex: 0, from: F.ME, to: F.BOB, amount: 5n, token: WBEAM };
+  shown = H.mergeActivity({ address: ME, outbox: [replaced], txs: [], transfers: [xfer] }).find((i) => i.hash === hash);
+  assert.equal(shown.state, 'confirmed');
+  assert.equal(shown.blockNumber, 124);
+  // Not in a block (the index's own pending row) or another hash: the entry's word stands.
+  shown = H.mergeActivity({ address: ME, outbox: [rejected], txs: [{ ...minedTx, blockNumber: null }, { ...minedTx, hash: F.h(5) }], transfers: [] }).find((i) => i.hash === hash);
+  assert.equal(shown.state, 'rejected');
+  assert.deepEqual(H.minedInIndex({ outbox: [rejected, entry({ hash: F.h(6), state: 'confirmed' })], txs: [minedTx, { ...minedTx, hash: F.h(6) }], transfers: [] }), [{ hash, state: 'confirmed', blockNumber: 123 }]);
+
+  // The wallet writes it down: the entry becomes confirmed (and stops being "Not sent").
+  const { app, kv, ethId } = await walletWithKey();
+  const w = await ethWallet(app, { kv });
+  await addToOutbox(app, { ...rejected, from: ME }, { ethId, kv });
+  await w.reloadOutbox();
+  w.state.history = { txs: [minedTx], transfers: [], error: null, at: 1 };
+  assert.equal(await w.settleFromIndex(), true);
+  const e = (await loadOutbox(app, { ethId, kv }))[0];
+  assert.equal(e.state, 'confirmed');
+  assert.equal(e.receipt.blockNumber, 123);
+  assert.equal(e.receipt.status, 1);
+  assert.equal(e.refusedAt, null);
+  assert.equal(w.state.outbox[0].state, 'confirmed');
+  assert.equal(await w.settleFromIndex(), false, 'once');
+  w.state.history = { txs: [], transfers: [], error: null, at: null };
+  forgetEthWallet();
+});
+
+test('BM-2: "rejected" entries are looked at again (their receipt, once per look): a payment mined after all becomes confirmed', async () => {
+  const { app, kv, ethId } = await walletWithKey();
+  const chain = fakeChain();
+  const p = await prepareSend(chain.rpc, { from: ME, asset: ETH, recipient: F.ALICE, amount: 1n, balances: { eth: ETHER } });
+  chain.st.refuse = Object.assign(new Error('insufficient funds for gas * price + value'), { code: -32000 });
+  chain.st.relayOnRefuse = true; // it passed them on before refusing
+  let now = 1000;
+  const r = await signAndSend(app, chain.rpc, p, { ethId, kv, now: () => now });
+  now += REFUSAL_WATCH_MS;
+  const gone = await followOnce(app, chain.rpc, r.entry, { ethId, kv, now: () => now });
+  assert.equal(gone.state, 'rejected');
+  const w = await ethWallet(app, { kv });
+  w._rpc = chain.rpc;
+  await w.reloadOutbox();
+  // Nothing mined yet: one receipt asked, nothing changes.
+  const before = chain.st.calls.length;
+  assert.equal(await w.recheckRejected(), false);
+  assert.deepEqual(chain.st.calls.slice(before), ['eth_getTransactionReceipt']);
+  // Another node mined it after all.
+  chain.mine(r.entry.hash);
+  assert.equal(await w.recheckRejected(), true);
+  const e = w.state.outbox.find((x) => x.hash === r.entry.hash);
+  assert.equal(e.state, 'confirmed');
+  assert.equal(e.receipt.gasUsed, '21000');
+  assert.equal(e.refusedAt, null);
+  assert.equal(entryFee(e).final, true);
+  forgetEthWallet();
+});
+
+test('BM-2: "Not sent" is said as the server\'s word, with Etherscan one tap away, never as certain', async () => {
+  const { NOT_SENT_NOTE } = await import('../../src/screens/eth_ui.js');
+  assert.match(NOT_SENT_NOTE, /^Your Ethereum server refused it for half an hour/);
+  assert.match(NOT_SENT_NOTE, /most likely it never left/);
+  assert.match(NOT_SENT_NOTE, /That is the server's word, not Ethereum's\./);
+  assert.match(NOT_SENT_NOTE, /looks for it again each time you open your Ethereum wallet/);
+  assert.ok(!/so it never left/.test(NOT_SENT_NOTE));
+});

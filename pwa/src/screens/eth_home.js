@@ -6,7 +6,7 @@
  *   - "Is this balance real / current?" -> the server's name and the block it answered at, or, when
  *     it didn't answer, who failed and two ways out (try again, or pick another server yourself).
  *   - "Where did my payment go?" -> what this device sent shows at once, with its status in words,
- *     before any history index knows of it.
+ *     before any history index knows of it. One marked "Not sent" is looked for again on every opening.
  *   - "Empty, now what?" -> the primary button becomes Receive ETH; the empty list says so.
  *   - "How do I get WBEAM?" -> Buy WBEAM is the primary as soon as there is ETH to pay with.
  *   - "I have BTC, not ETH" -> "Pay with BTC, ZEC or LTC" under the buttons (NEAR Intents), which also
@@ -118,12 +118,18 @@ export default function ethHome(app, params = {}) {
   }
 
   let busy = false;
+  let rechecked = false;
   async function refresh() {
     if (!w || busy || dead || !app.dbPass) return;
     busy = true;
     try {
       await w.refresh();
       if (!dead && app.dbPass) await w.followOpen().catch(() => {});
+      // "Not sent" is one server's word: once per opening, its receipt is asked again (release audit BM-2).
+      if (!rechecked && !dead && app.dbPass) {
+        rechecked = true;
+        await w.recheckRejected().catch(() => {});
+      }
     } finally {
       busy = false;
     }

@@ -17,10 +17,10 @@ import { EthRpc } from './rpc.js';
 import { DEFAULT_ETH_RPC, ETH_RPC_HOSTS, HISTORY_HOST } from './hosts.js';
 import { TOKENS } from './tokens.js';
 import { encodeCall, abiDecode } from './abi.js';
-import { loadOutbox, clearOutbox, isOpen } from './outbox.js';
-import { fetchHistory, mergeActivity } from './history.js';
+import { loadOutbox, clearOutbox, isOpen, updateOutbox } from './outbox.js';
+import { fetchHistory, mergeActivity, minedInIndex } from './history.js';
 import { forgetDataKeys } from './sealed.js';
-import { followOnce } from './send.js';
+import { followOnce, minedPatch } from './send.js';
 import { entryInDoubt } from './doubt.js';
 import { store } from '../store.js';
 
@@ -129,6 +129,7 @@ class EthWallet {
     } else this.state.history = { txs: [], transfers: [], error: null, at: null };
     try {
       this.state.outbox = await loadOutbox(this.app, { ethId: this.ethId, kv: this.kv });
+      await this.settleFromIndex();
     } catch {
       /* keep what we had: locked mid-way */
     }
@@ -147,6 +148,44 @@ class EthWallet {
     const out = this.state.outbox.filter((o) => o.hash !== e.hash && o.from.toLowerCase() === me && o.nonce === e.nonce).map((o) => o.hash);
     for (const t of this.state.history.txs) if (t.from === me && t.nonce !== null && String(t.nonce) === e.nonce && t.hash !== e.hash) out.push(t.hash);
     return out;
+  }
+
+  /**
+   * What the history index shows in a block was sent, whatever one server's refusals ended it as
+   * ('rejected') or which replacement it showed ('replaced'): such an entry is written down as
+   * mined (release audit BM-2). Returns whether any changed.
+   */
+  async settleFromIndex() {
+    const h = this.state.history;
+    const found = minedInIndex({ outbox: this.state.outbox, txs: h.txs, transfers: h.transfers });
+    for (const f of found) {
+      const patch = { state: f.state, unsureSince: null, refusedAt: null, replacedBy: null, replacedIn: null, receipt: { blockNumber: f.blockNumber, status: f.state === 'confirmed' ? 1 : 0, gasUsed: null, effectiveGasPrice: null } };
+      await updateOutbox(this.app, f.hash, patch, { ethId: this.ethId, kv: this.kv });
+    }
+    if (found.length) this.state.outbox = await loadOutbox(this.app, { ethId: this.ethId, kv: this.kv });
+    return found.length > 0;
+  }
+
+  /**
+   * 'rejected' is one server's word after half an hour of refusals, not Ethereum's: each look
+   * (Ethereum Home opening, the transaction's own screen) asks for the receipts of the newest
+   * `limit` such entries, once, and one mined after all becomes confirmed (or failed). An entry
+   * settled from the index (no fee figures yet) gets its receipt the same way. Returns whether
+   * any changed.
+   */
+  async recheckRejected({ hash = null, limit = 10 } = {}) {
+    const rpc = this.rpc;
+    const fromIndex = (e) => (e.state === 'confirmed' || e.state === 'failed') && e.receipt && e.receipt.gasUsed == null;
+    const list = this.state.outbox.filter((e) => (e.state === 'rejected' || fromIndex(e)) && (hash === null || e.hash === hash)).slice(0, limit);
+    let changed = false;
+    for (const e of list) {
+      const r = await rpc.getTransactionReceipt(e.hash).catch(() => null);
+      if (!r) continue;
+      await updateOutbox(this.app, e.hash, minedPatch(r), { ethId: this.ethId, kv: this.kv });
+      changed = true;
+    }
+    if (changed) await this.reloadOutbox();
+    return changed;
   }
 
   /** One look at every open transaction this device sent. */

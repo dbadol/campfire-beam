@@ -14,7 +14,8 @@
  *   - "The server says it was replaced, but shows nothing" -> "Not sure yet": don't swap again yet;
  *     "Replaced" only once the server showed what took its place (lib/eth/send.js).
  *   - "The server refused it - did it leave?" -> "Not sent yet": most likely not, checked for half
- *     an hour before it says "Not sent".
+ *     an hour before it says "Not sent", which is said as the server's word, Etherscan one tap away;
+ *     its receipt is asked again whenever this screen or Ethereum Home opens (release audit BM-2).
  */
 import { h, put, shorten, fmtDate } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
@@ -28,6 +29,7 @@ import { uniswapFor } from '../lib/eth/uniswap_app.js';
 import { uniTokenOf, ETH_TOKEN } from '../lib/eth/uniswap/models.js';
 import { exactUnits } from '../lib/compact.js';
 import { ethAbout, ethAtMost, short, amtShown } from './eth_swap_parts.js';
+import { notSentNotice } from './eth_ui.js';
 
 const FOLLOW_MS = 4000;
 
@@ -102,7 +104,7 @@ export default function ethSwapTx(app, p = {}) {
       title = 'Not sent';
       cls = 'bad';
       ico = 'close';
-      lines = [notice('error', `Ethereum's server refused it, so it never left. Nothing was spent.${entry.error ? ` The server said: ${entry.error}` : ''}`)];
+      lines = [notSentNotice(entry.hash, entry.error)];
     }
     put(
       body,
@@ -173,6 +175,12 @@ export default function ethSwapTx(app, p = {}) {
     }
     render();
     follow();
+    // "Not sent" (or settled from the index without a receipt yet): its receipt is asked again, once.
+    if (!(entry.state === 'signed' || entry.state === 'pending') && (await w.recheckRejected({ hash: entry.hash }).catch(() => false)) && !dead) {
+      entry = w.state.outbox.find((e) => e.hash === p.hash) || entry;
+      render();
+      readResult();
+    }
   })();
   render();
 

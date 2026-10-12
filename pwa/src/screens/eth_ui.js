@@ -6,7 +6,7 @@ import { assetBadge, notice } from '../lib/ui.js';
 import { formatUnits, isRoundedDown, DISPLAY_DECIMALS } from '../lib/eth/units.js';
 import { ETH } from '../lib/eth/tokens.js';
 import { compactUnits, percentText } from '../lib/compact.js';
-import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC } from '../lib/eth/hosts.js';
+import { ETH_RPC_HOSTS, DEFAULT_ETH_RPC, txExplorerUrl } from '../lib/eth/hosts.js';
 import { ethPrefs } from '../lib/eth/wallet.js';
 import { doubtOf, doubtNameParts, doubtNoun, DOUBT_TITLE, DOUBT_WHY, DOUBT_WAY_OUT } from '../lib/eth/doubt.js';
 
@@ -180,6 +180,24 @@ export function followDoubt(app, getWallet, onChange, { every = 4000 } = {}) {
     onChange();
   }, every);
   return () => clearInterval(t);
+}
+
+/**
+ * "Not sent" is one server's verdict after half an hour of refusals (lib/eth/send.js
+ * REFUSAL_WATCH_MS), said as such, with Etherscan one tap away (release audit BM-2).
+ */
+export const NOT_SENT_NOTE =
+  "Your Ethereum server refused it for half an hour and never showed it on Ethereum, so most likely it never left and nothing was spent. That is the server's word, not Ethereum's. BEAM Campfire looks for it again each time you open your Ethereum wallet.";
+
+/** The "Not sent" notice of a payment's or swap's screen: NOT_SENT_NOTE, what the server said, and Etherscan. */
+export function notSentNotice(hash, serverSaid = null) {
+  const n = notice(
+    'error',
+    `${NOT_SENT_NOTE}${serverSaid ? ` The server said: ${serverSaid}` : ''}`,
+    h('div', {}, h('a', { class: 'btn btn-text btn-small inline', href: txExplorerUrl(hash), target: '_blank', rel: 'noopener noreferrer', 'data-testid': 'eth-not-sent-explorer' }, 'Check it on Etherscan')),
+  );
+  n.dataset.testid = 'eth-not-sent';
+  return n;
 }
 
 const STATE_TEXT = {

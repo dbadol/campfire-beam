@@ -6,9 +6,12 @@
  * Exit-intent reasons and answers:
  *   - "Did it go through?" -> live status in words: waiting for Ethereum -> confirmed, with the block.
  *   - "It failed - is my money gone?" -> says what was spent (only the network fee) and that the
- *     amount stayed; "replaced" and "not sent" say plainly that nothing more will happen.
+ *     amount stayed; "replaced" says plainly that nothing more will happen.
  *     "Replaced" only once the server showed the transaction that took its place (signed by this
  *     wallet: lib/eth/send.js), which is named here.
+ *   - "Not sent - is that sure?" -> it is the server's word after half an hour of refusals, said as
+ *     such, with Etherscan one tap away; BEAM Campfire asks for its receipt again whenever this screen
+ *     or Ethereum Home opens, and a block in the history index outranks it (release audit BM-2).
  *   - "The server says it was replaced, but shows nothing" -> "Not sure yet": don't send it again
  *     yet (the first one may still go through and it would be paid twice); the same payment keeps
  *     being offered and checked; Etherscan is one tap to look for yourself.
@@ -25,7 +28,7 @@ import { ethWallet } from '../lib/eth/wallet.js';
 import { entryFee } from '../lib/eth/send.js';
 import { txExplorerUrl } from '../lib/eth/hosts.js';
 import { tokenBySymbol, ETH } from '../lib/eth/tokens.js';
-import { amountText, ethText, ethMaxText, groupedAddress } from './eth_ui.js';
+import { amountText, ethText, ethMaxText, groupedAddress, notSentNotice } from './eth_ui.js';
 
 const FOLLOW_MS = 4000;
 
@@ -49,7 +52,8 @@ function texts(state, assetSym, { unsure = false, refused = false } = {}) {
     case 'replaced':
       return { title: 'Replaced', icon: 'close', cls: 'bad', kind: 'info', note: 'Another transaction from this wallet, sent from this device or another one with the same words, took its place. This payment will not happen, and its amount did not leave.' };
     case 'rejected':
-      return { title: 'Not sent', icon: 'close', cls: 'bad', kind: 'error', note: "Ethereum's server refused it, so it never left. Nothing was spent." };
+      // Said as the server's word, with Etherscan in the notice (render: notSentNotice).
+      return { title: 'Not sent', icon: 'close', cls: 'bad', kind: 'error', note: '' };
     default:
       return { title: 'Payment', icon: 'clock', cls: 'wait', kind: 'info', note: '' };
   }
@@ -72,7 +76,9 @@ export default function ethTx(app, p = {}) {
     const from = !entry && item && item.direction === 'in' ? item.counterparty : null;
     const t = texts(state, asset.symbol, { unsure: Boolean(entry && entry.unsureSince), refused: Boolean(entry && entry.refusedAt) });
     const title = !entry && item && item.direction === 'in' ? (state === 'failed' ? 'Failed' : `Received ${asset.symbol}`) : t.title;
-    const fee = entry ? entryFee(entry) : item && item.fee != null ? { wei: item.fee, final: true } : null;
+    const own = entry ? entryFee(entry) : null;
+    // Settled from the history index, its fee figures come from there until the receipt is read.
+    const fee = own && (own.final || !(item && item.fee != null)) ? own : item && item.fee != null ? { wei: item.fee, final: true } : own;
     const block = entry && entry.receipt ? entry.receipt.blockNumber : item ? item.blockNumber : null;
     put(
       body,
@@ -91,6 +97,7 @@ export default function ethTx(app, p = {}) {
         entry && state === 'replaced' && entry.replacedBy ? h('div', { class: 'kv' }, h('span', { class: 'k', text: 'Replaced by' }), h('button', { class: 'v mono btn-text', 'data-testid': 'eth-tx-replaced-by', 'data-hash': entry.replacedBy, onclick: () => copyText(entry.replacedBy, 'Transaction hash copied'), text: shorten(entry.replacedBy, 10, 8) })) : null,
       ),
       t.note && (entry || item) ? notice(t.kind, t.note) : null,
+      entry && state === 'rejected' ? notSentNotice(entry.hash) : null,
       entry && entry.error && (state === 'signed' || state === 'rejected') ? h('p', { class: 'small', 'data-testid': 'eth-tx-error', text: `The server said: ${entry.error}` }) : null,
     );
   }
@@ -118,6 +125,11 @@ export default function ethTx(app, p = {}) {
     entry = w.state.outbox.find((e) => e.hash === p.hash) || null;
     render();
     follow();
+    // "Not sent" (or settled from the index without a receipt yet): its receipt is asked again, once.
+    if (entry && !(entry.state === 'signed' || entry.state === 'pending') && (await w.recheckRejected({ hash: entry.hash }).catch(() => false)) && !dead) {
+      entry = w.state.outbox.find((e) => e.hash === p.hash) || entry;
+      render();
+    }
   })();
   render();
 
