@@ -16,7 +16,9 @@ import { sha256 } from '../../vendor/noble/noble-hashes/sha2.js';
 import { keccak_256 } from '../../vendor/noble/noble-hashes/sha3.js';
 
 /** Chains whose addresses are Ethereum's (0x and 40 hex digits). */
-export const EVM_CHAINS = Object.freeze(new Set(['eth', 'arb', 'base', 'op', 'bsc', 'pol', 'avax', 'gnosis', 'scroll', 'bera', 'monad', 'xlayer', 'plasma', 'abs']));
+import { EVM_CHAINS } from './chains.js';
+
+export { EVM_CHAINS };
 
 const b58check = createBase58check(sha256);
 const attempt = (f) => {
