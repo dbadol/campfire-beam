@@ -41,7 +41,7 @@ export default function send(app) {
   const pasteBtn = h('button', { class: 'btn btn-secondary btn-small', type: 'button', 'data-testid': 'paste' }, icon('paste'), 'Paste');
   const addrHint = h('p', { class: 'hint', 'data-testid': 'address-hint' });
   // A name whose owner changed since this wallet paid it: both keys, and paying the new one is a choice.
-  const nameBox = h('div', { 'aria-live': 'polite' });
+  const nameBox = h('div', { class: 'send-slot', 'aria-live': 'polite' });
   const contactInfo = contactLine(app);
   const note = noteField(draft);
   const pickBtns = recipientButtons(app, {
@@ -63,7 +63,7 @@ export default function send(app) {
   const maxBtn = h('button', { class: 'btn btn-secondary btn-small inside', type: 'button', 'data-testid': 'max' }, 'Max');
   const amountHint = h('p', { class: 'hint' });
   const feeLine = h('div', { class: 'kv' });
-  const syncMsg = h('div');
+  const syncMsg = h('div', { class: 'send-slot' });
   const cta = primary('Review payment', review, { disabled: true, 'data-testid': 'review' });
 
   function assets() {
@@ -309,7 +309,9 @@ export default function send(app) {
         app.back('home');
       },
       actions: [cta],
-      cls: 'plain',
+      // Sticky: a name's owner check, a look-alike warning or a note push the button down; it
+      // stays in view (one primary action, visible on a 375x667 phone without scrolling).
+      cls: 'plain sticky-actions',
     },
     h('label', { class: 'field' }, h('span', { class: 'banner' }, h('span', { class: 'grow', text: 'To' }), ...pickBtns, pasteBtn), addr),
     addrHint,
