@@ -2,83 +2,83 @@
   "@@locale": "en",
   "airdropBearerClaimMessage": "Claiming shows this code to the network before it is confirmed, so someone watching could claim it first. That is how this airdrop contract works; codes are meant for small amounts.",
   "@airdropBearerClaimMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where a code is claimed. 'Contract' = the program on the BEAM network that holds the airdrop."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where a code is claimed. 'Contract' = the program on the BEAM network that holds the airdrop. (glossary: airdrop, code, batch, claim)"
   },
   "airdropBearerCreateMessage": "Anyone who has a code can claim it. Claiming also shows the code to the network before it is confirmed, so someone watching could claim it first. Use codes for small amounts, and give each one to one person.",
   "@airdropBearerCreateMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where codes are created."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where codes are created. (glossary: airdrop, code, batch, claim)"
   },
   "airdropBearerCreateTitle": "Codes work like cash",
   "@airdropBearerCreateTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): title of the warning shown where codes are created."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): title of the warning shown where codes are created. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrAlreadyClaimedMessage": "Each code works once. Ask the sender for a new one.",
   "@airdropErrAlreadyClaimedMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'This voucher was already claimed'."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'This voucher was already claimed'. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrAlreadyClaimedTitle": "This voucher was already claimed",
   "@airdropErrAlreadyClaimedTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrBusyMessage": "Finish or close it, then try again.",
   "@airdropErrBusyMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'Another airdrop action is still open'."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'Another airdrop action is still open'. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrBusyTitle": "Another airdrop action is still open",
   "@airdropErrBusyTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when another airdrop screen is still sending."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when another airdrop screen is still sending. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrCodesNotSavedMessage": "So nothing was sent and nothing was locked. Free up some space or restart the wallet, then try again.",
   "@airdropErrCodesNotSavedMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'The codes couldn't be saved on this device'; it continues that sentence."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'The codes couldn't be saved on this device'; it continues that sentence. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrCodesNotSavedTitle": "The codes couldn't be saved on this device",
   "@airdropErrCodesNotSavedTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when the new codes could not be stored (so nothing was locked)."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when the new codes could not be stored (so nothing was locked). (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrContractNotFoundMessage": "The wallet may be on the wrong network. Check the node in Settings.",
   "@airdropErrContractNotFoundMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'The airdrop contract didn't answer'."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'The airdrop contract didn't answer'. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrContractNotFoundTitle": "The airdrop contract didn't answer",
   "@airdropErrContractNotFoundTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when the airdrop program on the BEAM network was not found."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when the airdrop program on the BEAM network was not found. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrInvalidCodeMessage": "Codes are 16 letters and digits, like ABCD-EFGH-JKLM-NPQR. Paste the whole code you were given.",
   "@airdropErrInvalidCodeMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'That isn't a voucher code'. Keep the example code exactly."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'That isn't a voucher code'. Keep the example code exactly. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrInvalidCodeTitle": "That isn't a voucher code",
   "@airdropErrInvalidCodeTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when the typed code has the wrong form."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when the typed code has the wrong form. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrNotFoundMessage": "Check it letter by letter: codes never use I, O, 0 or 1. If it still fails, ask the sender: the code may have been cancelled.",
   "@airdropErrNotFoundMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'No voucher has this code'. Keep the letters I, O and digits 0, 1 as they are."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'No voucher has this code'. Keep the letters I, O and digits 0, 1 as they are. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrNotFoundTitle": "No voucher has this code",
   "@airdropErrNotFoundTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when no voucher matches the code."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when no voucher matches the code. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrNothingToCancelMessage": "Every code of this batch was already claimed or cancelled.",
   "@airdropErrNothingToCancelMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'Nothing left to take back'. A 'batch' is the set of codes created together."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'Nothing left to take back'. A 'batch' is the set of codes created together. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrNothingToCancelTitle": "Nothing left to take back",
   "@airdropErrNothingToCancelTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when cancelling codes that are all claimed or cancelled already."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when cancelling codes that are all claimed or cancelled already. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrRefusedTitle": "The airdrop refused this",
   "@airdropErrRefusedTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title for any other refusal; the message under it is the contract's own words, in English."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title for any other refusal; the message under it is the contract's own words, in English. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrStillHoldsFundsMessage": "So they stay saved. Cancel the unclaimed codes first, or wait until the batch has settled on the network.",
   "@airdropErrStillHoldsFundsMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'These codes can still unlock funds'; it continues that sentence."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'These codes can still unlock funds'; it continues that sentence. (glossary: airdrop, code, batch, claim)"
   },
   "airdropErrStillHoldsFundsTitle": "These codes can still unlock funds",
   "@airdropErrStillHoldsFundsTitle": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when trying to forget codes that could still be claimed."
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when trying to forget codes that could still be claimed. (glossary: airdrop, code, batch, claim)"
   },
   "beamAssetNotTheVerified": "Not the verified {symbol} (#{id})",
   "@beamAssetNotTheVerified": {
@@ -141,7 +141,7 @@
   },
   "beamNetworkFee": "Network fee",
   "@beamNetworkFee": {
-    "description": "BEAM confirm/review screens: label of the row with the fee paid to the BEAM network (e.g. '0.001 BEAM')."
+    "description": "BEAM confirm/review screens: label of the row with the fee paid to the BEAM network (e.g. '0.001 BEAM'). (glossary: network fee)"
   },
   "beamPausedResumesBySelf": "{action, select, splitting{Splitting turns back on by itself once the wallet is up to date.} minting{Minting turns back on by itself once the wallet is up to date.} creatingToken{Creating a token turns back on by itself once the wallet is up to date.} burning{Burning turns back on by itself once the wallet is up to date.} creatingCodes{Creating codes turns back on by itself once the wallet is up to date.} cancelling{Cancelling turns back on by itself once the wallet is up to date.} claiming{Claiming turns back on by itself once the wallet is up to date.} other{This turns back on by itself once the wallet is up to date.}}",
   "@beamPausedResumesBySelf": {
@@ -272,27 +272,27 @@
   },
   "settingsLanguageDescription": "Choose the language this app speaks. Until you choose one, it follows this device.",
   "@settingsLanguageDescription": {
-    "description": "Settings → Language on desktop: the sentence under the heading, above the list of languages."
+    "description": "Settings → Language on desktop: the sentence under the heading, above the list of languages. (glossary: language, like this device)"
   },
   "settingsLanguageLikeDevice": "Like this device",
   "@settingsLanguageLikeDevice": {
-    "description": "Settings → Language: the first choice in the list, the default. The app uses the device's language (when the app has it, else English). Under it, the name of that language is shown, e.g. 'English'. The other choices are each language's own name (English, Русский, 简体中文, 日本語) and are never translated."
+    "description": "Settings → Language: the first choice in the list, the default. The app uses the device's language (when the app has it, else English). Under it, the name of that language is shown, e.g. 'English'. The other choices are each language's own name (English, Русский, 简体中文, 日本語) and are never translated. (glossary: language, like this device)"
   },
   "settingsLanguageTitle": "Language",
   "@settingsLanguageTitle": {
-    "description": "Settings → Language: the page title (phone) and the settings pane's heading (desktop). The page where the app's language is chosen."
+    "description": "Settings → Language: the page title (phone) and the settings pane's heading (desktop). The page where the app's language is chosen. (glossary: language, like this device)"
   },
   "settingsLanguageUntranslatedNote": "Anything not translated yet shows in English. Amounts, addresses and names look the same in every language.",
   "@settingsLanguageUntranslatedNote": {
-    "description": "Settings → Language: the small note under the list of languages. 'Names' are BEAM names (like alice.beam), which are never translated."
+    "description": "Settings → Language: the small note under the list of languages. 'Names' are BEAM names (like alice.beam), which are never translated. (glossary: language, like this device)"
   },
   "splitAfterLabel": "After",
   "@splitAfterLabel": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Label above what the wallet will hold after the split."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Label above what the wallet will hold after the split. (glossary: coins, split coins)"
   },
   "splitAuthReason": "{count, plural, one{Split {amount} into {count} coin} other{Split {amount} into {count} coins}}",
   "@splitAuthReason": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Reason shown in the fingerprint / face prompt that confirms the split. {amount} is e.g. '5 BEAM'.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Reason shown in the fingerprint / face prompt that confirms the split. {amount} is e.g. '5 BEAM'. (glossary: coins, split coins)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -304,31 +304,31 @@
   },
   "splitChangeLabel": "Stays as change",
   "@splitChangeLabel": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Row label: the small rest that stays as one coin, e.g. '0.0003 BEAM'."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Row label: the small rest that stays as one coin, e.g. '0.0003 BEAM'. (glossary: coins, split coins)"
   },
   "splitChecking": "Checking your coins…",
   "@splitChecking": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. What the main button says while the split is prepared."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. What the main button says while the split is prepared. (glossary: coins, split coins)"
   },
   "splitCoinArriving": "Arriving",
   "@splitCoinArriving": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: incoming, not confirmed yet."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: incoming, not confirmed yet. (glossary: coins, available, maturing)"
   },
   "splitCoinInPayment": "In a payment that hasn't finished",
   "@splitCoinInPayment": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: being spent by a payment still in progress."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: being spent by a payment still in progress. (glossary: coins, available, maturing)"
   },
   "splitCoinListEmpty": "No coins yet. Coins that arrive show up here.",
   "@splitCoinListEmpty": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Shown when the wallet holds no coins of this asset."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Shown when the wallet holds no coins of this asset. (glossary: coins, available, maturing)"
   },
   "splitCoinListNote": "Each payment uses one or more coins and gives the rest back as a new coin. More coins let several payments go at once.",
   "@splitCoinListNote": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Note under the list."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Note under the list. (glossary: coins, available, maturing)"
   },
   "splitCoinListReady": "{count, plural, one{{count} ready to spend} other{{count} ready to spend}}",
   "@splitCoinListReady": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Summary under the title: how many coins can be spent now.",
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Summary under the title: how many coins can be spent now. (glossary: coins, available, maturing)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -337,7 +337,7 @@
   },
   "splitCoinListReadyWaiting": "{ready, plural, one{{ready} ready to spend} other{{ready} ready to spend}} · {waiting, plural, one{{waiting} not yet} other{{waiting} not yet}}",
   "@splitCoinListReadyWaiting": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Summary under the title: coins that can be spent now · coins not spendable yet. The '·' separates the two counts.",
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Summary under the title: coins that can be spent now · coins not spendable yet. The '·' separates the two counts. (glossary: coins, available, maturing)",
     "placeholders": {
       "ready": {
         "type": "int"
@@ -349,7 +349,7 @@
   },
   "splitCoinListTitle": "Your {symbol} coins",
   "@splitCoinListTitle": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Title. {symbol} is the ticker, e.g. 'BEAM'.",
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. Title. {symbol} is the ticker, e.g. 'BEAM'. (glossary: coins, available, maturing)",
     "placeholders": {
       "symbol": {
         "type": "String"
@@ -358,23 +358,23 @@
   },
   "splitCoinNotSpendable": "Not spendable right now",
   "@splitCoinNotSpendable": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: cannot be spent at the moment."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: cannot be spent at the moment. (glossary: coins, available, maturing)"
   },
   "splitCoinReady": "Ready to spend",
   "@splitCoinReady": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: spendable now."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: spendable now. (glossary: coins, available, maturing)"
   },
   "splitCoinReadyPrivate": "Ready to spend · private",
   "@splitCoinReadyPrivate": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: spendable, and held privately (a shielded 'max privacy' coin). '·' is a separator."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: spendable, and held privately (a shielded 'max privacy' coin). '·' is a separator. (glossary: coins, available, maturing)"
   },
   "splitCoinReadySoon": "Ready soon",
   "@splitCoinReadySoon": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: just received, spendable after a few more blocks."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: just received, spendable after a few more blocks. (glossary: coins, available, maturing)"
   },
   "splitCoinReadySoonAfterBlock": "Ready soon (after block {block})",
   "@splitCoinReadySoonAfterBlock": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: spendable after the given block. {block} is a block number like '4,073,500'.",
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: spendable after the given block. {block} is a block number like '4,073,500'. (glossary: coins, available, maturing)",
     "placeholders": {
       "block": {
         "type": "String"
@@ -383,15 +383,15 @@
   },
   "splitCoinTooSmall": "Too small to be worth spending",
   "@splitCoinTooSmall": {
-    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: worth no more than the fee a payment costs."
+    "description": "Coin list (Split coins → See each coin): the separate pieces ('coins') the wallet's balance is held in. A coin's state: worth no more than the fee a payment costs. (glossary: coins, available, maturing)"
   },
   "splitCountLabel": "Split into",
   "@splitCountLabel": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Label above the row of choices for how many coins to make (3, 5, 10 …)."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Label above the row of choices for how many coins to make (3, 5, 10 …). (glossary: coins, split coins)"
   },
   "splitCta": "{count, plural, one{Split into {count} coin} other{Split into {count} coins}}",
   "@splitCta": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. The main button (and the review's button): the outcome.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. The main button (and the review's button): the outcome. (glossary: coins, split coins)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -400,11 +400,11 @@
   },
   "splitDoneMessage": "The new coins are ready in about a minute, once the network confirms the split. Until then the coins being split are busy. Your history shows it as \"Splitting coins\".",
   "@splitDoneMessage": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Text of the success screen. \"Splitting coins\" is how the transaction history names it (keep it consistent with that label)."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Text of the success screen. \"Splitting coins\" is how the transaction history names it (keep it consistent with that label). (glossary: coins, split coins)"
   },
   "splitDoneTitle": "{count, plural, one{Splitting into {count} coin} other{Splitting into {count} coins}}",
   "@splitDoneTitle": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Title of the success screen after the split was sent.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Title of the success screen after the split was sent. (glossary: coins, split coins)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -413,19 +413,19 @@
   },
   "splitHeadline": "Send several payments at once",
   "@splitHeadline": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Headline at the top of the screen: the gain for the person."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Headline at the top of the screen: the gain for the person. (glossary: coins, split coins)"
   },
   "splitIntro": "Each payment ties up a coin for about a minute. With more coins, several can go at once. Nothing leaves your wallet.",
   "@splitIntro": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Text under the headline."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Text under the headline. (glossary: coins, split coins)"
   },
   "splitLeavesLabel": "Leaves your wallet",
   "@splitLeavesLabel": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: label of the total row; the value is only the network fee."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: label of the total row; the value is only the network fee. (glossary: coins, split coins)"
   },
   "splitNeedBeam": "Splitting costs a {fee} network fee, paid in BEAM, and this wallet has {beam} available. Add BEAM first.",
   "@splitNeedBeam": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when splitting a token but there is not enough BEAM for the fee. {fee} and {beam} are amounts like '0.001 BEAM'.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when splitting a token but there is not enough BEAM for the fee. {fee} and {beam} are amounts like '0.001 BEAM'. (glossary: coins, split coins)",
     "placeholders": {
       "fee": {
         "type": "String"
@@ -437,7 +437,7 @@
   },
   "splitNewCoins": "{count, plural, one{{count} coin of {size}} other{{count} coins of {size}}}",
   "@splitNewCoins": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. What the person will have after the split. {size} is each coin's amount with ticker, e.g. '0.17 BEAM'.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. What the person will have after the split. {size} is each coin's amount with ticker, e.g. '0.17 BEAM'. (glossary: coins, split coins)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -449,11 +449,11 @@
   },
   "splitNewCoinsLabel": "New coins",
   "@splitNewCoinsLabel": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: row label for the coins the split creates."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: row label for the coins the split creates. (glossary: coins, split coins)"
   },
   "splitNoCoins": "This wallet has no {symbol} it can spend right now. Coins that arrive or come back from a payment show up here.",
   "@splitNoCoins": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when there is nothing to split. {symbol} is the ticker.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when there is nothing to split. {symbol} is the ticker. (glossary: coins, split coins)",
     "placeholders": {
       "symbol": {
         "type": "String"
@@ -462,7 +462,7 @@
   },
   "splitNowCoins": "{count, plural, one{{total} in {count} coin; the largest holds {share}%} other{{total} in {count} coins; the largest holds {share}%}}",
   "@splitNowCoins": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Line under the asset. {total} is the amount with ticker, {count} the number of coins (2 or more), {share} the percent of the total held by the largest coin.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Line under the asset. {total} is the amount with ticker, {count} the number of coins (2 or more), {share} the percent of the total held by the largest coin. (glossary: coins, split coins)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -477,15 +477,15 @@
   },
   "splitNowLabel": "Now",
   "@splitNowLabel": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Label above (or beside) what the wallet holds before the split."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Label above (or beside) what the wallet holds before the split. (glossary: coins, split coins)"
   },
   "splitNowNothing": "Nothing to split yet",
   "@splitNowNothing": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Line under the asset when the wallet holds none of it."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Line under the asset when the wallet holds none of it. (glossary: coins, split coins)"
   },
   "splitNowOneCoin": "{total} in 1 coin: one payment at a time",
   "@splitNowOneCoin": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Line under the asset. {total} is the amount with its ticker, e.g. '1.2345 BEAM'.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Line under the asset. {total} is the amount with its ticker, e.g. '1.2345 BEAM'. (glossary: coins, split coins)",
     "placeholders": {
       "total": {
         "type": "String"
@@ -494,47 +494,47 @@
   },
   "splitPickAssetTitle": "Which coins to split",
   "@splitPickAssetTitle": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Title of the list where the person picks BEAM or a token to split."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Title of the list where the person picks BEAM or a token to split. (glossary: coins, split coins)"
   },
   "splitProblemBusy": "Another payment is still open",
   "@splitProblemBusy": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: another payment, swap or claim is still in progress."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: another payment, swap or claim is still in progress. (glossary: coins, split coins)"
   },
   "splitProblemCoinsChanged": "Your coins changed",
   "@splitProblemCoinsChanged": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: the balance changed since the split was planned."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: the balance changed since the split was planned. (glossary: coins, split coins)"
   },
   "splitProblemConnecting": "Still connecting",
   "@splitProblemConnecting": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: the wallet is still connecting to the BEAM network."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: the wallet is still connecting to the BEAM network. (glossary: coins, split coins)"
   },
   "splitProblemMaybeStarted": "Not sure the split started",
   "@splitProblemMaybeStarted": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title when the connection dropped while sending: the split may or may not have gone out."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title when the connection dropped while sending: the split may or may not have gone out. (glossary: coins, split coins)"
   },
   "splitProblemNotSplit": "The coins were not split",
   "@splitProblemNotSplit": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title when the split failed."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title when the split failed. (glossary: coins, split coins)"
   },
   "splitProblemNotSynced": "Not up to date yet",
   "@splitProblemNotSynced": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: the wallet does not have the latest blocks yet."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: the wallet does not have the latest blocks yet. (glossary: coins, split coins)"
   },
   "splitProblemScanning": "Still looking for your coins",
   "@splitProblemScanning": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: a restored wallet is still scanning the network for its coins."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Error title: a restored wallet is still scanning the network for its coins. (glossary: coins, split coins)"
   },
   "splitReadingCoins": "Reading your coins…",
   "@splitReadingCoins": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Shown while the wallet's coins load."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Shown while the wallet's coins load. (glossary: coins, split coins)"
   },
   "splitReceiveBeam": "Receive BEAM",
   "@splitReceiveBeam": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Button on the notice when there is not enough to split: opens Receive."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Button on the notice when there is not enough to split: opens Receive. (glossary: coins, split coins)"
   },
   "splitReviewNote": "Your {symbol} is split into new coins in this same wallet. You pay only the network fee.",
   "@splitReviewNote": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: notice under 'Nothing leaves your wallet'. {symbol} is the ticker, e.g. 'BEAM'.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: notice under 'Nothing leaves your wallet'. {symbol} is the ticker, e.g. 'BEAM'. (glossary: coins, split coins)",
     "placeholders": {
       "symbol": {
         "type": "String"
@@ -543,7 +543,7 @@
   },
   "splitReviewNoteAsset": "Your {symbol} is split into new coins in this same wallet. You pay only the network fee, in BEAM.",
   "@splitReviewNoteAsset": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: notice under 'Nothing leaves your wallet' when splitting a token (the fee is paid in BEAM). {symbol} is the token's ticker.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: notice under 'Nothing leaves your wallet' when splitting a token (the fee is paid in BEAM). {symbol} is the token's ticker. (glossary: coins, split coins)",
     "placeholders": {
       "symbol": {
         "type": "String"
@@ -552,11 +552,11 @@
   },
   "splitReviewNothingLeaves": "Nothing leaves your wallet",
   "@splitReviewNothingLeaves": {
-    "description": "Split coins → review screen: title of the first notice; reassures that splitting moves no money out of the wallet (only the network fee is paid)."
+    "description": "Split coins → review screen: title of the first notice; reassures that splitting moves no money out of the wallet (only the network fee is paid). (glossary: coins, split coins)"
   },
   "splitReviewNow": "{count, plural, one{{amount} in {count} coin} other{{amount} in {count} coins}}",
   "@splitReviewNow": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: the value of the 'Now' row. {amount} is e.g. '5 BEAM'.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Review screen: the value of the 'Now' row. {amount} is e.g. '5 BEAM'. (glossary: coins, split coins)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -568,19 +568,19 @@
   },
   "splitReviewTitle": "Review split",
   "@splitReviewTitle": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Title of the review screen shown before the split is signed."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Title of the review screen shown before the split is signed. (glossary: coins, split coins)"
   },
   "splitSeeEachCoin": "See each coin",
   "@splitSeeEachCoin": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Text button that opens the list of the wallet's coins."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Text button that opens the list of the wallet's coins. (glossary: coins, split coins)"
   },
   "splitSending": "Splitting…",
   "@splitSending": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. What the review screen's button says while the split is sent."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. What the review screen's button says while the split is sent. (glossary: coins, split coins)"
   },
   "splitSpreadWell": "{count, plural, one{Your coins are already spread out: up to {count} payment can go at once. You can still split for more.} other{Your coins are already spread out: up to {count} payments can go at once. You can still split for more.}}",
   "@splitSpreadWell": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when the balance is already in several coins. {count} is how many payments can go at once.",
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when the balance is already in several coins. {count} is how many payments can go at once. (glossary: coins, split coins)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -589,15 +589,15 @@
   },
   "splitTitle": "Split coins",
   "@splitTitle": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Screen title, menu entry, and the main button when no count is chosen."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Screen title, menu entry, and the main button when no count is chosen. (glossary: coins, split coins)"
   },
   "splitTooLittle": "There is too little here to split: each new coin has to be worth more than the 0.001 BEAM a payment costs.",
   "@splitTooLittle": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when the balance is too small to split. Keep '0.001 BEAM' as written."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Notice when the balance is too small to split. Keep '0.001 BEAM' as written. (glossary: coins, split coins)"
   },
   "splitYouWillHave": "You will have",
   "@splitYouWillHave": {
-    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Row label: the new coins after the split, e.g. '5 coins of 0.17 BEAM'."
+    "description": "Split coins (BEAM wallet → More → Split coins): splits the wallet's balance, which is held as 'coins' (separate pieces of money), into several equal coins so several payments can be sent at once. Nothing leaves the wallet except the network fee. Row label: the new coins after the split, e.g. '5 coins of 0.17 BEAM'. (glossary: coins, split coins)"
   },
   "syncAboutDays": "{count, plural, one{about {countText} day} other{about {countText} days}}",
   "@syncAboutDays": {
@@ -641,27 +641,27 @@
   },
   "syncActionCheckAgain": "Check again",
   "@syncActionCheckAgain": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button shown after asking to fix the device clock; checks the sync again."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button shown after asking to fix the device clock; checks the sync again. (glossary: sync, catching up, node, block)"
   },
   "syncActionReconnect": "Reconnect",
   "@syncActionReconnect": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button that reconnects to the BEAM node."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button that reconnects to the BEAM node. (glossary: sync, catching up, node, block)"
   },
   "syncActionTryAgain": "Try again",
   "@syncActionTryAgain": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button to retry connecting after the internet was down."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button to retry connecting after the internet was down. (glossary: sync, catching up, node, block)"
   },
   "syncActionTryAnotherNode": "Try another node",
   "@syncActionTryAnotherNode": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button that switches the wallet to another BEAM node."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button that switches the wallet to another BEAM node. (glossary: sync, catching up, node, block)"
   },
   "syncActionUsePublicNode": "Use a public node",
   "@syncActionUsePublicNode": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button that switches from the person's own node to a public BEAM node."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): button that switches from the person's own node to a public BEAM node. (glossary: sync, catching up, node, block)"
   },
   "syncBehindBy": "Behind by {blocks} — {duration}",
   "@syncBehindBy": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): how far behind the wallet is, as a short line. {blocks} is e.g. '42 blocks', {duration} e.g. 'about 42 minutes' (the time those blocks took).",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): how far behind the wallet is, as a short line. {blocks} is e.g. '42 blocks', {duration} e.g. 'about 42 minutes' (the time those blocks took). (glossary: sync, catching up, node, block)",
     "placeholders": {
       "blocks": {
         "type": "String"
@@ -673,7 +673,7 @@
   },
   "syncBehindBySentence": "Behind by {blocks} — {duration}.",
   "@syncBehindBySentence": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): the same as 'Behind by … — …' as a sentence inside a paragraph. {blocks} is e.g. '42 blocks', {duration} e.g. 'about 42 minutes'.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): the same as 'Behind by … — …' as a sentence inside a paragraph. {blocks} is e.g. '42 blocks', {duration} e.g. 'about 42 minutes'. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "blocks": {
         "type": "String"
@@ -685,7 +685,7 @@
   },
   "syncBlockCount": "{count, plural, one{{countText} block} other{{countText} blocks}}",
   "@syncBlockCount": {
-    "description": "A number of BEAM blocks, e.g. '42 blocks', inserted into sync sentences. {countText} is the number already written out (e.g. '139,235'); use it in every case.",
+    "description": "A number of BEAM blocks, e.g. '42 blocks', inserted into sync sentences. {countText} is the number already written out (e.g. '139,235'); use it in every case. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -697,27 +697,27 @@
   },
   "syncCantReachNetwork": "Can't reach the network",
   "@syncCantReachNetwork": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when no BEAM node answers."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when no BEAM node answers. (glossary: sync, catching up, node, block)"
   },
   "syncCantReachPrivate": "Can't reach your private node",
   "@syncCantReachPrivate": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the person's own BEAM node on this computer does not answer."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the person's own BEAM node on this computer does not answer. (glossary: sync, catching up, node, block)"
   },
   "syncCatchingUpPrivate": "Your private node is catching up",
   "@syncCatchingUpPrivate": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the person's own node downloads the newest blocks."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the person's own node downloads the newest blocks. (glossary: sync, catching up, node, block)"
   },
   "syncCatchingUpPublic": "Catching up with the network",
   "@syncCatchingUpPublic": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the wallet downloads the newest blocks from a public node."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the wallet downloads the newest blocks from a public node. (glossary: sync, catching up, node, block)"
   },
   "syncCheckInternetDetail": "Check your internet connection. The wallet keeps trying on its own.",
   "@syncCheckInternetDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Can't reach the network' when the internet seems down."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Can't reach the network' when the internet seems down. (glossary: sync, catching up, node, block)"
   },
   "syncClockAheadDetail": "It's {duration} ahead, so the wallet can't tell whether it's up to date. Set the date and time to update automatically, then check again. Sending is off until this is fixed.",
   "@syncClockAheadDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Your device's clock is wrong'. 'It' = the clock; {duration} e.g. 'about 1 hour'.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Your device's clock is wrong'. 'It' = the clock; {duration} e.g. 'about 1 hour'. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "duration": {
         "type": "String"
@@ -726,7 +726,7 @@
   },
   "syncClockBehindDetail": "It's {duration} behind, so the wallet can't tell whether it's up to date. Set the date and time to update automatically, then check again. Sending is off until this is fixed.",
   "@syncClockBehindDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Your device's clock is wrong'. 'It' = the clock; {duration} e.g. 'about 1 hour'.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Your device's clock is wrong'. 'It' = the clock; {duration} e.g. 'about 1 hour'. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "duration": {
         "type": "String"
@@ -735,27 +735,27 @@
   },
   "syncClockWrongDetail": "It's wrong, so the wallet can't tell whether it's up to date. Set the date and time to update automatically, then check again. Sending is off until this is fixed.",
   "@syncClockWrongDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Your device's clock is wrong' when it is not known by how much. 'It' = the clock."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Your device's clock is wrong' when it is not known by how much. 'It' = the clock. (glossary: sync, catching up, node, block)"
   },
   "syncClockWrongTitle": "Your device's clock is wrong",
   "@syncClockWrongTitle": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when this device's date/time is far from the network's, so sync cannot be judged."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when this device's date/time is far from the network's, so sync cannot be judged. (glossary: sync, catching up, node, block)"
   },
   "syncConnectingDetail": "This usually takes a few seconds.",
   "@syncConnectingDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): sentence under 'Connecting to …'."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): sentence under 'Connecting to …'. (glossary: sync, catching up, node, block)"
   },
   "syncConnectingPrivate": "Connecting to your private node",
   "@syncConnectingPrivate": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the wallet connects to the person's own BEAM node running on this computer ('private node')."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the wallet connects to the person's own BEAM node running on this computer ('private node'). (glossary: sync, catching up, node, block)"
   },
   "syncConnectingPublic": "Connecting to the BEAM network",
   "@syncConnectingPublic": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the wallet connects to a public BEAM node."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title while the wallet connects to a public BEAM node. (glossary: sync, catching up, node, block)"
   },
   "syncDisagreesTitle": "{node, select, private{Your private node disagrees with the rest of the network} other{Your node disagrees with the rest of the network}}",
   "@syncDisagreesTitle": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node says it is up to date but other BEAM nodes have newer blocks. 'private' = the person's own node on this computer.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node says it is up to date but other BEAM nodes have newer blocks. 'private' = the person's own node on this computer. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "node": {
         "type": "String"
@@ -764,15 +764,15 @@
   },
   "syncGettingLatestBlocks": "Getting the latest blocks.",
   "@syncGettingLatestBlocks": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): sentence while catching up when the number of missing blocks is not known."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): sentence while catching up when the number of missing blocks is not known. (glossary: sync, catching up, node, block)"
   },
   "syncKnowsNewerBlocks": "It knows about newer blocks.",
   "@syncKnowsNewerBlocks": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'The wallet isn't processing new blocks' when the number is unknown."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'The wallet isn't processing new blocks' when the number is unknown. (glossary: sync, catching up, node, block)"
   },
   "syncKnowsUnprocessedBlocks": "{count, plural, one{It knows about {countText} block it hasn't processed.} other{It knows about {countText} blocks it hasn't processed.}}",
   "@syncKnowsUnprocessedBlocks": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'The wallet isn't processing new blocks'. {countText} is the number written out (e.g. '1,234'); use it in every case.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'The wallet isn't processing new blocks'. {countText} is the number written out (e.g. '1,234'); use it in every case. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "count": {
         "type": "int"
@@ -824,15 +824,15 @@
   },
   "syncLooksUpToDateButBehind": "It looks up to date, but other BEAM nodes are further ahead.",
   "@syncLooksUpToDateButBehind": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under '… disagrees with the rest of the network'."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under '… disagrees with the rest of the network'. (glossary: sync, catching up, node, block)"
   },
   "syncMayBeOutOfDateSendingOff": "Balances may be out of date. Sending is off until this is fixed.",
   "@syncMayBeOutOfDateSendingOff": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentences when the wallet stopped getting new blocks."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentences when the wallet stopped getting new blocks. (glossary: sync, catching up, node, block)"
   },
   "syncNewestBlockAge": "Its newest block is {age} old.",
   "@syncNewestBlockAge": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail when the node's newest block is old. {age} is e.g. 'about 3 hours'.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail when the node's newest block is old. {age} is e.g. 'about 3 hours'. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "age": {
         "type": "String"
@@ -841,11 +841,11 @@
   },
   "syncNewestBlockOld": "Its newest block is old.",
   "@syncNewestBlockOld": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail when the node's newest block is old and its age is unknown."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail when the node's newest block is old and its age is unknown. (glossary: sync, catching up, node, block)"
   },
   "syncNoNewBlocksTitle": "{node, select, private{Your private node stopped receiving new blocks} other{Your node stopped receiving new blocks}}",
   "@syncNoNewBlocksTitle": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node's newest block is old. 'private' = the person's own node on this computer.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node's newest block is old. 'private' = the person's own node on this computer. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "node": {
         "type": "String"
@@ -854,35 +854,35 @@
   },
   "syncNodeNotAnsweringDetail": "The BEAM node you're using isn't answering. Sending is off until this is fixed.",
   "@syncNodeNotAnsweringDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Can't reach the network' when the internet works but the chosen node does not answer."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Can't reach the network' when the internet works but the chosen node does not answer. (glossary: sync, catching up, node, block)"
   },
   "syncNotProcessingTitle": "The wallet isn't processing new blocks",
   "@syncNotProcessingTitle": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node knows about newer blocks but does not process them."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node knows about newer blocks but does not process them. (glossary: sync, catching up, node, block)"
   },
   "syncOutOfDateSendingOff": "Balances are out of date. Sending is off until this is fixed.",
   "@syncOutOfDateSendingOff": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentences when the wallet's node is stuck on an old version of the network."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentences when the wallet's node is stuck on an old version of the network. (glossary: sync, catching up, node, block)"
   },
   "syncPrivateNotAnsweringDetail": "It isn't answering. Switch to a public node to keep using the wallet. Sending is off until this is fixed.",
   "@syncPrivateNotAnsweringDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Can't reach your private node'. 'Public node' = a BEAM server run by others, which the wallet can use instead."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Can't reach your private node'. 'Public node' = a BEAM server run by others, which the wallet can use instead. (glossary: sync, catching up, node, block)"
   },
   "syncReadingFromStartDetail": "Reading the BEAM network from the start, which takes a while the first time. Sending is paused until it's done.",
   "@syncReadingFromStartDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail while a new wallet reads the blockchain for the first time."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail while a new wallet reads the blockchain for the first time. (glossary: sync, catching up, node, block)"
   },
   "syncSendingOff": "Sending is off until this is fixed.",
   "@syncSendingOff": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentence when the wallet is stuck; sending stays off until the problem is solved."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentence when the wallet is stuck; sending stays off until the problem is solved. (glossary: sync, catching up, node, block)"
   },
   "syncSendingPaused": "Sending is paused until it's done.",
   "@syncSendingPaused": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentence while catching up; sending turns back on by itself."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): last sentence while catching up; sending turns back on by itself. (glossary: sync, catching up, node, block)"
   },
   "syncStuckOldVersionTitle": "{node, select, private{Your private node is stuck on an old version of the BEAM network} other{Your node is stuck on an old version of the BEAM network}}",
   "@syncStuckOldVersionTitle": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node did not follow a BEAM network upgrade. 'private' = the person's own node on this computer; 'other' = the node the wallet uses.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the node did not follow a BEAM network upgrade. 'private' = the person's own node on this computer; 'other' = the node the wallet uses. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "node": {
         "type": "String"
@@ -891,15 +891,15 @@
   },
   "syncUnverifiedDetail": "Can't double-check with the network right now. Your node is connected and has the latest blocks, so sending works.",
   "@syncUnverifiedDetail": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Up to date' when a second, independent source of the latest block could not be reached."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): detail under 'Up to date' when a second, independent source of the latest block could not be reached. (glossary: sync, catching up, node, block)"
   },
   "syncUpToDate": "Up to date",
   "@syncUpToDate": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the wallet has the latest blocks and can send."
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): title when the wallet has the latest blocks and can send. (glossary: sync, catching up, node, block)"
   },
   "syncUpgradedAtBlock": "BEAM upgraded at block {fork}.",
   "@syncUpgradedAtBlock": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): why the node is stuck. {fork} is a block number like '3,928,666'.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): why the node is stuck. {fork} is a block number like '3,928,666'. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "fork": {
         "type": "String"
@@ -908,7 +908,7 @@
   },
   "syncUpgradedAtBlockStoppedAt": "BEAM upgraded at block {fork} and this node stopped at block {at}.",
   "@syncUpgradedAtBlockStoppedAt": {
-    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): why the node is stuck. {fork} and {at} are block numbers like '3,928,666'.",
+    "description": "BEAM wallet sync status (the banner on the wallet home, the notice above a disabled send/swap/claim button, the node panel): why the node is stuck. {fork} and {at} are block numbers like '3,928,666'. (glossary: sync, catching up, node, block)",
     "placeholders": {
       "fork": {
         "type": "String"
@@ -965,11 +965,11 @@
   },
   "walletFileMissing": "This wallet's data file is missing. Restore the wallet from its recovery phrase.",
   "@walletFileMissing": {
-    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used."
+    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. (glossary: 12 words — the app says 'recovery phrase')"
   },
   "walletImportedNoRescan": "This wallet was imported from its wallet.db file and has no recovery phrase here, so it cannot be rebuilt. Import the original file again if you need a fresh copy.",
   "@walletImportedNoRescan": {
-    "description": "BEAM wallet → Rescan: why a wallet imported from a file cannot be rescanned. 'wallet.db' is a file name (never translated)."
+    "description": "BEAM wallet → Rescan: why a wallet imported from a file cannot be rescanned. 'wallet.db' is a file name (never translated). (glossary: rescan)"
   },
   "walletInUse": "This wallet is already open in another Campfire window or app. Close it there, then try again.",
   "@walletInUse": {
@@ -977,11 +977,11 @@
   },
   "walletInvalidPhrase": "That recovery phrase isn't valid. Check each of the 12 words and their order.",
   "@walletInvalidPhrase": {
-    "description": "Restoring a BEAM wallet: the 12 words entered are not a valid recovery phrase."
+    "description": "Restoring a BEAM wallet: the 12 words entered are not a valid recovery phrase. (glossary: 12 words — the app says 'recovery phrase')"
   },
   "walletNodeUnreachable": "Couldn't reach the BEAM node {node}. Check the node in Settings, or pick another one.",
   "@walletNodeUnreachable": {
-    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. A 'node' is the BEAM server the wallet talks to; {node} is its address, like 'eu-node01.mainnet.beam.mw:8100'.",
+    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. A 'node' is the BEAM server the wallet talks to; {node} is its address, like 'eu-node01.mainnet.beam.mw:8100'. (glossary: node)",
     "placeholders": {
       "node": {
         "type": "String"
@@ -990,7 +990,7 @@
   },
   "walletNodeUnreachablePicked": "Couldn't reach the BEAM node you picked. Check the node in Settings, or pick another one.",
   "@walletNodeUnreachablePicked": {
-    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. A 'node' is the BEAM server the wallet talks to."
+    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. A 'node' is the BEAM server the wallet talks to. (glossary: node)"
   },
   "walletNotOpen": "The wallet is still connecting to the BEAM network. Try again in a few seconds.",
   "@walletNotOpen": {
@@ -998,19 +998,19 @@
   },
   "walletPasswordMissing": "This wallet's file can't be unlocked because its key is missing from Campfire's secure storage. Restore the wallet from its recovery phrase.",
   "@walletPasswordMissing": {
-    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. 'Recovery phrase' = the 12 secret words that restore a wallet."
+    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. 'Recovery phrase' = the 12 secret words that restore a wallet. (glossary: 12 words — the app says 'recovery phrase')"
   },
   "walletRescanCoreStillOpen": "The wallet engine hasn't finished closing this wallet, so it can't be rebuilt yet. Nothing was changed. Try again in a minute.",
   "@walletRescanCoreStillOpen": {
-    "description": "BEAM wallet → Rescan: why it cannot start now."
+    "description": "BEAM wallet → Rescan: why it cannot start now. (glossary: rescan)"
   },
   "walletRescanWhileBusy": "A payment, swap or dApp approval is open in this wallet. Finish or close it, then rescan.",
   "@walletRescanWhileBusy": {
-    "description": "BEAM wallet → Rescan (rebuild the wallet from its recovery phrase): why it cannot start now. 'dApp' = a decentralised app running inside the wallet."
+    "description": "BEAM wallet → Rescan (rebuild the wallet from its recovery phrase): why it cannot start now. 'dApp' = a decentralised app running inside the wallet. (glossary: rescan)"
   },
   "walletRescanWithTxInFlight": "Some transactions of this wallet are still being sent, received or confirmed. Rescanning now would lose them; rescan once they have completed or been canceled.",
   "@walletRescanWithTxInFlight": {
-    "description": "BEAM wallet → Rescan: why it cannot start now."
+    "description": "BEAM wallet → Rescan: why it cannot start now. (glossary: rescan)"
   },
   "walletRpcRefused": "The BEAM wallet refused the request: {reason}",
   "@walletRpcRefused": {
@@ -1031,6 +1031,6 @@
   },
   "walletWrongPassword": "This wallet's file can't be unlocked with the key Campfire stored for it. Restore the wallet from its recovery phrase.",
   "@walletWrongPassword": {
-    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. 'Recovery phrase' = the 12 secret words that restore a wallet."
+    "description": "BEAM wallet error, shown in a dialog or notice when the BEAM wallet cannot be created, opened or used. 'Recovery phrase' = the 12 secret words that restore a wallet. (glossary: 12 words — the app says 'recovery phrase')"
   }
 }

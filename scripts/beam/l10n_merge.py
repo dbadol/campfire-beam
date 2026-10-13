@@ -19,6 +19,8 @@ their area as a prefix, so an area's messages stay together), and refuses:
   scripts/beam/l10n_merge.py                 # check fragments + app_en.arb, write nothing
   scripts/beam/l10n_merge.py --write         # merge into app_en.arb
   scripts/beam/l10n_merge.py --write --consume   # ... and delete the merged fragments
+  scripts/beam/l10n_merge.py --write --consume --only dex.arb names.arb
+        # fold in just these fragments (the others stay where they are)
   scripts/beam/l10n_merge.py --root DIR --write --lenient
         # merge into DIR's copy, skipping (with a warning) a fragment that is
         # not valid JSON yet (someone is mid-edit)
@@ -130,6 +132,7 @@ def main():
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--consume", action="store_true")
     ap.add_argument("--lenient", action="store_true")
+    ap.add_argument("--only", nargs="+", metavar="FRAGMENT")
     args = ap.parse_args()
 
     l10n = os.path.join(args.root, "lib", "l10n")
@@ -146,6 +149,8 @@ def main():
     if os.path.isdir(parts_dir):
         for name in sorted(os.listdir(parts_dir)):
             if not name.endswith(".arb"):
+                continue
+            if args.only and name not in args.only:
                 continue
             path = os.path.join(parts_dir, name)
             try:
