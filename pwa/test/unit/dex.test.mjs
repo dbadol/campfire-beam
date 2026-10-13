@@ -221,15 +221,15 @@ test('"at least" is what a swap is sure to get: the protection, then what a rebu
 
 test('the swap screen shows "at least" and hands it to the approve sheet', () => {
   const src = readFileSync(new URL('../../src/screens/swap.js', import.meta.url), 'utf8');
-  assert.match(src, /'data-testid': 'swap-get-least', text: `, at least \$\{formatAmount\(least\)\}`/);
-  assert.match(src, /rows: \[\['You get at least', `\$\{formatAmount\(least\)\} \$\{unit\(q\.receiveAsset\)\}`\]\]/);
-  assert.match(readFileSync(new URL('../../src/screens/consent.js', import.meta.url), 'utf8'), /action === 'swap' \? 'You get about' :/, 'the approve sheet calls the engine amount "about"');
+  assert.match(src, /tNodes\('\{about\}, at least \{least\}', \{ about: exactEl, least: h\('span', \{ 'data-testid': 'swap-get-least', text: formatAmount\(least\) \}\) \}\)/);
+  assert.match(src, /rows: \[\[t\('You get at least'\), `\$\{formatAmount\(least\)\} \$\{unit\(q\.receiveAsset\)\}`\]\]/);
+  assert.match(readFileSync(new URL('../../src/screens/consent.js', import.meta.url), 'utf8'), /action === 'swap' \? t\('You get about'\) :/, 'the approve sheet calls the engine amount "about"');
 });
 
 test('an empty pool list is a failed read, never "nothing can be bought" (2026-10-13)', () => {
   const src = readFileSync(new URL('../../src/lib/dex_pools.js', import.meta.url), 'utf8');
   assert.match(src, /if \(!pools\.length\) \{\n    await new Promise\(\(r\) => setTimeout\(r, EMPTY_RETRY_MS\)\);/, 'asked once more');
-  assert.match(src, /if \(!pools\.length\) throw new DexError\('unexpected', "BEAM's exchange sent no prices yet\. Try again in a moment"\);\n  learnPools\(pools\);/);
+  assert.match(src, /if \(!pools\.length\) throw new DexError\('unexpected', t\("BEAM's exchange sent no prices yet\. Try again in a moment"\)\);\n  learnPools\(pools\);/);
   assert.doesNotMatch(src, /pools_view printed an empty/, 'no shader jargon on screen');
   assert.deepEqual(parsePools({ res: [] }), [], 'the parser itself still reads an empty list as empty');
 });
