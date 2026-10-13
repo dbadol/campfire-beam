@@ -104,6 +104,10 @@ const LOADER_NAME = self.location.pathname.split('/').pop();
 let stateCache = null;
 let ownNodeCache; // the person's own node "host:port", null for BEAM's pool; undefined until read
 let updateRun = null;
+// Every read-modify-write of the loader's state (apply-update, discard-update, a check's staging and
+// pending writes): one at a time, so no write is lost and cleanup never deletes a copy still in use.
+let stateTurn = Promise.resolve();
+const exclusive = (fn) => { const r = stateTurn.then(fn); stateTurn = r.then(() => {}, () => {}); return r; };
 const updateListeners = new Set();
 let installAbort = null;
 
@@ -255,8 +259,10 @@ const cacheNameFor = (release) => `campfire-${release.version}-${release.manifes
  */
 async function stageRelease({ release, manifest }, { base = scopeUrl, signal = null, report = null } = {}) {
   const cacheName = cacheNameFor(release);
-  const st = await readState();
-  if (st.staging !== cacheName) await writeState({ ...st, staging: cacheName });
+  await exclusive(async () => {
+    const st = await readState();
+    if (st.staging !== cacheName) await writeState({ ...st, staging: cacheName });
+  });
   const cache = await caches.open(cacheName);
   const files = manifest.files;
   const totalBytes = files.reduce((a, f) => a + f.size, 0);
@@ -489,15 +495,19 @@ async function checkUpdate({ added = [], progress = null } = {}) {
         base: src.url,
         report: (p) => say({ step: 'downloading', host: src.host, own: src.own, version: rel.release.version, done: p.done, total: p.total }),
       });
-      const now = await readState();
-      const next = { ...now, pending: { ...staged, from: { host: src.host, own: src.own } }, staging: null, lastRefusal: null };
-      await writeState(next);
-      await cleanup(next);
+      await exclusive(async () => {
+        const now = await readState();
+        const next = { ...now, pending: { ...staged, from: { host: src.host, own: src.own } }, staging: null, lastRefusal: null };
+        await writeState(next);
+        await cleanup(next);
+      });
     },
   });
   if (r.result === 'refused') {
-    const now = await readState();
-    await writeState({ ...now, lastRefusal: { at: Date.now(), reason: r.reason, version: r.version || undefined, host: r.from && !r.from.own ? r.from.host : undefined } });
+    await exclusive(async () => {
+      const now = await readState();
+      await writeState({ ...now, lastRefusal: { at: Date.now(), reason: r.reason, version: r.version || undefined, host: r.from && !r.from.own ? r.from.host : undefined } });
+    });
   }
   return r;
 }
@@ -602,9 +612,9 @@ self.addEventListener('message', (event) => {
           updateListeners.delete(port);
           port.postMessage(r);
         } else if (type === 'apply-update') {
-          port.postMessage(await applyUpdate({ loaderReady: event.data.loaderReady === true }));
+          port.postMessage(await exclusive(() => applyUpdate({ loaderReady: event.data.loaderReady === true })));
         } else if (type === 'discard-update') {
-          port.postMessage(await discardUpdate());
+          port.postMessage(await exclusive(() => discardUpdate()));
         } else if (type === 'set-node') {
           // The person's own node (or null for BEAM's pool): from the next page load on, in connect-src.
           const raw = event.data.node;
