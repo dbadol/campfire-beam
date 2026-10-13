@@ -121,6 +121,8 @@ const CONTRACT_KINDS = {
   // BEAM names' vault (view_params "vault"): payments to a name go in, and are claimed out of it.
   a3385e50cf33afc9f769ee1d82d56b73046d680d343977f36d9a303d7bcdc4da: 'namesVault',
   '8737e0d39575d7015fdea259fa091e41fc293e6c3d54e80d529033c349b5b18e': 'airdrop',
+  // Airdrop v3 (lib/airdrop_v3.js V3_CID): every batch made since 0.2.15.
+  ac85d74b88aca36a8033f19b00b89df55e9c75a45c8a567c0ee158e9c11aeffe: 'airdrop',
   '295fe749dc12c55213d1bd16ced174dc8780c020f59cb17749e900bb0c15d868': 'minter',
   '5ab408982b148210e88f180114f10222a2235eafeede0a3a224fda0e523e17b7': 'burn',
 };

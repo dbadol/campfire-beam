@@ -676,6 +676,8 @@ details.more.card { padding: 12px 16px; }
 .kv .k .small { font-size: 12px; }
 .code-input { font-family: ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: 1px; text-transform: uppercase; }
 .drop-fields { display: flex; gap: 10px; }
+/* A code that was found: the no-BEAM-needed note, its figures and what a claim shows, apart from each other. */
+.drop-found { display: flex; flex-direction: column; gap: 10px; }
 .drop-fields .field.grow { flex: 1; min-width: 0; }
 .drop-fields .count-field { width: 92px; flex: none; }
 .batch { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }

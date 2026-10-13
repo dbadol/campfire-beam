@@ -33,3 +33,23 @@ test('not enough: what the request brings in of an asset counts towards it', () 
   // Creating codes: the locked amount plus the fee.
   assert.deepEqual(shortfall(req({ action: 'airdropCreate', count: 2 }, [{ assetId: 0, amount: 202000n }], [], 12100000n), none), { assetId: 0, need: 12302000n, have: 0n, includesFee: true });
 });
+
+// Airdrop v3: a create also locks the claim fees paid ahead, a claim also releases one (to pay its
+// network fee), a take-back returns them. The sheet says so in one line, and a claim whose code pays
+// its own fee is not "not enough" on an empty wallet (what it brings in counts).
+test('airdrop v3: claim fees paid ahead are named on the button, and a prepaid claim needs no BEAM', () => {
+  const none = () => 0n;
+  const fee = 2100000n;
+  assert.equal(approveLabel(req({ action: 'airdropCreate', count: 10 }, [{ assetId: 0, amount: 26250000n }, { assetId: 36, amount: 1010000n }], [], 4250000n), unit), 'Lock 0.0101 Asset #36 + 0.2625 BEAM in 10 codes');
+  // The voucher's asset names the claim, whatever order the engine lists what arrives in.
+  const claim = req({ action: 'airdropClaim', assetId: 36 }, [], [{ assetId: 0, amount: 2200000n }, { assetId: 36, amount: 500000000n }], fee);
+  assert.equal(approveLabel(claim, unit), 'Claim 5 Asset #36');
+  assert.equal(shortfall(claim, none), null, 'an empty wallet can approve it');
+  assert.equal(approveLabel(req({ action: 'airdropClaim', assetId: 0 }, [], [{ assetId: 0, amount: 52200000n }], fee), unit), 'Claim 0.522 BEAM');
+  // Without a prepaid fee, the fee is the need.
+  assert.deepEqual(shortfall(req({ action: 'airdropClaim', assetId: 36 }, [], [{ assetId: 36, amount: 500000000n }], fee), none), { assetId: 0, need: fee, have: 0n, includesFee: true });
+  assert.equal(approveLabel(req({ action: 'airdropCancel', count: 2 }, [], [{ assetId: 36, amount: 200000n }, { assetId: 0, amount: 4400000n }], 1100000n), unit), 'Take back 0.002 Asset #36 + 0.044 BEAM');
+  assert.equal(approveLabel(req({ action: 'airdropCancel', count: 2 }, [], [{ assetId: 0, amount: 4400000n }, { assetId: 36, amount: 200000n }], 1100000n), unit), 'Take back 0.002 Asset #36 + 0.044 BEAM', 'whatever order the engine lists them in');
+  // Three assets out or something paid on a claim: the plain words.
+  assert.equal(approveLabel(req({ action: 'airdropClaim', assetId: 36 }, [], [{ assetId: 0, amount: 1n }, { assetId: 36, amount: 1n }, { assetId: 7, amount: 1n }], fee), unit), 'Approve and get 0.00000001 BEAM + 0.00000001 Asset #36 + 0.00000001 Asset #7');
+});

@@ -11,11 +11,13 @@
 // must send nothing.
 //
 // A claim needs a code someone issued, and this wallet can issue none. So the
-// claim test answers two things the way the chain would for a 5 FOMO code: the
-// read-only voucher lookup, and the bytes the app shader builds for the claim
+// claim test answers two things the way the old contract would for a 5 FOMO code:
+// the read-only voucher lookup, and the bytes the app shader builds for the claim
 // (its arguments, BVM charge, kernel comment and funds, as the desktop's
-// recordings show). Everything after - the library's byte checks, the engine's
-// process_invoke_data, its consent - is real.
+// recordings show). The code is first looked up on Airdrop v3, for real; v3 claims,
+// the checks before sharing and the take-backs are test/e2e/airdrop_v3.test.mjs.
+// Everything after - the library's byte checks, the engine's process_invoke_data,
+// its consent - is real. Creating codes builds a real Airdrop v3 batch.
 //
 // Screenshots of every screen go to CAMPFIRE_SHOTS (390x844 and 1280x800,
 // light and dark). Never of a seed.
@@ -395,10 +397,10 @@ test('airdrop: claiming a 5 FOMO code reaches the approve sheet with the normali
     const { airdrop } = await import('./screens/airdrop.js');
     const { nativeApp } = await import('./lib/contracts.js');
     const { AIRDROP_CID, METHOD, CHARGE, KERNEL } = await import('./lib/airdrop.js');
-    const svc = airdrop(app);
+    const svc = airdrop(app).old;
     const key = await svc.myKey();
     const native = await nativeApp();
-    // The chain's answer for an issued, unclaimed 5 FOMO code (read-only lookup).
+    // The old contract's answer for an issued, unclaimed 5 FOMO code (read-only lookup). Airdrop v3 is asked first, for real.
     window.__stubs = { check: svc.checkVoucherHash, call: native.call, args: [] };
     svc.checkVoucherHash = async (h) => ({ hash: h, batchId: 7n, assetId: 174, value: 500000000n, redeemed: false, redeemerKey: null, redeemedAtHeight: null });
     // What the app shader builds for that claim: yas, compacted integers.
@@ -439,6 +441,7 @@ test('airdrop: claiming a 5 FOMO code reaches the approve sheet with the normali
   await pretendBalance(500000000000n);
   await page.fill(tid('airdrop-code'), 'wxyz-2345 6789-abcd');
   await page.waitForSelector(`${tid('airdrop-result')}[data-state="found"]`, { timeout: 60000 });
+  assert.equal(await page.getAttribute(tid('airdrop-result'), 'data-contract'), 'v2', 'not on v3: found on the old contract');
   assert.equal(await page.textContent(tid('airdrop-gets')), '5 FOMO');
   assert.equal(await page.textContent(tid('airdrop-fee')), '0.121 BEAM');
   assert.deepEqual(await page.$$eval(`${tid('airdrop-net')} > div`, (els) => els.map((e) => e.textContent)), ['+5 FOMO', '−0.121 BEAM']);
@@ -477,12 +480,12 @@ test('airdrop: claiming a 5 FOMO code reaches the approve sheet with the normali
     const { app } = await import('./app.js');
     const { airdrop } = await import('./screens/airdrop.js');
     const { nativeApp } = await import('./lib/contracts.js');
-    airdrop(app).checkVoucherHash = window.__stubs.check;
+    airdrop(app).old.checkVoucherHash = window.__stubs.check;
     (await nativeApp()).call = window.__stubs.call;
   });
 });
 
-test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes saved first and kept after Cancel; one batch per tap', { timeout: 10 * 60000 }, async () => {
+test('airdrop: create 2 codes of 0.001 BEAM on Airdrop v3: the fee math, the sheet, the codes saved first and kept after Cancel; one batch per tap', { timeout: 10 * 60000 }, async () => {
   await realBalance();
   await page.click(tid('airdrop-create'));
   await waitScreen(page, 'airdropCreate');
@@ -496,11 +499,14 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
   });
   const s1 = await summary();
   console.log(`# create summary: ${JSON.stringify(s1)}`);
-  assert.deepEqual(s1, { locked: '0.002 BEAM', fee: '0.00002 BEAM', network: '0.121 BEAM', total: '0.12302 BEAM' });
+  // The claim fees paid ahead are on by default: 2 x 0.022 BEAM. Network fee 0.001 + 10 groth x (115,000 + 30,000 x 2).
+  assert.deepEqual(s1, { locked: '0.002 BEAM', fee: '0.00002 BEAM', network: '0.0185 BEAM', total: '0.06452 BEAM' });
+  assert.equal(await page.textContent(tid('drop-gas-total')), '0.044 BEAM');
+  assert.equal(await page.isChecked(tid('drop-gas')), true);
   assert.equal(await page.isDisabled(tid('drop-cta')), true);
-  assert.match(await page.textContent(tid('drop-reason')), /^Not enough BEAM\. This needs 0\.12302 BEAM, network fee included\. You have 0 BEAM\./);
-  // Issue #17: codes work like cash, said before the button.
-  assert.equal(await page.textContent(tid('drop-bearer')), 'Codes work like cash. Anyone who has a code can claim it. Claiming also shows the code to the network before it is confirmed, so someone watching could claim it first. Use codes for small amounts, and give each one to one person.');
+  assert.match(await page.textContent(tid('drop-reason')), /^Not enough BEAM\. This needs 0\.06452 BEAM, fees included\. You have 0 BEAM\./);
+  // Issue #17: codes work like cash, said before the button, in Airdrop v3's words.
+  assert.equal(await page.textContent(tid('drop-bearer')), 'Codes work like cash. Anyone who has a code can claim it, so give each code only to its person. Claiming never shows the code to the network, so nobody watching can take it. Codes nobody has claimed can be taken back.');
   assert.ok(await page.evaluate(() => document.querySelector('[data-testid="drop-bearer"]').getBoundingClientRect().top < document.querySelector('[data-testid="drop-cta"]').getBoundingClientRect().top), 'before the button');
   // ...and the button still in sight on a 375 x 667 phone (its row is pinned to the bottom).
   const size = page.viewportSize();
@@ -521,9 +527,11 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
     await page.fill(tid('drop-count'), count);
     assert.equal(await page.textContent(tid('drop-fee')), fee, `${count} x ${amount}`);
   }
-  // 29 codes at most: the live contract's app shader declares too few BVM units for 30.
-  await page.fill(tid('drop-count'), '30');
-  assert.equal(await page.textContent(tid('drop-reason')), 'Choose 1 to 29 codes.');
+  // 100 codes at most on Airdrop v3 (the old contract's 29 is gone with it).
+  await page.fill(tid('drop-count'), '100');
+  assert.notEqual(await page.textContent(tid('drop-fee')), '—');
+  await page.fill(tid('drop-count'), '101');
+  assert.equal(await page.textContent(tid('drop-reason')), 'Choose 1 to 100 codes.');
   assert.equal(await page.isDisabled(tid('drop-cta')), true);
   assert.equal(await page.textContent(tid('drop-fee')), '—');
   await page.fill(tid('drop-amount'), '0.001');
@@ -545,10 +553,10 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
   console.log(`# create sheet: ${JSON.stringify(sheet)}`);
   await shots('airdrop-07-create-consent-not-enough');
   assert.equal(sheet.title, 'Confirm your codes');
-  assert.equal(sheet.pay, '0.00202 BEAM');
-  assert.equal(sheet.fee, '0.121 BEAM');
-  assert.equal(sheet.total, '0.12302 BEAM');
-  assert.match(sheet.short, /^Not enough BEAM\. You need 0\.12302 BEAM, including the 0\.121 BEAM network fee\. You have 0\. Add BEAM to this wallet, then try again\.$/);
+  assert.equal(sheet.pay, '0.04602 BEAM');
+  assert.equal(sheet.fee, '0.0185 BEAM');
+  assert.equal(sheet.total, '0.06452 BEAM');
+  assert.match(sheet.short, /^Not enough BEAM\. You need 0\.06452 BEAM, including the 0\.0185 BEAM network fee\. You have 0\. Add BEAM to this wallet, then try again\.$/);
   assert.equal(sheet.add, 'Add BEAM');
   assert.equal(sheet.approve, null);
   // While the sheet is open, the library refuses a second airdrop transaction outright.
@@ -575,8 +583,8 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
   await shots('airdrop-08-create-cancelled');
   const last = await lastConsent();
   assert.equal(last.decision, 'rejected');
-  assert.equal(last.fee, '0.121');
-  assert.deepEqual(last.spends, [{ assetId: 0, amount: '0.00202' }]);
+  assert.equal(last.fee, '0.0185');
+  assert.deepEqual(last.spends, [{ assetId: 0, amount: '0.04602' }]);
   const saved = await page.evaluate(async () => {
     const { app } = await import('./app.js');
     const { airdrop } = await import('./screens/airdrop.js');
@@ -586,14 +594,14 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
     const list = await svc.savedBatches();
     return {
       busy: svc.busy,
-      batches: list.map((b) => ({ n: b.codes.length, status: b.txStatus })),
+      batches: list.map((b) => ({ n: b.codes.length, status: b.txStatus, v3: b.contractId === 'ac85d74b88aca36a8033f19b00b89df55e9c75a45c8a567c0ee158e9c11aeffe', keys: b.codes.every((c) => /^[0-9a-f]{64}0[01]$/.test(c.key)), creator: /^[0-9a-f]{64}0[01]$/.test(b.creatorKey || '') })),
       hashes: list[0].codes.map((c) => c.hash),
       clear: list.some((b) => b.codes.some((c) => raw.includes(c.code.replace(/-/g, '')) || raw.includes(c.code))),
     };
   });
   console.log(`# saved after Cancel: ${JSON.stringify({ ...saved, hashes: saved.hashes.length })}`);
   assert.equal(saved.busy, false);
-  assert.deepEqual(saved.batches[0], { n: 2, status: 'failed' }, 'kept, marked as never sent');
+  assert.deepEqual(saved.batches[0], { n: 2, status: 'failed', v3: true, keys: true, creator: true }, 'kept on v3 with its keys and creator key, marked as never sent');
   assert.equal(saved.clear, false, 'no code is stored in the clear');
   const truth = await engineTruth();
   console.log(`# engine: ${JSON.stringify(truth)}`);
@@ -633,13 +641,14 @@ test('screens with data, for the screenshots (lookups replaced in the page)', { 
     const { airdrop } = await import('./screens/airdrop.js');
     const svc = airdrop(app);
     const saved = (await svc.savedBatches())[0];
-    svc.checkVoucherHash = async (h) => ({ hash: h, batchId: 7n, assetId: 0, value: 50000000n, redeemed: false, redeemerKey: null, redeemedAtHeight: null });
-    svc.myBatches = async () => [
+    // Batches and a 0.5 BEAM code on the old contract (Airdrop v3 is asked first, for real, and has none).
+    svc.old.checkVoucherHash = async (h) => ({ hash: h, batchId: 7n, assetId: 0, value: 50000000n, redeemed: false, redeemerKey: null, redeemedAtHeight: null });
+    svc.old.myBatches = async () => [
       { id: 7n, assetId: 0, valuePerVoucher: 100000n, totalCount: 2, redeemedCount: 1, unclaimedCount: 1, createdAtHeight: 4073000n },
       { id: 3n, assetId: 174, valuePerVoucher: 500000000n, totalCount: 10, redeemedCount: 10, unclaimedCount: 0, createdAtHeight: 4051000n },
     ];
-    svc.batchVouchers = async (id) => (id === 7n ? saved.codes.map((c, i) => ({ hash: c.hash, value: 100000n, redeemed: i === 0 })) : []);
-    svc.redeem = async () => ({ txId: '00'.repeat(16) });
+    svc.old.batchVouchers = async (id) => (id === 7n ? [{ hash: 'ab'.repeat(32), value: 100000n, redeemed: false }, { hash: 'cd'.repeat(32), value: 100000n, redeemed: true }] : []);
+    svc.redeem = async () => ({ txId: '00'.repeat(16), info: { contract: 'v2', assetId: 0, value: 50000000n, gas: 0n } });
     return saved.localId;
   });
   await pretendBalance(500000000000n);
@@ -652,17 +661,20 @@ test('screens with data, for the screenshots (lookups replaced in the page)', { 
   await shots('airdrop-10-claim-found-beam');
   await page.click(tid('airdrop-cta'));
   await page.waitForSelector(tid('airdrop-done'));
+  assert.equal(await page.getAttribute(tid('airdrop-done'), 'data-status'), 'sent', 'sent, not yet received: it counts once mined');
+  assert.equal(await page.textContent(tid('airdrop-done')), 'Claim sent');
   await shots('airdrop-11-claim-sent');
-  await page.evaluate((id) => window.__campfire.go('airdropCodes', { localId: id, justCreated: true }), local);
-  await page.waitForSelector(tid('code'));
-  assert.ok(await page.isVisible(tid('codes-copy-all')), 'Copy all is above the fold');
-  await shots('airdrop-12-codes-just-created');
+  // The batch cancelled on the sheet above: never sent, so its codes are never shown as ready (Airdrop v3).
   await page.evaluate((id) => window.__campfire.go('airdropCodes', { localId: id }), local);
-  await page.waitForSelector(tid('code'));
+  await page.waitForSelector(tid('codes-not-sent'));
+  assert.equal(await page.$(tid('code')), null, 'no code of a batch that never went through');
+  assert.equal(await page.textContent(tid('codes-make-new')), 'Make new codes');
   await shots('airdrop-13-codes-never-sent');
   await page.evaluate(() => window.__campfire.go('airdropBatches'));
   await page.waitForSelector(tid('batch'));
+  assert.equal(await page.getAttribute('[data-batch-id="7"]', 'data-contract'), 'v2');
   assert.equal(await page.textContent(`[data-batch-id="7"] ${tid('batch-counts')}`), '1 claimed · 1 not claimed');
+  assert.equal(await page.textContent(`[data-batch-id="7"] ${tid('batch-fee')}`), 'Network fee 0.181 BEAM');
   assert.equal(await page.textContent(`[data-batch-id="7"] ${tid('batch-cancel')}`), 'Take back 0.001 BEAM');
   await shots('airdrop-14-batches');
 
