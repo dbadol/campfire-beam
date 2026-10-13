@@ -7,11 +7,14 @@
 // are kept in this browser's localStorage (one per device, for every wallet), so they apply from the
 // first screen, before any wallet is unlocked; with storage blocked the app simply follows the device
 // in Campfire red.
+import { tk } from './i18n.js';
 
 export const THEMES = Object.freeze(['system', 'light', 'dark']);
-export const THEME_WORDS = Object.freeze({ system: 'Like this device', light: 'Light', dark: 'Dark' });
+// Settings shows them with t(): they are read before any language is known.
+export const THEME_WORDS = Object.freeze({ system: tk('Like this device'), light: tk('Light'), dark: tk('Dark') });
 export const SKINS = Object.freeze(['campfire', 'beam']);
-export const SKIN_WORDS = Object.freeze({ campfire: 'Campfire red', beam: 'BEAM' });
+// 'BEAM' is the brand's own name: the same in every language.
+export const SKIN_WORDS = Object.freeze({ campfire: tk('Campfire red'), beam: 'BEAM' });
 const KEY = 'campfire-theme';
 const SKIN_KEY = 'campfire-skin';
 // The browser's bar colour: css/app.css --bg-top for each palette, the colour at the top of the page
