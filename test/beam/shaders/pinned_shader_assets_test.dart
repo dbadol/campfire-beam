@@ -39,6 +39,14 @@ List<PinnedShader> _pinned(ShaderSource source) => [
   pipeAppShader(BridgeShader.forward, source),
   pipeAppShader(BridgeShader.reverse, source),
   dappsStoreAppShader(source),
+  // Shipped for the web wallet's payments to a name; this app does not load
+  // it, but the bytes in the bundle must still be the pinned ones.
+  PinnedShader(
+    name: kVaultAnonShaderName,
+    sha256: kVaultAnonShaderSha256,
+    size: kVaultAnonShaderSize,
+    source: source,
+  ),
 ];
 
 /// Records which asset keys were asked for, then defers to rootBundle.
@@ -62,7 +70,7 @@ void main() {
       () => Future.wait([for (final s in _pinned(source)) s.load()]),
     );
     final shaders = _pinned(source);
-    expect(loaded, hasLength(8));
+    expect(loaded, hasLength(9));
     for (var i = 0; i < shaders.length; i++) {
       final bytes = loaded![i];
       expect(bytes.length, shaders[i].size, reason: shaders[i].name);
@@ -81,6 +89,7 @@ void main() {
       kPipeAppShaderName,
       kPipeReverseAppShaderName,
       kDappsStoreAppShaderName,
+      kVaultAnonShaderName,
     ]);
   });
 
