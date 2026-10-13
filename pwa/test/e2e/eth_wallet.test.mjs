@@ -761,6 +761,24 @@ test('RE2-2: a payment in doubt for a day can be forgotten, after a plain warnin
     await page.evaluate(async () => (await import('./app.js')).app.setPrefs({ ethHistory: true }));
     await outboxWrite({ hash: young.hash, patch: { state: 'confirmed', unsureSince: null, receipt: { blockNumber: 1, status: 1, gasUsed: '21000', effectiveGasPrice: '1' } } });
 
+    // Release audit RE3-2: marks from days ago (a device that was off) never offer Forget; the look the
+    // screen takes a moment after it opens does, once that look also fails. Its nonce is one nobody
+    // used: this server says it is free, has never seen the payment and refuses its bytes, so the
+    // look leaves it "Not sure yet" (nonce 900 was used on mainnet: a look settles that one).
+    const stale = fake('f8', { nonce: '99999999', state: 'pending', sentAt: Date.now() - 4 * day, refusedAt: null, error: null, unsureSince: Date.now() - 4 * day, doubtLookAt: Date.now() - 3 * day, createdAt: Date.now() - 4 * day });
+    await outboxWrite({ add: stale });
+    await page.evaluate(() => window.__campfire.go('ethSend'));
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${stale.hash}"]`);
+    assert.equal(await page.getAttribute(tid('eth-doubt'), 'data-forgettable'), null, 'its last look is three days old: no Forget yet');
+    await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${stale.hash}"][data-forgettable="true"]`, { timeout: 60000 });
+    const looked = await page.evaluate(async (h) => {
+      const { app } = await import('./app.js');
+      const { ethWallet } = await import('./lib/eth/wallet.js');
+      return (await ethWallet(app)).state.outbox.find((e) => e.hash === h).doubtLookAt;
+    }, stale.hash);
+    assert.ok(Date.now() - looked < 60000, 'Forget came with a look just now');
+    await outboxWrite({ hash: stale.hash, patch: { state: 'confirmed', unsureSince: null, receipt: { blockNumber: 1, status: 1, gasUsed: '21000', effectiveGasPrice: '1' } } });
+
     await outboxWrite({ add: stuck });
     await page.evaluate(() => window.__campfire.go('ethSend'));
     await page.waitForSelector(`${tid('eth-doubt')}[data-hash="${stuck.hash}"][data-forgettable="true"]`);

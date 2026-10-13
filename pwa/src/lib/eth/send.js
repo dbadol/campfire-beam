@@ -389,10 +389,12 @@ export async function followOnce(app, rpc, entry, { ethId, kv, candidates = [], 
   // lasted REFUSAL_WATCH_MS ends it as never sent.
   if (state === 'unknown') {
     const sent = (await broadcast(app, rpc, entry, { ethId, kv, now, giveUp: true })).entry;
-    // Still refused (a server that says the nonce is free yet refuses the bytes as used): written
-    // down at most once per NONCE_LOOK_MS, as above.
+    // Still in doubt (refused: a server that says the nonce is free yet refuses the bytes as used;
+    // or "Not sure yet" from an earlier look that this server neither confirms nor clears): written
+    // down at most once per NONCE_LOOK_MS, as above. Every look that leaves it in doubt counts, or a
+    // doubt looked at only this way could never be forgotten (lib/eth/doubt.js mayForget, RE3-2).
     const t = now();
-    if (doubtOf(sent) !== 'refused' || t - (sent.doubtLookAt ?? -Infinity) < NONCE_LOOK_MS) return sent;
+    if (doubtOf(sent) === null || t - (sent.doubtLookAt ?? -Infinity) < NONCE_LOOK_MS) return sent;
     return (await updateOutbox(app, entry.hash, { doubtLookAt: t }, { ethId, kv })) || { ...sent, doubtLookAt: t };
   }
   if (state === 'pending') return entry.state === 'pending' && !entry.unsureSince && !entry.refusedAt ? entry : (await updateOutbox(app, entry.hash, { state: 'pending', unsureSince: null, refusedAt: null }, { ethId, kv })) || entry;

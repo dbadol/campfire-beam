@@ -812,21 +812,21 @@ test('RE2-2: "Not sure yet" that no server can settle: after a day of failed loo
   const look = async () => followOnce(app, rpc, await stored(), { ethId, kv, candidates: [], now });
   let e = await look();
   assert.equal(D.doubtOf(e), 'unsure');
-  assert.equal(D.mayForget(e), false, 'just in doubt');
-  await assert.rejects(D.forgetInDoubt(app, doubtful.hash, { ethId, kv }), (x) => x.code === 'not_yet');
+  assert.equal(D.mayForget(e, t), false, 'just in doubt');
+  await assert.rejects(D.forgetInDoubt(app, doubtful.hash, { ethId, kv, now }), (x) => x.code === 'not_yet');
   t += 23 * HOUR;
   e = await look();
   assert.equal(D.doubtOf(e), 'unsure');
-  assert.equal(D.mayForget(e), false, 'not a day yet');
+  assert.equal(D.mayForget(e, t), false, 'not a day yet');
   t += 2 * HOUR;
-  assert.equal(D.mayForget(await stored()), false, 'a day has passed, but no look has failed since then');
+  assert.equal(D.mayForget(await stored(), t), false, 'a day has passed, but no look has failed since then');
   e = await look();
-  assert.equal(D.mayForget(e), true, 'in doubt for a day, and the look a day on failed the same way');
+  assert.equal(D.mayForget(e, t), true, 'in doubt for a day, and the look a day on failed the same way');
   await assert.rejects(D.assertNothingInDoubt(app, { ethId, kv }), (x) => x.code === 'in_doubt');
-  await D.forgetInDoubt(app, doubtful.hash, { ethId, kv });
+  await D.forgetInDoubt(app, doubtful.hash, { ethId, kv, now });
   assert.deepEqual((await loadOutbox(app, { ethId, kv })).map((x) => x.hash), [older.hash], 'only that entry is gone');
   await D.assertNothingInDoubt(app, { ethId, kv });
-  await assert.rejects(D.forgetInDoubt(app, older.hash, { ethId, kv }), (x) => x.code === 'not_in_doubt', 'a settled one is never forgotten');
+  await assert.rejects(D.forgetInDoubt(app, older.hash, { ethId, kv, now }), (x) => x.code === 'not_in_doubt', 'a settled one is never forgotten');
   assert.equal(D.FORGET_WARNING, 'It may still go through. If it does and you send again, both go through.');
 });
 
@@ -847,7 +847,7 @@ test('RE2-2: a doubt that cleared and came back starts its day again; "Not sent 
   t += HOUR;
   let e = await followOnce(app, stuckServer(EthRpcError), await stored(a.hash), { ethId, kv, now });
   assert.equal(D.doubtOf(e), 'unsure');
-  assert.equal(D.mayForget(e), false, 'its day starts again');
+  assert.equal(D.mayForget(e, t), false, 'its day starts again');
   await updateOutbox(app, a.hash, { state: 'confirmed', unsureSince: null }, { ethId, kv });
   // Refused: the count says the nonce is free, yet the broadcast says "nonce too low": never decided.
   const b = entry({ hash: F.h(0x4202), from: ME, nonce: '0', state: 'signed', refusedAt: t, createdAt: 3 });
@@ -858,7 +858,52 @@ test('RE2-2: a doubt that cleared and came back starts its day again; "Not sent 
   t += 25 * HOUR;
   e = await followOnce(app, contradicts, await stored(b.hash), { ethId, kv, now });
   assert.equal(D.doubtOf(e), 'refused');
-  assert.equal(D.mayForget(e), true);
+  assert.equal(D.mayForget(e, t), true);
+});
+
+test('RE3-2: Forget needs a recent failing look, never marks left from days ago; the next look offers it again', async () => {
+  const D = await import('../../src/lib/eth/doubt.js');
+  const { EthRpcError } = await import('../../src/lib/eth/rpc.js');
+  const { app, kv, ethId } = await walletWithKey();
+  assert.equal(D.FORGET_LOOK_FRESH_MS, 5 * 60 * 1000);
+  let t = 1_000_000;
+  const now = () => t;
+  // In doubt since t, and a failing look 30 hours later: it qualified then.
+  const old = entry({ hash: F.h(0x4401), from: ME, nonce: '0', state: 'pending', sentAt: t, createdAt: t, unsureSince: t, doubtLookAt: t + 30 * HOUR });
+  await addToOutbox(app, old, { ethId, kv });
+  const stored = async () => (await loadOutbox(app, { ethId, kv })).find((e) => e.hash === old.hash);
+  t += 30 * HOUR + 4 * 60000;
+  assert.equal(D.mayForget(await stored(), t), true, 'a look 4 minutes ago');
+  // The device was off for three days: those marks no longer offer it.
+  t += 3 * 24 * HOUR;
+  assert.equal(D.mayForget(await stored(), t), false, 'the last look is three days old');
+  await assert.rejects(D.forgetInDoubt(app, old.hash, { ethId, kv, now }), (x) => x.code === 'not_lately' && /looks for it once more first/.test(x.message));
+  assert.ok(await stored(), 'kept');
+  // The screen looks again (still in doubt): offered again, and forgotten.
+  const e = await followOnce(app, stuckServer(EthRpcError), await stored(), { ethId, kv, candidates: [], now });
+  assert.equal(D.doubtOf(e), 'unsure');
+  assert.equal(e.doubtLookAt, t);
+  assert.equal(D.mayForget(e, t), true);
+  await D.forgetInDoubt(app, old.hash, { ethId, kv, now });
+  assert.equal(await stored(), undefined);
+});
+
+test('RE3-2: "Not sure yet" that a server now neither confirms nor clears (nonce free, payment unknown, bytes refused): each look counts', async () => {
+  const D = await import('../../src/lib/eth/doubt.js');
+  const { EthRpcError } = await import('../../src/lib/eth/rpc.js');
+  const { app, kv, ethId } = await walletWithKey();
+  let t = 5_000_000;
+  const now = () => t;
+  // "Not sure yet" since t, its last look an hour later; then another server, which says nonce 0 is
+  // free, has never seen the payment and refuses its bytes for a reason that is not the nonce.
+  const e0 = entry({ hash: F.h(0x4501), from: ME, nonce: '0', state: 'pending', sentAt: t, createdAt: t, unsureSince: t, doubtLookAt: t + HOUR });
+  await addToOutbox(app, e0, { ethId, kv });
+  const other = stuckServer(EthRpcError, { count: 0n, refuse: 'insufficient funds for gas * price + value' });
+  t += 25 * HOUR;
+  const e = await followOnce(app, other, (await loadOutbox(app, { ethId, kv })).find((x) => x.hash === e0.hash), { ethId, kv, candidates: [], now });
+  assert.equal(D.doubtOf(e), 'unsure', 'still in doubt');
+  assert.equal(e.doubtLookAt, t, 'this look is written down');
+  assert.equal(D.mayForget(e, t), true, 'a day on, it can be forgotten (it could never be before)');
 });
 
 test('RE2-2: the way out names History from Stack Wallet when it is off', async () => {
