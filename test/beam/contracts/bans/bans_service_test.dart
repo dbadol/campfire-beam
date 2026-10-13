@@ -456,6 +456,49 @@ void main() {
       );
     });
 
+    test('pay (audit D-1): a name this wallet paid before to another owner is '
+        'refused before anything is built, unless the person chose that owner', () async {
+      setUpService({
+        'view_params': 'view_params',
+        'view_name': 'view_name_beam',
+        'send_anon': 'pay_beam',
+      });
+      await expectLater(
+        svc.preparePay(
+          BansName('beam'),
+          0,
+          BigInt.from(12345),
+          expectedOwnerKey: beamOwnerKey,
+          pinnedOwnerKey: fakeMyKey,
+        ),
+        throwsA(
+          isA<BansOwnerChangedSincePaid>()
+              .having((e) => e.paidKey, 'paid', fakeMyKey)
+              .having((e) => e.currentKey, 'now', beamOwnerKey),
+        ),
+      );
+      expect(
+        t.callsTo('invoke_contract').map((c) => _action(c.params)),
+        isNot(contains('send_anon')),
+      );
+      // The same owner as before, or the new one the person chose: built.
+      final same = await svc.preparePay(
+        BansName('beam'),
+        0,
+        BigInt.from(12345),
+        pinnedOwnerKey: beamOwnerKey,
+      );
+      expect(same.summary.ownerKey, beamOwnerKey);
+      final chosen = await svc.preparePay(
+        BansName('beam'),
+        0,
+        BigInt.from(12345),
+        pinnedOwnerKey: fakeMyKey,
+        acceptedOwnerKey: beamOwnerKey,
+      );
+      expect(chosen.summary.ownerKey, beamOwnerKey);
+    });
+
     test('pay: an amount other than the request is refused', () async {
       setUpService({
         'view_params': 'view_params',

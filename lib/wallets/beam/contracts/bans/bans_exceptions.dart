@@ -172,6 +172,25 @@ final class BansWrongVault extends BansException {
   final String vaultCid;
 }
 
+/// The name has another owner than when this wallet last paid it, and the
+/// person has not chosen to pay the new one. A name changes owner when it is
+/// sold, transferred or lapses, or when the node lies about it (audit D-1),
+/// so the change is never taken silently. Nothing was built or sent.
+final class BansOwnerChangedSincePaid extends BansException {
+  BansOwnerChangedSincePaid(this.name, this.paidKey, this.currentKey)
+    : super(
+        '$name.beam has a different owner than when you last paid it. '
+        'Nothing was sent. Check with the person before paying.',
+      );
+
+  final String name;
+
+  /// The owner key this wallet paid before.
+  final String paidKey;
+
+  final String currentKey;
+}
+
 /// The transaction the core built does not match what was asked for (wrong
 /// contract, method, name, amount or asset). Nothing was sent. This should
 /// never happen with the pinned shader; it stops a mismatch from being

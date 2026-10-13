@@ -73,11 +73,19 @@ final class BansRecipientResolving extends BansRecipientState {
 /// Payments to [name] are accepted. The card shows who will receive them;
 /// the payment re-resolves before it is built and again before signing.
 final class BansRecipientPayable extends BansRecipientState {
-  const BansRecipientPayable(super.name, this.resolution);
+  const BansRecipientPayable(super.name, this.resolution, {this.paidOwnerKey});
 
   final BansResolution resolution;
 
+  /// The owner key this wallet paid the name before; null when never.
+  final String? paidOwnerKey;
+
   String get ownerKey => resolution.ownerKey!;
+
+  /// Paid before, to another owner than the one it has now (audit D-1): the
+  /// card shows both keys and nothing is sent until the person chooses.
+  bool get ownerChangedSincePaid =>
+      paidOwnerKey != null && paidOwnerKey != ownerKey;
 
   /// Short, comparable form of the owner key for the card ("72e3…51ef").
   String get ownerFingerprint {
@@ -113,10 +121,14 @@ class BansRecipientResolver {
   BansRecipientResolver(
     this._resolve, {
     this.debounce = const Duration(milliseconds: 400),
-  });
+    Future<String?> Function(BansName name)? paidOwner,
+  }) : _paidOwner = paidOwner;
 
   /// Normally `BeamBansService.resolve`.
   final Future<BansResolution> Function(BansName name) _resolve;
+
+  /// The owner key this wallet paid a name before (`BansOwnerPins.pinned`).
+  final Future<String?> Function(BansName name)? _paidOwner;
   final Duration debounce;
 
   final _states = StreamController<BansRecipientState?>.broadcast();
@@ -146,7 +158,11 @@ class BansRecipientResolver {
     try {
       final r = await _resolve(name);
       state = r.status.canReceivePayments && r.ownerKey != null
-          ? BansRecipientPayable(name, r)
+          ? BansRecipientPayable(
+              name,
+              r,
+              paidOwnerKey: await _paidOwner?.call(name),
+            )
           : BansRecipientNotPayable(name, r.status);
     } catch (e) {
       state = BansRecipientFailed(name, e);

@@ -42,7 +42,13 @@ import '../contracts/bans/bans_fixtures.dart';
 import '../core/fixtures.dart';
 import '../wallet/beam_wallet_test_support.dart';
 import 'send_ui_support.dart'
-    show syncRepoShader, vectorAddress, g, kTip, openTestMainDbShared;
+    show
+        syncRepoShader,
+        syncRepoVaultShader,
+        vectorAddress,
+        g,
+        kTip,
+        openTestMainDbShared;
 
 const _myAddr =
     '1111111111111111111111111111111111111111111111111111111111111111aa';
@@ -76,7 +82,7 @@ class _Core {
       final name = RegExp(r'name=([^,]*)').firstMatch(args)?.group(1);
       return switch (action) {
         'view_params' => bansEnvelope('view_params'),
-        'pay' => bansEnvelope('pay_beam'),
+        'send_anon' => bansEnvelope('pay_beam'),
         'view_name' => bansEnvelope(names[name] ?? 'view_name_free'),
         _ => throw StateError('no fixture for $args'),
       };
@@ -167,6 +173,7 @@ void main() {
       BeamApi(BeamWalletTransport(() => w.coreApi)),
       null,
       shader: syncRepoShader(),
+      vaultShader: syncRepoVaultShader(),
     ),
   );
 
@@ -299,7 +306,7 @@ void main() {
             .firstMatch(c.params['args']! as String)!
             .group(1),
     ];
-    expect(actions, isNot(contains('pay')));
+    expect(actions, isNot(contains('send_anon')));
     expect(w.isBusy, isFalse);
     expect(
       BeamSendModel.describeError(BansOwnerChanged('beam', 'a', 'b')),

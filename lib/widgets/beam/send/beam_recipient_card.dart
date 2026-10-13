@@ -47,10 +47,17 @@ class BeamNameCard extends StatelessWidget {
     required this.state,
     required this.onRetry,
     required this.typedText,
+    this.onAcceptNewOwner,
+    this.newOwnerAccepted = false,
   });
 
   final BansRecipientState state;
   final VoidCallback onRetry;
+
+  /// "Pay the new owner": the name has another owner than when this wallet
+  /// last paid it, and the person chooses to pay that one (audit D-1).
+  final VoidCallback? onAcceptNewOwner;
+  final bool newOwnerAccepted;
 
   /// What the user typed, to tell a mistyped address from a name.
   final String typedText;
@@ -61,7 +68,11 @@ class BeamNameCard extends StatelessWidget {
       key: const Key('beamNameCard'),
       child: switch (state) {
         BansRecipientResolving(:final name) => _Resolving(name),
-        final BansRecipientPayable s => _Payable(s),
+        final BansRecipientPayable s => _Payable(
+          s,
+          onAcceptNewOwner: onAcceptNewOwner,
+          newOwnerAccepted: newOwnerAccepted,
+        ),
         BansRecipientNotPayable(:final name, :final status) => BeamNotice(
           kind: BeamNoticeKind.error,
           title: status == BansNameStatus.availableAgain
@@ -120,9 +131,15 @@ class _Resolving extends StatelessWidget {
 }
 
 class _Payable extends StatelessWidget {
-  const _Payable(this.s);
+  const _Payable(
+    this.s, {
+    required this.onAcceptNewOwner,
+    required this.newOwnerAccepted,
+  });
 
   final BansRecipientPayable s;
+  final VoidCallback? onAcceptNewOwner;
+  final bool newOwnerAccepted;
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +194,31 @@ class _Payable extends StatelessWidget {
             'wallet.',
             style: STextStyles.label(context).copyWith(color: c.textDark3),
           ),
+          if (s.ownerChangedSincePaid) ...[
+            const SizedBox(height: 8),
+            BeamNotice(
+              key: const Key('beamNameNewOwner'),
+              kind: newOwnerAccepted
+                  ? BeamNoticeKind.info
+                  : BeamNoticeKind.warning,
+              title: newOwnerAccepted
+                  ? 'You chose to pay the new owner'
+                  : 'New owner since you last paid it',
+              message:
+                  'You paid owner key ${BansKey.fingerprint(s.paidOwnerKey!)} '
+                  'before; it is ${BansKey.fingerprint(s.ownerKey)} now. Names '
+                  'change owner when they are sold, given away or lapse, and '
+                  'a dishonest node can claim one did. Check with the person '
+                  'before you pay.',
+              action: newOwnerAccepted || onAcceptNewOwner == null
+                  ? null
+                  : CustomTextButton(
+                      key: const Key('beamNameAcceptNewOwner'),
+                      text: 'Pay the new owner',
+                      onTap: onAcceptNewOwner!,
+                    ),
+            ),
+          ],
           if (s.onHold) ...[
             const SizedBox(height: 8),
             BeamNotice(

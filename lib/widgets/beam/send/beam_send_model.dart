@@ -73,6 +73,7 @@ class BeamSendModel extends ChangeNotifier {
     _resolver = BansRecipientResolver(
       backend.resolveName,
       debounce: nameDebounce,
+      paidOwner: backend.paidOwner,
     );
     _nameSub = _resolver.states.listen(_onNameState);
     _sync = backend.syncAssessment;
@@ -100,6 +101,10 @@ class BeamSendModel extends ChangeNotifier {
   /// address or a link of another coin, chain or the web.
   ScanRecognition? _foreign;
   BansRecipientState? _nameState;
+
+  /// A new owner of the name the person chose to pay after seeing it next
+  /// to the one this wallet paid before (audit D-1); cleared with the field.
+  String? _acceptedOwnerKey;
 
   int _assetId = 0;
   String _amountText = '';
@@ -129,6 +134,22 @@ class BeamSendModel extends ChangeNotifier {
   /// The name card's state; null unless the field holds a name.
   BansRecipientState? get nameState =>
       _recipient is BeamRecipientName ? _nameState : null;
+
+  /// Whether the person chose to pay the name's new owner (audit D-1).
+  bool get newOwnerAccepted {
+    final s = nameState;
+    return s is BansRecipientPayable &&
+        s.ownerChangedSincePaid &&
+        _acceptedOwnerKey == s.ownerKey;
+  }
+
+  /// The person saw both owner keys and chose to pay the new one.
+  void acceptNewOwner() {
+    final s = nameState;
+    if (s is! BansRecipientPayable || !s.ownerChangedSincePaid) return;
+    _acceptedOwnerKey = s.ownerKey;
+    _notify();
+  }
 
   bool get isName => _recipient is BeamRecipientName;
   bool get isAddress => _recipient is BeamRecipientAddress;
@@ -278,6 +299,13 @@ class BeamSendModel extends ChangeNotifier {
         return null;
       case BeamRecipientName():
         return switch (_nameState) {
+          final BansRecipientPayable p
+              when p.ownerChangedSincePaid && _acceptedOwnerKey != p.ownerKey =>
+            const BeamSendIssue(
+              BeamSendField.recipient,
+              'This name has a new owner since you last paid it.',
+              quiet: true,
+            ),
           BansRecipientPayable() => null,
           null || BansRecipientResolving() => const BeamSendIssue(
             BeamSendField.recipient,
@@ -422,6 +450,7 @@ class BeamSendModel extends ChangeNotifier {
         ? const BeamRecipientInvalid(null)
         : BeamRecipientInput.classify(text);
     _nameState = null;
+    _acceptedOwnerKey = null;
     _resolver.input(_foreign != null ? '' : text);
     if (_recipient is! BeamRecipientAddress) _addressFee = null;
     _scheduleFee();
@@ -553,6 +582,7 @@ class BeamSendModel extends ChangeNotifier {
         _assetId,
         amount,
         expectedOwnerKey: payable.ownerKey,
+        acceptedOwnerKey: _acceptedOwnerKey,
       );
       final beam = available(0);
       var fee = prepared.summary.fee;
@@ -566,6 +596,7 @@ class BeamSendModel extends ChangeNotifier {
             _assetId,
             amount,
             expectedOwnerKey: payable.ownerKey,
+            acceptedOwnerKey: _acceptedOwnerKey,
           );
           fee = prepared.summary.fee;
         }
@@ -598,7 +629,9 @@ class BeamSendModel extends ChangeNotifier {
       );
     } catch (e) {
       hold.release();
-      if (e is BansOwnerChanged) recheckName();
+      if (e is BansOwnerChanged || e is BansOwnerChangedSincePaid) {
+        recheckName();
+      }
       rethrow;
     }
   }

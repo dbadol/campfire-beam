@@ -26,6 +26,7 @@ import 'bans_constants.dart';
 import 'bans_exceptions.dart';
 import 'bans_models.dart';
 import 'bans_name.dart';
+import 'bans_owner_pins.dart';
 import 'bans_timeline.dart';
 
 /// What a prepared BANS transaction does.
@@ -537,11 +538,18 @@ class BeamBansService {
   /// kernel is the owner key plus a point from the shader's own random
   /// scalar; that it belongs to the key rests on the pinned shader, which
   /// takes the key as its argument and reads no chain state.
+  ///
+  /// [pinnedOwnerKey] is the owner key this wallet paid [name] before (null:
+  /// never). Another owner now is refused ([BansOwnerChangedSincePaid])
+  /// unless it is [acceptedOwnerKey], the new key the person saw next to the
+  /// old one and chose to pay ([bansPinVerdict]).
   Future<BansPrepared> preparePay(
     BansName name,
     int assetId,
     BigInt amount, {
     String? expectedOwnerKey,
+    String? pinnedOwnerKey,
+    String? acceptedOwnerKey,
   }) async {
     final p = await params();
     final before = await resolve(name);
@@ -550,6 +558,14 @@ class BeamBansService {
       throw BansOwnerChanged(name.value, expectedOwnerKey, key);
     }
     if (key == null) throw BansShaderRefused(BansRefusal.notRegistered.wire);
+    final verdict = bansPinVerdict(
+      pinned: pinnedOwnerKey,
+      now: key,
+      accepted: acceptedOwnerKey,
+    );
+    if (verdict == BansPinVerdict.changed) {
+      throw BansOwnerChangedSincePaid(name.value, pinnedOwnerKey!, key);
+    }
     if (!before.status.canReceivePayments) {
       throw BansShaderRefused(BansRefusal.domainExpired.wire);
     }

@@ -433,6 +433,8 @@ class BeamSendFormState extends State<BeamSendForm> {
           state: name,
           typedText: _m.recipientText,
           onRetry: _m.recheckName,
+          onAcceptNewOwner: _m.acceptNewOwner,
+          newOwnerAccepted: _m.newOwnerAccepted,
         ),
       ];
     }

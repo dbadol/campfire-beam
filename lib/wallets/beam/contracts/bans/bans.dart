@@ -23,5 +23,6 @@ export 'bans_constants.dart';
 export 'bans_exceptions.dart';
 export 'bans_models.dart';
 export 'bans_name.dart';
+export 'bans_owner_pins.dart';
 export 'bans_service.dart';
 export 'bans_timeline.dart';

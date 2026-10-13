@@ -305,6 +305,38 @@ void main() {
       expect(find.text('Registered name'), findsOneWidget);
     });
 
+    testWidgets('a name this wallet paid before has a new owner (audit D-1): '
+        'both keys shown, Send off until the person chooses to pay the new '
+        'owner', (tester) async {
+      final b = ScriptedBackend();
+      // This wallet paid `beam` before, when another key owned it.
+      await b.pins.pin(BansName('beam'), fakeMyKey);
+      await _open(tester, desktop: false, backend: b);
+      await _type(tester, _to, 'beam');
+      await settleLookup(tester);
+      await _type(tester, _amount, '0.00012345');
+      await tester.pump();
+      expect(find.byKey(const Key('beamNameNewOwner')), findsOneWidget);
+      expect(find.text('New owner since you last paid it'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'You paid owner key ${BansKey.fingerprint(fakeMyKey)} before; it is '
+          '${BansKey.fingerprint(beamOwnerKey)} now.',
+        ),
+        findsOneWidget,
+      );
+      expect(_sendEnabled(tester), isFalse, reason: 'not before the person chooses');
+      await _golden(tester, 'phone_09b_name_new_owner');
+      await tester.tap(find.byKey(const Key('beamNameAcceptNewOwner')));
+      await tester.pump();
+      expect(find.text('You chose to pay the new owner'), findsOneWidget);
+      expect(find.byKey(const Key('beamNameAcceptNewOwner')), findsNothing);
+      expect(_sendEnabled(tester), isTrue);
+      await _toConfirm(tester);
+      expect(b.core.actions, contains('send_anon'));
+      expect(b.core.broadcasts, 0);
+    });
+
     testWidgets('name payment confirm: amount and fee come from the decoded '
         'transaction; nothing broadcast', (tester) async {
       final b = await _open(tester, desktop: false);
@@ -348,7 +380,7 @@ void main() {
         'view_name',
         'view_params',
         'view_name',
-        'pay',
+        'send_anon',
         'view_name',
       ]);
       expect(b.core.broadcasts, 0);

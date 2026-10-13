@@ -13,6 +13,7 @@ import '../../../models/isar/models/transaction_note.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/bans/bans_name.dart';
+import '../../../wallets/beam/contracts/bans/bans_owner_pins.dart';
 import '../../../wallets/beam/contracts/bans/bans_service.dart';
 import '../../../wallets/beam/models/beam_asset_info.dart';
 import '../../../wallets/beam/sync/beam_sync_messages.dart';
@@ -60,6 +61,9 @@ abstract interface class BeamSendBackend {
   /// Looks a name up on the wallet's own node (`view_name`).
   Future<BansResolution> resolveName(BansName name);
 
+  /// The owner key this wallet paid [name] before, or null (audit D-1).
+  Future<String?> paidOwner(BansName name);
+
   /// The fee the core would charge for a regular payment of [amount] BEAM.
   Future<BigInt> estimateAddressFee(BigInt amount);
 
@@ -70,16 +74,20 @@ abstract interface class BeamSendBackend {
   Future<String> confirmSend(TxData txData);
 
   /// Builds an anonymous payment to a name, decoded and checked; nothing
-  /// is signed or sent.
+  /// is signed or sent. A name paid before to another owner is refused
+  /// (`BansOwnerChangedSincePaid`) unless that owner is [acceptedOwnerKey],
+  /// the new key the person chose after seeing both (audit D-1).
   Future<BansPrepared> preparePay(
     BansName name,
     int assetId,
     BigInt amount, {
     required String expectedOwnerKey,
+    String? acceptedOwnerKey,
   });
 
-  /// Signs and sends [prepared] after resolving the name once more. Returns
-  /// the transaction id. Throws `BansOwnerChanged` when the name moved.
+  /// Signs and sends [prepared] after resolving the name once more, then
+  /// remembers its owner as the one this wallet paid. Returns the
+  /// transaction id. Throws `BansOwnerChanged` when the name moved.
   Future<String> executePay(BansPrepared prepared);
 
   /// Keeps the private node from restarting wallet-api while a payment is
@@ -106,11 +114,18 @@ void beamCheckCanSpend(BeamSendBackend backend) {
 
 /// [BeamSendBackend] over a real [BeamWallet] and its shared services.
 class BeamWalletSendBackend implements BeamSendBackend {
-  BeamWalletSendBackend(this.wallet, {BeamBansService? bans})
-    : _bans = bans ?? BeamWalletServices.of(wallet).bans;
+  BeamWalletSendBackend(
+    this.wallet, {
+    BeamBansService? bans,
+    BansOwnerPins? pins,
+  }) : _bans = bans ?? BeamWalletServices.of(wallet).bans,
+       _pins =
+           pins ??
+           SecureBansOwnerPins(wallet.secureStorageInterface, wallet.walletId);
 
   final BeamWallet wallet;
   final BeamBansService _bans;
+  final BansOwnerPins _pins;
   final Map<int, BeamAssetMetadata?> _metadata = {};
 
   @override
@@ -160,6 +175,9 @@ class BeamWalletSendBackend implements BeamSendBackend {
   Future<BansResolution> resolveName(BansName name) => _bans.resolve(name);
 
   @override
+  Future<String?> paidOwner(BansName name) => _pins.pinned(name);
+
+  @override
   Future<BigInt> estimateAddressFee(BigInt amount) async {
     final fee = await wallet.estimateFeeFor(
       Amount(rawValue: amount, fractionDigits: 8),
@@ -184,22 +202,35 @@ class BeamWalletSendBackend implements BeamSendBackend {
     int assetId,
     BigInt amount, {
     required String expectedOwnerKey,
-  }) => _bans.preparePay(
+    String? acceptedOwnerKey,
+  }) async => _bans.preparePay(
     name,
     assetId,
     amount,
     expectedOwnerKey: expectedOwnerKey,
+    pinnedOwnerKey: await _pins.pinned(name),
+    acceptedOwnerKey: acceptedOwnerKey,
   );
 
   @override
   Future<String> executePay(BansPrepared prepared) async {
     beamCheckCanSpend(this);
     final lease = wallet.holdNodeSwitch('name payment');
+    final String txId;
     try {
-      return await _bans.execute(prepared);
+      txId = await _bans.execute(prepared);
     } finally {
       lease.release();
     }
+    // Sent: this is now the owner this wallet paid. A failure to write it
+    // never turns a sent payment into an error.
+    final s = prepared.summary;
+    if (s.name != null && s.ownerKey != null) {
+      try {
+        await _pins.pin(s.name!, s.ownerKey!);
+      } catch (_) {}
+    }
+    return txId;
   }
 
   @override
