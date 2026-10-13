@@ -84,15 +84,17 @@ final class BansRecipientPayable extends BansRecipientState {
 
   /// Paid before, to another owner than the one it has now (audit D-1): the
   /// card shows both keys and nothing is sent until the person chooses.
+  /// Also when this wallet's record could not be read ([paidOwnerUnknown]).
   bool get ownerChangedSincePaid =>
       paidOwnerKey != null && paidOwnerKey != ownerKey;
 
-  /// Short, comparable form of the owner key for the card ("72e3…51ef").
-  String get ownerFingerprint {
-    final k = ownerKey;
-    if (k.length <= 12) return k;
-    return '${k.substring(0, 4)}…${k.substring(k.length - 4)}';
-  }
+  /// This wallet's record of whom it paid could not be read: whether the
+  /// owner changed is unknown, so the person compares the key first.
+  bool get paidOwnerUnknown => paidOwnerKey == BansKey.zero;
+
+  /// The owner key's check code for the card ("72e3 68c0 … 570d 51ef"): 64
+  /// bits, which a made-up key cannot match (audit D-1 review M-1).
+  String get ownerFingerprint => BansKey.checkCode(ownerKey);
 
   /// Expired but in its 90-day hold: payments still reach the owner, who
   /// may not renew. The card warns before the user sends.

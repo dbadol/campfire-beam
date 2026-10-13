@@ -191,6 +191,19 @@ final class BansOwnerChangedSincePaid extends BansException {
   final String currentKey;
 }
 
+/// This wallet's record of whom it paid by name could not be read, so a
+/// change of owner cannot be checked (audit D-1 review). The record is left
+/// as it is, never overwritten; each payment then asks the person to compare
+/// the owner key with the recipient first.
+final class BansPinsUnreadable extends BansException {
+  const BansPinsUnreadable()
+    : super(
+        "This wallet's record of whom it paid by name couldn't be read, so "
+        'a change of owner cannot be checked. Compare the owner key with the '
+        'person before paying.',
+      );
+}
+
 /// The transaction the core built does not match what was asked for (wrong
 /// contract, method, name, amount or asset). Nothing was sent. This should
 /// never happen with the pinned shader; it stops a mismatch from being

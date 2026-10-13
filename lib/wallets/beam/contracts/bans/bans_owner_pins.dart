@@ -11,6 +11,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import '../../../../utilities/flutter_secure_storage_interface.dart';
+import 'bans_exceptions.dart';
 import 'bans_name.dart';
 
 /// The owner key this wallet last paid each name (audit D-1).
@@ -22,12 +23,29 @@ import 'bans_name.dart';
 /// to choose to pay the new one ([bansPinVerdict]). The web wallet keeps the
 /// same record (pwa/src/lib/bans.js `pinVerdict`).
 abstract class BansOwnerPins {
-  /// The owner key [name] was last paid from this wallet, or null.
+  /// The owner key [name] was last paid from this wallet, or null. Throws
+  /// [BansPinsUnreadable] when the record cannot be read.
   Future<String?> pinned(BansName name);
 
   /// Records [ownerKey] as the owner [name] was paid. Called once the
-  /// payment is sent.
+  /// payment is sent. Throws [BansPinsUnreadable], writing nothing, when the
+  /// record cannot be read: an unreadable record is never overwritten.
   Future<void> pin(BansName name, String ownerKey);
+}
+
+/// [BansKey.zero] in place of a paid owner: "this wallet paid before, but its
+/// record could not be read" (`BansRecipientPayable.paidOwnerUnknown`). It
+/// never equals a real owner, so the payment waits for the person's choice.
+final kBansPaidOwnerUnknown = BansKey.zero;
+
+/// [BansOwnerPins.pinned], with an unreadable record as
+/// [kBansPaidOwnerUnknown] instead of an error.
+Future<String?> bansPaidOwner(BansOwnerPins pins, BansName name) async {
+  try {
+    return await pins.pinned(name);
+  } on BansPinsUnreadable {
+    return kBansPaidOwnerUnknown;
+  }
 }
 
 /// How the owner [now] compares with [pinned] (the key paid before) and
@@ -59,9 +77,9 @@ BansPinVerdict bansPinVerdict({
 /// The app's [BansOwnerPins]: one wallet's record in Campfire's secure
 /// storage, under `BEAM_BANS_PINS:<walletId>` (a JSON object of name to
 /// owner key). Who a wallet paid is private, so it never goes to plain
-/// preferences or a log. A record that cannot be read counts as empty: the
-/// next payment to each name is then a first one again, shown with its
-/// owner key as every first payment is.
+/// preferences or a log. A record that cannot be read is reported
+/// ([BansPinsUnreadable]) and never overwritten: it never counts as "never
+/// paid", which would let a changed owner through unseen.
 class SecureBansOwnerPins implements BansOwnerPins {
   SecureBansOwnerPins(this._storage, this.walletId) {
     if (!_id.hasMatch(walletId)) {
@@ -102,7 +120,7 @@ class SecureBansOwnerPins implements BansOwnerPins {
     if (raw == null) return {};
     try {
       final json = jsonDecode(raw);
-      if (json is! Map) return {};
+      if (json is! Map) throw const BansPinsUnreadable();
       return {
         for (final e in json.entries)
           if (e.key is String &&
@@ -113,7 +131,7 @@ class SecureBansOwnerPins implements BansOwnerPins {
             e.key as String: e.value as String,
       };
     } on FormatException {
-      return {};
+      throw const BansPinsUnreadable();
     }
   }
 

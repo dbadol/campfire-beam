@@ -576,6 +576,16 @@ class BeamBansService {
       throw BansOwnerChanged(name.value, key, after.ownerKey);
     }
     final e = _single(built, p.vaultCid, BansMethod.vaultDeposit);
+    // Exactly what BEAM's Anon-Vault writes for send_anon: a plain call, no
+    // co-signers, nothing the wallet would rebuild later (audit D-1 review).
+    _expect(e.flags == 0 && e.signatureCount == 0, 'a plain call');
+    _expect(e.comment == BansKernelComment.pay, 'the vault deposit comment');
+    _expect(
+      !built.data.isRebuildable &&
+          built.data.appArgs == null &&
+          built.data.appPrivilege == null,
+      'nothing rebuilt later',
+    );
     final r = BeamArgsReader(e.args);
     _expect(r.u64() == amount, 'amount');
     final custom = r.u32();

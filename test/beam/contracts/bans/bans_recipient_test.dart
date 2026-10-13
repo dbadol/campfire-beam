@@ -104,7 +104,7 @@ void main() {
       final seen = await run(r, () => r.input('alice'));
       expect(seen.first, isA<BansRecipientResolving>());
       final last = seen.last! as BansRecipientPayable;
-      expect(last.ownerFingerprint, '72e3…ef01');
+      expect(last.ownerFingerprint, BansKey.checkCode(_key));
       expect(last.onHold, isFalse);
       expect(last.maybeStale, isFalse);
       await r.dispose();

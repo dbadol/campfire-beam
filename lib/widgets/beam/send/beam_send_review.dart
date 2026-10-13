@@ -162,10 +162,11 @@ class BeamSendReview {
 
   bool get isName => kind == BeamSendKind.name;
 
-  /// `72e3…51ef` (names only).
+  /// `72e3 68c0 … 570d 51ef` (names only): the 64-bit check code, which a
+  /// made-up key cannot match, unlike the 32-bit fingerprint.
   String? get ownerFingerprint {
     final k = ownerKey;
-    return k == null ? null : BansKey.fingerprint(k);
+    return k == null ? null : BansKey.checkCode(k);
   }
 
   /// BEAM leaving the wallet, fee included.

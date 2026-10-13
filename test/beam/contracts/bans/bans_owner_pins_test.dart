@@ -60,10 +60,25 @@ void main() {
     expect(await pins.pinned(BansName('alice')), _newKey);
   });
 
-  test('an unreadable record counts as empty; bad entries are ignored', () async {
+  test('an unreadable record is never "never paid" and is never overwritten '
+      '(audit D-1 review L-1); bad entries are ignored', () async {
     final s = FakeSecureStorage();
     await s.write(key: 'BEAM_BANS_PINS:$_wallet', value: 'not json');
-    expect(await SecureBansOwnerPins(s, _wallet).pinned(BansName('beam')), isNull);
+    final broken = SecureBansOwnerPins(s, _wallet);
+    await expectLater(
+      broken.pinned(BansName('beam')),
+      throwsA(isA<BansPinsUnreadable>()),
+    );
+    expect(await bansPaidOwner(broken, BansName('beam')), kBansPaidOwnerUnknown);
+    await expectLater(
+      broken.pin(BansName('alice'), _newKey),
+      throwsA(isA<BansPinsUnreadable>()),
+    );
+    expect(
+      await s.read(key: 'BEAM_BANS_PINS:$_wallet'),
+      'not json',
+      reason: 'left as it was',
+    );
     await s.write(
       key: 'BEAM_BANS_PINS:$_wallet',
       value: '{"beam": "${'00' * 33}", "Bad Name": "$beamOwnerKey", "alice": "$_newKey"}',

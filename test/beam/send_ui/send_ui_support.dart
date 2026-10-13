@@ -225,7 +225,7 @@ class ScriptedBackend implements BeamSendBackend {
   final BansCore core;
 
   /// Owners this wallet paid, by name (audit D-1), as the real backend keeps them.
-  final MemoryBansOwnerPins pins = MemoryBansOwnerPins();
+  BansOwnerPins pins = MemoryBansOwnerPins();
   late final BeamBansService bans;
   Map<int, BigInt> balances;
   BeamSyncAssessment _sync;
@@ -276,7 +276,7 @@ class ScriptedBackend implements BeamSendBackend {
   Future<BansResolution> resolveName(BansName name) => bans.resolve(name);
 
   @override
-  Future<String?> paidOwner(BansName name) => pins.pinned(name);
+  Future<String?> paidOwner(BansName name) => bansPaidOwner(pins, name);
 
   @override
   Future<BigInt> estimateAddressFee(BigInt amount) async => kBeamDefaultFee;
@@ -333,7 +333,7 @@ class ScriptedBackend implements BeamSendBackend {
       assetId,
       amount,
       expectedOwnerKey: expectedOwnerKey,
-      pinnedOwnerKey: await pins.pinned(name),
+      pinnedOwnerKey: await bansPaidOwner(pins, name),
       acceptedOwnerKey: acceptedOwnerKey,
     );
   }
@@ -345,7 +345,9 @@ class ScriptedBackend implements BeamSendBackend {
     final txId = await bans.execute(prepared);
     final s = prepared.summary;
     if (s.name != null && s.ownerKey != null) {
-      await pins.pin(s.name!, s.ownerKey!);
+      try {
+        await pins.pin(s.name!, s.ownerKey!);
+      } catch (_) {}
     }
     return txId;
   }

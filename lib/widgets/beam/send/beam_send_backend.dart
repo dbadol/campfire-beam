@@ -175,7 +175,7 @@ class BeamWalletSendBackend implements BeamSendBackend {
   Future<BansResolution> resolveName(BansName name) => _bans.resolve(name);
 
   @override
-  Future<String?> paidOwner(BansName name) => _pins.pinned(name);
+  Future<String?> paidOwner(BansName name) => bansPaidOwner(_pins, name);
 
   @override
   Future<BigInt> estimateAddressFee(BigInt amount) async {
@@ -208,7 +208,7 @@ class BeamWalletSendBackend implements BeamSendBackend {
     assetId,
     amount,
     expectedOwnerKey: expectedOwnerKey,
-    pinnedOwnerKey: await _pins.pinned(name),
+    pinnedOwnerKey: await bansPaidOwner(_pins, name),
     acceptedOwnerKey: acceptedOwnerKey,
   );
 

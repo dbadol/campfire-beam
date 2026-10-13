@@ -181,7 +181,7 @@ class _Payable extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           SelectableText(
-            'Owner key ${BansKey.fingerprint(s.ownerKey)}'
+            'Owner key ${BansKey.checkCode(s.ownerKey)}'
             '${!s.onHold && expires != null ? ' · active until '
                       '${beamDate(expires)}' : ''}',
             key: const Key('beamNameCardOwner'),
@@ -201,20 +201,32 @@ class _Payable extends StatelessWidget {
               kind: newOwnerAccepted
                   ? BeamNoticeKind.info
                   : BeamNoticeKind.warning,
-              title: newOwnerAccepted
-                  ? 'You chose to pay the new owner'
-                  : 'New owner since you last paid it',
-              message:
-                  'You paid owner key ${BansKey.fingerprint(s.paidOwnerKey!)} '
-                  'before; it is ${BansKey.fingerprint(s.ownerKey)} now. Names '
-                  'change owner when they are sold, given away or lapse, and '
-                  'a dishonest node can claim one did. Check with the person '
-                  'before you pay.',
+              title: s.paidOwnerUnknown
+                  ? (newOwnerAccepted
+                        ? 'You checked this owner'
+                        : 'Check the owner before paying')
+                  : (newOwnerAccepted
+                        ? 'You chose to pay the new owner'
+                        : 'New owner since you last paid it'),
+              message: s.paidOwnerUnknown
+                  ? "This wallet couldn't read its record of whom it paid by "
+                        "name, so it can't tell whether this name changed "
+                        'owner. Compare the owner key '
+                        '${BansKey.checkCode(s.ownerKey)} with the person '
+                        'before you pay.'
+                  : 'You paid owner key '
+                        '${BansKey.checkCode(s.paidOwnerKey!)} before; it is '
+                        '${BansKey.checkCode(s.ownerKey)} now. Names change '
+                        'owner when they are sold, given away or lapse, and a '
+                        'dishonest node can claim one did. Check with the '
+                        'person before you pay.',
               action: newOwnerAccepted || onAcceptNewOwner == null
                   ? null
                   : CustomTextButton(
                       key: const Key('beamNameAcceptNewOwner'),
-                      text: 'Pay the new owner',
+                      text: s.paidOwnerUnknown
+                          ? 'Pay this owner'
+                          : 'Pay the new owner',
                       onTap: onAcceptNewOwner!,
                     ),
             ),
