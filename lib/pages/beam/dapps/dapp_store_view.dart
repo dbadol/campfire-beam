@@ -36,6 +36,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
+import '../../../utilities/beam/file_picker_failure.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../utilities/util.dart';
 import '../../../wallets/beam/dapps/dapp_installer.dart';
@@ -205,7 +206,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
       path = await _pickFile();
     } catch (_) {
       if (mounted) {
-        _problem("Campfire couldn't open the file picker. Try again.");
+        _problem(filePickerFailureText());
       }
       return;
     }
