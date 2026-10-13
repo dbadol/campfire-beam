@@ -37,6 +37,18 @@ export const RULES = {
  * @param {boolean} p.reconnecting  a random-node wallet is moving to another pool node
  * @param {string|null} p.ownNode  the person's own node, when that is the one in use
  */
+// How long "Reconnecting to another node…" may stand: while the first nodes after a failure are tried.
+// Once this many in a row gave nothing, the nodes themselves are the problem (13 Oct 2026: every pool
+// node's certificate lapsed and the wallet cycled through them for minutes behind that spinner), so the
+// screens say what is wrong while the wallet keeps trying in the background.
+export const RECONNECT_EMPTY_HOPS = 2;
+
+/** Pure: what the sync line should reflect while a random-node wallet moves between nodes. */
+export function reconnectView({ switching, emptyHops = 0, connectFailed = false }) {
+  const gaveUp = Boolean(switching) && emptyHops >= RECONNECT_EMPTY_HOPS;
+  return { reconnecting: Boolean(switching) && !gaveUp, connectFailed: connectFailed || gaveUp };
+}
+
 export function assessSync({ status, nodeConnected, everConnected = nodeConnected, connectFailed = false, explorer, now, progress = null, importing = false, reconnecting = false, ownNode = null }) {
   const height = status ? Number(status.current_height) || 0 : 0;
   const tipTs = status ? Number(status.current_state_timestamp) || 0 : 0;

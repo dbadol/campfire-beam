@@ -120,3 +120,19 @@ test('importing the snapshot is its own state', () => {
   assert.equal(r.state, 'importing');
   assert.equal(r.canSend, false);
 });
+
+test('reconnecting stands only while the first nodes are tried; then the real state (13 Oct 2026 outage)', async () => {
+  const { reconnectView, RECONNECT_EMPTY_HOPS, assessSync } = await import('../../src/lib/sync.js');
+  const sw = { from: 'a', to: 'b' };
+  assert.deepEqual(reconnectView({ switching: sw, emptyHops: 0 }), { reconnecting: true, connectFailed: false });
+  assert.deepEqual(reconnectView({ switching: sw, emptyHops: RECONNECT_EMPTY_HOPS - 1 }), { reconnecting: true, connectFailed: false });
+  assert.deepEqual(reconnectView({ switching: sw, emptyHops: RECONNECT_EMPTY_HOPS }), { reconnecting: false, connectFailed: true });
+  assert.deepEqual(reconnectView({ switching: null, emptyHops: 9 }), { reconnecting: false, connectFailed: false }, 'not moving: nothing to say here');
+  assert.deepEqual(reconnectView({ switching: null, connectFailed: true }), { reconnecting: false, connectFailed: true });
+  // Every node refusing while the explorer answers: "BEAM's nodes aren't answering", not a spinner.
+  const now = 2_000_000_000;
+  const v = reconnectView({ switching: sw, emptyHops: 5 });
+  const s = assessSync({ status: { current_height: 100, current_state_timestamp: now - 600 }, nodeConnected: false, everConnected: false, connectFailed: v.connectFailed, explorer: { height: 4078400, at: now }, now, reconnecting: v.reconnecting });
+  assert.equal(s.nodesDown, true);
+  assert.equal(s.title, "BEAM's nodes aren't answering");
+});

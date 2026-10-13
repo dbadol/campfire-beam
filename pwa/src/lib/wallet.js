@@ -2,7 +2,7 @@
 // state, and the few actions a person can take. One instance per page.
 
 import { startWallet, nodeGuard, EngineError, currentWalletPath, engineLog } from './engine.js';
-import { assessSync } from './sync.js';
+import { assessSync, reconnectView } from './sync.js';
 import { RANDOM_NODE, poolOrder, nextInOrder } from './nodes.js';
 import { assessNodeHealth, hopAllowed } from './node_health.js';
 import { toGroth, REGULAR_FEE, OFFLINE_FEE, toJsonNumber } from './amount.js';
@@ -282,16 +282,17 @@ export class Wallet {
 
   emit() {
     const s = this.state;
+    const hop = reconnectView({ switching: s.switching, emptyHops: this.plan ? this.plan.emptyHops : 0, connectFailed: s.connectFailed });
     s.sync = assessSync({
       status: s.status,
       nodeConnected: s.nodeConnected,
       everConnected: s.everConnected,
-      connectFailed: s.connectFailed,
+      connectFailed: hop.connectFailed,
       explorer: s.explorer,
       now: Date.now() / 1000,
       progress: s.progress,
       importing: s.importing,
-      reconnecting: Boolean(s.switching),
+      reconnecting: hop.reconnecting,
       ownNode: s.nodeMode === 'own' ? s.node : null,
     });
     for (const fn of this.listeners) {
