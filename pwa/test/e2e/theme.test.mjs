@@ -1,5 +1,7 @@
-// Settings -> Theme, end to end: the installed Google Chrome (headless), its own build and port, a
-// throwaway mainnet wallet that holds nothing. The device's own light / dark is emulated.
+// Settings -> Appearance, end to end: Theme (like this device, light, dark) and Colours (Campfire
+// red or BEAM blue, issue #80). The installed Google Chrome (headless), its own build and port, a
+// throwaway mainnet wallet that holds nothing. The device's own light / dark is emulated. A sweep
+// measures the rendered contrast of every visible text on the app's screens in all four palettes.
 //
 //   npm run e2e:theme   (own build folder and port 8828)
 import test from 'node:test';
@@ -9,12 +11,15 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startServer, launch, recordedPage, waitScreen, shot, sleep, foreignHosts, PWA, SHOTS } from './harness.mjs';
-import { createWallet, waitHome } from './flows.mjs';
+import { createWallet, waitHome, unlockWithPassword } from './flows.mjs';
 
 const PORT = 8828;
 const tid = (id) => `[data-testid="${id}"]`;
 const LIGHT_BG = 'rgb(255, 241, 241)';
 const DARK_BG = 'rgb(28, 29, 34)';
+const BEAM_LIGHT_BG = 'rgb(238, 245, 250)';
+const BEAM_DARK_BG = 'rgb(4, 37, 72)';
+const PASSWORD = `theme-${Math.random().toString(36).slice(2, 10)}`;
 
 let tmp, srv, browser, ctx, page, rec;
 
@@ -63,7 +68,7 @@ test('Settings -> Theme: Light, Dark and Like this device, at once, and kept aft
   await page.evaluate(() => localStorage.removeItem('campfire-theme'));
   await page.reload();
   await waitScreen(page, 'welcome', 120000);
-  await createWallet(page, { password: `theme-${Math.random().toString(36).slice(2, 10)}` });
+  await createWallet(page, { password: PASSWORD });
   await waitHome(page);
   await page.evaluate(() => window.__campfire.go('settings'));
   await waitScreen(page, 'settings');
@@ -95,6 +100,138 @@ test('Settings -> Theme: Light, Dark and Like this device, at once, and kept aft
   assert.deepEqual(await bars(), ['#fff1f1', '#1c1d22'], 'each bar colour for its own device mode');
   await page.emulateMedia({ colorScheme: 'light' });
   assert.equal(await bg(), LIGHT_BG);
+});
+
+test('Settings -> Colours: BEAM blue at once, light and dark; from the first paint after a reload; Campfire red again', { timeout: 10 * 60000 }, async () => {
+  await unlockWithPassword(page, PASSWORD);
+  await waitHome(page);
+  await page.evaluate(() => window.__campfire.go('settings'));
+  await waitScreen(page, 'settings');
+  // One card under "Appearance": Theme, then Colours.
+  const card = await page.evaluate(() => {
+    const t = document.querySelector('[data-testid="theme-row"]');
+    const k = document.querySelector('[data-testid="skin-row"]');
+    return { same: t.parentElement === k.parentElement, title: t.parentElement.previousElementSibling.textContent, sub: k.querySelector('.s').textContent };
+  });
+  assert.deepEqual(card, { same: true, title: 'Appearance', sub: 'Red or blue' });
+  await page.locator(tid('skin-row')).scrollIntoViewIfNeeded();
+  assert.equal(await page.inputValue(tid('skin-select')), 'campfire', 'Campfire red by default');
+  assert.deepEqual(await page.$$eval(`${tid('skin-select')} option`, (o) => o.map((x) => x.textContent)), ['Campfire red', 'BEAM blue']);
+  await page.selectOption(tid('skin-select'), 'beam');
+  assert.equal(await bg(), BEAM_LIGHT_BG, 'at once');
+  assert.equal(await page.evaluate(() => localStorage.getItem('campfire-skin')), 'beam');
+  assert.deepEqual(await bars(), ['#eef5fa', '#042548']);
+  await shot(page, 'theme-04-settings-beam-light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  assert.equal(await bg(), BEAM_DARK_BG, 'BEAM blue, dark');
+  await shot(page, 'theme-05-settings-beam-dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+  // The logo is Campfire's in either colours.
+  assert.equal(await page.evaluate(() => fetch('img/logo.svg').then((r) => r.ok)), true);
+
+  await page.reload();
+  await waitScreen(page, 'unlock', 120000);
+  assert.deepEqual(await page.evaluate(() => window.__atInteractive), { theme: null, bg: '#eef5fa' }, 'BEAM blue as soon as the page is read');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.skin), 'beam');
+  assert.deepEqual(await bars(), ['#eef5fa', '#042548'], 'the browser bar too');
+  await shot(page, 'theme-06-unlock-beam-light');
+  await unlockWithPassword(page, PASSWORD);
+  await waitHome(page);
+  await page.evaluate(() => window.__campfire.go('settings'));
+  await waitScreen(page, 'settings');
+  assert.equal(await page.inputValue(tid('skin-select')), 'beam', 'kept');
+  await page.selectOption(tid('skin-select'), 'campfire');
+  assert.equal(await bg(), LIGHT_BG, 'Campfire red again');
+  assert.equal(await page.evaluate(() => localStorage.getItem('campfire-skin')), null, 'the default leaves nothing saved');
+  assert.deepEqual(await bars(), ['#fff1f1', '#1c1d22']);
+});
+
+/**
+ * Every visible text on the page: its colour against what it is drawn on (translucent layers and
+ * faded ancestors composited), WCAG 2: 4.5:1, or 3:1 for large text. Disabled controls are left
+ * out (WCAG exempts them), and so is an asset's own badge colour (it is the asset's, not ours).
+ * With a sheet open, only the sheet.
+ */
+async function lowContrast() {
+  return page.evaluate(() => {
+    const parse = (c) => {
+      const m = /rgba?\(([^)]+)\)/.exec(c || '');
+      if (!m) return null;
+      const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+    };
+    const over = (t, u, a = t.a) => ({ r: t.r * a + u.r * (1 - a), g: t.g * a + u.g * (1 - a), b: t.b * a + u.b * (1 - a), a: 1 });
+    const lin = (c) => ((c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    const lum = (c) => 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+    const ratio = (a, b) => {
+      const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+      return (x + 0.05) / (y + 0.05);
+    };
+    const pageBg = parse(getComputedStyle(document.body).backgroundColor);
+    const bgOf = (el) => {
+      const layers = [];
+      for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
+        const c = parse(getComputedStyle(e).backgroundColor);
+        if (c && c.a > 0) {
+          layers.push(c);
+          if (c.a >= 1) break;
+        }
+      }
+      let base = layers.length && layers[layers.length - 1].a >= 1 ? layers.pop() : pageBg;
+      for (let i = layers.length - 1; i >= 0; i--) base = over(layers[i], base);
+      return base;
+    };
+    const scope = document.querySelector('.sheet') || document.getElementById('app');
+    const hex = (c) => `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+    const out = [];
+    for (const el of scope.querySelectorAll('*')) {
+      const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+      if (!own || !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
+      if (el.closest(':disabled, .disabled, [aria-disabled="true"], .asset-badge.tinted, .qr, .dapp-layer, option, select')) continue;
+      const cs = getComputedStyle(el);
+      let fg = parse(cs.color);
+      const bgc = bgOf(el);
+      let fade = 1;
+      for (let e = el; e && e !== document.documentElement; e = e.parentElement) fade *= Number(getComputedStyle(e).opacity);
+      fg = over({ ...fg, a: fg.a * fade }, bgc);
+      const size = parseFloat(cs.fontSize);
+      const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+      const r = ratio(fg, bgc);
+      if (r < (large ? 3 : 4.5)) out.push(`${el.tagName.toLowerCase()}.${[...el.classList].join('.')} "${el.textContent.trim().slice(0, 40)}" ${hex(fg)} on ${hex(bgc)} ${r.toFixed(2)}`);
+    }
+    return out;
+  });
+}
+
+// The app's screens a wallet opens without contacting anything but its node (and this origin).
+const SWEEP = ['home', 'receive', 'send', 'activity', 'settings', 'nodeSettings', 'about', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'contacts', 'addresses', 'checkProof', 'notifications', 'coins', 'minterTokens', 'minterCreate', 'pools', 'hiddenTokens', 'wallets', 'changePassword', 'ethStart'];
+const LOOK = [['campfire', 'light'], ['campfire', 'dark'], ['beam', 'light'], ['beam', 'dark']];
+
+test('every visible text on the app\'s screens reads at 4.5:1 (large text 3:1) in Campfire red and BEAM blue, light and dark', { timeout: 15 * 60000 }, async () => {
+  const low = [];
+  for (const [skin, scheme] of LOOK) {
+    await page.evaluate(async (k) => (await import('./lib/theme.js')).setSkin(k), skin);
+    await page.emulateMedia({ colorScheme: scheme });
+    for (const name of SWEEP) {
+      await page.evaluate((n) => window.__campfire.go(n), name);
+      await waitScreen(page, name, 30000);
+      await sleep(700);
+      for (const l of await lowContrast()) low.push(`${skin} ${scheme} ${name}: ${l}`);
+      // The code's box is white in every palette, so whatever stands in for a code is drawn dark on it.
+      if (name === 'receive') assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.qr')).color), 'rgb(32, 38, 61)', `${skin} ${scheme}`);
+      if (['home', 'settings', 'send', 'receive', 'activity', 'airdrop', 'swap', 'about'].includes(name)) await shot(page, `theme-sweep-${skin}-${scheme}-${name}`);
+      if (['home', 'settings'].includes(name)) {
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await sleep(200);
+        await shot(page, `theme-sweep-${skin}-${scheme}-${name}-1280`);
+        await page.setViewportSize({ width: 390, height: 844 });
+      }
+    }
+  }
+  await page.evaluate(async () => (await import('./lib/theme.js')).setSkin('campfire'));
+  await page.emulateMedia({ colorScheme: 'light' });
+  console.log(`# swept ${SWEEP.length} screens x ${LOOK.length} palettes; below the line: ${low.length}`);
+  assert.deepEqual(low, []);
 });
 
 test('privacy: no host but the origin and BEAM nodes; no CSP violation; no page error', async () => {
