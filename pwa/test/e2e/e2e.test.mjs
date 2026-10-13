@@ -230,7 +230,8 @@ test('(f) blocked node: an honest error, sending off', { timeout: 240000 }, asyn
   await waitScreen(page, 'home', 60000);
   await page.waitForFunction(() => window.__campfire.sync().state === 'offline', null, { timeout: 120000, polling: 1000 });
   const text = await page.textContent(tid('sync'));
-  assert.match(text, /Can't reach the BEAM network/);
+  // The explorer still answers here, so it is the nodes, not the person's internet.
+  assert.match(text, /BEAM's nodes aren't answering|Can't reach the BEAM network/);
   assert.equal(await page.isDisabled(tid('send')), true);
   await shot(page, 'e2e-25-node-blocked');
   blockNode = false;

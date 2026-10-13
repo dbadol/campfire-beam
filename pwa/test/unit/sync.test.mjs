@@ -77,6 +77,19 @@ test('connection failed: an honest offline state', () => {
   assert.match(r.title, /Can't reach the BEAM network/);
 });
 
+test('no node answers but the explorer does: the nodes are down, not the person\'s internet', () => {
+  const r = assessSync({ ...base, everConnected: false, nodeConnected: false, connectFailed: true, status: null, explorer: ex(4_000_000) });
+  assert.equal(r.state, 'offline');
+  assert.equal(r.nodesDown, true);
+  assert.match(r.title, /BEAM's nodes aren't answering/);
+  assert.match(r.detail, /Your internet works/);
+  assert.match(r.detail, /coins are safe/);
+  assert.equal(r.canSend, false);
+  // Own node: still about that node.
+  const own = assessSync({ ...base, everConnected: false, nodeConnected: false, connectFailed: true, status: null, explorer: ex(4_000_000), ownNode: 'node.example:8200' });
+  assert.match(own.title, /Can't reach your node/);
+});
+
 test('below the HF6 fork while the network is past it: stalled on an old chain', () => {
   const r = assessSync({ ...base, status: st(HF6_HEIGHT - 1, 30), explorer: ex(HF6_HEIGHT + 100000) });
   assert.equal(r.state, 'stalled');
