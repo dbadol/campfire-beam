@@ -144,3 +144,16 @@ test('reconnecting stands only while the first nodes are tried; then the real st
   assert.equal(s.nodesDown, true);
   assert.equal(s.title, "BEAM's nodes aren't answering");
 });
+
+test('release audit 0.2.15: offline is said at once, before own node, and wording', async () => {
+  const { reconnectView, assessSync } = await import('../../src/lib/sync.js');
+  assert.deepEqual(reconnectView({ switching: { from: 'a', to: 'b' }, emptyHops: 0, online: false }), { reconnecting: false, connectFailed: true }, 'offline: no "Reconnecting to another node"');
+  const now = 2_000_000_000;
+  const own = assessSync({ status: null, nodeConnected: false, everConnected: false, connectFailed: true, explorer: null, now, ownNode: 'my.node:8200', online: false });
+  assert.equal(own.title, "You're offline");
+  assert.notEqual(own.ownNode, true, 'no "use random nodes" offer while offline');
+  const ownUp = assessSync({ status: null, nodeConnected: false, everConnected: false, connectFailed: true, explorer: null, now, ownNode: 'my.node:8200', online: true });
+  assert.equal(ownUp.ownNode, true);
+  const pool = assessSync({ status: null, nodeConnected: false, everConnected: false, connectFailed: true, explorer: null, now });
+  assert.match(pool.detail, /^BEAM's public nodes aren't letting this browser in right now\./);
+});

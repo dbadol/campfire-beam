@@ -282,10 +282,12 @@ export class Wallet {
 
   emit() {
     const s = this.state;
-    const hop = reconnectView({ switching: s.switching, emptyHops: this.plan ? this.plan.emptyHops : 0, connectFailed: s.connectFailed });
+    const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+    const hop = reconnectView({ switching: s.switching, emptyHops: this.plan ? this.plan.emptyHops : 0, connectFailed: s.connectFailed, online });
     s.sync = assessSync({
       status: s.status,
-      nodeConnected: s.nodeConnected,
+      // Mid-hop no engine is open: never "connected" then, whatever the last event said (release audit 0.2.15).
+      nodeConnected: s.nodeConnected && !s.switching,
       everConnected: s.everConnected,
       connectFailed: hop.connectFailed,
       explorer: s.explorer,
@@ -294,7 +296,7 @@ export class Wallet {
       importing: s.importing,
       reconnecting: hop.reconnecting,
       ownNode: s.nodeMode === 'own' ? s.node : null,
-      online: typeof navigator === 'undefined' || navigator.onLine !== false,
+      online,
     });
     for (const fn of this.listeners) {
       try {
@@ -747,6 +749,7 @@ export class Wallet {
 
   /** comment: the person's note, kept with the payment in this wallet only (lib/payments.js). */
   async send({ address, amount, assetId = 0, mode, comment = '' }) {
+    if (!this.session) throw new EngineError('stopped', 'The wallet is not open yet. Go back to Home, then try again.');
     const params = { address, value: toJsonNumber(amount), fee: toJsonNumber(mode.fee) };
     if (comment) params.comment = comment;
     if (Number(assetId) !== 0) params.asset_id = Number(assetId);

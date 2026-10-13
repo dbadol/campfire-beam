@@ -228,6 +228,8 @@ test('the swap screen shows "at least" and hands it to the approve sheet', () =>
 
 test('an empty pool list is a failed read, never "nothing can be bought" (2026-10-13)', () => {
   const src = readFileSync(new URL('../../src/lib/dex_pools.js', import.meta.url), 'utf8');
-  assert.match(src, /if \(!pools\.length\) throw new DexError\('unexpected', 'pools_view printed an empty pool list'\);\n  learnPools\(pools\);/);
+  assert.match(src, /if \(!pools\.length\) \{\n    await new Promise\(\(r\) => setTimeout\(r, EMPTY_RETRY_MS\)\);/, 'asked once more');
+  assert.match(src, /if \(!pools\.length\) throw new DexError\('unexpected', "BEAM's exchange sent no prices yet\. Try again in a moment"\);\n  learnPools\(pools\);/);
+  assert.doesNotMatch(src, /pools_view printed an empty/, 'no shader jargon on screen');
   assert.deepEqual(parsePools({ res: [] }), [], 'the parser itself still reads an empty list as empty');
 });
