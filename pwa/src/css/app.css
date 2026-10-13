@@ -153,6 +153,8 @@ p { margin: 0; }
 .lead { color: var(--text-2); }
 .small { font-size: 14px; color: var(--muted); }
 .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; word-break: break-all; }
+/* "Version 0.2.14" (issue #82): last on Welcome, Unlock and first-run setup, at the bottom of a short screen. */
+.version { margin: auto 0 0; padding-top: 18px; font-size: 13px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
 .center { text-align: center; }
 
 .btn {

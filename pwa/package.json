@@ -71,7 +71,8 @@
     "e2e:live:tx-csv": "node tools/stage_engine.mjs && node test/e2e/live_tx_csv.mjs",
     "e2e:dapp-store": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/dapp_store.test.mjs",
     "e2e:scan": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/scan.test.mjs",
-    "e2e:one-tab": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/one_tab.test.mjs"
+    "e2e:one-tab": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/one_tab.test.mjs",
+    "e2e:version": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/version_line.test.mjs"
   },
   "devDependencies": {
     "jsqr": "1.4.0",
