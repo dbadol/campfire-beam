@@ -316,7 +316,10 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              BeamSyncNotice(sync: sync, what: 'Creating a token'),
+              BeamSyncNotice(
+                sync: sync,
+                action: BeamPausedAction.creatingToken,
+              ),
               BeamCtaBar(
                 primaryKey: const ValueKey('mint-cta'),
                 label: ticker.isEmpty || m == null

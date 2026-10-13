@@ -210,7 +210,7 @@ class BeamAssetWallet extends Wallet<Beam> {
   BeamApi _requireApi() =>
       parent.coreApi ??
       (throw parent.coreProblem ??
-          const BeamWalletException(
+          BeamWalletException(
             BeamWalletProblem.notOpen,
             BeamWalletMessages.notOpen,
           ));

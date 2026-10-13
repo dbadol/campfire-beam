@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../pages/pinpad_views/lock_screen_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/desktop_auth_send.dart';
@@ -67,9 +68,9 @@ Future<bool> campfireAuthorizeSpend(
           popOnSuccess: true,
           routeOnSuccessArguments: true,
           routeOnSuccess: '',
-          biometricsCancelButtonString: 'CANCEL',
+          biometricsCancelButtonString: context.l10n.beamAuthCancel,
           biometricsLocalizedReason: reason,
-          biometricsAuthenticationTitle: 'Confirm transaction',
+          biometricsAuthenticationTitle: context.l10n.beamAuthTitle,
         ),
       ),
     );
@@ -78,7 +79,9 @@ Future<bool> campfireAuthorizeSpend(
     unawaited(
       showFloatingFlushBar(
         type: FlushBarType.warning,
-        message: desktop ? 'Invalid passphrase' : 'Invalid PIN',
+        message: desktop
+            ? context.l10n.beamAuthInvalidPassphrase
+            : context.l10n.beamAuthInvalidPin,
         context: context,
       ),
     );

@@ -196,7 +196,9 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
           children: [
             BeamSyncNotice(
               sync: sync,
-              what: _create ? 'Creating codes' : 'Cancelling',
+              action: _create
+                  ? BeamPausedAction.creatingCodes
+                  : BeamPausedAction.cancelling,
             ),
             if (spent && problem != null)
               BeamCtaBar(

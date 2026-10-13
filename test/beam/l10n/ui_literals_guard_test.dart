@@ -30,7 +30,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// The BEAM UI directories and the core files whose text screens show:
 /// each area joins the list once its text is in the catalogue.
-const scanned = <String>['lib/l10n', 'lib/pages/beam/settings'];
+const scanned = <String>[
+  'lib/l10n',
+  'lib/pages/beam/settings',
+  'lib/pages/beam/split',
+  'lib/widgets/beam/split',
+  'lib/widgets/beam/airdrop/airdrop_text.dart',
+  'lib/widgets/beam/airdrop/beam_asset_names.dart',
+  'lib/widgets/beam/airdrop/beam_blocks.dart',
+  'lib/widgets/beam/airdrop/beam_layout.dart',
+  'lib/widgets/beam/airdrop/beam_send_flow.dart',
+  'lib/widgets/beam/airdrop/beam_spend_auth.dart',
+  'lib/widgets/beam/airdrop/beam_sync_gate.dart',
+  'lib/widgets/beam/airdrop/beam_units.dart',
+  'lib/wallets/beam/sync/beam_sync_messages.dart',
+  'lib/wallets/beam/wallet/beam_wallet_errors.dart',
+];
 
 final _skipLine = RegExp(
   r'Logging\.instance|debugPrint\(|\blog\(|\bKey\(|ValueKey\(|assert\(|'

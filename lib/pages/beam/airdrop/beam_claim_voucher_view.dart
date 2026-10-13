@@ -316,8 +316,8 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
             if (s != null && !_checking) ...[
               _summary(context, s),
               const BeamGap(),
-              const BeamNotice(
-                key: ValueKey('claim-bearer-notice'),
+              BeamNotice(
+                key: const ValueKey('claim-bearer-notice'),
                 kind: BeamNoticeKind.info,
                 message: AirdropBearerText.claimMessage,
               ),
@@ -346,7 +346,8 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (s != null) BeamSyncNotice(sync: sync, what: 'Claiming'),
+            if (s != null)
+              BeamSyncNotice(sync: sync, action: BeamPausedAction.claiming),
             BeamCtaBar(
               primaryKey: const ValueKey('claim-cta'),
               label: label,

@@ -245,7 +245,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              BeamSyncNotice(sync: sync, what: 'Burning'),
+              BeamSyncNotice(sync: sync, action: BeamPausedAction.burning),
               if (nothing)
                 BeamCtaBar(
                   label: 'Back',

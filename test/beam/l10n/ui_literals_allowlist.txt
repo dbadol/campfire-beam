@@ -2,3 +2,5 @@
 # a person reads in the app. One per line:
 #   file | literal exactly as the guard prints it | why it stays
 # Keep it exact: an entry nothing matches fails the guard too.
+lib/widgets/beam/split/beam_split_backend.dart | Amm Liquidity Token | the AMM contract's own name for LP tokens, matched in asset metadata
+lib/wallets/beam/wallet/beam_wallet_errors.dart | BEAM not enabled | matched in the text of the plain Exception libBeam.createHost throws when the BEAM flag is off

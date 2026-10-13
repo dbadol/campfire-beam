@@ -187,7 +187,7 @@ class _BeamMintMoreViewState extends State<BeamMintMoreView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            BeamSyncNotice(sync: sync, what: 'Minting'),
+            BeamSyncNotice(sync: sync, action: BeamPausedAction.minting),
             BeamCtaBar(
               primaryKey: const ValueKey('mint-more-cta'),
               label: ok

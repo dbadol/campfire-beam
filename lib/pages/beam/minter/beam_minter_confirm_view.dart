@@ -150,7 +150,9 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
           children: [
             BeamSyncNotice(
               sync: sync,
-              what: _create ? 'Creating a token' : 'Minting',
+              action: _create
+                  ? BeamPausedAction.creatingToken
+                  : BeamPausedAction.minting,
             ),
             if (spent && problem != null)
               BeamCtaBar(

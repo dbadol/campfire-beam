@@ -21,6 +21,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/utxo/beam_coin_split.dart';
 import '../../../wallets/beam/wallet/beam_wallet_errors.dart';
 import '../../../widgets/beam/airdrop/airdrop_text.dart';
@@ -74,8 +75,8 @@ class _BeamSplitConfirmViewState extends State<BeamSplitConfirmView>
         final w = beamWalletExceptionFrom(e);
         return BeamProblem(
           w.problem == BeamWalletProblem.sendOutcomeUnknown
-              ? 'Not sure the split started'
-              : 'The coins were not split',
+              ? appL10n.splitProblemMaybeStarted
+              : appL10n.splitProblemNotSplit,
           w.message,
         );
       },
@@ -96,6 +97,7 @@ class _BeamSplitConfirmViewState extends State<BeamSplitConfirmView>
       // The wallet let the prepared split go (it was tried, and failed or
       // may have started): never offered again here; review it again.
       final spent = problem != null && p.isDiscarded;
+      final l10n = context.l10n;
       return BeamPageScaffold(
         title: BeamSplitText.reviewTitle,
         body: Column(
@@ -104,7 +106,7 @@ class _BeamSplitConfirmViewState extends State<BeamSplitConfirmView>
             BeamNotice(
               key: const ValueKey('split-review-note'),
               kind: BeamNoticeKind.info,
-              title: 'Nothing leaves your wallet',
+              title: l10n.splitReviewNothingLeaves,
               message: BeamSplitText.reviewNote(symbol, asset: aid != 0),
             ),
             const BeamGap(),
@@ -115,24 +117,25 @@ class _BeamSplitConfirmViewState extends State<BeamSplitConfirmView>
             BeamDetailCard(
               children: [
                 BeamDetailRow(
-                  label: 'Now',
-                  value:
-                      '${BeamUnits.withSymbol(before.availableTotal, symbol)} '
-                      'in $coinsNow ${coinsNow == 1 ? 'coin' : 'coins'}',
+                  label: l10n.splitNowLabel,
+                  value: l10n.splitReviewNow(
+                    coinsNow,
+                    BeamUnits.withSymbol(before.availableTotal, symbol),
+                  ),
                   valueKey: const ValueKey('split-review-now'),
                 ),
                 BeamDetailRow(
-                  label: 'New coins',
+                  label: l10n.splitNewCoinsLabel,
                   value: BeamSplitText.newCoins(plan, symbol),
                   valueKey: const ValueKey('split-review-new'),
                 ),
                 if (plan.change > BigInt.zero)
                   BeamDetailRow(
-                    label: 'Stays as change',
+                    label: l10n.splitChangeLabel,
                     value: BeamUnits.withSymbol(plan.change, symbol),
                   ),
                 BeamDetailRow(
-                  label: 'Network fee',
+                  label: l10n.beamNetworkFee,
                   value: BeamSplitText.fee(plan),
                   valueKey: const ValueKey('split-review-fee'),
                 ),
@@ -140,7 +143,7 @@ class _BeamSplitConfirmViewState extends State<BeamSplitConfirmView>
             ),
             const BeamGap(8),
             BeamTotalRow(
-              label: 'Leaves your wallet',
+              label: l10n.splitLeavesLabel,
               value: BeamSplitText.leaves(plan),
               valueKey: const ValueKey('split-review-leaves'),
               confirm: false,
@@ -160,10 +163,10 @@ class _BeamSplitConfirmViewState extends State<BeamSplitConfirmView>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            BeamSyncNotice(sync: sync, what: 'Splitting'),
+            BeamSyncNotice(sync: sync, action: BeamPausedAction.splitting),
             if (spent)
               BeamCtaBar(
-                label: 'Back',
+                label: l10n.commonBack,
                 onPressed: () => Navigator.of(context).maybePop(),
               )
             else
@@ -171,7 +174,7 @@ class _BeamSplitConfirmViewState extends State<BeamSplitConfirmView>
                 primaryKey: const ValueKey('split-confirm-cta'),
                 label: BeamSplitText.cta(plan.count),
                 busy: sending,
-                busyLabel: 'Splitting…',
+                busyLabel: l10n.splitSending,
                 onPressed: sync.canSpend ? _confirm : null,
               ),
           ],

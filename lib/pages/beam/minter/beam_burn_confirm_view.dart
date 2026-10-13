@@ -161,7 +161,7 @@ class _BeamBurnConfirmViewState extends State<BeamBurnConfirmView>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            BeamSyncNotice(sync: sync, what: 'Burning'),
+            BeamSyncNotice(sync: sync, action: BeamPausedAction.burning),
             if (spent && problem != null)
               BeamCtaBar(
                 label: 'Back',

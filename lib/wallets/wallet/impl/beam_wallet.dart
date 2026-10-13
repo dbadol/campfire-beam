@@ -379,7 +379,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
     // Rebuilding deletes wallet.db and makes a new one from the phrase. An
     // imported wallet has no phrase: its file is all there is.
     if (isImportedFromFile) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamWalletMessages.importedNoRescan,
       );
@@ -392,7 +392,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       if (wasOpen && !await _closeForMaintenance()) {
         // The core still has wallet.db open: the file stays as it is.
         _ensureOpening();
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.walletInUse,
           BeamWalletMessages.rescanCoreStillOpen,
         );
@@ -415,7 +415,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
   /// The core's history when it is open, Campfire's copy of it otherwise.
   Future<void> _checkNothingInFlight() async {
     if (_gate.isBusy) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamWalletMessages.rescanWhileBusy,
       );
@@ -440,7 +440,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       }
     }
     if (unsettled) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamWalletMessages.rescanWithTxInFlight,
       );
@@ -479,14 +479,14 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       final host = await _hostOrThrow();
       final dir = await _walletDir();
       if (!await beamWalletFileExists(dir)) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.walletFileMissing,
           BeamWalletMessages.walletFileMissing,
         );
       }
       final password = await _secrets.readPassword();
       if (password == null || password.isEmpty) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.passwordMissing,
           BeamWalletMessages.passwordMissing,
         );
@@ -711,7 +711,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
   Future<void> _createWalletFile(String dir, {required bool restore}) async {
     final words = await getMnemonicAsWords();
     if (words.length != 12 || !bip39.validateMnemonic(words.join(' '))) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.invalidPhrase,
         BeamWalletMessages.invalidPhrase,
       );
@@ -1487,7 +1487,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
   BeamApi _requireApi() =>
       _api ??
       (throw _problem ??
-          const BeamWalletException(
+          BeamWalletException(
             BeamWalletProblem.notOpen,
             BeamWalletMessages.notOpen,
           ));

@@ -253,8 +253,8 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
               style: STextStyles.itemSubtitle(context),
             ),
             const BeamGap(16),
-            const BeamNotice(
-              key: ValueKey('create-bearer-warning'),
+            BeamNotice(
+              key: const ValueKey('create-bearer-warning'),
               kind: BeamNoticeKind.warning,
               title: AirdropBearerText.createTitle,
               message: AirdropBearerText.createMessage,
@@ -383,7 +383,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            BeamSyncNotice(sync: sync, what: 'Creating codes'),
+            BeamSyncNotice(sync: sync, action: BeamPausedAction.creatingCodes),
             BeamCtaBar(
               primaryKey: const ValueKey('create-cta'),
               label: n == null ? 'Create codes' : 'Create $n codes',

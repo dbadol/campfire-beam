@@ -7,6 +7,8 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
+
 /// Amounts on the BEAM screens. Every BEAM asset, BEAM itself included, is
 /// shown on the groth scale (8 decimals), as the core does
 /// (`BeamAssetInfo.decimalsFor`).
@@ -55,20 +57,16 @@ abstract final class BeamUnits {
   /// when the field is empty (an empty field is not an error yet).
   static String? problem(String text) {
     if (text.trim().isEmpty) return null;
-    if (_ambiguousComma(text)) {
-      return 'Write 1000 or 1.5 — a comma here could mean either';
-    }
-    if (_mixedSeparators(text)) {
-      return 'Write 1234.5 — mixing . and , here could mean a thousand '
-          'times more or less';
-    }
+    final l = appL10n;
+    if (_ambiguousComma(text)) return l.unitsAmbiguousComma;
+    if (_mixedSeparators(text)) return l.unitsMixedSeparators;
     final t = _normalise(text);
-    if (t == null) return 'Enter a number, like 1.5';
+    if (t == null) return l.unitsEnterNumber;
     final parts = t.split('.');
     if (parts.length > 1 && parts[1].length > decimals) {
-      return 'Use at most $decimals digits after the point';
+      return l.unitsTooManyDecimals(decimals);
     }
-    if (parse(text) == null) return 'Enter an amount above zero';
+    if (parse(text) == null) return l.unitsAboveZero;
     return null;
   }
 
