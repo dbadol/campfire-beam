@@ -1,0 +1,349 @@
+// Translations (lib/i18n.js, lang-boot.js, loader-watch.js, tools/i18n_build.mjs): the device's
+// language by default, a choice in Settings, catalogs that can only ever give text, English whenever
+// a translation is missing or does not fit, and what a release ships.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  t, tn, tk, tNodes, lang, dateLocale, deviceLanguage, navigatorLanguages, readLanguageChoice, resolveLanguage, validateCatalog, activateLanguage, setLanguage, onLanguageChange,
+  placeholdersOf, LANGUAGES, LANGUAGE_NAMES, STORAGE_KEY, EARLY_STORAGE_KEY, EARLY_KEYS, NOSCRIPT_TEXT, PLURAL_FORMS,
+} from '../../src/lib/i18n.js';
+import { shippedCatalog, noscriptHtml, NOT_SHIPPED, CATALOG_PATH } from '../../tools/i18n_build.mjs';
+
+const src = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src');
+const read = (p) => readFileSync(join(src, p), 'utf8');
+
+function memoryStorage(init = {}, { blocked = false } = {}) {
+  const m = new Map(Object.entries(init));
+  const no = () => {
+    throw new Error('SecurityError');
+  };
+  return {
+    map: m,
+    getItem: (k) => (blocked ? no() : m.has(k) ? m.get(k) : null),
+    setItem: (k, v) => (blocked ? no() : m.set(k, String(v))),
+    removeItem: (k) => (blocked ? no() : m.delete(k)),
+  };
+}
+const fakeDoc = () => ({ documentElement: { attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } } });
+const serve = (catalogs) => {
+  const asked = [];
+  const fetchImpl = async (url) => {
+    asked.push(url);
+    const m = /i18n\/([A-Za-z-]+)\.json$/.exec(url);
+    const c = m && catalogs[m[1]];
+    if (c === undefined) return { ok: false, status: 404, json: async () => ({}) };
+    if (c instanceof Error) throw c;
+    return { ok: true, json: async () => (typeof c === 'string' ? JSON.parse(c) : c) };
+  };
+  fetchImpl.asked = asked;
+  return fetchImpl;
+};
+async function inLanguage(code, catalog, fn) {
+  const storage = memoryStorage();
+  const doc = fakeDoc();
+  const fetchImpl = serve({ [code]: catalog });
+  try {
+    await activateLanguage(code, { storage, doc, fetchImpl, notify: false });
+    return await fn({ storage, doc, fetchImpl });
+  } finally {
+    await activateLanguage('en', { storage: memoryStorage(), doc: fakeDoc(), notify: false });
+  }
+}
+
+test('the four languages, each named in its own script', () => {
+  assert.deepEqual(LANGUAGES, ['en', 'ru', 'zh-Hans', 'ja']);
+  assert.deepEqual(LANGUAGE_NAMES, { en: 'English', ru: 'Русский', 'zh-Hans': '简体中文', ja: '日本語' });
+  assert.deepEqual(PLURAL_FORMS.ru, ['one', 'few', 'many', 'other']);
+  assert.deepEqual(PLURAL_FORMS.ja, ['other']);
+  assert.deepEqual(PLURAL_FORMS['zh-Hans'], ['other']);
+});
+
+test("the device's language: the first one the app has, every Chinese as Simplified, else English", () => {
+  const cases = [
+    [['ru-RU'], 'ru'], [['ru'], 'ru'], [['ja-JP'], 'ja'], [['ja'], 'ja'], [['zh-CN'], 'zh-Hans'], [['zh-TW'], 'zh-Hans'], [['zh-Hant-HK'], 'zh-Hans'], [['zh'], 'zh-Hans'],
+    [['en-US', 'ru'], 'en'], [['de-DE', 'ru-RU'], 'ru'], [['de-DE', 'fr'], 'en'], [[], 'en'], [undefined, 'en'], [['RU-ru'], 'ru'], [['ja_JP'], 'ja'], [['english'], 'en'],
+  ];
+  for (const [list, want] of cases) assert.equal(deviceLanguage(list), want, JSON.stringify(list));
+  assert.deepEqual(navigatorLanguages({ languages: ['ru-RU', 'en'] }), ['ru-RU', 'en']);
+  assert.deepEqual(navigatorLanguages({ languages: [], language: 'ja' }), ['ja']);
+  assert.deepEqual(navigatorLanguages(null), [], 'no navigator (a worker, a test)');
+});
+
+test('the choice: saved per device, "like this device" when absent, unreadable or not a language', () => {
+  assert.equal(readLanguageChoice(memoryStorage()), 'system');
+  assert.equal(readLanguageChoice(memoryStorage({ [STORAGE_KEY]: 'ru' })), 'ru');
+  assert.equal(readLanguageChoice(memoryStorage({ [STORAGE_KEY]: 'zh-Hans' })), 'zh-Hans');
+  assert.equal(readLanguageChoice(memoryStorage({ [STORAGE_KEY]: 'de' })), 'system');
+  assert.equal(readLanguageChoice(memoryStorage({ [STORAGE_KEY]: 'ru' }, { blocked: true })), 'system');
+  assert.equal(resolveLanguage('system', ['ja-JP']), 'ja');
+  assert.equal(resolveLanguage('en', ['ja-JP']), 'en', 'English chosen on a Japanese device');
+  assert.equal(resolveLanguage('ru', []), 'ru');
+});
+
+test('English: the key itself, placeholders filled once, as text', () => {
+  assert.equal(lang(), 'en', 'outside a page (tests, workers): English');
+  assert.equal(t('Reload'), 'Reload');
+  assert.equal(t('Locks after {min} min without use', { min: 5 }), 'Locks after 5 min without use');
+  assert.equal(t('{a} and {b}', { a: '{b}', b: 'x' }), '{b} and x', 'a value is never read as a placeholder');
+  assert.equal(t('Send {amount}', { amount: '<img src=x onerror=alert(1)>' }), 'Send <img src=x onerror=alert(1)>', 'markup in a value is just characters');
+  assert.equal(t('Hello {name}', {}), 'Hello {name}', 'a value not given stays visible (a bug to see, not to hide)');
+  assert.equal(t('Hello {name}'), 'Hello {name}', 'no values: the text as it is');
+  assert.equal(tk('Like this device'), 'Like this device', 'tk() only marks');
+  assert.equal(dateLocale('en-GB'), 'en-GB', "English keeps the date locale a screen used");
+  assert.equal(dateLocale(), undefined);
+  assert.deepEqual(placeholdersOf('Send {amount} to {name}, {amount}'), ['amount', 'name']);
+});
+
+test('English counts: one for exactly 1, other for the rest; {n} may come written', () => {
+  const f = { one: '{n} code', other: '{n} codes' };
+  assert.equal(tn(f, 1), '1 code');
+  assert.equal(tn(f, 0), '0 codes');
+  assert.equal(tn(f, 2), '2 codes');
+  assert.equal(tn(f, 21), '21 codes');
+  assert.equal(tn(f, 1.5), '1.5 codes');
+  assert.equal(tn({ one: '{n} block behind', other: '{n} blocks behind' }, 1234, { n: (1234).toLocaleString('en-US') }), '1,234 blocks behind');
+  assert.equal(tn({ one: 'One code for {name}', other: '{n} codes for {name}' }, 1, { name: 'Ann' }), 'One code for Ann');
+});
+
+test('a translation is used only when it has exactly the English placeholders; anything else stays English', async () => {
+  const catalog = {
+    Reload: 'Перезагрузить',
+    Settings: '',
+    'Send {amount} to {name}': 'Отправить {amount} получателю {name}',
+    'Locks after {min} min without use': 'Блокируется через {minutes} мин', // renamed placeholder
+    'Your own node: {node}': 'Ваш узел', // placeholder missing
+    'Synced': 'Синхронизировано {height}', // placeholder added
+    'Block {height}': 'Блок {height} {height}', // the same placeholder twice is fine
+    'Not an object': { other: 'x' },
+    'Bad shape': 7,
+  };
+  await inLanguage('ru', catalog, async ({ doc, fetchImpl }) => {
+    assert.equal(lang(), 'ru');
+    assert.equal(doc.documentElement.attrs.lang, 'ru');
+    assert.match(fetchImpl.asked[0], /\/i18n\/ru\.json$/, 'the active language only');
+    assert.equal(fetchImpl.asked.length, 1);
+    assert.equal(t('Reload'), 'Перезагрузить');
+    assert.equal(t('Settings'), 'Settings', 'empty: not translated yet');
+    assert.equal(t('Never seen'), 'Never seen');
+    assert.equal(t('Send {amount} to {name}', { amount: '1 BEAM', name: 'Ann' }), 'Отправить 1 BEAM получателю Ann');
+    assert.equal(t('Locks after {min} min without use', { min: 5 }), 'Locks after 5 min without use', 'renamed: English');
+    assert.equal(t('Your own node: {node}', { node: 'n.example:8200' }), 'Your own node: n.example:8200', 'missing: English');
+    assert.equal(t('Synced'), 'Synced', 'added: English');
+    assert.equal(t('Block {height}', { height: 7 }), 'Блок 7 7');
+    assert.equal(t('Not an object'), 'Not an object', 'a count is not a text');
+    assert.equal(dateLocale('en-GB'), 'ru', 'dates follow the language');
+  });
+  const { entries, dropped } = validateCatalog(catalog, 'ru');
+  assert.deepEqual([...entries.keys()].sort(), ['Block {height}', 'Reload', 'Send {amount} to {name}']);
+  assert.deepEqual(dropped.sort(), ['Locks after {min} min without use', 'Not an object', 'Synced', 'Your own node: {node}'], 'a count with forms missing too');
+  assert.deepEqual(validateCatalog(null, 'ru').entries.size, 0);
+  assert.deepEqual(validateCatalog(['x'], 'ru').entries.size, 0);
+});
+
+test('Russian counts: one / few / many / other by Intl.PluralRules; a form missing or without {n}: English', async () => {
+  const catalog = {
+    '{n} codes': { one: '{n} код', few: '{n} кода', many: '{n} кодов', other: '{n} кода' },
+    '{n} blocks behind': { one: '{n} блок', few: '{n} блока', many: '', other: '{n} блока' }, // many missing
+    '{n} words': { one: 'слово', few: '{n} слова', many: '{n} слов', other: '{n} слова' }, // {n} left out of one
+    '{n} files from {host}': { one: '{n} файл с {host}', few: '{n} файла с {host}', many: '{n} файлов с {host}', other: '{n} файла с {host}' },
+  };
+  await inLanguage('ru', catalog, async () => {
+    const f = { one: '{n} code', other: '{n} codes' };
+    assert.deepEqual([1, 2, 5, 11, 21, 22, 25, 1.5].map((n) => tn(f, n)), ['1 код', '2 кода', '5 кодов', '11 кодов', '21 код', '22 кода', '25 кодов', '1.5 кода']);
+    assert.equal(tn({ one: '{n} block behind', other: '{n} blocks behind' }, 5), '5 blocks behind', 'incomplete: English');
+    assert.equal(tn({ one: '{n} word', other: '{n} words' }, 21), '21 words', 'a form without {n}: English');
+    assert.equal(tn({ one: '{n} file from {host}', other: '{n} files from {host}' }, 3, { host: 'a.b' }), '3 файла с a.b');
+    assert.equal(t('{n} codes'), '{n} codes', 'a count is not a plain text');
+  });
+});
+
+test('Japanese and Chinese counts have one form; a catalog for another language cannot add forms it lacks', async () => {
+  await inLanguage('ja', { '{n} codes': { other: '{n} 個のコード' }, Reload: '再読み込み' }, async ({ doc }) => {
+    assert.equal(doc.documentElement.attrs.lang, 'ja');
+    assert.equal(tn({ one: '{n} code', other: '{n} codes' }, 1), '1 個のコード');
+    assert.equal(t('Reload'), '再読み込み');
+  });
+  await inLanguage('zh-Hans', { '{n} codes': { one: '{n} 个代码' } }, async ({ doc }) => {
+    assert.equal(doc.documentElement.attrs.lang, 'zh-Hans');
+    assert.equal(tn({ one: '{n} code', other: '{n} codes' }, 1), '1 code', 'no "other" form: English');
+  });
+});
+
+test('a catalog that cannot be read leaves English, with the language attribute still the choice', async () => {
+  const answers = {
+    missing: async () => ({ ok: false, status: 404, json: async () => ({}) }),
+    offline: async () => {
+      throw new TypeError('Failed to fetch');
+    },
+    garbage: async () => ({ ok: true, json: async () => JSON.parse('{not json') }),
+    array: async () => ({ ok: true, json: async () => [1, 2] }),
+  };
+  for (const [why, fetchImpl] of Object.entries(answers)) {
+    const doc = fakeDoc();
+    await activateLanguage('ru', { storage: memoryStorage(), doc, fetchImpl, notify: false });
+    assert.equal(t('Reload'), 'Reload', why);
+    assert.equal(lang(), 'ru', why);
+    assert.equal(doc.documentElement.attrs.lang, 'ru', why);
+  }
+  await activateLanguage('en', { storage: memoryStorage(), doc: fakeDoc(), notify: false });
+  assert.equal(await activateLanguage('de', { storage: memoryStorage(), doc: fakeDoc(), notify: false }), 'en', 'not a language of the app: English');
+});
+
+test('Settings: saved (or forgotten for "like this device"), applied at once, every listener told', async () => {
+  const storage = memoryStorage();
+  const doc = fakeDoc();
+  const heard = [];
+  const off = onLanguageChange((l) => heard.push(`${l}:${t('Reload')}`));
+  const fetchImpl = serve({ ru: { Reload: 'Перезагрузить' }, ja: { Reload: '再読み込み' } });
+  try {
+    assert.equal(await setLanguage('ru', { storage, doc, fetchImpl, languages: ['en-US'] }), 'ru');
+    assert.equal(storage.map.get(STORAGE_KEY), 'ru');
+    assert.equal(doc.documentElement.attrs.lang, 'ru');
+    assert.equal(await setLanguage('system', { storage, doc, fetchImpl, languages: ['ja-JP'] }), 'system');
+    assert.equal(storage.map.has(STORAGE_KEY), false, 'like this device: nothing saved');
+    assert.equal(lang(), 'ja');
+    assert.equal(await setLanguage('en', { storage: memoryStorage({}, { blocked: true }), doc, fetchImpl, languages: ['ja-JP'] }), 'en', 'storage blocked: applied anyway');
+    assert.equal(lang(), 'en');
+    assert.deepEqual(heard, ['ru:Перезагрузить', 'ja:再読み込み', 'en:Reload'], 'told after the catalog is read');
+  } finally {
+    off();
+    await activateLanguage('en', { storage: memoryStorage(), doc: fakeDoc(), notify: false });
+  }
+});
+
+test('the early texts (splash, first tripwire stop) are kept for the next start, only those, only when translated', async () => {
+  const s = memoryStorage();
+  await activateLanguage('ru', { storage: s, doc: fakeDoc(), fetchImpl: serve({ ru: { 'Stop: unsigned code': 'Стоп: неподписанный код', Reload: 'Перезагрузить', 'Starting': '' } }), notify: false });
+  assert.deepEqual(JSON.parse(s.map.get(EARLY_STORAGE_KEY)), { lang: 'ru', s: { 'Stop: unsigned code': 'Стоп: неподписанный код' } });
+  await activateLanguage('ru', { storage: s, doc: fakeDoc(), fetchImpl: serve({ ru: {} }), notify: false });
+  assert.equal(s.map.has(EARLY_STORAGE_KEY), false, 'nothing translated: nothing kept');
+  s.map.set(EARLY_STORAGE_KEY, 'x');
+  await activateLanguage('en', { storage: s, doc: fakeDoc(), notify: false });
+  assert.equal(s.map.has(EARLY_STORAGE_KEY), false, 'English: forgotten');
+});
+
+test('every text loader-watch.js and the splash show is one of the early keys', () => {
+  const watch = read('loader-watch.js');
+  const shown = [...watch.matchAll(/tr\((?:'([^']+)'|"([^"]+)"|WARNING)\)/g)].map((m) => m[1] || m[2] || /var WARNING = "([^"]+)"/.exec(watch)[1]);
+  assert.equal(shown.length, 5);
+  for (const s of shown) assert.ok(EARLY_KEYS.includes(s), s);
+  const html = read('index.html');
+  assert.ok(html.includes('<p>Starting BEAM Campfire…</p>') && EARLY_KEYS.includes('Starting BEAM Campfire…'));
+  assert.ok(html.includes('aria-label="Starting"') && EARLY_KEYS.includes('Starting'));
+  assert.ok(html.includes(`<noscript><p class="lead">${NOSCRIPT_TEXT}</p></noscript>`), 'the noscript sentence is NOSCRIPT_TEXT');
+});
+
+function runBoot(file, { languages = ['en-US'], stored = {}, blocked = false } = {}) {
+  const attrs = {};
+  const handlers = {};
+  const nodes = { p: { textContent: 'Starting BEAM Campfire…' }, bar: { attrs: { 'aria-label': 'Starting' }, setAttribute(k, v) { this.attrs[k] = v; } } };
+  const document = {
+    documentElement: { setAttribute: (k, v) => (attrs[k] = v) },
+    addEventListener: (ev, fn) => (handlers[ev] = fn),
+    querySelector: (sel) => (sel.endsWith(' p') ? nodes.p : sel.includes('progressbar') ? nodes.bar : null),
+  };
+  const localStorage = memoryStorage(stored, { blocked });
+  vm.runInNewContext(read(file), { document, navigator: { languages, language: languages[0] }, localStorage, JSON, Object, String });
+  if (handlers.DOMContentLoaded) handlers.DOMContentLoaded();
+  return { lang: attrs.lang, splash: nodes.p.textContent, bar: nodes.bar.attrs['aria-label'] };
+}
+
+test('lang-boot.js sets <html lang> before the first paint, the same way lib/i18n.js decides', () => {
+  const lists = [['ru-RU'], ['ja-JP', 'en'], ['zh-TW'], ['de', 'fr'], ['de', 'ru'], ['en-GB', 'ja'], []];
+  for (const languages of lists) {
+    assert.equal(runBoot('lang-boot.js', { languages }).lang, resolveLanguage('system', languages), JSON.stringify(languages));
+    for (const choice of LANGUAGES) assert.equal(runBoot('lang-boot.js', { languages, stored: { [STORAGE_KEY]: choice } }).lang, choice);
+  }
+  assert.equal(runBoot('lang-boot.js', { languages: ['ja'], blocked: true }).lang, 'ja', 'storage blocked: the device');
+  assert.equal(runBoot('lang-boot.js', { languages: ['ja'], stored: { [STORAGE_KEY]: 'xx' } }).lang, 'ja');
+  assert.ok(read('lang-boot.js').includes(`'${STORAGE_KEY}'`) && read('lang-boot.js').includes(`'${EARLY_STORAGE_KEY}'`), 'the same keys');
+  const html = read('index.html');
+  assert.ok(html.indexOf('<script src="lang-boot.js"></script>') > html.indexOf('theme-boot.js') && html.indexOf('lang-boot.js') < html.indexOf('css/app.css'), 'in the head, before the page is drawn');
+});
+
+test('lang-boot.js labels the splash from the kept texts of the same language only, as text', () => {
+  const early = (l, s) => ({ [EARLY_STORAGE_KEY]: JSON.stringify({ lang: l, s }) });
+  const ru = { 'Starting BEAM Campfire…': '<b>Запуск</b> BEAM Campfire…', Starting: 'Запуск' };
+  assert.deepEqual(runBoot('lang-boot.js', { languages: ['ru'], stored: early('ru', ru) }), { lang: 'ru', splash: '<b>Запуск</b> BEAM Campfire…', bar: 'Запуск' }, 'textContent: markup stays characters');
+  assert.deepEqual(runBoot('lang-boot.js', { languages: ['ja'], stored: early('ru', ru) }), { lang: 'ja', splash: 'Starting BEAM Campfire…', bar: 'Starting' }, 'kept for another language: English');
+  assert.deepEqual(runBoot('lang-boot.js', { languages: ['en'], stored: early('en', ru) }), { lang: 'en', splash: 'Starting BEAM Campfire…', bar: 'Starting' });
+  assert.equal(runBoot('lang-boot.js', { languages: ['ru'], stored: { [EARLY_STORAGE_KEY]: '{bad json' } }).splash, 'Starting BEAM Campfire…');
+});
+
+test('loader-watch.js stops the page in the kept language, as text, and in English without it', () => {
+  const run = (stored) => {
+    const el = (tag) => ({ tag, children: [], attrs: {}, className: '', textContent: '', setAttribute(k, v) { this.attrs[k] = v; }, appendChild(c) { this.children.push(c); return c; }, removeChild() {}, get firstChild() { return null; } });
+    const body = el('body');
+    const document = { body, documentElement: el('html'), createElement: el, createTextNode: (x) => ({ tag: '#text', textContent: x }) };
+    let fire = null;
+    const sw = { controller: { scriptURL: 'https://w.example/sw-1.js' }, addEventListener: (e, f) => (fire = f), getRegistration: () => Promise.resolve(null) };
+    const window = { stop() {}, localStorage: memoryStorage(stored) };
+    vm.runInNewContext(read('loader-watch.js'), { window, document, navigator: { serviceWorker: sw }, Object, Date, JSON });
+    fire();
+    const texts = (n) => [n.textContent, ...(n.children || []).flatMap(texts)].join('|');
+    return { text: texts(body), lang: body.children[0].attrs.lang };
+  };
+  const english = run({});
+  assert.match(english.text, /Stop: unsigned code/);
+  assert.equal(english.lang, undefined);
+  const ru = run({ [EARLY_STORAGE_KEY]: JSON.stringify({ lang: 'ru', s: { 'Stop: unsigned code': 'Стоп: <script>код</script>', 'BEAM Campfire stopped before opening.': 'BEAM Campfire остановлен.' } }) });
+  assert.match(ru.text, /Стоп: <script>код<\/script>/, 'as text');
+  assert.match(ru.text, / BEAM Campfire остановлен\./);
+  assert.match(ru.text, /Your coins are on the BEAM blockchain/, 'not translated: English');
+  assert.equal(ru.lang, 'ru');
+});
+
+test('tNodes: the translated order, elements kept as they are, the rest as strings', async () => {
+  const el = { node: true };
+  globalThis.Node = class {};
+  const link = Object.assign(new globalThis.Node(), el);
+  try {
+    assert.deepEqual(tNodes('Read {guide} first, {name}.', { guide: link, name: '<i>Ann</i>' }), ['Read ', link, ' first, ', '<i>Ann</i>', '.']);
+    await inLanguage('ja', { 'Read {guide} first, {name}.': '{name}、まず{guide}を読んでください。' }, async () => {
+      assert.deepEqual(tNodes('Read {guide} first, {name}.', { guide: link, name: 'Ann' }), ['Ann', '、まず', link, 'を読んでください。']);
+    });
+  } finally {
+    delete globalThis.Node;
+  }
+});
+
+test('the release ships each catalog with its usable translations only, and not the translators\' files', () => {
+  const r = shippedCatalog({ Reload: 'Перезагрузить', Settings: '', 'Hi {name}': 'Привет', '{n} codes': { one: '{n} код', few: '{n} кода', many: '{n} кодов', other: '{n} кода' } }, 'ru');
+  assert.deepEqual(JSON.parse(r.text), { Reload: 'Перезагрузить', '{n} codes': { one: '{n} код', few: '{n} кода', many: '{n} кодов', other: '{n} кода' } });
+  assert.equal(r.kept, 2);
+  assert.deepEqual(r.dropped, ['Hi {name}']);
+  assert.equal(shippedCatalog({ Reload: '' }, 'ja').text, '{}\n', 'nothing translated: an empty catalog');
+  assert.throws(() => shippedCatalog({}, 'en'));
+  assert.throws(() => shippedCatalog({}, 'de'));
+  assert.ok(NOT_SHIPPED.has('i18n/keys.json') && NOT_SHIPPED.has('i18n/glossary.json'));
+  assert.equal(CATALOG_PATH.exec('i18n/zh-Hans.json')[1], 'zh-Hans');
+});
+
+test('index.html: the noscript sentence in every translated language, escaped as text; unchanged without', () => {
+  const html = read('index.html');
+  assert.equal(noscriptHtml(html, { ru: { [NOSCRIPT_TEXT]: '' }, ja: {} }), html, 'nothing translated: byte for byte');
+  const out = noscriptHtml(html, { ru: { [NOSCRIPT_TEXT]: 'Нужен JavaScript.</p></noscript><script>alert(1)</script>' }, ja: { [NOSCRIPT_TEXT]: 'JavaScript が必要です。' }, 'zh-Hans': { [NOSCRIPT_TEXT]: 'bad {x}' } });
+  assert.ok(out.includes('<p class="lead" lang="ru">Нужен JavaScript.&lt;/p&gt;&lt;/noscript&gt;&lt;script&gt;alert(1)&lt;/script&gt;</p><p class="lead" lang="ja">JavaScript が必要です。</p></noscript>'));
+  assert.ok(!out.includes('lang="zh-Hans"'), 'a placeholder that is not in the English: left out');
+  assert.equal((out.match(/<script/g) || []).length, (html.match(/<script/g) || []).length, 'no script added');
+});
+
+test('translations reach the page as text only: no HTML string anywhere in the app\'s modules', () => {
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(join(src, dir))) {
+      const rel = dir ? `${dir}/${name}` : name;
+      if (statSync(join(src, rel)).isDirectory()) {
+        if (name !== 'vendor') walk(rel);
+      } else if (name.endsWith('.js')) files.push(rel);
+    }
+  };
+  walk('lib');
+  walk('screens');
+  files.push('app.js', 'lang-boot.js', 'loader-watch.js');
+  for (const f of files) assert.doesNotMatch(read(f), /\.innerHTML\b|\.outerHTML\s*=|insertAdjacentHTML|document\.write\(|createContextualFragment|DOMParser/, f);
+});

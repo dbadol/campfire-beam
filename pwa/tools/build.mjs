@@ -2,7 +2,7 @@
 //
 //   node tools/build.mjs [--out dist] [--version 0.1.0] [--key <private jwk>]
 //                        [--mirrors <url,url,...>|none]
-//   Test-only: [--loader-note <text>] [--loader-api <n>]
+//   Test-only: [--loader-note <text>] [--loader-api <n>] [--catalogs <dir>]
 //
 // 1. Checks vendor/engine against engine.lock.json (run tools/stage_engine.mjs first).
 // 2. Copies src/ and the engine into --out, filling in the version, the
@@ -28,8 +28,13 @@
 //    --loader-note adds a comment to the loader (a release whose loader differs
 //    only in its bytes) and --loader-api builds another contract level (a
 //    release the older loader cannot run): tests use them, releases do not.
+//    --catalogs reads the translations from another folder (a test's own
+//    catalogs, e.g. a pseudo-language); they are checked and signed the same.
 // 4. Writes _headers for static hosts, and fails if deploy/_headers,
 //    deploy/nginx.conf or deploy/Caddyfile disagree with tools/headers.mjs.
+// Translations (tools/i18n_build.mjs): each catalog src/i18n/<lang>.json ships with its usable
+// translations only, the translators' keys.json and glossary.json not at all, and index.html's
+// <noscript> carries its sentence in every language that has it translated.
 // The private key never enters the output and is never printed.
 import { webcrypto, createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir, rm, readdir, copyFile } from 'node:fs/promises';
@@ -41,6 +46,7 @@ import { loaderSource } from './loader_source.mjs';
 import { BUILTIN_SOURCES, normalizeSource } from '../src/lib/update_sources.js';
 import { SHADER_DIR } from '../src/lib/shaders.js';
 import { checkShaders } from './shader_check.mjs';
+import { NOT_SHIPPED, CATALOG_PATH, shippedCatalog, noscriptHtml } from './i18n_build.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -114,12 +120,27 @@ const { source: swSrc, loaderCompat } = await loaderSource({ srcDir, pub, loader
 const LOADER_NAME = `sw-${sha256(Buffer.from(swSrc)).slice(0, 16)}.js`;
 await writeFile(join(out, LOADER_NAME), swSrc);
 
+const catalogs = {};
+const catalogDir = resolve(process.cwd(), arg('catalogs', join(srcDir, 'i18n')));
+for (const f of await walk(join(srcDir, 'i18n')).catch(() => [])) {
+  const m = CATALOG_PATH.exec(relative(srcDir, f).split(sep).join('/'));
+  if (m && !NOT_SHIPPED.has(m[0])) catalogs[m[1]] = JSON.parse(await readFile(join(catalogDir, `${m[1]}.json`), 'utf8'));
+}
 for (const f of await walk(srcDir)) {
   const rel = relative(srcDir, f).split(sep).join('/');
   const dst = join(out, rel);
+  if (NOT_SHIPPED.has(rel)) continue; // the translators' files
   await mkdir(dirname(dst), { recursive: true });
+  const cat = CATALOG_PATH.exec(rel);
   if (rel === 'sw.js') {
     continue; // written above under its content-addressed name
+  } else if (cat) {
+    const { text, kept, dropped } = shippedCatalog(catalogs[cat[1]], cat[1]);
+    for (const k of dropped) log(`i18n/${cat[1]}.json: left out (its placeholders differ from the English): ${JSON.stringify(k).slice(0, 80)}`);
+    log(`i18n/${cat[1]}.json: ${kept} translations`);
+    await writeFile(dst, text);
+  } else if (rel === 'index.html') {
+    await writeFile(dst, noscriptHtml(await readFile(f, 'utf8'), catalogs));
   } else if (rel === 'lib/version.js') {
     let s = await readFile(f, 'utf8');
     s = s

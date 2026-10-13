@@ -1,0 +1,863 @@
+{
+  "about": "The words BEAM Campfire uses again and again, for the translators to settle first so both the web wallet and the desktop/phone app use the same ones. Fill ru, zh-Hans and ja for each term, then translate the catalogs (src/i18n/<lang>.json) with these words. 'meaning' says what the term is; 'where' names screens where it appears.",
+  "keep_as_is": [
+    "BEAM",
+    "BEAM Campfire",
+    "Campfire",
+    "Ethereum",
+    "ETH",
+    "WBEAM",
+    "bETH and the other asset tickers",
+    "Uniswap",
+    "NEAR Intents",
+    "CoinGecko",
+    "Face ID",
+    "Touch ID",
+    "wallet.db",
+    "wallet-api",
+    "the 12 seed words",
+    "addresses, transaction IDs, amounts, BEAM names, dApp and publisher names"
+  ],
+  "terms": [
+    {
+      "en": "wallet",
+      "meaning": "The app's account on this device: the coins, addresses and history that one set of 12 words (or one wallet.db file) controls. Several can live on one device.",
+      "where": "Welcome, Home (its name), Settings → Wallets, Unlock",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "12 words",
+      "meaning": "The recovery phrase: twelve English words that rebuild the wallet on any device. The words themselves are never translated (BEAM accepts only its English list); everything said about them is.",
+      "where": "Backup, Check your words, Restore, Settings → Backup",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "backup",
+      "meaning": "Keeping the 12 words (or the wallet.db file and its password) somewhere safe, away from this device.",
+      "where": "Settings → Backup, Home's backup reminder, Welcome",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "restore",
+      "meaning": "Rebuilding a wallet from its 12 words on this device.",
+      "where": "Welcome, Restore, Add a wallet",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "import",
+      "meaning": "Bringing in an existing wallet.db file made by another BEAM wallet (it keeps its own password).",
+      "where": "Welcome, Import a wallet.db, Add a wallet",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "export",
+      "meaning": "Saving a copy of this wallet's wallet.db file, protected by a password, to open in another BEAM wallet.",
+      "where": "Settings → Backup → Export wallet.db",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "wallet.db file",
+      "meaning": "The wallet's database file as BEAM's desktop and command-line wallets use it. 'wallet.db' itself is a file name: keep it as is.",
+      "where": "Import, Export, Backup, Delete wallet",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "password",
+      "meaning": "What unlocks the wallet on this device (and every payment). Not the 12 words; it cannot recover the wallet elsewhere.",
+      "where": "Set a password, Unlock, Change password, every payment",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "passkey",
+      "meaning": "A key kept by the device behind Face ID / Touch ID / the device PIN, used instead of typing the password. 'Face ID' and 'Touch ID' are Apple's names: keep them.",
+      "where": "Face ID setup, Settings → Face ID / Touch ID, Unlock",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "unlock",
+      "meaning": "Opening the wallet with the password or Face ID after it locked.",
+      "where": "Unlock screen, every payment",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "lock",
+      "meaning": "Closing the wallet so nobody can use it without the password; 'Lock now' does it at once.",
+      "where": "Settings → Lock now, Unlock",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "auto-lock",
+      "meaning": "Locking by itself after some minutes without use (1, 5 or 15 min), also when the app goes to the background.",
+      "where": "Settings → Auto-lock, Unlock ('Locked after 5 minutes without use')",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "address",
+      "meaning": "Where someone sends BEAM to this wallet: a long code to copy, share or show as a QR code. Never translate an address itself.",
+      "where": "Receive, Send, Settings → Your addresses, Contacts",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "regular address",
+      "meaning": "The usual BEAM address: the receiver's wallet has to come online within about 12 hours to accept a payment.",
+      "where": "Receive → More, Send review, Your addresses",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "offline address",
+      "meaning": "An address that receives even while the receiving wallet is closed; payments to it cost a higher network fee.",
+      "where": "Receive → More, Send review",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "max privacy address",
+      "meaning": "An address whose payments hide among many others; the receiver can spend them after a while; higher network fee.",
+      "where": "Receive → More, Send review",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "public address",
+      "meaning": "A reusable donation address that receives while its owner is offline; higher network fee.",
+      "where": "Receive → More, Send review",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "receive",
+      "meaning": "Getting BEAM or a token into this wallet: the screen that shows the address and its QR code.",
+      "where": "Home, Receive, Activity's empty state, many 'Receive BEAM first' hints",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "send",
+      "meaning": "Paying someone: amount, address, network fee, then confirm.",
+      "where": "Home, Send, Review, payment status",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "payment",
+      "meaning": "One transfer in or out of the wallet, as listed in Activity.",
+      "where": "Activity, payment status, notifications",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "amount",
+      "meaning": "How much is sent or received. Amounts are written with a dot for decimals in every language (1,234.5) and are never translated.",
+      "where": "Send, Swap, Review, Activity",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "balance",
+      "meaning": "What the wallet holds of an asset; 'available' is what can be spent now.",
+      "where": "Home, a token's page",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "available",
+      "meaning": "The part of the balance that can be spent now (not still arriving, sending or maturing).",
+      "where": "Home, Send ('Max'), a token's page",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "maturing",
+      "meaning": "Coins the wallet received or made that the network does not let it spend yet (they become available after some blocks).",
+      "where": "Home balance details, Coins",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "network fee",
+      "meaning": "What the BEAM network charges for a payment or a contract call (0.001 BEAM for a regular payment, more for others). Paid to the network, not to the app.",
+      "where": "Send, Review, Swap, every approve sheet",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "Max",
+      "meaning": "The button that fills in the whole available amount minus the network fee.",
+      "where": "Send, Swap, Move coins",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "review",
+      "meaning": "The screen that shows exactly what will happen (amount, fee, address) before the person confirms.",
+      "where": "Send → Review, Swap, Move coins, Ethereum send",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "confirm",
+      "meaning": "The final 'yes' to a payment or action, after the review.",
+      "where": "Review, approve sheets",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "waiting for the receiver",
+      "meaning": "A regular payment sent while the receiver's wallet was offline: it completes when that wallet comes online (within about 12 hours).",
+      "where": "Activity, payment status",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "in progress",
+      "meaning": "A payment being built or registered on the network.",
+      "where": "Activity, payment status",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "confirming",
+      "meaning": "A payment the network has accepted, waiting to be in enough blocks.",
+      "where": "Activity, payment status",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "cancelled",
+      "meaning": "A payment stopped before it was sent; nothing left the wallet.",
+      "where": "Activity, payment status",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "failed",
+      "meaning": "A payment that did not go through; the wallet says why.",
+      "where": "Activity, payment status",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "activity",
+      "meaning": "The list of payments, swaps and contract calls of this wallet (its history).",
+      "where": "Activity tab, Home",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "payment proof",
+      "meaning": "A code the sender can give to show a payment was made to an address; the receiver can check it.",
+      "where": "Payment details, Settings → Check a payment proof",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "transaction ID",
+      "meaning": "The identifier of one payment on the network (a long hex code, never translated).",
+      "where": "Payment details, Ethereum payment",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "comment",
+      "meaning": "A private note the person attaches to a payment or an address, kept only in this wallet.",
+      "where": "Send, payment details, Your addresses",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "contact",
+      "meaning": "A person the wallet owner pays, saved with a name and address.",
+      "where": "Settings → Contacts, Send",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "label",
+      "meaning": "A name the person gives an address (to remember what it is for).",
+      "where": "Settings → Your addresses",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "QR code",
+      "meaning": "The square code that holds an address or a payment request, shown on Receive and read by Scan.",
+      "where": "Receive, Send → Scan",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "scan",
+      "meaning": "Reading a QR code with the camera (an address, a payment request, a BEAM name).",
+      "where": "Send, Home",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "copy",
+      "meaning": "Putting a text (an address, a key) on the clipboard; 'Copied' confirms it.",
+      "where": "Receive, payment details, many screens",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "clipboard",
+      "meaning": "Where copied text waits to be pasted; the app empties it after a minute when it held a secret.",
+      "where": "Owner key, airdrop codes, toasts",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "coins",
+      "meaning": "The separate pieces the wallet's balance is made of (like notes in a purse); several coins let several payments go at once.",
+      "where": "Settings → Coins, Split coins, Home",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "split coins",
+      "meaning": "Dividing a large coin into several smaller ones so several payments can be sent at the same time.",
+      "where": "Coins, Review split",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "private balance",
+      "meaning": "Coins held in BEAM's most private form (max privacy / shielded), spendable after a while.",
+      "where": "Home, a token's page",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "sync",
+      "meaning": "Bringing the wallet up to date with the BEAM network. 'Synced' means up to date and able to send.",
+      "where": "Home's status line, Activity, Send (paused until synced)",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "catching up",
+      "meaning": "Syncing: the wallet is behind the network by some blocks and is getting the rest.",
+      "where": "Home's status line",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "blocks behind",
+      "meaning": "How far the wallet is from the newest block (a count of blocks; plural forms).",
+      "where": "Home's status line",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "block",
+      "meaning": "One step of the BEAM blockchain, about one a minute; 'block 3,928,666' is a height.",
+      "where": "Status line, payment details",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "node",
+      "meaning": "A BEAM server the wallet talks to over the internet to see the blockchain and send payments.",
+      "where": "Settings → BEAM node, status line",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "random nodes",
+      "meaning": "The default: the app picks one of BEAM's public nodes and moves to another one by itself when it fails.",
+      "where": "Settings → BEAM node",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "your own node",
+      "meaning": "A BEAM node the person runs and enters by its address, used instead of random nodes.",
+      "where": "Settings → BEAM node → Your own node",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "reconnecting",
+      "meaning": "Moving to another node because the current one stopped answering; sending pauses for a moment.",
+      "where": "Status line",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "IP privacy",
+      "meaning": "What a node (or another server) can see: the device's IP address. Explained before the first connection.",
+      "where": "IP privacy notice, Settings → IP privacy",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "rescan",
+      "meaning": "Rebuilding the wallet's coins from the blockchain (from BEAM's recovery file) when the balance looks wrong; history and addresses stay.",
+      "where": "Settings → Rescan, Getting your wallet ready",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "recovery file",
+      "meaning": "BEAM's daily snapshot of the blockchain (~330 MB) that a restored wallet reads to find its coins quickly.",
+      "where": "Restore, Getting your wallet ready, Rescan",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "owner key",
+      "meaning": "A key that lets a BEAM node see every payment this wallet receives (for one's own node). A secret: never share it.",
+      "where": "Backup → Show owner key, BEAM node, Your own node",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "update",
+      "meaning": "A newer signed release of the app; it installs only when the person taps Update.",
+      "where": "Settings → Check for updates, Home's update banner, About",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "signature",
+      "meaning": "The release key's proof that an update or file comes from BEAM Campfire and was not changed.",
+      "where": "Update messages, About, the tripwire",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "release",
+      "meaning": "One version of the app (all its files, signed together).",
+      "where": "About, update messages",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "copy of the app",
+      "meaning": "Another web address serving the same signed releases, asked for updates when this app's own address is gone.",
+      "where": "Check for updates, Update from another address, About",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "loader",
+      "meaning": "The small part of the app the browser installs first; it checks every file against the signature before the app runs.",
+      "where": "Install (first open), update messages, the tripwire",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "unsigned code",
+      "meaning": "Code at the app's address that BEAM Campfire did not sign: the app stops and tells the person not to enter a password.",
+      "where": "The tripwire screen ('Stop: unsigned code')",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "Home Screen",
+      "meaning": "Where an installed web app sits on the phone, like any app (iPhone: Add to Home Screen).",
+      "where": "Install, About",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "version",
+      "meaning": "The release number, e.g. 'Version 0.2.14'.",
+      "where": "Welcome, Unlock, About",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "asset",
+      "meaning": "Any coin the BEAM wallet holds: BEAM itself or a Confidential Asset (token). Asset names and tickers are never translated.",
+      "where": "Home, Send, Swap, a token's page",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "token",
+      "meaning": "A Confidential Asset on BEAM (or an ERC-20 on Ethereum): anything other than BEAM itself.",
+      "where": "Home, Hidden tokens, Your own token",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "hidden tokens",
+      "meaning": "Tokens the person chose not to see on Home; they stay in the wallet.",
+      "where": "Settings → Hidden tokens, a token's page",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "value",
+      "meaning": "What an amount is worth in the person's currency (from CoinGecko, only once allowed).",
+      "where": "Home, Settings → Tokens and prices",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "swap",
+      "meaning": "Exchanging one asset for another at the DEX's current price (BEAM > bETH by default).",
+      "where": "Home → Swap, Activity",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "price protection",
+      "meaning": "The most the price may move against the person before a swap is refused ('slippage tolerance' in trading jargon: do not use that word).",
+      "where": "Swap, Swap on Uniswap, pools",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "rate",
+      "meaning": "How much of one asset one unit of the other buys (1 BEAM = … bETH).",
+      "where": "Swap, Pools",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "pool",
+      "meaning": "A pair of assets locked in the DEX that swaps trade against; people add to it to earn fees.",
+      "where": "Swap, Pools, a pool",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "liquidity",
+      "meaning": "The assets someone puts into a pool (adding) or takes out of it (withdrawing).",
+      "where": "A pool, Add / Take out",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "LP token",
+      "meaning": "The token a pool gives for added liquidity; it is what takes the liquidity out again.",
+      "where": "A pool, Home",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "DEX",
+      "meaning": "BEAM's on-chain exchange (a contract), where swaps and pools live.",
+      "where": "Swap, Pools, Activity",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "contract call",
+      "meaning": "Asking a BEAM smart contract (DEX, names, airdrop…) to do something; it costs at least 0.011 BEAM.",
+      "where": "Approve sheets, Activity",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "approve",
+      "meaning": "The sheet where the person checks what a contract call or a dApp request will spend and says yes or no.",
+      "where": "Every contract call, dApps",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "dApp",
+      "meaning": "An app that runs inside the wallet and uses BEAM contracts (the wallet asks before it spends anything).",
+      "where": "dApps, DApp Store",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "DApp Store",
+      "meaning": "BEAM's catalogue of dApps from their publishers, to install from.",
+      "where": "dApps → DApp Store",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "publisher",
+      "meaning": "Who made and signed a dApp in the DApp Store (their names are never translated).",
+      "where": "DApp Store",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "your own token",
+      "meaning": "A Confidential Asset the person creates (the minter): its name, symbol and supply.",
+      "where": "Home → Your own token, Create a token, Mint",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "mint",
+      "meaning": "Making more units of one's own token.",
+      "where": "Your own token",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "supply",
+      "meaning": "How many units of a token exist (or may exist: the limit).",
+      "where": "Your own token, a token's page",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "burn",
+      "meaning": "Destroying an amount of a token for good.",
+      "where": "Burn",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "BEAM name",
+      "meaning": "A readable name (like a username) that points to a BEAM address; names are never translated.",
+      "where": "BEAM names, Send, Receive a name",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "claim",
+      "meaning": "Taking into the wallet what waits for it (payments to a name, an airdrop code, a vault).",
+      "where": "BEAM names, Airdrop",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "vault",
+      "meaning": "Where payments to a BEAM name wait until the owner claims them.",
+      "where": "BEAM names",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "renew",
+      "meaning": "Paying to keep a BEAM name for another period before it expires.",
+      "where": "A name, BEAM names",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "airdrop",
+      "meaning": "Sending amounts to many people at once as codes they redeem.",
+      "where": "Airdrop, Create codes, My batches",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "code",
+      "meaning": "One airdrop voucher: a short text that claims an amount once (plural forms).",
+      "where": "Airdrop, Airdrop codes",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "batch",
+      "meaning": "One set of airdrop codes created together.",
+      "where": "My batches",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "Ethereum wallet",
+      "meaning": "The second wallet in the app, for ETH and Ethereum tokens (WBEAM…), made from its own 12 words.",
+      "where": "Ethereum side, Settings → Ethereum wallet",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "gas",
+      "meaning": "What the Ethereum network charges (paid in ETH); the Ethereum word for network fee.",
+      "where": "Ethereum send, Swap on Uniswap, Move coins",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "move coins",
+      "meaning": "Taking BEAM or an asset across to Ethereum and back (BEAM's bridge).",
+      "where": "Move coins, Your moves",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "buy BEAM",
+      "meaning": "Getting BEAM with another coin through an exchange service, sent to this wallet.",
+      "where": "Buy BEAM, Your buys",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "deposit address",
+      "meaning": "The address of the exchange service where the person sends their other coin for a buy or a swap.",
+      "where": "A buy, NEAR Intents swap",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "notification",
+      "meaning": "A message from the app on the device (a payment arrived, a reminder), made on the device, never from a server.",
+      "where": "Settings → Payment notifications",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "appearance",
+      "meaning": "How the app looks: theme, colours and language.",
+      "where": "Settings → Appearance",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "theme",
+      "meaning": "Light or dark (or like this device).",
+      "where": "Settings → Appearance → Theme",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "language",
+      "meaning": "The language of the app's words (like this device, or English, Русский, 简体中文, 日本語 — each written in itself).",
+      "where": "Settings → Appearance → Language",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "like this device",
+      "meaning": "The default for theme and language: follow what the phone or computer is set to.",
+      "where": "Settings → Appearance",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "delete wallet",
+      "meaning": "Removing this wallet from this device only; the coins stay on the blockchain and come back with the 12 words.",
+      "where": "Settings → Delete wallet from this device",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    },
+    {
+      "en": "open in another tab",
+      "meaning": "The app runs in one browser tab or window at a time; another one has it now.",
+      "where": "The 'open in another tab' screen",
+      "ru": "",
+      "zh-Hans": "",
+      "ja": ""
+    }
+  ]
+}

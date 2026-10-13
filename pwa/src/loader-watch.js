@@ -26,6 +26,19 @@
 
   var WARNING = "This app's web address is serving code BEAM Campfire did not sign. Don't enter your password here.";
 
+  // The language the app was last shown in: lib/i18n.js keeps these few sentences' translations
+  // (campfire-lang-early) because nothing else of the page may load once this stops it. Text only.
+  var early = null;
+  try {
+    early = JSON.parse(window.localStorage.getItem('campfire-lang-early') || 'null');
+  } catch (e) {
+    early = null; // storage blocked, or none kept: English
+  }
+  function tr(text) {
+    var v = early && early.s && typeof early.s === 'object' && Object.prototype.hasOwnProperty.call(early.s, text) ? early.s[text] : null;
+    return typeof v === 'string' && v ? v : text;
+  }
+
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -44,17 +57,18 @@
     var body = document.body || document.documentElement.appendChild(document.createElement('body'));
     var main = el('main', 'screen tripwire');
     main.setAttribute('data-testid', 'tripwire-early');
+    if (early && typeof early.lang === 'string' && /^[A-Za-z-]{2,8}$/.test(early.lang)) main.setAttribute('lang', early.lang);
     var content = el('div', 'content');
-    content.appendChild(el('h2', 'title', 'Stop: unsigned code'));
+    content.appendChild(el('h2', 'title', tr('Stop: unsigned code')));
     var n = el('div', 'notice error');
     n.setAttribute('role', 'alert');
     var g = el('div', 'grow');
-    g.appendChild(el('strong', null, WARNING));
-    g.appendChild(document.createTextNode(' BEAM Campfire stopped before opening.'));
+    g.appendChild(el('strong', null, tr(WARNING)));
+    g.appendChild(document.createTextNode(' ' + tr('BEAM Campfire stopped before opening.')));
     n.appendChild(g);
     content.appendChild(n);
-    content.appendChild(el('p', 'lead', 'Your coins are on the BEAM blockchain, not in this app. Open them in BEAM Campfire desktop or another BEAM wallet, with your 12 words or with your exported wallet.db file and its password.'));
-    content.appendChild(el('p', 'small', 'Close this app now. Do not reopen it from the same address or enter any password or words in it.'));
+    content.appendChild(el('p', 'lead', tr('Your coins are on the BEAM blockchain, not in this app. Open them in BEAM Campfire desktop or another BEAM wallet, with your 12 words or with your exported wallet.db file and its password.')));
+    content.appendChild(el('p', 'small', tr('Close this app now. Do not reopen it from the same address or enter any password or words in it.')));
     main.appendChild(content);
     while (body.firstChild) body.removeChild(body.firstChild);
     body.appendChild(main);
