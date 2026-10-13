@@ -444,6 +444,8 @@ test('airdrop: claiming a 5 FOMO code reaches the approve sheet with the normali
   assert.deepEqual(await page.$$eval(`${tid('airdrop-net')} > div`, (els) => els.map((e) => e.textContent)), ['+5 FOMO', '−0.121 BEAM']);
   await page.waitForFunction(() => !document.querySelector('[data-testid="airdrop-cta"]').disabled, null, { timeout: 30000 });
   assert.equal(await page.textContent(tid('airdrop-cta')), 'Claim 5 FOMO');
+  // Issue #17: what a claim shows to the network, in the app's words, with the code it found.
+  assert.equal(await page.textContent(tid('airdrop-bearer')), 'Claiming shows this code to the network before it is confirmed, so someone watching could claim it first. That is how this airdrop contract works; codes are meant for small amounts.');
   await shots('airdrop-03-claim-found');
 
   await tapWithRealBalance('airdrop-cta');
@@ -497,6 +499,9 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
   assert.deepEqual(s1, { locked: '0.002 BEAM', fee: '0.00002 BEAM', network: '0.121 BEAM', total: '0.12302 BEAM' });
   assert.equal(await page.isDisabled(tid('drop-cta')), true);
   assert.match(await page.textContent(tid('drop-reason')), /^Not enough BEAM\. This needs 0\.12302 BEAM, network fee included\. You have 0 BEAM\./);
+  // Issue #17: codes work like cash, said before the button.
+  assert.equal(await page.textContent(tid('drop-bearer')), 'Codes work like cash. Anyone who has a code can claim it. Claiming also shows the code to the network before it is confirmed, so someone watching could claim it first. Use codes for small amounts, and give each one to one person.');
+  assert.ok(await page.evaluate(() => document.querySelector('[data-testid="drop-bearer"]').getBoundingClientRect().top < document.querySelector('[data-testid="drop-cta"]').getBoundingClientRect().top), 'before the button');
   await shots('airdrop-05-create-not-enough');
   // The 1%: floored, never below 1 groth.
   for (const [amount, count, fee] of [

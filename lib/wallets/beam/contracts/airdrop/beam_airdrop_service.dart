@@ -212,8 +212,10 @@ class AirdropSummary {
 ///
 /// For [AirdropAction.createBatch], [saved] holds the new codes. They are
 /// secret: show them only after the batch is sent, and never log them.
-/// For [AirdropAction.redeem], [args] contains the code (it becomes public
-/// on chain once the claim is mined, not before).
+/// For [AirdropAction.redeem], [args] contains the code itself. It is not
+/// secret once the claim is sent: the network sees it before the claim is
+/// mined, so someone watching could claim the voucher first (issue #17; the
+/// claim screen says so). Never log it.
 class BeamPreparedAirdropCall {
   BeamPreparedAirdropCall._({
     required this.action,

@@ -43,7 +43,9 @@ abstract final class AirdropArgs {
 
   /// `redeem`: claim a voucher with its **normalised code** (the preimage).
   /// Never the hash: the contract hashes the preimage itself, which is what
-  /// stops anyone reading contract state from redeeming.
+  /// stops anyone reading contract state from redeeming. It does not protect
+  /// the claim itself: the code travels in the claim transaction, which the
+  /// network sees before it is mined (issue #17).
   static String redeem({
     required String normalisedCode,
     String cid = kAirdropContractId,
