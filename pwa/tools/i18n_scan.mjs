@@ -449,6 +449,9 @@ export function wordLike(s) {
   return true;
 }
 
+// The name-holding properties that sometimes hold a sentence instead (sentenceLike decides).
+const SOFT_NAME_KEYS = new Set(['reason', 'status', 'result', 'state', 'kind', 'mode', 'content', 'action', 'event', 'step', 'stage', 'phase']);
+
 /** Words that read as a sentence: three or more, or two or more ending in . ! ? … */
 export function sentenceLike(s) {
   const v = String(s).replace(/\{…\}/g, ' x ').trim();
@@ -627,7 +630,7 @@ function classify(toks, i, ctx) {
   const directProp = f && f.kind === 'object' && propKey != null;
   // A property that usually holds a name (reason, status, kind…) can still hold a sentence: three
   // words or more, or words ending like a sentence, are words.
-  if (directProp && NAME_KEYS.has(propKey)) return { text: sentenceLike(value), reason: `${propKey}:`, call: callee };
+  if (directProp && NAME_KEYS.has(propKey)) return { text: SOFT_NAME_KEYS.has(propKey) && sentenceLike(value), reason: `${propKey}:`, call: callee };
   if (call && call.callee) {
     const c = `${call.isNew ? 'new ' : ''}${call.callee}`;
     if (call.callee === 'setAttribute' || /\.setAttribute$/.test(call.callee)) {
