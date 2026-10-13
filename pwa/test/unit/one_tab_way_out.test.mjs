@@ -30,6 +30,6 @@ test('the screen: under Reload the first time, a notice above it after that', ()
   const s = readFileSync(new URL('../../src/screens/one_tab.js', import.meta.url), 'utf8');
   assert.match(s, /const again = seenBefore\(\);/);
   assert.match(s, /const seenBefore = \(\) => \(thisLoad === null \? \(thisLoad = uncheckedSeen\(\)\) : thisLoad\) > 1;/, 'counted once per page load, however often it is drawn');
-  assert.match(s, /again \? h\('div', \{ 'data-testid': 'one-tab-way-out', 'data-again': 'true' \}, notice\('warn', UNCHECKED_WAY_OUT\)\) : null/);
-  assert.match(s, /again \? null : h\('p', \{ class: 'small center', 'data-testid': 'one-tab-way-out', text: UNCHECKED_WAY_OUT \}\)/);
+  assert.match(s, /again \? h\('div', \{ 'data-testid': 'one-tab-way-out', 'data-again': 'true' \}, notice\('warn', t\(UNCHECKED_WAY_OUT\)\)\) : null/);
+  assert.match(s, /again \? null : h\('p', \{ class: 'small center', 'data-testid': 'one-tab-way-out', text: t\(UNCHECKED_WAY_OUT\) \}\)/);
 });

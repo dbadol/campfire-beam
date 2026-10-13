@@ -29,9 +29,9 @@ test('the line: BEAM publishes it daily, the same file as its wallets; who passe
 
 test('the screen: the file button in every choice, the how-to only when it is the way on, the skip says how long', () => {
   const s = src('screens/fast_start.js');
-  assert.match(s, /noRelay \? secondary\('Try the download anyway', startDownload, \{ 'data-testid': 'fast-download' \}\) : fileButton\('btn-secondary'\),/, 'always a second button');
+  assert.match(s, /noRelay \? secondary\(t\('Try the download anyway'\), startDownload, \{ 'data-testid': 'fast-download' \}\) : fileButton\('btn-secondary'\),/, 'always a second button');
   assert.match(s, /const howToFile = Boolean\(errorText\) \|\| noRelay;/);
-  assert.match(s, /textButton\(`Skip and scan instead \(\$\{SCAN_TIME\}\)`/);
+  assert.match(s, /textButton\(t\('Skip and scan instead \(\{time\}\)', \{ time: t\(SCAN_TIME\) \}\)/);
   assert.match(s, /'data-testid': 'recovery-source'/);
   // Nothing to type an address into: the snapshot comes from this site, BEAM Campfire's server or a file.
   assert.doesNotMatch(s, /type: 'url'|inputmode: 'url'/);
