@@ -192,7 +192,8 @@ export default function airdropCreate(app) {
         app.dropCreateDraft = null;
         app.back('airdrop');
       },
-      cls: 'airdrop-create feature',
+      // The button stays in sight on a small phone, below the summary and the warnings (as Mint's).
+      cls: 'airdrop-create feature sticky-actions',
     },
     assetField,
     h(
@@ -204,8 +205,8 @@ export default function airdropCreate(app) {
     fieldHint,
     summary,
     notes,
-    h('div', { class: 'actions inline-actions' }, reason, cta),
   );
+  el.appendChild(h('div', { class: 'actions inline-actions' }, reason, cta));
   return {
     el,
     destroy() {

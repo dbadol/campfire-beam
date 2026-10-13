@@ -502,6 +502,13 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
   // Issue #17: codes work like cash, said before the button.
   assert.equal(await page.textContent(tid('drop-bearer')), 'Codes work like cash. Anyone who has a code can claim it. Claiming also shows the code to the network before it is confirmed, so someone watching could claim it first. Use codes for small amounts, and give each one to one person.');
   assert.ok(await page.evaluate(() => document.querySelector('[data-testid="drop-bearer"]').getBoundingClientRect().top < document.querySelector('[data-testid="drop-cta"]').getBoundingClientRect().top), 'before the button');
+  // ...and the button still in sight on a 375 x 667 phone (its row is pinned to the bottom).
+  const size = page.viewportSize();
+  await page.setViewportSize({ width: 375, height: 667 });
+  await sleep(250);
+  const cta = await page.locator(tid('drop-cta')).boundingBox();
+  await page.setViewportSize(size);
+  assert.ok(cta && cta.y >= 0 && cta.y + cta.height <= 667, `Create codes in sight at 375 x 667 (${JSON.stringify(cta)})`);
   await shots('airdrop-05-create-not-enough');
   // The 1%: floored, never below 1 groth.
   for (const [amount, count, fee] of [
