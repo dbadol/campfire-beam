@@ -21,6 +21,7 @@ import '../../../../notifications/show_flush_bar.dart';
 import '../../../../route_generator.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/assets.dart';
+import '../../../../utilities/beam/file_picker_failure.dart';
 import '../../../../utilities/constants.dart';
 import '../../../../utilities/logger.dart';
 import '../../../../utilities/text_styles.dart';
@@ -173,6 +174,16 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                   }
                 } catch (e, s) {
                   Logging.instance.e("$e\n$s", error: e, stackTrace: s);
+                  // Issue #1: say so; on Linux, what is missing.
+                  if (context.mounted) {
+                    unawaited(
+                      showFloatingFlushBar(
+                        type: FlushBarType.warning,
+                        message: filePickerFailureText(),
+                        context: context,
+                      ),
+                    );
+                  }
                 }
               },
               controller: fileLocationController,

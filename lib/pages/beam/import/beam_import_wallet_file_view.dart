@@ -35,6 +35,7 @@ import '../../../providers/global/node_service_provider.dart';
 import '../../../providers/global/prefs_provider.dart';
 import '../../../providers/global/secure_store_provider.dart';
 import '../../../providers/global/wallets_provider.dart';
+import '../../../utilities/beam/file_picker_failure.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/wallet/beam_wallet_errors.dart';
 import '../../../wallets/beam/wallet/beam_wallet_file_import.dart';
@@ -103,8 +104,7 @@ abstract final class BeamImportText {
       'original file and its password safe: they are how you get it back.';
   static const cta = 'Import my wallet';
   static const busy = 'Importing…';
-  static const pickFailed =
-      "BEAM Campfire couldn't open the file picker. Try again.";
+  static String get pickFailed => filePickerFailureText(app: 'BEAM Campfire');
   static const nameTaken = 'You already have a wallet with this name.';
 }
 

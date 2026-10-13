@@ -27,6 +27,7 @@ import '../../providers/global/secure_store_provider.dart';
 import '../../providers/global/wallets_provider.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/assets.dart';
+import '../../utilities/beam/file_picker_failure.dart';
 import '../../utilities/constants.dart';
 import '../../utilities/flutter_secure_storage_interface.dart';
 import '../../utilities/logger.dart';
@@ -262,6 +263,16 @@ class _ForgottenPassphraseRestoreFromSWBState
                       }
                     } catch (e, s) {
                       Logging.instance.e("$e\n$s", error: e, stackTrace: s);
+                      // Issue #1: say so; on Linux, what is missing.
+                      if (context.mounted) {
+                        unawaited(
+                          showFloatingFlushBar(
+                            type: FlushBarType.warning,
+                            message: filePickerFailureText(),
+                            context: context,
+                          ),
+                        );
+                      }
                     }
                   },
                   child: MouseRegion(
