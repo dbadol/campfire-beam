@@ -414,6 +414,47 @@ void main() {
     );
   });
 
+  testWidgets('25% / 50% / 75% / Max: shares of what can be paid, the fee '
+      'kept back; the chip stays marked until the amount is typed (#83)', (
+    tester,
+  ) async {
+    await openSwap(tester, balances: {0: beam('1.011')});
+    String amount() => tester
+        .widget<TextField>(find.byKey(const Key('dex-pay-amount')))
+        .controller!
+        .text;
+    bool marked(String key) => tester
+        .widget<Semantics>(
+          find
+              .ancestor(
+                of: find.byKey(Key(key)),
+                matching: find.byType(Semantics),
+              )
+              .first,
+        )
+        .properties
+        .selected!;
+    // 1.011 BEAM held, 0.011 BEAM network fee: 1 BEAM can be paid.
+    await tester.tap(find.byKey(const Key('dex-share-25')));
+    await tester.pump();
+    expect(amount(), '0.25');
+    expect(marked('dex-share-25'), isTrue);
+    await tester.tap(find.byKey(const Key('dex-share-50')));
+    await tester.pump();
+    expect(amount(), '0.5');
+    expect(marked('dex-share-50'), isTrue);
+    expect(marked('dex-share-25'), isFalse);
+    await tester.tap(find.byKey(const Key('dex-share-75')));
+    await tester.pump();
+    expect(amount(), '0.75');
+    await tester.tap(find.byKey(const Key('dex-max')));
+    await tester.pump();
+    expect(amount(), '1');
+    expect(marked('dex-max'), isTrue);
+    await typeAmount(tester, const Key('dex-pay-amount'), '0.3');
+    expect(marked('dex-max'), isFalse, reason: 'typed: no chip marked');
+  });
+
   testWidgets('BEAM received pays the fee: FOMO → BEAM with no BEAM', (
     tester,
   ) async {

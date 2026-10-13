@@ -118,6 +118,11 @@ class BeamDexSwapView extends StatefulWidget {
 class _BeamDexSwapViewState extends State<BeamDexSwapView> {
   late int _pay;
   late int _receive;
+
+  /// The share chip in use (25, 50, 75 or 100 = Max), until the amount is
+  /// typed or the paying asset changes (#83).
+  int? _share;
+  bool _settingShare = false;
   final _amount = TextEditingController();
   final _receiveText = TextEditingController();
   DexAmountInput _input = DexAmountInput.empty;
@@ -168,6 +173,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
     _debounce?.cancel();
     _seq++;
     setState(() {
+      if (!_settingShare) _share = null;
       _input = DexFormat.parse(text);
       _quote = null;
       _problem = null;
@@ -185,16 +191,27 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
     _onAmountChanged(_amount.text);
   }
 
-  void _useMax() {
+  /// [percent] of what can be paid: the balance, less the network fee when
+  /// paying with BEAM (BEAM pays its own fee; it stays in the wallet).
+  void _useShare(int percent) {
     final have = deps.available(_pay);
-    // BEAM pays its own network fee; leave it in the wallet.
     final fee = _pay == 0 ? kDexCallFee : BigInt.zero;
     final max = have - fee;
-    _setAmount(max > BigInt.zero ? max : BigInt.zero);
+    final base = max > BigInt.zero ? max : BigInt.zero;
+    _settingShare = true;
+    try {
+      _setAmount(
+        percent == 100 ? base : base * BigInt.from(percent) ~/ BigInt.from(100),
+      );
+    } finally {
+      _settingShare = false;
+    }
+    setState(() => _share = percent);
   }
 
   void _flip() {
     setState(() {
+      _share = null;
       final t = _pay;
       _pay = _receive;
       _receive = t;
@@ -461,12 +478,6 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
               key: const Key('dex-pay-balance'),
               style: STextStyles.label(context),
             ),
-            const SizedBox(width: 8),
-            CustomTextButton(
-              key: const Key('dex-max'),
-              text: 'Max',
-              onTap: _useMax,
-            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -479,6 +490,8 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
           onChanged: _onAmountChanged,
           onAssetTap: () => _pickAsset(paySide: true),
         ),
+        const SizedBox(height: 8),
+        _ShareChips(selected: _share, onPick: _useShare),
         DexWorth(
           deps.worth(_pay, _input.value ?? BigInt.zero),
           textKey: const Key('dex-pay-worth'),
@@ -860,6 +873,61 @@ class _ProtectionPicker extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+/// 25% · 50% · 75% · Max of what can be paid, in one row that fits a 375 px
+/// phone (#83). The chip in use stays marked until the amount is typed.
+class _ShareChips extends StatelessWidget {
+  const _ShareChips({required this.selected, required this.onPick});
+
+  final int? selected;
+  final void Function(int percent) onPick;
+
+  static const _shares = [25, 50, 75, 100];
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<StackColors>()!;
+    return Row(
+      children: [
+        for (final p in _shares) ...[
+          if (p != _shares.first) const SizedBox(width: 8),
+          Expanded(
+            child: Semantics(
+              button: true,
+              selected: selected == p,
+              child: Material(
+                color: selected == p
+                    ? colors.buttonBackPrimary
+                    : colors.buttonBackSecondary,
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  key: Key(p == 100 ? 'dex-max' : 'dex-share-$p'),
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => onPick(p),
+                  child: SizedBox(
+                    height: 36,
+                    child: Center(
+                      child: Text(
+                        p == 100 ? 'Max' : '$p%',
+                        style: STextStyles.label(context).copyWith(
+                          color: selected == p
+                              ? colors.buttonTextPrimary
+                              : colors.buttonTextSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
