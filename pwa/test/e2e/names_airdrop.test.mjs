@@ -508,12 +508,17 @@ test('airdrop: create 2 codes of 0.001 BEAM: the fee math, the sheet, the codes 
     ['0.00000150', '1', '0.00000001 BEAM'],
     ['0.00000001', '3', '0.00000001 BEAM'],
     ['1.23456789', '7', '0.08641975 BEAM'],
-    ['250', '100', '250 BEAM'],
+    ['250', '29', '72.5 BEAM'],
   ]) {
     await page.fill(tid('drop-amount'), amount);
     await page.fill(tid('drop-count'), count);
     assert.equal(await page.textContent(tid('drop-fee')), fee, `${count} x ${amount}`);
   }
+  // 29 codes at most: the live contract's app shader declares too few BVM units for 30.
+  await page.fill(tid('drop-count'), '30');
+  assert.equal(await page.textContent(tid('drop-reason')), 'Choose 1 to 29 codes.');
+  assert.equal(await page.isDisabled(tid('drop-cta')), true);
+  assert.equal(await page.textContent(tid('drop-fee')), '—');
   await page.fill(tid('drop-amount'), '0.001');
   await page.fill(tid('drop-count'), '2');
 

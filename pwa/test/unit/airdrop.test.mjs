@@ -10,8 +10,9 @@ import { fileURLToPath } from 'node:url';
 import {
   AIRDROP_CID, DEAD_CIDS, GAS_SUPPORTED, CALL_FEE, CANCEL_FEE, CODE_ALPHABET, METHOD, CHARGE, KERNEL, MAX_TOTAL, args, generateCode, normaliseCode, formatCode,
   isWellFormedCode, codeHash, creationFee, voucherBlob, decodeVoucherBlob, parseVoucherInfo, parseBatches, parseBatchVouchers, codeFor, mapError,
-  readSavedBatch, codeVault, createAirdrop, TX_STATUS, CODE_STATUS, batchTotal,
+  readSavedBatch, codeVault, createAirdrop, TX_STATUS, CODE_STATUS, batchTotal, MAX_VOUCHERS,
 } from '../../src/lib/airdrop.js';
+import { SHADERS } from '../../src/lib/shaders.js';
 import { parseShaderJson, bindSession, unbindSession, nativeApp, setConsentPresenter } from '../../src/lib/contracts.js';
 import { fakeEngine } from './helpers/fake_engine.mjs';
 import { readContractTx, toHex, fromHex, le, concat } from '../../src/lib/contract_tx.js';
@@ -86,7 +87,9 @@ test('the voucher blob: 32-byte hash then 8-byte little-endian value; refusals',
   assert.equal(toHex(voucherBlob(e)), `${'11'.repeat(32)}a086010000000000${'22'.repeat(32)}a086010000000000`);
   assert.deepEqual(decodeVoucherBlob(voucherBlob(e)), e);
   assert.throws(() => voucherBlob([]), RangeError);
-  assert.throws(() => voucherBlob(Array.from({ length: 101 }, (_, i) => ({ hash: i.toString(16).padStart(64, '0'), value: 1n }))), RangeError);
+  const many = (n) => Array.from({ length: n }, (_, i) => ({ hash: i.toString(16).padStart(64, '0'), value: 1n }));
+  assert.equal(decodeVoucherBlob(voucherBlob(many(29))).length, 29, '29 vouchers: the most the live contract takes');
+  assert.throws(() => voucherBlob(many(30)), RangeError, '30 need more BVM units than the app shader declares');
   assert.throws(() => voucherBlob([e[0], e[0]]), RangeError, 'repeated voucher');
   assert.throws(() => voucherBlob([{ hash: '11'.repeat(32), value: MAX_TOTAL + 1n }]), RangeError, 'fee overflow');
   assert.throws(() => voucherBlob([{ hash: '11'.repeat(32), value: 0n }]), RangeError);
@@ -310,14 +313,21 @@ test('create: locks the vouchers plus 1%, saves the codes before signing, then r
   assert.equal(batchTotal(saved), 200000n);
 });
 
-test('create: a token batch locks the token plus its fee; refuses 0 or 101 codes before calling anything', async () => {
+test('create: a token batch locks the token plus its fee; refuses 0 or 30 codes before calling anything', async () => {
   const st = fakeShader();
   const { svc } = service(st);
   const r = await svc.createBatch({ assetId: 174, values: [5000000n, 1n, 250n] });
   assert.equal(r.built.pays.get(174), 5000251n + 50002n);
   assert.equal(r.built.pays.has(0), false);
   await assert.rejects(svc.createBatch({ assetId: 0, values: [] }), RangeError);
-  await assert.rejects(svc.createBatch({ assetId: 0, values: Array(101).fill(1n) }), RangeError);
+  await assert.rejects(svc.createBatch({ assetId: 0, values: Array(30).fill(1n) }), RangeError);
+  assert.equal(st.seen.filter((a) => a.includes('action=create_batch')).length, 1, 'only the batch of three reached the shader');
+});
+
+test('a batch holds at most 29 vouchers: the pinned shader declares 1,200,000 units and 30 use 1,215,319', () => {
+  assert.equal(MAX_VOUCHERS, 29);
+  assert.equal(CHARGE.createBatch, 1200000);
+  assert.equal(SHADERS.airdrop.sha256.slice(0, 8), 'cddf4a63', 'the app shader that declares that charge');
 });
 
 test('create: a built transaction that differs from the request is never signed, in any way', async () => {
