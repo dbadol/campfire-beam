@@ -562,6 +562,18 @@ test('BM-3: a move whose message another follows, and a refused lock whose coins
   await waitScreen(page, 'bridgeList');
   await sleep(1500);
   await shots4('28-list-bm3');
+  // Release audit RE3-3: the engine runs one shader call per app at a time and refused a second, so
+  // the list's look beside the controller's said "BEAM did not answer". Five looks at once, every one
+  // answered (each route a contract view on BEAM mainnet through the wallet's own app).
+  const failedLooks = await page.evaluate(async () => {
+    const { bridgeOf } = await import('./screens/bridge_ui.js');
+    const { app } = await import('./app.js');
+    const s = await bridgeOf(app);
+    const rs = await Promise.all([0, 1, 2, 3, 4].map(() => s.ctl.waiting()));
+    return rs.map((r) => r.failed.length);
+  });
+  assert.deepEqual(failedLooks, [0, 0, 0, 0, 0], 'BEAM answered every look');
+  assert.doesNotMatch(await page.textContent('main'), /BEAM did not answer/);
   // Re-audit RE2-3: the list asked what waits on BEAM (its own waiting(), not a second engine call
   // from here); nothing of that amount waits untracked, so the refused move no longer sends the
   // person to an empty "Waiting for you": its coins were another move's.
