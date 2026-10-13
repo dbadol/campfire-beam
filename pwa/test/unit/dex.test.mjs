@@ -225,3 +225,9 @@ test('the swap screen shows "at least" and hands it to the approve sheet', () =>
   assert.match(src, /rows: \[\['You get at least', `\$\{formatAmount\(least\)\} \$\{unit\(q\.receiveAsset\)\}`\]\]/);
   assert.match(readFileSync(new URL('../../src/screens/consent.js', import.meta.url), 'utf8'), /action === 'swap' \? 'You get about' :/, 'the approve sheet calls the engine amount "about"');
 });
+
+test('an empty pool list is a failed read, never "nothing can be bought" (2026-10-13)', () => {
+  const src = readFileSync(new URL('../../src/lib/dex_pools.js', import.meta.url), 'utf8');
+  assert.match(src, /if \(!pools\.length\) throw new DexError\('unexpected', 'pools_view printed an empty pool list'\);\n  learnPools\(pools\);/);
+  assert.deepEqual(parsePools({ res: [] }), [], 'the parser itself still reads an empty list as empty');
+});

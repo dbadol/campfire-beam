@@ -7,7 +7,7 @@
 import { wallet } from './wallet.js';
 import { nativeApp } from './contracts.js';
 import { loadShader } from './shaders.js';
-import { poolsViewArgs, parsePools } from './dex.js';
+import { poolsViewArgs, parsePools, DexError } from './dex.js';
 import { learnPools, lpPoolOf, confirmLearnt, unconfirmedLpTokens } from './lp_tokens.js';
 import { VERIFIED } from './meta.js';
 
@@ -24,6 +24,9 @@ export async function loadPools(force = false) {
   if (!force && poolCache && poolCache.session === wallet.session && Date.now() - poolCache.at < POOLS_TTL_MS) return poolCache.pools;
   const { app, shader } = await dexApp();
   const pools = parsePools(await app.view(poolsViewArgs(), shader));
+  // BEAM's DEX holds dozens of pools: an empty list is a read that failed (seen 2026-10-13, for a few
+  // seconds after sync), not a market with nothing in it. Never cached, never "nothing can be bought".
+  if (!pools.length) throw new DexError('unexpected', 'pools_view printed an empty pool list');
   learnPools(pools);
   confirmLearntPools();
   poolCache = { at: Date.now(), pools, session: wallet.session };
