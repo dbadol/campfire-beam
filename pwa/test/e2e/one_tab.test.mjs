@@ -335,6 +335,18 @@ test('6. a lock manager that cannot be asked: the tab runs no wallet and says to
   // The lock it could not check was let go: a page of a browser that answers takes it at once.
   const held = await p2.evaluate(async () => (await navigator.locks.query()).held.map((l) => l.name));
   assert.deepEqual(held, [], 'nobody holds the lock');
+  // Release audit RE3-1: the way out of a browser that can never say, under the button the first time...
+  const wayOut = 'If this keeps happening, this browser cannot run BEAM Campfire safely: open it in another browser and restore your wallet there from its 12 words (or its wallet.db file).';
+  assert.equal(await p4.textContent(`.actions ${tid('one-tab-way-out')}`), wayOut);
   await both(p4, 'onetab-06-unchecked');
   await fitsSmallPhone(p4, tid('one-tab-reload'), 'cannot keep to one tab');
+  // ...and above it when Reload brought the same screen back.
+  await p4.reload();
+  await waitScreen(p4, 'movedTab', 60000);
+  assert.equal(await p4.getAttribute(`${tid('one-tab-way-out')}[data-again="true"]`, 'data-again'), 'true');
+  assert.equal(await p4.textContent(`${tid('one-tab-way-out')} .grow`), wayOut);
+  assert.equal(await p4.$$eval(tid('one-tab-way-out'), (e) => e.length), 1, 'said once');
+  assert.deepEqual(await p4.evaluate(() => window.__idbUsed), [], 'still no IndexedDB database opened');
+  await both(p4, 'onetab-06b-unchecked-again');
+  await fitsSmallPhone(p4, tid('one-tab-reload'), 'cannot keep to one tab, again');
 });
