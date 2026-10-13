@@ -171,6 +171,8 @@ test('no source file reaches out to another origin', () => {
       // loader, after this app's own address): exactly the list, only in this file.
       // Besides those, only the scheme it puts in front of a typed address, and its wording.
       if (f.endsWith(join('lib', 'update_sources.js')) && (BUILTIN_SOURCES.includes(u) || u === 'https://${s}' || u === 'https://.')) continue;
+      // That wording again where the screens translate it (lib/loader_words.js): words, not a request.
+      if (f.endsWith(join('lib', 'loader_words.js')) && u === 'https://.') continue;
       // BEAM's snapshot through BEAM Campfire's server, for a copy hosted without a relay:
       // that one file (and the CSP path naming it), only in this file.
       if (f.endsWith(join('lib', 'recovery.js')) && (u === 'https://${RECOVERY_FALLBACK_HOST}/recovery/mainnet_recovery.bin' || u === 'https://${RECOVERY_FALLBACK_HOST}/recovery/')) continue;
