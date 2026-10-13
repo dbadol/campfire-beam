@@ -294,6 +294,7 @@ export class Wallet {
       importing: s.importing,
       reconnecting: hop.reconnecting,
       ownNode: s.nodeMode === 'own' ? s.node : null,
+      online: typeof navigator === 'undefined' || navigator.onLine !== false,
     });
     for (const fn of this.listeners) {
       try {

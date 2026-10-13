@@ -49,7 +49,7 @@ export function reconnectView({ switching, emptyHops = 0, connectFailed = false 
   return { reconnecting: Boolean(switching) && !gaveUp, connectFailed: connectFailed || gaveUp };
 }
 
-export function assessSync({ status, nodeConnected, everConnected = nodeConnected, connectFailed = false, explorer, now, progress = null, importing = false, reconnecting = false, ownNode = null }) {
+export function assessSync({ status, nodeConnected, everConnected = nodeConnected, connectFailed = false, explorer, now, progress = null, importing = false, reconnecting = false, ownNode = null, online = true }) {
   const height = status ? Number(status.current_height) || 0 : 0;
   const tipTs = status ? Number(status.current_state_timestamp) || 0 : 0;
   const tipAge = tipTs ? now - tipTs : Infinity;
@@ -63,13 +63,17 @@ export function assessSync({ status, nodeConnected, everConnected = nodeConnecte
   if (reconnecting) {
     return { ...base, state: 'connecting', reconnecting: true, title: 'Reconnecting to another node…', detail: "A BEAM node didn't answer, so the app is trying the next one. Sending is paused for a moment." };
   }
-  // The explorer answers but no node does: the person's internet works, so the fault is the nodes'
-  // (13 Oct 2026: BEAM's nodes served an expired certificate and every browser refused them).
+  // No node answers. The installed app asks no explorer (privacy), and a browser can't tell a refused
+  // certificate from no network, so it does not guess: only a device that says it is offline is told to
+  // check its connection. Otherwise it is BEAM's nodes (13 Oct 2026: every pool node's certificate
+  // lapsed and browsers refused them all), said without blaming the person's internet.
   const offline = ownNode
     ? { ...base, state: 'offline', ownNode: true, title: "Can't reach your node", detail: `${ownNode} isn't answering. Check that it is running, or use random nodes. Sending is paused until it is back.` }
-    : ex
-      ? { ...base, state: 'offline', nodesDown: true, title: "BEAM's nodes aren't answering", detail: "Your internet works, but BEAM's public nodes aren't letting this browser in right now. Your coins are safe on the blockchain. The app keeps trying by itself. Sending is paused until a node answers." }
-      : { ...base, state: 'offline', title: "Can't reach the BEAM network", detail: 'Check your internet connection. The app tries the other BEAM nodes by itself. Sending is paused until it is back.' };
+    : online === false
+      ? { ...base, state: 'offline', title: "You're offline", detail: 'This device has no internet connection. The app reconnects by itself when it is back. Sending is paused until then.' }
+      : ex
+        ? { ...base, state: 'offline', nodesDown: true, title: "BEAM's nodes aren't answering", detail: "Your internet works, but BEAM's public nodes aren't letting this browser in right now. Your coins are safe on the blockchain. The app keeps trying by itself. Sending is paused until a node answers." }
+        : { ...base, state: 'offline', nodesDown: true, title: "BEAM's nodes aren't answering", detail: "None of BEAM's public nodes is letting this browser in. If other websites open, the problem is on BEAM's side and your coins are safe on the blockchain. The app keeps trying by itself. Sending is paused until a node answers." };
   if (connectFailed && !nodeConnected) return offline;
   if (!everConnected || !status) {
     return { ...base, state: 'connecting', title: 'Connecting…', detail: ownNode ? `Reaching your node, ${ownNode}.` : 'Reaching the BEAM network.' };

@@ -74,7 +74,15 @@ test('not connected to a node this session: never synced, whatever the stored ti
 test('connection failed: an honest offline state', () => {
   const r = assessSync({ ...base, everConnected: false, nodeConnected: false, connectFailed: true, status: null, explorer: null });
   assert.equal(r.state, 'offline');
-  assert.match(r.title, /Can't reach the BEAM network/);
+  // No explorer in the installed app and the device says it is online: BEAM's nodes, never "check your internet".
+  assert.equal(r.nodesDown, true);
+  assert.match(r.title, /BEAM's nodes aren't answering/);
+  assert.match(r.detail, /If other websites open, the problem is on BEAM's side/);
+  assert.doesNotMatch(r.detail, /Check your internet/);
+  const off = assessSync({ ...base, everConnected: false, nodeConnected: false, connectFailed: true, status: null, explorer: null, online: false });
+  assert.equal(off.title, "You're offline");
+  assert.match(off.detail, /no internet connection/);
+  assert.notEqual(off.nodesDown, true);
 });
 
 test('no node answers but the explorer does: the nodes are down, not the person\'s internet', () => {
