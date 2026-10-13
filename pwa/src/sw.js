@@ -527,7 +527,8 @@ async function applyUpdate({ loaderReady = false } = {}) {
     const l = releaseLoaderOf(p);
     return { result: 'needs_loader', version: p.version, loader: l && l.path, loaderSha256: l && l.sha256 };
   }
-  const next = { current: p, pending: null, staging: null, lastRefusal: null, previous: st.current && st.current.version };
+  // A release still downloading (a check found a newer one) keeps its marker, so cleanup keeps its files.
+  const next = { current: p, pending: null, staging: st.staging || null, lastRefusal: null, previous: st.current && st.current.version };
   await writeState(next);
   await cleanup(next);
   return { result: 'applied', version: next.current.version, from: p.from || null };
