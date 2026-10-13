@@ -181,13 +181,20 @@ export default function swap(app) {
       if (impact >= IMPACT_WARN_BPS) n.push(notice('warn', `This swap moves the price by ${bpsText(impact)}: you get noticeably less than the current rate. A smaller amount gets a better price.`));
       const value = swapValue(quote, pools, (id) => wallet.label(id).verified);
       if (feeIsLarge(quote, DEX_CALL_FEE, value)) n.push(feeWarning(quote, value));
+      // An asset worth a lot per smallest unit (bETH: about 0.0025 BEAM a satoshi) comes in whole units,
+      // so the pool takes only what those cost: say so, as the button and the consent show that amount.
+      if (a.value != null && quote.pay < a.value && (a.value - quote.pay) * 200n > a.value) {
+        n.push(notice('info', h('span', { 'data-testid': 'swap-rounded', text: `${getL.unit} comes in steps of 0.00000001, so ${shortAmount(quote.receive)} ${getL.unit} costs ${formatAmount(quote.pay)} ${payU}, not the ${formatAmount(a.value)} you entered.` })));
+      }
     }
     if (!n.length) n.push(h('p', { class: 'small', 'data-testid': 'swap-promise', text: quoted ? `You get at least ${formatAmount(least)} ${getL.unit}, or the swap stops and nothing is sent.` : `If the price gets more than ${bpsText(protection())} worse before you approve, the swap stops and nothing is sent.` }));
     put(notes, ...n);
 
     const st = ctaState();
     cta.disabled = Boolean(st.off);
-    cta.textContent = a.value == null || a.error ? 'Swap' : quoted ? `Swap ${shortAmount(a.value)} ${payU} for ≈${shortAmount(quote.receive)} ${getL.unit}` : `Swap ${shortAmount(a.value)} ${payU}`;
+    // Quoted: what the swap will really pay (the consent shows the same), which can be a little less
+    // than what was typed when the other asset comes in large steps.
+    cta.textContent = a.value == null || a.error ? 'Swap' : quoted ? `Swap ${shortAmount(quote.pay)} ${payU} for ≈${shortAmount(quote.receive)} ${getL.unit}` : `Swap ${shortAmount(a.value)} ${payU}`;
     reason.textContent = st.off || '';
     reason.classList.toggle('hidden', !st.off);
   }

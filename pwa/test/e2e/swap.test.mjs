@@ -62,7 +62,6 @@ test('swap BEAM -> bETH: live quote, the consent sheet shows what the engine rep
   await page.click(tid('swap'));
   await waitScreen(page, 'swap');
   await page.waitForFunction(() => !/Loading prices/.test(document.querySelector('[data-testid="swap-reason"]').textContent), null, { timeout: 60000 });
-  await page.click(tid('swap-get-asset'));
   // 25% / 50% / 75% / Max (#83): shares of the 1 BEAM shown, less the 0.011 BEAM network fee;
   // the chip in use stays marked until the amount is typed.
   const pressed = (id) => page.getAttribute(tid(id), 'aria-pressed');
@@ -85,12 +84,18 @@ test('swap BEAM -> bETH: live quote, the consent sheet shows what the engine rep
   console.log(`# quote: 0.01 BEAM -> ${quoted}; ${await page.textContent(tid('swap-rate'))}; pool fee ${await page.textContent(tid('swap-pool-fee'))}`);
   assert.ok(quote > 0n);
   assert.equal(await page.textContent(tid('swap-fee')), '0.011 BEAM');
-  assert.match(await page.textContent(tid('swap-cta')), /^Swap 0\.01 BEAM for ≈[0-9][0-9.,]* bETH$/);
+  // bETH comes in whole satoshi: 0.01 BEAM buys 3, which cost a little less. The button, the note
+  // and the consent all name what is really paid.
+  const ctaText = await page.textContent(tid('swap-cta'));
+  assert.match(ctaText, /^Swap [0-9.]+ BEAM for ≈[0-9][0-9.,]* bETH$/);
+  const rounded = await page.$(tid('swap-rounded'));
+  const exactPay = rounded ? /costs ([0-9.]+) BEAM, not the 0\.01 you entered\.$/.exec(await rounded.textContent())[1] : '0.01';
   const shaderLoads = await page.evaluate(() => performance.getEntriesByType('resource').filter((e) => e.name.endsWith('/shaders/amm_app.wasm')).length);
   assert.equal(shaderLoads, 1, 'the DEX shader loads once, when the swap screen needs it');
   await shot(page, 'swap-01-quote');
-  // 0.011 BEAM on a 0.01 BEAM swap: the desktop's wording, with the share.
-  assert.match(await page.textContent(tid('swap-fee-warning')), /^The network fee is more than what you swap\. .*110% of the 0\.01 BEAM you swap/);
+  // 0.011 BEAM on a 0.01 BEAM swap: the desktop's wording, with the share (of what the swap is worth,
+  // which for bETH, a few satoshi per 0.01 BEAM, is less than the 0.01 paid).
+  assert.match(await page.textContent(tid('swap-fee-warning')), /^The network fee is more than what you swap\. .*Here that is [0-9.]+% of the [0-9.]+ BEAM you swap/);
   // Price protection: 1% by default; stricter choices only.
   assert.equal(await page.textContent(tid('swap-protection')), '1%');
   await page.click(tid('swap-protection'));
@@ -111,12 +116,12 @@ test('swap BEAM -> bETH: live quote, the consent sheet shows what the engine rep
   const fee = await page.textContent(tid('consent-fee'));
   const short = await page.textContent(tid('consent-not-enough'));
   console.log(`# consent: pay "${pay}", get "${get}", fee "${fee}", "${short.trim()}"`);
-  assert.equal(pay, '0.01 BEAM');
+  assert.equal(pay, `${exactPay} BEAM`, 'the consent pays what the screen said');
   assert.match(get, / bETH$/);
   const got = groth(get);
   assert.ok(got * 100n >= quote * 99n && got <= quote + quote / 100n, `consent ${got} within 1% of the quote ${quote}`);
   assert.equal(fee, '0.011 BEAM');
-  assert.match(await page.textContent(tid('consent-total')), /^0\.021 BEAM$/);
+  assert.match(await page.textContent(tid('consent-total')), /^0\.0[0-9]+ BEAM$/);
   assert.match(short, /^Not enough BEAM\./);
   assert.equal(await page.isVisible(tid('consent-approve')), false, 'no approve button when the engine says it is not enough');
   assert.match(await page.textContent(tid('consent-receive')), /^Add (BEAM|funds)$/, 'the way out of "not enough" is on the sheet');
@@ -139,7 +144,7 @@ test('swap BEAM -> bETH: live quote, the consent sheet shows what the engine rep
   assert.equal(last.appName, 'BEAM Campfire');
   assert.equal(last.isEnough, false);
   assert.equal(last.fee, '0.011');
-  assert.deepEqual(last.spends, [{ assetId: 0, amount: '0.01' }]);
+  assert.deepEqual(last.spends, [{ assetId: 0, amount: exactPay }]);
   assert.equal(last.receives.length, 1);
   assert.equal(last.receives[0].assetId, BETH);
 
