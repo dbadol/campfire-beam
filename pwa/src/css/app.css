@@ -807,6 +807,8 @@ details.more.card { padding: 12px 16px; }
 .chain-move[data-badge="collect"]::after { background: var(--primary); }
 .bridge-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .bridge-chips .choice { min-height: 40px; font-size: 14px; padding: 0 2px; }
+.share-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.share-chips .choice { min-height: 36px; font-size: 14px; padding: 0 2px; }
 .asset-pick.static { cursor: default; }
 .swap-label .addr { font-size: 13px; color: var(--muted); word-break: normal; }
 .bridge-costs { align-items: flex-start; }

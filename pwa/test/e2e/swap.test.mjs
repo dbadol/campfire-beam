@@ -15,7 +15,7 @@ import { createWallet, waitHome, waitSynced } from './flows.mjs';
 
 const PORT = Number(process.env.CAMPFIRE_SWAP_PORT || 8793);
 const PASSWORD = `swap-${Math.random().toString(36).slice(2, 10)}`;
-const FOMO = 174;
+const BETH = 36; // the pair is BEAM > bETH (R14)
 const tid = (id) => `[data-testid="${id}"]`;
 const groth = (text) => {
   const m = /([\d,]+(?:\.\d+)?)/.exec(text);
@@ -47,7 +47,7 @@ test('a new wallet, synced', { timeout: 15 * 60000 }, async () => {
   assert.equal(shaderLoads, 0, 'no shader is loaded before a feature needs it');
 });
 
-test('swap BEAM -> FOMO: live quote, the consent sheet shows what the engine reported, Cancel sends nothing', { timeout: 10 * 60000 }, async () => {
+test('swap BEAM -> bETH: live quote, the consent sheet shows what the engine reported, Cancel sends nothing', { timeout: 10 * 60000 }, async () => {
   // The screen is shown 1 BEAM; the engine holds 0.
   await page.evaluate(async () => {
     const { wallet } = await import('./lib/wallet.js');
@@ -63,10 +63,21 @@ test('swap BEAM -> FOMO: live quote, the consent sheet shows what the engine rep
   await waitScreen(page, 'swap');
   await page.waitForFunction(() => !/Loading prices/.test(document.querySelector('[data-testid="swap-reason"]').textContent), null, { timeout: 60000 });
   await page.click(tid('swap-get-asset'));
-  await page.waitForSelector(`.sheet [data-asset-id="${FOMO}"]`);
-  await page.click(`.sheet [data-asset-id="${FOMO}"]`);
-  assert.match(await page.textContent(tid('swap-get-asset')), /FOMO/);
+  // 25% / 50% / 75% / Max (#83): shares of the 1 BEAM shown, less the 0.011 BEAM network fee;
+  // the chip in use stays marked until the amount is typed.
+  const pressed = (id) => page.getAttribute(tid(id), 'aria-pressed');
+  for (const [id, want] of [['swap-share-25', '0.24725'], ['swap-share-50', '0.4945'], ['swap-share-75', '0.74175'], ['swap-max', '0.989']]) {
+    await page.click(tid(id));
+    assert.equal(await page.inputValue(tid('swap-pay-amount')), want, id);
+    assert.equal(await pressed(id), 'true', `${id} marked`);
+  }
+  assert.equal(await pressed('swap-share-50'), 'false', 'one chip at a time');
+  await page.click(tid('swap-get-asset'));
+  await page.waitForSelector(`.sheet [data-asset-id="${BETH}"]`);
+  await page.click(`.sheet [data-asset-id="${BETH}"]`);
+  assert.match(await page.textContent(tid('swap-get-asset')), /bETH/);
   await page.fill(tid('swap-pay-amount'), '0.01');
+  assert.equal(await pressed('swap-max'), 'false', 'typed: no chip marked');
   await page.waitForSelector(tid('swap-rate'), { timeout: 60000 });
   await page.waitForFunction(() => !document.querySelector('[data-testid="swap-cta"]').disabled, null, { timeout: 30000 });
   const quoted = await page.textContent(tid('swap-get-exact'));
@@ -74,7 +85,7 @@ test('swap BEAM -> FOMO: live quote, the consent sheet shows what the engine rep
   console.log(`# quote: 0.01 BEAM -> ${quoted}; ${await page.textContent(tid('swap-rate'))}; pool fee ${await page.textContent(tid('swap-pool-fee'))}`);
   assert.ok(quote > 0n);
   assert.equal(await page.textContent(tid('swap-fee')), '0.011 BEAM');
-  assert.match(await page.textContent(tid('swap-cta')), /^Swap 0\.01 BEAM for ≈[0-9][0-9.,]* FOMO$/);
+  assert.match(await page.textContent(tid('swap-cta')), /^Swap 0\.01 BEAM for ≈[0-9][0-9.,]* bETH$/);
   const shaderLoads = await page.evaluate(() => performance.getEntriesByType('resource').filter((e) => e.name.endsWith('/shaders/amm_app.wasm')).length);
   assert.equal(shaderLoads, 1, 'the DEX shader loads once, when the swap screen needs it');
   await shot(page, 'swap-01-quote');
@@ -101,7 +112,7 @@ test('swap BEAM -> FOMO: live quote, the consent sheet shows what the engine rep
   const short = await page.textContent(tid('consent-not-enough'));
   console.log(`# consent: pay "${pay}", get "${get}", fee "${fee}", "${short.trim()}"`);
   assert.equal(pay, '0.01 BEAM');
-  assert.match(get, / FOMO$/);
+  assert.match(get, / bETH$/);
   const got = groth(get);
   assert.ok(got * 100n >= quote * 99n && got <= quote + quote / 100n, `consent ${got} within 1% of the quote ${quote}`);
   assert.equal(fee, '0.011 BEAM');
@@ -130,7 +141,7 @@ test('swap BEAM -> FOMO: live quote, the consent sheet shows what the engine rep
   assert.equal(last.fee, '0.011');
   assert.deepEqual(last.spends, [{ assetId: 0, amount: '0.01' }]);
   assert.equal(last.receives.length, 1);
-  assert.equal(last.receives[0].assetId, FOMO);
+  assert.equal(last.receives[0].assetId, BETH);
 
   // Nothing was sent: no contract transaction, and the engine's balance is still empty.
   const truth = await page.evaluate(async () => {
