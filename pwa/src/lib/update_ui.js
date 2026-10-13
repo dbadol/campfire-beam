@@ -9,6 +9,14 @@ import { normalizeSource } from './update_sources.js';
 
 const tid = (id) => ({ 'data-testid': id });
 
+/**
+ * Under the progress while a check runs (issue #77): where it looks, and that a copy's files pass the
+ * same signature check as this app's own address. A check asks every place on purpose: an address
+ * that stops publishing, or keeps serving an old release, cannot hide a newer signed one.
+ */
+export const CHECKING_NOTE =
+  "BEAM Campfire asks its own address and the public copies, and keeps the newest release. Whichever copy it comes from, every file is checked against BEAM Campfire's signature before it is kept. Your app keeps working meanwhile.";
+
 /** "this app's address" or "a copy at <host>". */
 const placeOf = (p) => copyAt(p) || "this app's address";
 
@@ -61,7 +69,7 @@ function checking(p, close) {
     h('h2', { text: 'Checking for updates' }),
     h('p', { class: 'lead', 'aria-live': 'polite', text: progressText(p), ...tid('update-progress') }),
     progressBar(p && p.step === 'downloading' && p.total ? p.done / p.total : null),
-    h('p', { class: 'small', text: "Every file is checked against BEAM Campfire's signature before it is kept. Your app keeps working meanwhile." }),
+    h('p', { class: 'small', text: CHECKING_NOTE, ...tid('update-checking-note') }),
     h('button', { class: 'btn btn-text', onclick: () => close(), ...tid('update-progress-hide') }, 'Hide'),
   ];
 }

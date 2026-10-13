@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { BUILTIN_SOURCES, normalizeSource, updateSources, releaseSources, loaderCompatible, readRelease, findUpdate, createdOf, MAX_ADDED_SOURCES } from '../../src/lib/update_sources.js';
 import { ReleaseError, RELEASE_APP_ID, verifyFile } from '../../src/lib/release.js';
 import { lastCheckText, refusalText, releaseDate, staleRelease, ownServesInstalled } from '../../src/lib/update.js';
-import { progressText, triedText } from '../../src/lib/update_ui.js';
+import { progressText, triedText, CHECKING_NOTE } from '../../src/lib/update_ui.js';
 
 const OWN = 'https://wallet.example.org/';
 
@@ -381,6 +381,13 @@ const here = dirname(fileURLToPath(import.meta.url));
 const pwa = join(here, '..', '..');
 const keyPath = process.env.BEAM_PWA_RELEASE_KEY || join(homedir(), '.config', 'campfire-beam', 'pwa_release_key.jwk');
 const haveEngine = existsSync(join(pwa, 'vendor', 'engine', 'wasm-client.wasm'));
+
+test('while a check runs, the sheet says every place is asked and every copy is checked against the signature (#77)', () => {
+  assert.equal(
+    CHECKING_NOTE,
+    "BEAM Campfire asks its own address and the public copies, and keeps the newest release. Whichever copy it comes from, every file is checked against BEAM Campfire's signature before it is kept. Your app keeps working meanwhile.",
+  );
+});
 
 test('the build signs the loader, its compat value and the sources into release.json; --mirrors changes only the release', { skip: !(existsSync(keyPath) && haveEngine) && 'needs the release key and a staged engine' }, () => {
   const dirs = [];
