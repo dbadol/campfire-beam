@@ -44,6 +44,7 @@ import '../../../widgets/beam/airdrop/beam_sync_gate.dart';
 import '../../../widgets/beam/airdrop/beam_units.dart';
 import '../../../widgets/beam/airdrop/voucher_code_input.dart';
 import '../../../widgets/beam/stickers/beam_sticker.dart';
+import '../../../widgets/flag_secure_scope.dart';
 import '../../../widgets/icon_widgets/clipboard_icon.dart';
 import '../../../widgets/icon_widgets/qrcode_icon.dart';
 import '../../../widgets/rounded_white_container.dart';
@@ -260,7 +261,12 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
   }
 
   @override
-  Widget build(BuildContext context) => BeamSyncGate(
+  Widget build(BuildContext context) =>
+      // A code being claimed is a bearer secret: no screenshots, recordings
+      // or recents thumbnail of this screen (issue #76).
+      FlagSecureScope(child: _gate(context));
+
+  Widget _gate(BuildContext context) => BeamSyncGate(
     sync: widget.sync,
     builder: (context, sync) {
       if (_claimedText != null) return _done(context);

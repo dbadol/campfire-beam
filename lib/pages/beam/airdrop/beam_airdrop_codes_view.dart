@@ -22,9 +22,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../notifications/show_flush_bar.dart';
+import '../../../utilities/beam/secret_clipboard.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/airdrop/airdrop.dart';
@@ -39,6 +39,7 @@ import '../../../widgets/beam/airdrop/beam_units.dart';
 import '../../../widgets/beam/airdrop/voucher_code_input.dart';
 import '../../../widgets/beam/stickers/beam_sticker.dart';
 import '../../../widgets/custom_buttons/blue_text_button.dart';
+import '../../../widgets/flag_secure_scope.dart';
 import '../../../widgets/icon_widgets/copy_icon.dart';
 import '../../../widgets/rounded_white_container.dart';
 import '../../../widgets/textfield_icon_button.dart';
@@ -131,12 +132,19 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
   }
 
   Future<void> _copy(String text, String what) async {
-    await widget.clipboard.setData(ClipboardData(text: text));
+    // A code is a bearer claim on locked funds (issue #76): on desktop it
+    // leaves the clipboard a minute later if it is still there.
+    final clears = await SecretClipboard.copy(
+      text,
+      clipboard: widget.clipboard,
+    );
     if (!mounted) return;
     unawaited(
       showFloatingFlushBar(
         type: FlushBarType.info,
-        message: '$what copied',
+        message: clears
+            ? '$what copied. It leaves the clipboard in a minute.'
+            : '$what copied',
         context: context,
       ),
     );
@@ -191,7 +199,8 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
               title: _problem!.title,
               message: _problem!.message,
             )
-          : _codes(context, b),
+          // No screenshots or recents thumbnail of the codes (issue #76).
+          : FlagSecureScope(child: _codes(context, b)),
       bottom: b == null
           ? BeamCtaBar(
               label: 'Back',

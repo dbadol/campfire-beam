@@ -1,4 +1,5 @@
-// Issue #1: when the file picker cannot open, say so; on Linux, what is missing.
+// Issue #1: when the file picker can't open, say so; on Linux, what is
+// missing.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stackwallet/utilities/beam/file_picker_failure.dart';

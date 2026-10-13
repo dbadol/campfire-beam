@@ -21,14 +21,18 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stackwallet/pages/beam/airdrop/beam_airdrop_batches_view.dart';
+import 'package:stackwallet/pages/beam/airdrop/beam_airdrop_codes_view.dart';
 import 'package:stackwallet/pages/beam/airdrop/beam_claim_voucher_view.dart';
 import 'package:stackwallet/pages/beam/airdrop/beam_create_airdrop_view.dart';
+import 'package:stackwallet/utilities/beam/secret_clipboard.dart';
+import 'package:stackwallet/utilities/clipboard_interface.dart';
 import 'package:stackwallet/wallets/beam/api/beam_api.dart';
 import 'package:stackwallet/wallets/beam/contracts/airdrop/airdrop.dart';
 import 'package:stackwallet/wallets/beam/rpc/fake_transport.dart';
 import 'package:stackwallet/wallets/beam/sync/beam_sync_state.dart';
 import 'package:stackwallet/widgets/beam/airdrop/beam_asset_names.dart';
 import 'package:stackwallet/widgets/desktop/primary_button.dart';
+import 'package:stackwallet/widgets/flag_secure_scope.dart';
 
 import '../contracts/airdrop/airdrop_fixtures.dart';
 import '../contracts/airdrop/memory_code_store.dart';
@@ -137,10 +141,7 @@ void main() {
       expect(_textOf(tester, 'claim-total'), '+0.379 BEAM');
       expect(find.byKey(const ValueKey('claim-loss-warning')), findsNothing);
       // The contract reveals the code when claiming: said before the claim.
-      expect(
-        find.byKey(const ValueKey('claim-bearer-notice')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('claim-bearer-notice')), findsOneWidget);
       expect(t.lastParams('invoke_contract')['create_tx'], isFalse);
       expect(t.callsTo('process_invoke_data'), isEmpty);
       await expectScreen(tester, 'claim_ready');
@@ -507,6 +508,75 @@ void main() {
       expect(find.text('Create airdrop codes'), findsOneWidget);
       expect(_enabled(tester, 'batches-create'), isTrue);
       await expectScreen(tester, 'batches_empty');
+    });
+  });
+
+  group('voucher codes stay private (issue #76)', () {
+    final flags = <bool>[];
+    setUp(() {
+      flags.clear();
+      FlagSecureScope.debugSetFlagSecure = (on) async => flags.add(on);
+      FlagSecureScope.debugUserWantsSecure = () => false;
+    });
+    tearDown(() {
+      FlagSecureScope.debugSetFlagSecure = null;
+      FlagSecureScope.debugUserWantsSecure = null;
+      SecretClipboard.debugDesktop = null;
+    });
+
+    testWidgets('the claim screen blocks screenshots while it is open', (
+      tester,
+    ) async {
+      init();
+      await pumpBeamPage(tester, claimView());
+      expect(FlagSecureScope.activeCount, 1);
+      expect(flags, [true]);
+      await tester.pumpWidget(const SizedBox());
+      expect(FlagSecureScope.activeCount, 0);
+      expect(flags, [true, false]);
+    });
+
+    testWidgets('the codes screen blocks screenshots; Copy all says the codes '
+        'leave the clipboard in a minute, and they do', (tester) async {
+      init();
+      SecretClipboard.debugDesktop = true;
+      final c = code(21);
+      await store.put(
+        AirdropSavedBatch(
+          localId: 'batch_76',
+          contractId: kAirdropContractId,
+          assetId: 0,
+          createdAt: DateTime.utc(2026, 10, 13),
+          codes: [
+            AirdropSavedCode(
+              code: c,
+              hashHex: AirdropVoucherCode.hashHex(c),
+              value: g(100000),
+            ),
+          ],
+        ),
+      );
+      final clipboard = FakeClipboard();
+      await pumpBeamPage(
+        tester,
+        BeamAirdropCodesView(
+          service: service,
+          localId: 'batch_76',
+          clipboard: clipboard,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(FlagSecureScope.activeCount, 1);
+      await tester.tap(find.byKey(const ValueKey('codes-copy-all')));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect((await clipboard.getData('text/plain'))?.text, c);
+      expect(
+        find.text('All 1 codes copied. It leaves the clipboard in a minute.'),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(minutes: 1, seconds: 1));
+      expect((await clipboard.getData('text/plain'))?.text, '');
+      await tester.pumpAndSettle();
     });
   });
 }
