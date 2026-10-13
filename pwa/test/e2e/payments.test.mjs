@@ -17,7 +17,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { startServer, recordedPage, waitScreen, shot, sleep, PWA, CHROME, foreignHosts } from './harness.mjs';
+import { startServer, recordedPage, waitScreen, shot, sleep, PWA, CHROME, foreignHosts, NODE_CERTS_ARGS } from './harness.mjs';
 import { createWallet, waitHome, waitSynced } from './flows.mjs';
 import { encodeQr } from '../../src/lib/qr.js';
 
@@ -61,7 +61,7 @@ test.before(async () => {
   browser = await chromium.launch({
     executablePath: CHROME,
     headless: process.env.HEADED ? false : true,
-    args: ['--disable-features=AutofillServerCommunication', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${join(tmp, 'qr.y4m')}`],
+    args: ['--disable-features=AutofillServerCommunication', ...NODE_CERTS_ARGS, '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${join(tmp, 'qr.y4m')}`],
   });
   ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   await ctx.grantPermissions(['camera', 'clipboard-read', 'clipboard-write'], { origin: srv.url });

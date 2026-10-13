@@ -38,7 +38,8 @@ export async function startServer({ root = 'dist', port = 8781, selftest = false
 // on 2026-10-13: every pool node's Let's Encrypt certificate lapsed at once, and browsers then refuse
 // their wss://), so the suites can still check the app against mainnet. Off by default; a run with it
 // on proves nothing about certificates.
-const NODE_CERTS_ARGS = process.env.CAMPFIRE_IGNORE_NODE_CERTS === '1' ? ['--ignore-certificate-errors'] : [];
+// Suites that launch their own browser add NODE_CERTS_ARGS too; node_relay.mjs reads the same switch.
+export const NODE_CERTS_ARGS = process.env.CAMPFIRE_IGNORE_NODE_CERTS === '1' ? ['--ignore-certificate-errors'] : [];
 
 export async function launch() {
   return chromium.launch({ executablePath: CHROME, headless: process.env.HEADED ? false : true, args: ['--disable-features=AutofillServerCommunication', ...NODE_CERTS_ARGS] });

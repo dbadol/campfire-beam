@@ -39,7 +39,7 @@ import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join, normalize, sep, resolve as resolvePath } from 'node:path';
 import { chromium } from 'playwright-core';
-import { PWA, CHROME, recordedPage, shot, waitScreen, foreignHosts, sleep, SHOTS } from './harness.mjs';
+import { PWA, CHROME, recordedPage, shot, waitScreen, foreignHosts, sleep, SHOTS, NODE_CERTS_ARGS } from './harness.mjs';
 import { waitHome, waitSynced } from './flows.mjs';
 import { makeWalletDb, openWithCli, cliVersion, WANT_CORE } from './walletdb.mjs';
 import { headersFor, mimeFor, EXPLORER_UPSTREAMS } from '../../tools/headers.mjs';
@@ -153,6 +153,7 @@ async function coldStart({ unresolvable = false, goto = true, waitUntil = 'load'
       `--host-resolver-rules=MAP ${HOST} ${unresolvable ? '~NOTFOUND' : '127.0.0.1'}, ${COPY_HOSTS.map((h) => `MAP ${h} ~NOTFOUND`).join(', ')}`,
       `--unsafely-treat-insecure-origin-as-secure=http://${HOST}:${PORT}`,
       '--disable-features=AutofillServerCommunication',
+      ...NODE_CERTS_ARGS,
       ...extraArgs,
     ],
   });

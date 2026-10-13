@@ -76,7 +76,8 @@ export function startRelay({ port, tlsCert, ca, behaviour = () => 'forward', ups
     client.on('error', () => {});
     if (how === 'refuse') return client.destroy();
     const up = upstream(name);
-    const u = tls.connect({ host: up.host, port: up.port, servername: up.host, ca, rejectUnauthorized: true });
+    // CAMPFIRE_IGNORE_NODE_CERTS=1 (test/e2e/harness.mjs): BEAM's node certificate lapsed; checked otherwise.
+    const u = tls.connect({ host: up.host, port: up.port, servername: up.host, ca, rejectUnauthorized: process.env.CAMPFIRE_IGNORE_NODE_CERTS !== '1' });
     live.add(u);
     u.on('close', () => {
       live.delete(u);

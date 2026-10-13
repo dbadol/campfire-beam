@@ -261,6 +261,30 @@ test('the publicly served release (installed, with a wallet) takes this one thro
     await shot(page, 'pages-06-update-ready');
     await Promise.all([page.waitForEvent('load', { timeout: 60000 }), page.click(tid('update-apply-sheet'))]);
     await waitScreen(page, 'unlock', 120000);
+    const loaderNext = readFileSync(join(next, 'lib', 'version.js'), 'utf8').match(/LOADER = "(sw-[0-9a-f]+\.js)"/)[1];
+    const nextCompat = JSON.parse(readFileSync(join(next, 'release.json'), 'utf8')).loader_compat;
+    if (loaderNext !== oldLoader && release.loader_compat && release.loader_compat === nextCompat) {
+      // The device's loader serves pages exactly like this release's own (equal loader_compat): by
+      // design nothing is left to finish (lib/loader.js, 103221274), so the page stays under it - no
+      // banner, no request to the address at each start - until a tapped Check for updates finds the
+      // address serving the installed release, which moves it (lib/update.js ownServesInstalled).
+      await sleep(5000);
+      const under = await page.evaluate(() => ({ controller: navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL, behind: window.__campfire.loaderBehind(), intrusion: window.__campfire.intrusion() }));
+      assert.ok(under.controller.endsWith(`/${oldLoader}`), `equal loader_compat: the page stays under ${oldLoader} after the Update`);
+      assert.equal(under.behind, false, 'and is not behind: no "Finish the update" anywhere');
+      assert.equal(under.intrusion, null);
+      assert.equal(await served(), nextVersion, `the installed ${release.version} runs ${nextVersion} under its own loader`);
+      await page.fill(tid('unlock-pw'), PASSWORD);
+      await page.click(tid('unlock-submit'));
+      await waitScreen(page, 'home', 60000);
+      await page.evaluate(() => window.__campfire.go('settings'));
+      await waitScreen(page, 'settings');
+      await page.click(tid('check-updates'));
+      await page.waitForFunction((l) => Boolean(navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL.endsWith(`/${l}`)), loaderNext, { timeout: 120000 });
+      console.log(`# equal loader_compat: ${oldLoader} kept after the Update; the next tapped Check for updates moved the page to ${loaderNext}`);
+      await page.reload();
+      await waitScreen(page, 'unlock', 60000);
+    }
     // This release's loader has a new name: the page moves to it once; that is not a takeover.
     // A locked page reloads as soon as the new loader takes over (lib/loader.js onMoved), so
     // wait until it runs under it - across that reload - before reading anything.
