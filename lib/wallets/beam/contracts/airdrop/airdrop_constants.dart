@@ -109,8 +109,13 @@ abstract final class AirdropKernelComment {
   static const withdrawFees = 'Withdraw airdrop fees';
 }
 
-/// `create_batch` takes 1 to 100 vouchers (`app.cpp` and `Method_2`).
-const kAirdropMaxVouchersPerBatch = 100;
+/// Vouchers in one batch. The contract takes 1 to 100 (`app.cpp` and
+/// `Method_2`), but the live contract's app shader declares a fixed charge of
+/// 1,200,000 units for `create_batch` (`app.cpp:496-497`) and a batch of 30
+/// uses 1,215,319 (measured in BEAM's BVM, airdrop v3 work), so nodes refuse
+/// every batch over 29 and the creation fails. 29 until a contract whose app
+/// declares the charge per voucher.
+const kAirdropMaxVouchersPerBatch = 29;
 
 /// The creation fee: `FEE_BPS / BPS_TOTAL` = 100 / 10,000 = 1%
 /// (`contract.h`).

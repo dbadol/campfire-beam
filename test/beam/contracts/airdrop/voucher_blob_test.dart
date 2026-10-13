@@ -100,11 +100,16 @@ void main() {
     test('refuses an empty, an oversized or a repeating batch', () {
       expect(() => AirdropVoucherBlob.bytes([]), throwsArgumentError);
       final many = [
-        for (var i = 0; i < 101; i++)
+        for (var i = 0; i < kAirdropMaxVouchersPerBatch + 1; i++)
           AirdropVoucherEntry(i.toRadixString(16).padLeft(64, '0'), g(1)),
       ];
       expect(() => AirdropVoucherBlob.bytes(many), throwsArgumentError);
-      expect(AirdropVoucherBlob.bytes(many.sublist(0, 100)), hasLength(4000));
+      expect(
+        AirdropVoucherBlob.bytes(many.sublist(0, kAirdropMaxVouchersPerBatch)),
+        hasLength(40 * kAirdropMaxVouchersPerBatch),
+      );
+      // The live contract's app refuses 30 or more (its fixed charge).
+      expect(kAirdropMaxVouchersPerBatch, 29);
       expect(
         () => AirdropVoucherBlob.bytes([
           AirdropVoucherEntry(h1, g(1)),
