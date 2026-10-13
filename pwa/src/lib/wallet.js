@@ -47,9 +47,15 @@ export function sendModeFor(type) {
 export const SPENT_ELSEWHERE =
   "These coins were already spent from this wallet somewhere else, in another browser or on another device with the same wallet. Nothing more was sent from here. Rescan (in Settings) brings this wallet's balance up to date.";
 
-/** Whether failed transaction `tx` failed because its coins were already spent elsewhere. */
+/**
+ * Whether failed transaction `tx` failed because its coins were already spent elsewhere. Simple
+ * payments only (tx_type 0): BEAM fails one only after making sure it is not on chain
+ * (simple_transaction.cpp), so "nothing more was sent" is true. A contract call can be sent again to
+ * the next node after it was already mined, and that node then says "Inputs missing" about its own
+ * coins (0.2.14 release audit B-3): there the engine's own words stay.
+ */
 export function spentElsewhere(tx, { inputsMissing = engineLog.inputsMissing } = {}) {
-  return Boolean(tx && Number(tx.status) === 4 && inputsMissing(tx.txId));
+  return Boolean(tx && Number(tx.status) === 4 && Number(tx.tx_type) === 0 && inputsMissing(tx.txId));
 }
 
 /** Why a failed transaction failed, in words: SPENT_ELSEWHERE, or the engine's own reason (null if none). */

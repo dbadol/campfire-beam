@@ -40,11 +40,15 @@ test('the engine log: "Inputs missing" is matched to the next transaction that f
 test('the words, only for a failed transaction the node refused that way', () => {
   assert.equal(SPENT_ELSEWHERE, "These coins were already spent from this wallet somewhere else, in another browser or on another device with the same wallet. Nothing more was sent from here. Rescan (in Settings) brings this wallet's balance up to date.");
   const refused = (txId) => txId === id('f');
-  const failed = { txId: id('f'), status: 4, failure_reason: 'Failed to register transaction with the blockchain, see node logs for details' };
+  const failed = { txId: id('f'), status: 4, tx_type: 0, failure_reason: 'Failed to register transaction with the blockchain, see node logs for details' };
   assert.equal(spentElsewhere(failed, { inputsMissing: refused }), true);
   assert.equal(txFailureText(failed, { inputsMissing: refused }), SPENT_ELSEWHERE);
   assert.equal(txFailureText({ ...failed, txId: id('9') }, { inputsMissing: refused }), failed.failure_reason, 'any other failure: the engine\'s reason');
   assert.equal(spentElsewhere({ ...failed, status: 2 }, { inputsMissing: refused }), false, 'cancelled is not failed');
+  // A contract call can be re-sent after it was mined and then fail on its own coins (audit B-3):
+  // never "nothing more was sent" there.
+  assert.equal(spentElsewhere({ ...failed, tx_type: 12 }, { inputsMissing: refused }), false, 'a contract call keeps the engine\'s words');
+  assert.equal(txFailureText({ ...failed, tx_type: 12 }, { inputsMissing: refused }), failed.failure_reason);
   assert.equal(txFailureText({ ...failed, status: 3 }, { inputsMissing: refused }), null);
 });
 

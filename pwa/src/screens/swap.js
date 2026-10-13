@@ -194,7 +194,7 @@ export default function swap(app) {
     cta.disabled = Boolean(st.off);
     // Quoted: what the swap will really pay (the consent shows the same), which can be a little less
     // than what was typed when the other asset comes in large steps.
-    cta.textContent = a.value == null || a.error ? 'Swap' : quoted ? `Swap ${shortAmount(quote.pay)} ${payU} for ≈${shortAmount(quote.receive)} ${getL.unit}` : `Swap ${shortAmount(a.value)} ${payU}`;
+    cta.textContent = a.value == null || a.error ? 'Swap' : quoted ? `Swap ${formatAmount(quote.pay)} ${payU} for ≈${shortAmount(quote.receive)} ${getL.unit}` : `Swap ${shortAmount(a.value)} ${payU}`;
     reason.textContent = st.off || '';
     reason.classList.toggle('hidden', !st.off);
   }

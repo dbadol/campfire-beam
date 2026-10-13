@@ -56,7 +56,7 @@ export function assessSync({ status, nodeConnected, everConnected = nodeConnecte
   const offline = ownNode
     ? { ...base, state: 'offline', ownNode: true, title: "Can't reach your node", detail: `${ownNode} isn't answering. Check that it is running, or use random nodes. Sending is paused until it is back.` }
     : ex
-      ? { ...base, state: 'offline', nodesDown: true, title: "BEAM's nodes aren't answering", detail: "Your internet works, but BEAM's public nodes aren't letting this browser in right now. Your coins are safe on the blockchain. The app keeps trying by itself, and the BEAM Campfire desktop and phone apps are not affected. Sending is paused until a node answers." }
+      ? { ...base, state: 'offline', nodesDown: true, title: "BEAM's nodes aren't answering", detail: "Your internet works, but BEAM's public nodes aren't letting this browser in right now. Your coins are safe on the blockchain. The app keeps trying by itself. Sending is paused until a node answers." }
       : { ...base, state: 'offline', title: "Can't reach the BEAM network", detail: 'Check your internet connection. The app tries the other BEAM nodes by itself. Sending is paused until it is back.' };
   if (connectFailed && !nodeConnected) return offline;
   if (!everConnected || !status) {
