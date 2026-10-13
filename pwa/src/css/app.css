@@ -528,6 +528,9 @@ body.dapp-open { overflow: hidden; }
 .kv.kv-stack .v { text-align: left; font-weight: 500; }
 .kv .v.list { word-break: normal; overflow-wrap: anywhere; }
 .kv .v.list > span { display: block; }
+/* About -> Staged update: the version, and "Delete this download" under it (issue #78). */
+.kv .v.staged { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.kv .v.staged .btn-small { min-height: 40px; padding: 4px 0 4px 12px; margin-right: 0; }
 .stack { display: flex; flex-direction: column; gap: 14px; }
 .row .main .s.wrap { white-space: normal; }
 input.switch { appearance: none; -webkit-appearance: none; width: 46px; height: 28px; border-radius: 14px; background: var(--border); position: relative; flex: none; cursor: pointer; margin: 0; transition: background 0.2s; }

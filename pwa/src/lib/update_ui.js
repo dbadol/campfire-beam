@@ -53,6 +53,8 @@ export async function runUpdateCheck(app, { onDone = null } = {}) {
       if (!sheet.closed) sheet.rerender();
     },
   });
+  // "Delete this download" only where the running loader can do it (an older one cannot).
+  if (r.result === 'ready') r.canDiscard = await app.updates.canDiscard();
   result = r;
   if (onDone) onDone(r);
   if (r.result === 'none' && !staleRelease(r.newest && r.newest.created)) {
@@ -97,7 +99,8 @@ function answer(app, r, close) {
       h('p', { class: 'lead', text: where, ...tid('update-ready-text') }),
       released ? h('p', { class: 'small', text: `Released ${released}.`, ...tid('update-released') }) : null,
       h('button', { class: 'btn btn-primary', onclick: () => applyUpdate(app, { close }), ...tid('update-apply-sheet') }, `Update to ${r.version}`),
-      h('button', { class: 'btn btn-text', onclick: () => close() }, 'Later'),
+      h('button', { class: 'btn btn-text', onclick: () => close(), ...tid('update-later') }, 'Later'),
+      r.canDiscard ? h('button', { class: 'btn btn-text', onclick: () => discardDownload(app, { close }), ...tid('update-discard') }, 'Delete this download') : null,
     ];
   }
   if (r.result === 'needs_own_address') return needsAddress(r.version, close, r.ownVersion);
@@ -130,6 +133,27 @@ function needsAddress(version, close, ownVersion = null) {
     h('div', tid('update-needs-address'), notice('info', `BEAM Campfire ${version} changes how the app starts on this device, and that part can only come from the address you installed it from, ${why}`)),
     h('button', { class: 'btn btn-primary', onclick: () => close() }, 'Keep using this version'),
   ];
+}
+
+/** Said once a downloaded update is deleted (issue #78). */
+export const DISCARDED_TOAST = 'Download deleted. Check for updates to download it again.';
+
+/**
+ * "Delete this download": the downloaded, not installed release goes. No confirmation: nothing is
+ * lost that a check cannot bring back. Returns the loader's answer.
+ */
+export async function discardDownload(app, { close = null, onDone = null } = {}) {
+  const r = await app.updates.discard();
+  if (r.result === 'discarded' || r.result === 'none') {
+    if (close) close();
+    toast(DISCARDED_TOAST, 4000);
+  } else if (r.result === 'busy') {
+    toast('A check for updates is running. Delete the download once it has finished.', 4000);
+  } else {
+    toast(`The download could not be deleted (${r.reason || 'no answer'}). Your app keeps working.`, 5000);
+  }
+  if (onDone) onDone(r);
+  return r;
 }
 
 /** Update: switches to the staged release, or says why it needs this app's address first. */

@@ -47,7 +47,7 @@ export async function loadLoader({ pub, scope = 'https://wallet.example/', name 
   const caches = memoryCaches();
   // eslint-disable-next-line no-new-func
   const names = Object.keys(globals);
-  const run = new Function('self', 'caches', 'fetch', ...names, `${source}\nreturn { fetchBytes, fetchVerifiedRelease, checkUpdate, applyUpdate, readState, writeState, stageRelease, LOADER_COMPAT, LOADER_NAME };`);
+  const run = new Function('self', 'caches', 'fetch', ...names, `${source}\nreturn { fetchBytes, fetchVerifiedRelease, checkUpdate, applyUpdate, discardUpdate, cleanup, readState, writeState, stageRelease, LOADER_COMPAT, LOADER_NAME, setUpdateRun: (p) => { updateRun = p; } };`);
   const api = run(self, caches, (url, init) => net(url, init), ...names.map((n) => globals[n]));
   return { ...api, self, caches, handlers, loaderCompat };
 }

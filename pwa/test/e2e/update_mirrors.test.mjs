@@ -15,8 +15,9 @@
 // after A). Each server counts what it receives.
 //
 // 1. Install from A at N, make a wallet; then A stops completely.
-// 2. M serves a signed N+1: Check for updates finds it there, Update applies
-//    it, a cold start runs N+1 with A still dead.
+// 2. M serves a signed N+1: Check for updates finds it there; "Delete this download"
+//    (in the sheet, then in About) removes it and the next check downloads it again
+//    (issue #78); Update applies it, a cold start runs N+1 with A still dead.
 // 3. M serves a tampered N+2: refused, nothing of it cached; the app stays on
 //    N+1 and works.
 // 4. M serves N+1 or N: "up to date".
@@ -297,6 +298,41 @@ test('2. own address dead, M serves N+1: found there, verified, applied; a cold 
   M.delayMs = 0;
   assert.match(await page.textContent(tid('update-ready-text')), new RegExp(`Downloaded from a copy at ${esc(M_HOST)} and checked against BEAM Campfire's signature`));
   await shots('mirrors-02-ready-from-copy');
+
+  // Issue #78: "Delete this download" in the sheet. The staged release and its files go, the
+  // installed copy stays, Settings says so, and the next check downloads it again.
+  const staging = () =>
+    page.evaluate(async () => {
+      const st = await (await (await caches.open('campfire-meta')).match(new URL('__campfire_state', location.href).href)).json();
+      return { current: st.current.version, pending: st.pending && st.pending.version, staging: st.staging || null, caches: (await caches.keys()).filter((k) => k !== 'campfire-meta').length };
+    });
+  assert.equal(await page.textContent(tid('update-discard')), 'Delete this download');
+  await page.click(tid('update-discard'));
+  await page.waitForSelector('.sheet', { state: 'detached' });
+  assert.equal(await page.textContent('.toast'), 'Download deleted. Check for updates to download it again.');
+  assert.deepEqual(await staging(), { current: V(0), pending: null, staging: null, caches: 1 }, 'only the installed copy is left');
+  assert.equal(await page.textContent(`${tid('check-updates')} .s`), `Last checked just now: you deleted the download of version ${V(1)}. Check again to download it.`);
+  await shots('mirrors-02b-download-deleted');
+  const beforeAgain = M.count();
+  let again = await checkAndWait();
+  assert.ok(again.sheet && again.sheet.includes(`Update to ${V(1)}`), `found again: ${again.sheet || again.toast}`);
+  const fetchedAgain = M.since(beforeAgain).filter((r) => !/^\/(release\.json|release\.sig|manifest\.json)$/.test(r.path));
+  assert.ok(fetchedAgain.length > 100, `its files were downloaded again (${fetchedAgain.length})`);
+  // ...and in About, beside "Staged update".
+  await page.click(tid('update-later'));
+  await page.evaluate(() => window.__campfire.go('about'));
+  await waitScreen(page, 'about');
+  await page.waitForSelector(tid('about-discard'));
+  assert.equal(await page.textContent(tid('about-staged')), V(1));
+  await page.locator(tid('about-discard')).scrollIntoViewIfNeeded();
+  await shots('mirrors-02c-about-staged');
+  await page.click(tid('about-discard'));
+  await page.waitForFunction(() => document.querySelector('[data-testid="about-staged"]')?.textContent === 'none');
+  assert.equal(await page.$(tid('about-discard')), null, 'nothing left to delete');
+  assert.deepEqual(await staging(), { current: V(0), pending: null, staging: null, caches: 1 });
+  again = await checkAndWait();
+  assert.ok(again.sheet && again.sheet.includes(`Update to ${V(1)}`), 'and found once more');
+
   // "Later": Home says where it came from.
   await page.click('.sheet .btn-text');
   await page.evaluate(() => window.__campfire.go('home'));

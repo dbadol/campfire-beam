@@ -19,7 +19,8 @@
  * everywhere or serves a parking page. Later releases are downloaded and
  * verified only on request ("check-update": the Check for updates button)
  * into a separate cache, and become the served copy only on "apply-update",
- * which only the Update button sends.
+ * which only the Update button sends. "discard-update" (Delete this download)
+ * forgets a staged release and deletes its cache; a later check fetches it again.
  *
  * Update sources (lib/update_sources.js, inlined below): this app's own
  * address, the public copies the installed release names, and an address the
@@ -522,6 +523,23 @@ async function applyUpdate({ loaderReady = false } = {}) {
   return { result: 'applied', version: next.current.version, from: p.from || null };
 }
 
+/**
+ * "Delete this download" (issue #78): forgets the release that was downloaded and verified but not
+ * applied, and deletes its cache (and any half-staged one), so a later check downloads it again from
+ * whichever source answers. Refused while a check runs: it may be staging that very release. The
+ * installed copy is never touched. An older page never sends this: it reads `features` in status.
+ */
+async function discardUpdate() {
+  if (updateRun) return { result: 'busy' };
+  const st = await readState();
+  if (!st.current || (!st.pending && !st.staging)) return { result: 'none' };
+  const version = st.pending ? st.pending.version : null;
+  const next = { ...st, pending: null, staging: null };
+  await writeState(next);
+  await cleanup(next);
+  return { result: 'discarded', version };
+}
+
 /** The loader file the installed release ships, with its signed SHA-256 (for the page's move to it). */
 function releaseLoaderOf(rec) {
   if (!rec || !rec.files) return null;
@@ -555,6 +573,9 @@ self.addEventListener('message', (event) => {
           port.postMessage({
             loader: LOADER_NAME,
             api: LOADER_API,
+            // What this loader can do beyond its LOADER_API level, for a page to offer it only then
+            // (a new message is not a reason to raise LOADER_API: that would tie the release to its address).
+            features: ['discard-update'],
             compat: LOADER_COMPAT,
             current: st.current && st.current.version,
             currentFrom: (st.current && st.current.from) || null,
@@ -582,6 +603,8 @@ self.addEventListener('message', (event) => {
           port.postMessage(r);
         } else if (type === 'apply-update') {
           port.postMessage(await applyUpdate({ loaderReady: event.data.loaderReady === true }));
+        } else if (type === 'discard-update') {
+          port.postMessage(await discardUpdate());
         } else if (type === 'set-node') {
           // The person's own node (or null for BEAM's pool): from the next page load on, in connect-src.
           const raw = event.data.node;
