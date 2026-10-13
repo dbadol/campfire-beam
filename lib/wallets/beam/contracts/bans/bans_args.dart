@@ -98,14 +98,28 @@ class BansArgs {
     'name': name.value,
   });
 
-  /// `role=manager,action=pay`: an anonymous deposit into the Anon-Vault for
-  /// the name's owner. [amount] must be above zero.
-  String pay(BansName name, int assetId, BigInt amount) =>
-      _build('manager', 'pay', {
-        'name': name.value,
-        'aid': '${_aid(assetId)}',
-        'amount': '${_amount(amount, allowZero: false)}',
-      });
+  /// A payment of [amount] of [assetId] to exactly [ownerKey], built by
+  /// BEAM's Anon-Vault app shader (`role=user,action=send_anon` on
+  /// [kBansVaultCid], `vault_anon/app.cpp:174-182`), with the name as its
+  /// message (its bytes zero-padded to [kBansNameMaxLength], as BANS's `pay`
+  /// writes it, so the owner's wallet shows which name was paid). Used
+  /// instead of BANS's own `role=manager,action=pay`, which re-reads the vault
+  /// and the owner from the node while it builds (audit D-1). Run it with the
+  /// vault shader ([vaultAnonAppShader]), not BANS's.
+  String sendAnon(String ownerKey, BansName name, int assetId, BigInt amount) {
+    final key = BansKey.require(ownerKey);
+    final bytes = name.value.codeUnits;
+    final msg = StringBuffer();
+    for (final b in bytes) {
+      msg.write(b.toRadixString(16).padLeft(2, '0'));
+    }
+    msg.write('00' * (kBansNameMaxLength - bytes.length));
+    return 'role=user,action=send_anon,cid=$kBansVaultCid'
+        ',pkOwner=$key'
+        ',aid=${_aid(assetId)}'
+        ',amount=${_amount(amount, allowZero: false)}'
+        ',msg=$msg';
+  }
 
   /// `role=user,action=receive`. Without [oneTimeKey] it claims sale
   /// proceeds held under this wallet's key (privilege 0); with one it claims

@@ -22,8 +22,7 @@ import '../contracts/minter/minter_constants.dart';
 /// `test/beam/contracts/bans/fixtures/view_params.json` and
 /// `the project notes` §2. A test checks the two
 /// agree.
-const String kVaultAnonCid =
-    'a3385e50cf33afc9f769ee1d82d56b73046d680d343977f36d9a303d7bcdc4da';
+const String kVaultAnonCid = kBansVaultCid;
 
 /// The DAO vault BANS and the minter pay their fees into (`dao-vault` in
 /// BANS `view_params`, `cidDaoVault` in the minter's).

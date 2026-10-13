@@ -57,3 +57,7 @@ List<int> bansRaw(String name) => [
 /// The pinned shader as committed in the repo.
 PinnedShader repoShader() =>
     bansAppShader(const FileShaderSource('assets/beam/shaders'));
+
+/// The bundled Anon-Vault app shader, which builds payments to a name (audit D-1).
+PinnedShader repoVaultShader() =>
+    vaultAnonAppShader(const FileShaderSource('assets/beam/shaders'));

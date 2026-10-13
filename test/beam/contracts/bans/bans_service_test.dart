@@ -30,6 +30,16 @@ class _BytesSource implements ShaderSource {
   }
 }
 
+/// Any shader file's bytes, whatever its name: a stand-in for a tampered bundle.
+class _AnyBytes implements ShaderSource {
+  _AnyBytes(this._bytes);
+
+  final List<int> Function() _bytes;
+
+  @override
+  Future<Uint8List> read(String name) async => Uint8List.fromList(_bytes());
+}
+
 /// yas compacted unsigned / signed, as `raw_data` carries them.
 List<int> _u(int v) {
   if (v < 128) return [0x80 | v];
@@ -107,8 +117,12 @@ FakeHandler _invoker(Map<String, Object?> overrides) => (params) {
   expect(params['create_tx'], isFalse, reason: 'never create_tx: true');
   final contract = params['contract'];
   expect(contract, isA<List<int>>());
-  expect((contract! as List<int>).length, kBansShaderSize);
   final action = _action(params);
+  // A payment to a name is built by BEAM's Anon-Vault shader (audit D-1); the rest by BANS's.
+  expect(
+    (contract! as List<int>).length,
+    action == 'send_anon' ? kVaultAnonShaderSize : kBansShaderSize,
+  );
   final args = params['args']! as String;
   final name = RegExp(r'name=([^,]*)').firstMatch(args)?.group(1);
   final reply = overrides['$action:$name'] ?? overrides[action];
@@ -125,6 +139,7 @@ void main() {
     Map<String, Object?> invoke, {
     BeamExplorerClient? explorer,
     PinnedShader? shader,
+    PinnedShader? vaultShader,
   }) {
     t = FakeTransport({
       'wallet_status': _walletStatus(),
@@ -135,6 +150,7 @@ void main() {
       BeamApi(t),
       explorer,
       shader: shader ?? repoShader(),
+      vaultShader: vaultShader ?? repoVaultShader(),
     );
   }
 
@@ -348,7 +364,7 @@ void main() {
       setUpService({
         'view_params': 'view_params',
         'view_name': 'view_name_beam',
-        'pay': 'pay_beam',
+        'send_anon': 'pay_beam',
       });
       final p = await svc.preparePay(
         BansName('beam'),
@@ -364,14 +380,87 @@ void main() {
       final actions = [
         for (final c in t.callsTo('invoke_contract')) _action(c.params),
       ];
-      expect(actions, ['view_params', 'view_name', 'pay', 'view_name']);
+      expect(actions, ['view_params', 'view_name', 'send_anon', 'view_name']);
+    });
+
+    test('pay (audit D-1): built by BEAM\'s Anon-Vault shader for exactly the '
+        'owner key shown, the name as its message; BANS\'s pay is never run', () async {
+      setUpService({
+        'view_params': 'view_params',
+        'view_name': 'view_name_beam',
+        'send_anon': 'pay_beam',
+      });
+      await svc.preparePay(
+        BansName('beam'),
+        0,
+        BigInt.from(12345),
+        expectedOwnerKey: beamOwnerKey,
+      );
+      final calls = t.callsTo('invoke_contract').toList();
+      expect(calls.map((c) => _action(c.params)), isNot(contains('pay')));
+      final send = calls.singleWhere((c) => _action(c.params) == 'send_anon');
+      expect(_argOf(send.params, 'role'), 'user');
+      expect(_argOf(send.params, 'cid'), vaultCid);
+      expect(_argOf(send.params, 'pkOwner'), beamOwnerKey);
+      expect(_argOf(send.params, 'aid'), '0');
+      expect(_argOf(send.params, 'amount'), '12345');
+      expect(_argOf(send.params, 'msg'), '6265616d${'00' * 60}');
+      expect(
+        (send.params['contract']! as List<int>).length,
+        kVaultAnonShaderSize,
+        reason: 'the Anon-Vault app shader, not BANS\'s',
+      );
+    });
+
+    test('pay (audit D-1): a node naming a vault that is not BEAM\'s own is '
+        'refused before anything is built', () async {
+      final real = bansEnvelope('view_params');
+      final result = (real['result']! as Map).cast<String, Object?>();
+      final output = (result['output']! as String).replaceAll(
+        vaultCid,
+        'ff' * 32,
+      );
+      expect(output, isNot(contains(vaultCid)));
+      setUpService({
+        'view_params': {...real, 'result': {...result, 'output': output}},
+        'view_name': 'view_name_beam',
+        'send_anon': 'pay_beam',
+      });
+      await expectLater(
+        svc.preparePay(BansName('beam'), 0, BigInt.from(12345)),
+        throwsA(isA<BansWrongVault>()),
+      );
+      expect(
+        t.callsTo('invoke_contract').map((c) => _action(c.params)),
+        isNot(contains('send_anon')),
+      );
+    });
+
+    test('pay (audit D-1): an Anon-Vault shader that is not the pinned build '
+        'is never run', () async {
+      setUpService(
+        {
+          'view_params': 'view_params',
+          'view_name': 'view_name_beam',
+          'send_anon': 'pay_beam',
+        },
+        vaultShader: vaultAnonAppShader(_AnyBytes(() => List.filled(kVaultAnonShaderSize, 7))),
+      );
+      await expectLater(
+        svc.preparePay(BansName('beam'), 0, BigInt.from(12345)),
+        throwsA(isA<BansShaderMismatch>()),
+      );
+      expect(
+        t.callsTo('invoke_contract').map((c) => _action(c.params)),
+        isNot(contains('send_anon')),
+      );
     });
 
     test('pay: an amount other than the request is refused', () async {
       setUpService({
         'view_params': 'view_params',
         'view_name': 'view_name_beam',
-        'pay': 'pay_beam',
+        'send_anon': 'pay_beam',
       });
       await expectLater(
         svc.preparePay(BansName('beam'), 0, BigInt.from(99999)),
@@ -383,7 +472,7 @@ void main() {
       setUpService({
         'view_params': 'view_params',
         'view_name': 'view_name_beam',
-        'pay': 'pay_beam',
+        'send_anon': 'pay_beam',
       });
       await expectLater(
         svc.preparePay(
@@ -396,7 +485,7 @@ void main() {
       );
       expect(
         t.callsTo('invoke_contract').map((c) => _action(c.params)),
-        isNot(contains('pay')),
+        isNot(contains('send_anon')),
       );
     });
 
@@ -411,7 +500,7 @@ void main() {
               ? bansEnvelope('view_name_beam')
               : bansEnvelope('view_name_listed');
         }
-        return bansEnvelope(a == 'pay' ? 'pay_beam' : 'view_params');
+        return bansEnvelope(a == 'send_anon' ? 'pay_beam' : 'view_params');
       });
       await expectLater(
         svc.preparePay(BansName('beam'), 0, BigInt.from(12345)),
@@ -428,7 +517,7 @@ void main() {
       setUpService({
         'view_params': 'view_params',
         'view_name': 'view_name_free',
-        'pay': 'pay_unreg',
+        'send_anon': 'pay_unreg',
       });
       await expectLater(
         svc.preparePay(BansName('zzzzz'), 0, BigInt.one),
@@ -540,7 +629,7 @@ void main() {
       t.reply('invoke_contract', (Map<String, Object?> params) {
         final a = _action(params);
         if (a == 'view_name') return bansEnvelope(owner);
-        return bansEnvelope(a == 'pay' ? 'pay_beam' : 'view_params');
+        return bansEnvelope(a == 'send_anon' ? 'pay_beam' : 'view_params');
       });
       final p = await svc.preparePay(BansName('beam'), 0, BigInt.from(12345));
       owner = 'view_name_listed';

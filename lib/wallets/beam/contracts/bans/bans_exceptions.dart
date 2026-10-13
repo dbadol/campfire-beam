@@ -158,6 +158,20 @@ final class BansOwnerChanged extends BansException {
   final String? currentKey;
 }
 
+/// The node gave a vault for payments to a name that is not BEAM's own
+/// (`kBansVaultCid`). Every payment to a name goes there, and the node
+/// answers this without proof, so nothing is built or sent (audit D-1).
+final class BansWrongVault extends BansException {
+  const BansWrongVault(this.vaultCid)
+    : super(
+        "The BEAM node this wallet uses gave a vault for name payments that "
+        "is not BEAM's own, so nothing was sent. Try again later, or choose "
+        'another node.',
+      );
+
+  final String vaultCid;
+}
+
 /// The transaction the core built does not match what was asked for (wrong
 /// contract, method, name, amount or asset). Nothing was sent. This should
 /// never happen with the pinned shader; it stops a mismatch from being
