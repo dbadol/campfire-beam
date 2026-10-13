@@ -67,6 +67,7 @@ import 'pages/beam/minter/beam_burn_view.dart';
 import 'pages/beam/import/beam_import_wallet_file_view.dart';
 import 'pages/beam/minter/beam_mint_token_view.dart';
 import 'pages/beam/minter/beam_my_tokens_view.dart';
+import 'pages/beam/settings/app_language_view.dart';
 import 'pages/beam/split/beam_split_view.dart';
 import 'pages/beam/names/beam_names_home_view.dart';
 import 'pages/buy_view/buy_in_wallet_view.dart';
@@ -1377,7 +1378,7 @@ class RouteGenerator {
       case LanguageSettingsView.routeName:
         return getRoute(
           shouldUseMaterialRoute: useMaterialPageRoute,
-          builder: (_) => const LanguageSettingsView(),
+          builder: (_) => const AppLanguageView(),
           settings: RouteSettings(name: settings.name),
         );
 
@@ -2698,7 +2699,7 @@ class RouteGenerator {
       case LanguageOptionSettings.routeName:
         return getRoute(
           shouldUseMaterialRoute: useMaterialPageRoute,
-          builder: (_) => const LanguageOptionSettings(),
+          builder: (_) => const DesktopAppLanguageSettings(),
           settings: RouteSettings(name: settings.name),
         );
 

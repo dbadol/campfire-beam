@@ -1,0 +1,31 @@
+{
+  "@@locale": "en",
+  "commonTwoSentences": "{first} {second}",
+  "@commonTwoSentences": {
+    "description": "Joins two complete sentences shown one after the other in the same paragraph. Keep both placeholders and their order; in Chinese and Japanese leave out the space.",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsLanguageDescription": "Choose the language this app speaks. Until you choose one, it follows this device.",
+  "@settingsLanguageDescription": {
+    "description": "Settings → Language on desktop: the sentence under the heading, above the list of languages."
+  },
+  "settingsLanguageLikeDevice": "Like this device",
+  "@settingsLanguageLikeDevice": {
+    "description": "Settings → Language: the first choice in the list, the default. The app uses the device's language (when the app has it, else English). Under it, the name of that language is shown, e.g. 'English'. The other choices are each language's own name (English, Русский, 简体中文, 日本語) and are never translated."
+  },
+  "settingsLanguageTitle": "Language",
+  "@settingsLanguageTitle": {
+    "description": "Settings → Language: the page title (phone) and the settings pane's heading (desktop). The page where the app's language is chosen."
+  },
+  "settingsLanguageUntranslatedNote": "Anything not translated yet shows in English. Amounts, addresses and names look the same in every language.",
+  "@settingsLanguageUntranslatedNote": {
+    "description": "Settings → Language: the small note under the list of languages. 'Names' are BEAM names (like alice.beam), which are never translated."
+  }
+}

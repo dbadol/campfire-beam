@@ -69,6 +69,8 @@ flutter_libsparkmobile.dll
 secp256k1.dll
 /libisar.so
 /lib/app_config.g.dart
+# gen-l10n output (l10n.yaml), made by flutter pub get
+/lib/l10n/generated/
 /android/app/src/main/app_icon-playstore.png
 
 ## other generated project files

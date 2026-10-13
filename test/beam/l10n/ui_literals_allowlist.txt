@@ -1,0 +1,4 @@
+# Literals in the scanned BEAM files that look like prose but are not text
+# a person reads in the app. One per line:
+#   file | literal exactly as the guard prints it | why it stays
+# Keep it exact: an entry nothing matches fails the guard too.

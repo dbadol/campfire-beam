@@ -32,6 +32,8 @@ import 'db/hive/db.dart';
 import 'db/isar/main_db.dart';
 import 'db/special_migrations.dart';
 import 'db/sqlite/firo_cache.dart';
+import 'l10n/app_language.dart';
+import 'l10n/l10n.dart';
 import 'models/epicbox_server_model.dart';
 import 'models/exchange/change_now/exchange_transaction.dart';
 import 'models/exchange/change_now/exchange_transaction_status.dart';
@@ -807,11 +809,17 @@ class _MaterialAppWithThemeState extends ConsumerState<MaterialAppWithTheme>
       navigatorKey: ref.read(pNavKey),
       title: BeamAppIdentity.displayName,
       onGenerateRoute: RouteGenerator.generateRoute,
+      // The device's language (or the one chosen in Settings → Language,
+      // applied by AppLocaleScope below); see lib/l10n/l10n.dart.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: resolveAppLocale,
       // Above the navigator, so no navigation can remove it: wrapping the
       // first route, it was disposed by the desktop login's
       // pushNamedAndRemoveUntil, and no payment notice reached the app.
-      builder: (context, child) =>
-          CryptoNotifications(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => AppLocaleScope(
+        child: CryptoNotifications(child: child ?? const SizedBox.shrink()),
+      ),
       theme: ThemeData(
         extensions: [colorScheme],
         highlightColor: colorScheme.highlight,
