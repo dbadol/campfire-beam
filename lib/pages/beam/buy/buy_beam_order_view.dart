@@ -35,6 +35,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/buy/buybeam_client.dart';
@@ -167,11 +168,12 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
   @override
   Widget build(BuildContext context) {
     final o = c.order(widget.depositAddress);
+    final l10n = context.l10n;
     if (o == null) {
       return DexPage(
         deps: deps,
-        title: 'Your buy',
-        body: Text('Loading your buy…', style: STextStyles.label(context)),
+        title: l10n.buyYourBuy,
+        body: Text(l10n.buyLoadingYourBuy, style: STextStyles.label(context)),
       );
     }
     final s = o.lastState ?? BuyBeamState.awaitingDeposit;
@@ -179,23 +181,23 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
     final VoidCallback action;
     switch (s) {
       case BuyBeamState.awaitingDeposit:
-        label = _copied ? 'Address copied' : 'Copy address';
+        label = _copied ? l10n.buyAddressCopied : l10n.buyCopyAddress;
         action = () => unawaited(_copy(o.depositAddress));
       case BuyBeamState.delivered when _arrived:
-        label = 'See it in your wallet';
+        label = l10n.buySeeInWallet;
         action = () => unawaited(
           deps.onOpenTransaction?.call(context, o.beamTxId) ??
               Future.sync(_back),
         );
       case BuyBeamState.delivered:
-        label = 'Back to your wallet';
+        label = l10n.buyBackToWallet;
         action = _back;
       case BuyBeamState.expired:
-        label = 'Start a new buy';
+        label = l10n.buyStartNew;
         action = _newBuy;
       case BuyBeamState.failed:
       case BuyBeamState.attention:
-        label = 'Contact buybeam.my support';
+        label = l10n.buyContactSupport;
         action = () => deps.onOpenSupport?.call();
       case BuyBeamState.refunded:
       case BuyBeamState.depositDetected:
@@ -204,14 +206,14 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
       case BuyBeamState.processing:
       case BuyBeamState.sending:
       case BuyBeamState.inProgress:
-        label = 'Back to your wallet';
+        label = l10n.buyBackToWallet;
         action = _back;
     }
     return DexPage(
       deps: deps,
       title: s == BuyBeamState.awaitingDeposit
-          ? 'Send ${o.sendAmount} ${o.symbol}'
-          : 'Buy BEAM',
+          ? l10n.buyOrderSendTitle(BuyBeamWords.coin(o.sendAmount, o.symbol))
+          : l10n.buyTitle,
       body: _body(context, o, s),
       bottom: DexPrimaryAction(
         deps: deps,
@@ -224,6 +226,7 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
 
   Widget _body(BuildContext context, BuyBeamOrder o, BuyBeamState s) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final quiet = STextStyles.label(context)
         .copyWith(color: colors.textSubtitle1);
     final waiting = s == BuyBeamState.awaitingDeposit;
@@ -234,10 +237,7 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (o.sandbox) ...[
-          const DexNotice(
-            key: Key('buy-sandbox'),
-            title: "buybeam.my's test mode: nothing to pay",
-          ),
+          DexNotice(key: const Key('buy-sandbox'), title: l10n.buySandbox),
           const SizedBox(height: 12),
         ],
         if (notice != null) ...[notice, const SizedBox(height: 12)],
@@ -247,27 +247,16 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
         _details(context, o, s),
         if (o.isOpen) ...[
           const SizedBox(height: 12),
-          Text(
-            'Keep Campfire open until your BEAM arrives. If you close it, '
-            'open it again within 12 hours.',
-            key: const Key('buy-keep-open'),
-            style: quiet,
-          ),
+          Text(l10n.buyKeepOpen, key: const Key('buy-keep-open'), style: quiet),
           const SizedBox(height: 4),
-          Text(
-            'You can leave this screen — your buy keeps going.',
-            key: const Key('buy-can-leave'),
-            style: quiet,
-          ),
+          Text(l10n.buyCanLeave, key: const Key('buy-can-leave'), style: quiet),
         ],
         if (pollError != null && o.isOpen) ...[
           const SizedBox(height: 4),
           Text(
             pollError.code.unreachable
-                ? "Couldn't reach buybeam.my just now. Campfire keeps "
-                      'checking.'
-                : "buybeam.my's last answer didn't make sense. Campfire "
-                      'keeps checking.',
+                ? l10n.buyPollUnreachable
+                : l10n.buyPollBadAnswer,
             key: const Key('buy-poll-error'),
             style: quiet,
           ),
@@ -278,13 +267,13 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
 
   List<Widget> _payment(BuildContext context, BuyBeamOrder o) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final deadline = o.deadline?.toLocal();
     return [
       RoundedContainer(
         color: colors.warningBackground,
         child: Text(
-          'Send only ${o.symbol} on the ${o.chainName} network to this '
-          'address.',
+          l10n.buyNetworkWarning(o.symbol, o.chainName),
           key: const Key('buy-network-warning'),
           style: STextStyles.smallMed12(context)
               .copyWith(color: colors.warningForeground),
@@ -314,13 +303,13 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${o.chainName} deposit address',
+                    l10n.buyDepositAddressLabel(o.chainName),
                     style: STextStyles.label(context),
                   ),
                 ),
                 CustomTextButton(
                   key: const Key('buy-copy-address'),
-                  text: _copied ? 'Copied' : 'Copy',
+                  text: _copied ? l10n.commonCopied : l10n.commonCopy,
                   onTap: () => unawaited(_copy(o.depositAddress)),
                 ),
               ],
@@ -345,7 +334,7 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Send exactly', style: STextStyles.label(context)),
+                  Text(l10n.buySendExactly, style: STextStyles.label(context)),
                   Text(
                     '${o.sendAmount} ${o.symbol}',
                     key: const Key('buy-exact-amount'),
@@ -357,7 +346,7 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
             ),
             CustomTextButton(
               key: const Key('buy-copy-amount'),
-              text: _amountCopied ? 'Copied' : 'Copy',
+              text: _amountCopied ? l10n.commonCopied : l10n.commonCopy,
               onTap: () => unawaited(_copy(o.sendAmount, amount: true)),
             ),
           ],
@@ -366,7 +355,7 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
       if (deadline != null) ...[
         const SizedBox(height: 8),
         Text(
-          'This address works until ${_when(deadline)}.',
+          _until(deadline),
           key: const Key('buy-deadline'),
           style: STextStyles.label(context)
               .copyWith(color: colors.textSubtitle1),
@@ -376,19 +365,21 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
     ];
   }
 
-  String _when(DateTime t) {
+  /// "This address works until 14:05 today." / "… until 14:05 on 15 Jan."
+  String _until(DateTime t) {
     final now = (widget.now?.call() ?? DateTime.now()).toLocal();
     final hm =
         '${t.hour.toString().padLeft(2, '0')}:'
         '${t.minute.toString().padLeft(2, '0')}';
     final today =
         t.year == now.year && t.month == now.month && t.day == now.day;
-    if (today) return '$hm today';
+    if (today) return context.l10n.buyDeadlineToday(hm);
+    // The month as a case of the message (jan … dec), not as a word.
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'jan', 'feb', 'mar', 'apr', 'may', 'jun', //
+      'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
     ];
-    return '$hm on ${t.day} ${months[t.month - 1]}';
+    return context.l10n.buyDeadlineOnDay(hm, t.day, months[t.month - 1]);
   }
 
   Widget _details(BuildContext context, BuyBeamOrder o, BuyBeamState s) {
@@ -401,42 +392,43 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
       BuyBeamState.expired,
       BuyBeamState.failed,
     }.contains(s);
+    final l10n = context.l10n;
     return DexCard(
       child: Column(
         children: [
           DexDetailRow(
-            label: paid ? 'You paid' : 'You pay',
+            label: paid ? l10n.buyYouPaid : l10n.buyYouPay,
             value: '${o.sendAmount} ${o.symbol}',
           ),
           if (estimate != null)
             DexDetailRow(
-              label: _arrived ? 'You got' : 'You get',
+              label: _arrived ? l10n.buyYouGot : l10n.buyYouGet,
               valueKey: const Key('buy-order-estimate'),
               value: '≈ $estimate',
             ),
-          DexDetailRow(label: 'Arrives in', value: deps.walletName),
+          DexDetailRow(label: l10n.buyArrivesInLabel, value: deps.walletName),
           DexDetailRow(
             address: true,
-            label: 'Refunds go to',
+            label: l10n.buyRefundsGoTo,
             value: UniFormat.shortAny(o.refundAddress),
           ),
           // The order's handle, for buybeam.my's support.
           if (s != BuyBeamState.awaitingDeposit)
             DexDetailRow(
               address: true,
-              label: 'Order',
+              label: l10n.buyOrderLabel,
               valueKey: const Key('buy-order-address'),
               value: UniFormat.shortAny(o.depositAddress),
               trailing: CustomTextButton(
                 key: const Key('buy-copy-order'),
-                text: _copied ? 'Copied' : 'Copy',
+                text: _copied ? l10n.commonCopied : l10n.commonCopy,
                 onTap: () => unawaited(_copy(o.depositAddress)),
               ),
             ),
           if (o.beamTxId != null)
             DexDetailRow(
               address: true,
-              label: 'BEAM transaction',
+              label: l10n.buyBeamTransaction,
               valueKey: const Key('buy-beam-tx'),
               value: UniFormat.shortAny(o.beamTxId!),
             ),
@@ -446,64 +438,56 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
   }
 
   Widget? _notice(BuildContext context, BuyBeamOrder o, BuyBeamState s) {
+    final l10n = context.l10n;
     switch (s) {
       case BuyBeamState.delivered:
         final got = o.beamEstimate == null
-            ? 'Your BEAM'
+            ? null
             : '≈ ${BuyBeamWords.beam(BuyBeamWords.groth(o.beamEstimate!))}';
         if (_arrived) {
           return DexNotice(
             key: const Key('buy-arrived'),
             kind: DexNoticeKind.success,
-            title: 'Your BEAM has arrived',
-            detail: '$got is in ${deps.walletName}.',
+            title: l10n.buyArrived,
+            detail: got == null
+                ? l10n.buyArrivedDetailNoAmount(deps.walletName)
+                : l10n.buyArrivedDetail(got, deps.walletName),
           );
         }
         return DexNotice(
           key: const Key('buy-delivered'),
-          title: 'buybeam.my sent your BEAM',
-          detail:
-              '$got shows in ${deps.walletName} as soon as Campfire '
-              'accepts it — keep Campfire open.',
+          title: l10n.buyDeliveredTitle,
+          detail: got == null
+              ? l10n.buyDeliveredDetailNoAmount(deps.walletName)
+              : l10n.buyDeliveredDetail(got, deps.walletName),
         );
       case BuyBeamState.refunded:
         return DexNotice(
           key: const Key('buy-refunded'),
           kind: DexNoticeKind.warning,
-          title:
-              'Your payment was sent back to '
-              '${UniFormat.shortAny(o.refundAddress)}',
-          detail:
-              "buybeam.my couldn't buy the BEAM, so your ${o.symbol} went "
-              'back to your ${o.chainName} address. There is nothing else '
-              'to do.',
+          title: l10n.buyRefundedTitle(UniFormat.shortAny(o.refundAddress)),
+          detail: l10n.buyRefundedDetail(o.symbol, o.chainName),
         );
       case BuyBeamState.expired:
-        return const DexNotice(
-          key: Key('buy-expired'),
+        return DexNotice(
+          key: const Key('buy-expired'),
           kind: DexNoticeKind.warning,
-          title: 'No payment arrived in time. Nothing was taken.',
-          detail:
-              'This address no longer takes payments. Start a new buy '
-              'to get a new one.',
+          title: l10n.buyExpiredTitle,
+          detail: l10n.buyExpiredDetail,
         );
       case BuyBeamState.failed:
-        return const DexNotice(
-          key: Key('buy-failed'),
+        return DexNotice(
+          key: const Key('buy-failed'),
           kind: DexNoticeKind.error,
-          title: "The payment couldn't be processed",
-          detail:
-              'Contact buybeam.my support with this order (copy it below). '
-              'They can see where your coins are.',
+          title: l10n.buyStateFailed,
+          detail: l10n.buyFailedDetail,
         );
       case BuyBeamState.attention:
-        return const DexNotice(
-          key: Key('buy-attention'),
+        return DexNotice(
+          key: const Key('buy-attention'),
           kind: DexNoticeKind.warning,
-          title: 'buybeam.my is checking this order',
-          detail:
-              'Contact their support with this order (copy it below). '
-              'Campfire keeps checking meanwhile.',
+          title: l10n.buyAttentionTitle,
+          detail: l10n.buyAttentionDetail,
         );
       case BuyBeamState.awaitingDeposit:
       case BuyBeamState.depositDetected:

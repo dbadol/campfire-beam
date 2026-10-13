@@ -9,6 +9,7 @@
 
 import 'package:decimal/decimal.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../wallets/beam/contracts/dex/beam_ratio.dart';
 import '../../../wallets/beam/contracts/dex/dex_constants.dart';
@@ -49,19 +50,16 @@ abstract final class DexFormat {
     final t = text.trim();
     if (t.isEmpty) return DexAmountInput.empty;
     if (t.contains(',')) {
-      return const DexAmountInput._(null, 'Use a dot for decimals, like 0.5');
+      return DexAmountInput._(null, appL10n.dexAmountUseDot);
     }
     if (!_amountText.hasMatch(t) || t == '.') {
-      return const DexAmountInput._(null, 'Enter a number, like 0.5');
+      return DexAmountInput._(null, appL10n.dexAmountEnterNumber);
     }
     final dot = t.indexOf('.');
     final whole = dot < 0 ? t : t.substring(0, dot);
     final frac = dot < 0 ? '' : t.substring(dot + 1);
     if (frac.length > decimals) {
-      return const DexAmountInput._(
-        null,
-        'BEAM amounts have at most 8 decimals',
-      );
+      return DexAmountInput._(null, appL10n.dexAmountTooManyDecimals);
     }
     final w = whole.isEmpty ? BigInt.zero : BigInt.parse(whole);
     final f = frac.isEmpty
@@ -69,7 +67,7 @@ abstract final class DexFormat {
         : BigInt.parse(frac.padRight(decimals, '0'));
     final value = w * _unit + f;
     if (value >= (BigInt.one << 63)) {
-      return const DexAmountInput._(null, 'That amount is too large');
+      return DexAmountInput._(null, appL10n.dexAmountTooLarge);
     }
     return DexAmountInput._(value, null);
   }
@@ -146,7 +144,8 @@ abstract final class DexFormat {
   }
 
   /// "1% fee", from the pool's fee tier.
-  static String feeTier(BeamPoolKind kind) => '${kind.feePercent} fee';
+  static String feeTier(BeamPoolKind kind) =>
+      appL10n.dexFeeTier(kind.feePercent);
 
   /// The first and last six characters of a contract id.
   static String shortId(String hex) => hex.length <= 14
@@ -181,7 +180,7 @@ abstract final class DexFormat {
         Decimal.parse(r.toDecimalString(2))
             .toAmount(fractionDigits: 2)
             .fiatString(locale: locale);
-    if (v < cent) return 'under ${money(cent)} $code';
+    if (v < cent) return appL10n.dexWorthUnder('${money(cent)} $code');
     return '${money(v)} $code';
   }
 

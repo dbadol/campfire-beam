@@ -29,6 +29,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/barcode_scanner_interface.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/text_styles.dart';
@@ -71,7 +72,7 @@ class BeamClaimVoucherView extends StatefulWidget {
   });
 
   static const routeName = '/beamClaimVoucher';
-  static const title = 'Claim a code';
+  static String get title => appL10n.airdropClaimTitle;
 
   /// This wallet's airdrop service (one instance per wallet).
   final BeamAirdropService service;
@@ -243,7 +244,7 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
     final gets = _names.amount(s.assetId, s.receives[s.assetId]!);
     final tx = await runSend(
       authorize: widget.authorize,
-      reason: 'Claim $gets',
+      reason: context.l10n.airdropClaimAuthReason(gets),
       send: () => widget.service.execute(p),
       explain: airdropProblem,
     );
@@ -276,21 +277,24 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
           s != null &&
           _beamAvailable != null &&
           _beamAvailable! < _beamNeeded(s);
+      final l10n = context.l10n;
       final String label;
       VoidCallback? action;
       if (s != null) {
         label = s.claimCostsMoreThanItPays
-            ? 'Claim anyway'
-            : 'Claim ${_names.amount(s.assetId, s.receives[s.assetId]!)}';
+            ? l10n.airdropClaimAnyway
+            : l10n.airdropClaimCta(
+                _names.amount(s.assetId, s.receives[s.assetId]!),
+              );
         action = sync.canSpend && !shortOfBeam ? _claim : null;
       } else if (problem != null && _normalised.isNotEmpty) {
-        label = 'Check again';
+        label = l10n.airdropClaimCheckAgain;
         action = _check;
       } else if (_normalised.length >= _minAutoCheck) {
-        label = 'Check code';
+        label = l10n.airdropClaimCheckCode;
         action = _check;
       } else {
-        label = 'Claim code';
+        label = l10n.airdropClaimCodeCta;
       }
       return BeamPageScaffold(
         title: BeamClaimVoucherView.title,
@@ -298,14 +302,13 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Paste the code you were given. You see what it is worth '
-              'before anything is sent.',
+              l10n.airdropClaimIntro,
               style: STextStyles.itemSubtitle(context),
             ),
             const BeamGap(16),
             _codeField(context),
             const BeamGap(16),
-            if (_checking) const BeamWorking('Checking the code…'),
+            if (_checking) BeamWorking(l10n.airdropClaimChecking),
             if (problem != null && !_checking)
               BeamNotice(
                 key: const ValueKey('claim-problem'),
@@ -330,13 +333,11 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
                 BeamNotice(
                   key: const ValueKey('claim-short-of-beam'),
                   kind: BeamNoticeKind.danger,
-                  title: 'Not enough BEAM for the network fee',
-                  message:
-                      'Claiming needs '
-                      '${BeamUnits.withSymbol(_beamNeeded(s), 'BEAM')} and '
-                      'this wallet has '
-                      '${BeamUnits.withSymbol(_beamAvailable!, 'BEAM')}. Add '
-                      'BEAM to this wallet, then claim.',
+                  title: l10n.airdropClaimShortTitle,
+                  message: l10n.airdropClaimShortMessage(
+                    BeamUnits.withSymbol(_beamNeeded(s), 'BEAM'),
+                    BeamUnits.withSymbol(_beamAvailable!, 'BEAM'),
+                  ),
                 ),
               ],
             ],
@@ -352,7 +353,7 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
               primaryKey: const ValueKey('claim-cta'),
               label: label,
               busy: _checking || sending,
-              busyLabel: sending ? 'Claiming…' : 'Checking…',
+              busyLabel: sending ? l10n.airdropClaiming : l10n.airdropChecking,
               onPressed: action,
             ),
           ],
@@ -363,10 +364,11 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
 
   Widget _codeField(BuildContext context) {
     final desktop = BeamLayoutScope.isDesktop(context);
+    final l10n = context.l10n;
     return BeamTextField(
       fieldKey: const ValueKey('claim-code-field'),
       controller: _code,
-      label: 'Code',
+      label: l10n.airdropClaimCodeLabel,
       hint: 'XXXX-XXXX-XXXX-XXXX',
       style: voucherCodeStyle(context),
       textCapitalization: TextCapitalization.characters,
@@ -378,22 +380,24 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
               _prepared == null &&
               !_checking &&
               problem == null
-          ? '${_normalised.length} of ${AirdropVoucherCode.length} '
-                'characters'
+          ? l10n.airdropClaimCharacters(
+              _normalised.length,
+              AirdropVoucherCode.length,
+            )
           : null,
       suffix: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextFieldIconButton(
             key: const ValueKey('claim-paste'),
-            semanticsLabel: 'Paste the code',
+            semanticsLabel: l10n.airdropClaimPasteLabel,
             onTap: _paste,
             child: const ClipboardIcon(),
           ),
           if (!desktop)
             TextFieldIconButton(
               key: const ValueKey('claim-scan'),
-              semanticsLabel: 'Scan a QR code',
+              semanticsLabel: l10n.airdropClaimScanLabel,
               onTap: _scan,
               child: const QrCodeIcon(),
             ),
@@ -409,11 +413,12 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
     return BeamNotice(
       key: const ValueKey('claim-loss-warning'),
       kind: BeamNoticeKind.warning,
-      title: 'This code is worth less than the fee',
-      message:
-          'It gives ${beam(gives)} and the network fee to claim it is '
-          '${beam(s.networkFee)}, so your balance goes down by '
-          '${beam(s.networkFee - gives)}. Claim only if you want it anyway.',
+      title: context.l10n.airdropClaimLossTitle,
+      message: context.l10n.airdropClaimLossMessage(
+        beam(gives),
+        beam(s.networkFee),
+        beam(s.networkFee - gives),
+      ),
     );
   }
 
@@ -421,34 +426,37 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
     final gets = s.receives[s.assetId]!;
     final isBeam = s.assetId == 0;
     final net = (s.receives[0] ?? BigInt.zero) - s.beamOut;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         RoundedWhiteContainer(
           child: BeamAssetTitle(
             display: _names.display(s.assetId),
-            subtitle: 'Code found — not claimed yet',
+            subtitle: l10n.airdropClaimFound,
           ),
         ),
         const BeamGap(8),
         BeamDetailCard(
           children: [
             BeamDetailRow(
-              label: 'You get',
+              label: l10n.airdropClaimYouGet,
               value: _names.amount(s.assetId, gets),
               valueKey: const ValueKey('claim-gets'),
             ),
             BeamDetailRow(
-              label: 'Network fee',
+              label: l10n.beamNetworkFee,
               value: BeamUnits.withSymbol(s.networkFee, 'BEAM'),
-              detail: isBeam ? null : 'Paid from your BEAM',
+              detail: isBeam ? null : l10n.airdropClaimPaidFromBeam,
               valueKey: const ValueKey('claim-fee'),
             ),
           ],
         ),
         const BeamGap(8),
         BeamTotalRow(
-          label: isBeam ? 'Your balance changes by' : 'In total',
+          label: isBeam
+              ? l10n.airdropBalanceChangesBy
+              : l10n.airdropClaimInTotal,
           value: isBeam
               ? '${net.isNegative ? '−' : '+'}'
                     '${BeamUnits.withSymbol(net.abs(), 'BEAM')}'
@@ -462,6 +470,7 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
 
   Widget _done(BuildContext context) {
     final desktop = BeamLayoutScope.isDesktop(context);
+    final l10n = context.l10n;
     return BeamPageScaffold(
       title: BeamClaimVoucherView.title,
       body: Padding(
@@ -471,7 +480,7 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
             const BeamAnimatedStickerView(BeamMoments.claimDone, size: 140),
             const BeamGap(16),
             Text(
-              '$_claimedText is on its way',
+              l10n.airdropClaimDoneTitle(_claimedText!),
               key: const ValueKey('claim-done'),
               textAlign: TextAlign.center,
               style: desktop
@@ -480,8 +489,7 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
             ),
             const BeamGap(8),
             Text(
-              'It shows in your balance once the network confirms the '
-              'claim, usually within a few minutes.',
+              l10n.airdropClaimDoneMessage,
               textAlign: TextAlign.center,
               style: STextStyles.itemSubtitle(context),
             ),
@@ -489,9 +497,9 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
         ),
       ),
       bottom: BeamCtaBar(
-        label: 'Done',
+        label: l10n.commonDone,
         onPressed: widget.onDone ?? () => Navigator.of(context).maybePop(),
-        secondaryLabel: 'Claim another code',
+        secondaryLabel: l10n.airdropClaimAnother,
         onSecondary: _another,
       ),
     );

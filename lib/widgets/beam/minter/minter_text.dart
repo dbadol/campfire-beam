@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/burn/burn.dart';
 import '../../../wallets/beam/contracts/minter/minter.dart';
 import '../airdrop/airdrop_text.dart';
@@ -17,73 +18,68 @@ BeamProblem minterProblem(Object error) {
   final t = beamTransportProblem(error);
   if (t != null) return t;
   if (error is BeamBurnException) return _burn(error);
+  final l = appL10n;
   if (error is! BeamMinterException) {
-    return const BeamProblem(
-      'Something went wrong on our side',
-      'Nothing was sent. Try again; if it keeps happening, restart the '
-          'wallet.',
-    );
+    return BeamProblem(l.beamProblemOurSideTitle, l.beamProblemOurSideMessage);
   }
   return switch (error.code) {
-    MinterErrorCode.busy => const BeamProblem(
-      'Another token action is still open',
-      'Finish or close it, then try again.',
+    MinterErrorCode.busy => BeamProblem(
+      l.minterErrBusyTitle,
+      l.minterErrBusyMessage,
     ),
-    MinterErrorCode.noSuchToken => const BeamProblem(
-      "The Minter doesn't know this token",
-      'It may still be waiting for the network. Try again in a few '
-          'minutes.',
+    MinterErrorCode.noSuchToken => BeamProblem(
+      l.minterErrNoSuchTokenTitle,
+      l.minterErrNoSuchTokenMessage,
     ),
-    MinterErrorCode.notOwner => const BeamProblem(
-      'Only the wallet that created this token can mint it',
-      'Open the wallet that created it to mint more.',
+    MinterErrorCode.notOwner => BeamProblem(
+      l.minterErrNotOwnerTitle,
+      l.minterErrNotOwnerMessage,
     ),
     MinterErrorCode.aboveLimit => BeamProblem(
-      'More than this token can ever have',
-      '${error.message} Lower the amount.',
+      l.minterErrAboveLimitTitle,
+      joinSentences([error.message, l.minterErrLowerAmount], l),
     ),
-    MinterErrorCode.unexpectedTransaction => const BeamProblem(
-      'Stopped for your safety',
-      'The wallet built a different transaction than the one you asked '
-          'for, so nothing was sent. Try again; if it repeats, update the '
-          'app.',
+    MinterErrorCode.unexpectedTransaction => BeamProblem(
+      l.beamProblemUnexpectedTxTitle,
+      l.beamProblemUnexpectedTxMessage,
     ),
-    MinterErrorCode.expired ||
-    MinterErrorCode.alreadyExecuted => const BeamProblem(
-      'This confirmation is out of date',
-      'Nothing new was sent. Go back and start again.',
+    MinterErrorCode.expired || MinterErrorCode.alreadyExecuted => BeamProblem(
+      l.beamProblemOutOfDateTitle,
+      l.beamProblemOutOfDateMessage,
     ),
-    MinterErrorCode.noSuchContract => const BeamProblem(
-      "The Minter contract didn't answer",
-      'The wallet may be on the wrong network. Check the node in Settings.',
+    MinterErrorCode.noSuchContract => BeamProblem(
+      l.minterErrNoContractTitle,
+      l.minterErrNoContractMessage,
     ),
     MinterErrorCode.shaderError => BeamProblem(
-      'The Minter refused this',
-      'Nothing was sent. It said: "${error.message}".',
+      l.minterErrRefusedTitle,
+      l.minterErrRefusedWithReason(error.message),
     ),
   };
 }
 
-BeamProblem _burn(BeamBurnException error) => switch (error.code) {
-  BurnErrorCode.busy => const BeamProblem(
-    'Another burn is still open',
-    'Finish or close it, then try again.',
-  ),
-  BurnErrorCode.notAcknowledged => const BeamProblem(
-    'Confirm that the tokens are destroyed for good',
-    'Type the ticker to confirm, then try again.',
-  ),
-  BurnErrorCode.unexpectedTransaction => const BeamProblem(
-    'Stopped for your safety',
-    'The wallet built a different transaction than the one you asked for, '
-        'so nothing was burned. Try again; if it repeats, update the app.',
-  ),
-  BurnErrorCode.expired || BurnErrorCode.alreadyExecuted => const BeamProblem(
-    'This confirmation is out of date',
-    'Nothing new was burned. Go back and start again.',
-  ),
-  BurnErrorCode.shaderError => BeamProblem(
-    'The burn was refused',
-    'Nothing was burned. It said: "${error.message}".',
-  ),
-};
+BeamProblem _burn(BeamBurnException error) {
+  final l = appL10n;
+  return switch (error.code) {
+    BurnErrorCode.busy => BeamProblem(
+      l.minterBurnErrBusyTitle,
+      l.minterErrBusyMessage,
+    ),
+    BurnErrorCode.notAcknowledged => BeamProblem(
+      l.minterBurnErrNotAckTitle,
+      l.minterBurnErrNotAckMessage,
+    ),
+    BurnErrorCode.unexpectedTransaction => BeamProblem(
+      l.beamProblemUnexpectedTxTitle,
+      l.minterBurnErrUnexpectedTxMessage,
+    ),
+    BurnErrorCode.expired || BurnErrorCode.alreadyExecuted => BeamProblem(
+      l.beamProblemOutOfDateTitle,
+      l.minterBurnErrOutOfDateMessage,
+    ),
+    BurnErrorCode.shaderError => BeamProblem(
+      l.minterBurnErrRefusedTitle,
+      l.minterBurnErrRefusedWithReason(error.message),
+    ),
+  };
+}

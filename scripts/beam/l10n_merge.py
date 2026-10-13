@@ -124,6 +124,8 @@ def check_entries(entries, origin, errors):
                 errors.append(f"{origin}: {key}.{name} has type {t!r} (use String or int)")
             if "format" in spec:
                 errors.append(f"{origin}: {key}.{name} has a format: pass a ready-made string")
+            if "example" in spec and not (isinstance(spec["example"], str) and spec["example"]):
+                errors.append(f"{origin}: {key}.{name} example must be a non-empty string (gen-l10n refuses others)")
 
 
 def main():
@@ -170,8 +172,9 @@ def main():
             if part_errors and args.lenient:
                 for e in part_errors:
                     print("warning: " + e, file=sys.stderr)
-            else:
-                errors.extend(part_errors)
+                print(f"warning: parts/{name} skipped", file=sys.stderr)
+                continue
+            errors.extend(part_errors)
             for key, value in part.items():
                 if key.startswith("@@"):
                     continue

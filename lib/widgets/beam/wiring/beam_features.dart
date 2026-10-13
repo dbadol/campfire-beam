@@ -31,6 +31,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/beam/airdrop/beam_airdrop_batches_view.dart';
 import '../../../pages/beam/airdrop/beam_claim_voucher_view.dart';
 import '../../../pages/beam/airdrop/beam_create_airdrop_view.dart';
@@ -63,21 +64,50 @@ import 'beam_wallet_listenables.dart';
 
 /// The BEAM features a BEAM wallet offers beyond Send and Receive.
 enum BeamFeature {
-  buy('Buy', 'Pay with another coin, get BEAM'),
-  swap('Swap', 'Swap one asset for another'),
-  assets('Assets', 'Every asset this wallet holds'),
-  names('Names', 'Your BEAM names, and getting one'),
-  dapps('dApps', 'Apps that run on BEAM'),
-  airdrops('Airdrops', 'Claim a code, or give some away'),
-  tokens('Tokens', 'Create your own token on BEAM'),
-  node('Node & sync', 'Which node you use, and how up to date'),
-  split('Split coins', 'Send several payments at once'),
-  bridge('Bridge', 'Move coins to and from Ethereum');
+  buy,
+  swap,
+  assets,
+  names,
+  dapps,
+  airdrops,
+  tokens,
+  node,
+  split,
+  bridge;
 
-  const BeamFeature(this.label, this.description);
+  /// What it is called in the menus (lib/l10n/app_en.arb, wiring* keys).
+  String get label {
+    final l = appL10n;
+    return switch (this) {
+      BeamFeature.buy => l.wiringBuy,
+      BeamFeature.swap => l.wiringSwap,
+      BeamFeature.assets => l.wiringAssets,
+      BeamFeature.names => l.wiringNames,
+      BeamFeature.dapps => l.wiringDapps,
+      BeamFeature.airdrops => l.wiringAirdrops,
+      BeamFeature.tokens => l.wiringTokens,
+      BeamFeature.node => l.wiringNode,
+      BeamFeature.split => l.wiringSplit,
+      BeamFeature.bridge => l.wiringBridge,
+    };
+  }
 
-  final String label;
-  final String description;
+  /// The line under [label] where a menu has room for one.
+  String get description {
+    final l = appL10n;
+    return switch (this) {
+      BeamFeature.buy => l.wiringBuyDetail,
+      BeamFeature.swap => l.wiringSwapDetail,
+      BeamFeature.assets => l.wiringAssetsDetail,
+      BeamFeature.names => l.wiringNamesDetail,
+      BeamFeature.dapps => l.wiringDappsDetail,
+      BeamFeature.airdrops => l.wiringAirdropsDetail,
+      BeamFeature.tokens => l.wiringTokensDetail,
+      BeamFeature.node => l.wiringNodeDetail,
+      BeamFeature.split => l.wiringSplitDetail,
+      BeamFeature.bridge => l.wiringBridgeDetail,
+    };
+  }
 
   /// Campfire's own icon for it (`Assets.svg`).
   String get icon => switch (this) {
@@ -146,6 +176,7 @@ Future<void> openBeamFeature(
   final wiring = BeamWalletWiring.of(wallet)..attach(context);
   final desktop = BeamLayoutScope.isDesktop(context);
   final nav = Navigator.of(context);
+  final l10n = context.l10n;
   switch (feature) {
     case BeamFeature.buy:
       await openBuyBeam(context, wallet);
@@ -168,29 +199,29 @@ Future<void> openBeamFeature(
     case BeamFeature.airdrops:
       await showBeamFeatureMenu(
         context,
-        title: 'Airdrops',
+        title: l10n.wiringAirdrops,
         options: [
           _route(
             'beamAirdropClaim',
             Assets.svg.arrowDownLeft,
-            'Claim a code',
-            'Someone gave you a code? Get what it holds',
+            l10n.wiringAirdropClaim,
+            l10n.wiringAirdropClaimDetail,
             BeamClaimVoucherView.routeName,
             wallet,
           ),
           _route(
             'beamAirdropMine',
             Assets.svg.list,
-            'My airdrops',
-            'See which of your codes were claimed',
+            l10n.wiringAirdropMine,
+            l10n.wiringAirdropMineDetail,
             BeamAirdropBatchesView.routeName,
             wallet,
           ),
           _route(
             'beamAirdropCreate',
             Assets.svg.circlePlus,
-            'Create codes',
-            'Put BEAM or a token into codes to give away',
+            l10n.wiringAirdropCreate,
+            l10n.wiringAirdropCreateDetail,
             BeamCreateAirdropView.routeName,
             wallet,
           ),
@@ -199,29 +230,29 @@ Future<void> openBeamFeature(
     case BeamFeature.tokens:
       await showBeamFeatureMenu(
         context,
-        title: 'Tokens',
+        title: l10n.wiringTokens,
         options: [
           _route(
             'beamTokensCreate',
             Assets.svg.circlePlus,
-            'Create a token',
-            'Your own asset on BEAM, named by you',
+            l10n.wiringTokensCreate,
+            l10n.wiringTokensCreateDetail,
             BeamMintTokenView.routeName,
             wallet,
           ),
           _route(
             'beamTokensMine',
             Assets.svg.tokens,
-            'My tokens',
-            'Tokens you created: see them, mint more',
+            l10n.wiringTokensMine,
+            l10n.wiringTokensMineDetail,
             BeamMyTokensView.routeName,
             wallet,
           ),
           _route(
             'beamTokensBurn',
             Assets.svg.trash,
-            'Burn tokens',
-            'Destroy tokens you hold, for good',
+            l10n.wiringTokensBurn,
+            l10n.wiringTokensBurnDetail,
             BeamBurnView.routeName,
             wallet,
           ),
@@ -408,7 +439,7 @@ Future<void> showBeamAddressListDialog(BuildContext context, String walletId) =>
                 Padding(
                   padding: const EdgeInsets.only(left: 32),
                   child: Text(
-                    'Your addresses',
+                    context.l10n.wiringYourAddresses,
                     style: STextStyles.desktopH3(context),
                   ),
                 ),

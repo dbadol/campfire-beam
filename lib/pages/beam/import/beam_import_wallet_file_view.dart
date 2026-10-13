@@ -29,6 +29,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../l10n/l10n.dart';
 import '../../../pages_desktop_specific/desktop_home_view.dart';
 import '../../../providers/db/main_db_provider.dart';
 import '../../../providers/global/node_service_provider.dart';
@@ -51,12 +52,11 @@ import '../../home_view/home_view.dart';
 typedef BeamWalletFilePicker = Future<String?> Function();
 
 /// Runs the import. Tests replace it.
-typedef BeamWalletFileImport =
-    Future<BeamWallet> Function({
-      required String name,
-      required String sourcePath,
-      required String password,
-    });
+typedef BeamWalletFileImport = Future<BeamWallet> Function({
+  required String name,
+  required String sourcePath,
+  required String password,
+});
 
 /// "Import wallet.db": a BEAM wallet from its file and password.
 class BeamImportWalletFileView extends ConsumerStatefulWidget {
@@ -68,10 +68,10 @@ class BeamImportWalletFileView extends ConsumerStatefulWidget {
   });
 
   static const routeName = '/beamImportWalletFile';
-  static const title = 'Import a BEAM wallet file';
+  static String get title => appL10n.importTitle;
 
   /// The button that leads here, in My Campfire's wallet list.
-  static const entryLabel = 'Import wallet.db';
+  static String get entryLabel => appL10n.importEntryLabel;
 
   final BeamWalletFilePicker? pickFile;
   final BeamWalletFileImport? import;
@@ -84,28 +84,21 @@ class BeamImportWalletFileView extends ConsumerStatefulWidget {
       _BeamImportWalletFileViewState();
 }
 
-/// The texts of this screen, kept together (and tested).
+/// The texts of this screen, kept together (and tested). The words are in
+/// lib/l10n (import* keys), in the language the app speaks.
 abstract final class BeamImportText {
-  static const intro =
-      'Already have a BEAM wallet as a wallet.db file? Choose it and enter '
-      'its password. BEAM Campfire makes its own copy; your file is not '
-      'changed.';
-  static const choose = 'Choose wallet.db';
-  static const change = 'Choose another file';
-  static const where =
-      'Usually: BEAM desktop wallet → its data folder (wallet.db); BEAM Light '
-      'Wallet → wallets/<name>/wallet.db. Close that wallet app first.';
-  static const nameLabel = 'Wallet name';
-  static const passwordLabel = 'Wallet password';
-  static const passwordHelper =
-      'The password you set in the BEAM wallet this file comes from.';
-  static const noPhrase =
-      'This wallet will have no recovery phrase in BEAM Campfire. Keep the '
-      'original file and its password safe: they are how you get it back.';
-  static const cta = 'Import my wallet';
-  static const busy = 'Importing…';
+  static String get intro => appL10n.importIntro;
+  static String get choose => appL10n.importChoose;
+  static String get change => appL10n.importChooseAnother;
+  static String get where => appL10n.importWhere;
+  static String get nameLabel => appL10n.importNameLabel;
+  static String get passwordLabel => appL10n.importPasswordLabel;
+  static String get passwordHelper => appL10n.importPasswordHelper;
+  static String get noPhrase => appL10n.importNoPhrase;
+  static String get cta => appL10n.importCta;
+  static String get busy => appL10n.importBusy;
   static String get pickFailed => filePickerFailureText(app: 'BEAM Campfire');
-  static const nameTaken = 'You already have a wallet with this name.';
+  static String get nameTaken => appL10n.importNameTaken;
 }
 
 class _BeamImportWalletFileViewState
@@ -130,7 +123,7 @@ class _BeamImportWalletFileViewState
     // Any file: BEAM names it wallet.db, but a copy may be renamed, and
     // phones filter unknown extensions badly.
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Choose a BEAM wallet.db',
+      dialogTitle: appL10n.importPickerTitle,
       type: FileType.any,
       lockParentWindow: true,
     );
@@ -159,7 +152,7 @@ class _BeamImportWalletFileViewState
     final folder = p.basename(p.dirname(path)).trim();
     const generic = {'', '.', 'wallets', 'beam', 'documents', 'downloads'};
     if (generic.contains(folder.toLowerCase()) || folder.length > 32) {
-      return 'BEAM wallet';
+      return appL10n.importDefaultName;
     }
     return folder;
   }
@@ -259,8 +252,14 @@ class _BeamImportWalletFileViewState
           ] else ...[
             BeamDetailCard(
               children: [
-                BeamDetailRow(label: 'File', value: p.basename(path)),
-                BeamDetailRow(label: 'Folder', value: p.dirname(path)),
+                BeamDetailRow(
+                  label: context.l10n.importFileLabel,
+                  value: p.basename(path),
+                ),
+                BeamDetailRow(
+                  label: context.l10n.importFolderLabel,
+                  value: p.dirname(path),
+                ),
               ],
             ),
             Align(
@@ -291,18 +290,19 @@ class _BeamImportWalletFileViewState
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => unawaited(_import()),
               suffix: IconButton(
-                tooltip: _showPassword ? 'Hide password' : 'Show password',
+                tooltip: _showPassword
+                    ? context.l10n.importHidePassword
+                    : context.l10n.importShowPassword,
                 icon: Icon(
                   _showPassword
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
                 ),
-                onPressed: () =>
-                    setState(() => _showPassword = !_showPassword),
+                onPressed: () => setState(() => _showPassword = !_showPassword),
               ),
             ),
             const BeamGap(16),
-            const BeamNotice(
+            BeamNotice(
               kind: BeamNoticeKind.warning,
               message: BeamImportText.noPhrase,
             ),
@@ -329,4 +329,3 @@ class _BeamImportWalletFileViewState
     );
   }
 }
-

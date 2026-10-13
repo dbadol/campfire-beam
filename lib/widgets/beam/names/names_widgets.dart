@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../utilities/util.dart';
@@ -349,7 +350,9 @@ class NamesYearsStepper extends StatelessWidget {
       final enabled = to != null;
       return Semantics(
         button: true,
-        label: label == '−' ? 'One year less' : 'One year more',
+        label: label == '−'
+            ? context.l10n.namesYearsLess
+            : context.l10n.namesYearsMore,
         excludeSemantics: true,
         child: RoundedContainer(
           key: key,
@@ -432,20 +435,18 @@ class NameStatusText {
     BansClock clock,
     String Function(BansAmount) price,
   ) {
+    final l = appL10n;
     final tip = clock.tipHeight;
     final sale = d.salePrice == null
         ? null
-        : 'For sale at ${price(d.salePrice!)}';
+        : l.namesStatusForSaleAt(price(d.salePrice!));
     switch (d.statusAt(tip)) {
       case BansNameStatus.availableAgain:
-        return const NameStatusText(
-          'Expired · anyone can register it now',
-          NameTone.neutral,
-        );
+        return NameStatusText(l.namesStatusExpiredFree, NameTone.neutral);
       case BansNameStatus.onHold:
         final by = clock.dateOf(BansTimeline.holdEndHeight(d.expireHeight));
         return NameStatusText(
-          'Expired · renew by ${NamesFormat.date(by)} to keep it',
+          l.namesStatusOnHold(NamesFormat.date(by)),
           NameTone.bad,
           saleLine: sale,
         );
@@ -455,13 +456,19 @@ class NameStatusText {
         final left = NamesFormat.daysBetween(tip, d.expireHeight);
         if (left <= kNamesRenewSoonDays) {
           return NameStatusText(
-            'Expires ${NamesFormat.inDays(left)}',
+            left <= 0
+                ? l.namesStatusExpiresToday
+                : left == 1
+                ? l.namesStatusExpiresTomorrow
+                : l.namesStatusExpiresInDays(left),
             NameTone.soon,
             saleLine: sale,
           );
         }
         return NameStatusText(
-          'Active until ${NamesFormat.date(clock.dateOf(d.expireHeight))}',
+          l.namesStatusActiveUntil(
+            NamesFormat.date(clock.dateOf(d.expireHeight)),
+          ),
           NameTone.good,
           saleLine: sale,
         );
@@ -666,18 +673,11 @@ class NamesSecondaryAction extends StatelessWidget {
 }
 
 /// Plain words for a failure: what happened and what to do, never blaming
-/// the user (no dead ends).
+/// the user (no dead ends), in the app's language.
 String namesErrorText(Object e) => switch (e) {
   BansException() => e.message,
-  BeamConnectionException() =>
-    "Your wallet isn't connected to the BEAM network right now. It "
-        'reconnects on its own; try again in a moment.',
-  TimeoutException() =>
-    'The BEAM network took too long to answer. Try again in a moment.',
-  BeamRpcException(:final message) =>
-    "Your wallet couldn't do that right now ($message). Try again; if it "
-        'keeps happening, report it.',
-  _ =>
-    'Something went wrong on our side. Try again; if it keeps '
-        'happening, report it.',
+  BeamConnectionException() => appL10n.namesErrorNotConnected,
+  TimeoutException() => appL10n.namesErrorTimeout,
+  BeamRpcException(:final message) => appL10n.namesErrorRpc(message),
+  _ => appL10n.namesErrorOurSide,
 };

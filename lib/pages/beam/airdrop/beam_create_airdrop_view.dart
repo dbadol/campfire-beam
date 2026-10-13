@@ -28,6 +28,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/text_styles.dart';
@@ -60,7 +61,7 @@ class BeamCreateAirdropView extends StatefulWidget {
   });
 
   static const routeName = '/beamCreateAirdrop';
-  static const title = 'Create airdrop codes';
+  static String get title => appL10n.airdropCreateTitle;
 
   /// This wallet's airdrop service; it must have a code store.
   final BeamAirdropService service;
@@ -120,9 +121,9 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
       setState(
         () => _loadProblem =
             beamTransportProblem(e) ??
-            const BeamProblem(
-              "Couldn't read your balances",
-              'The wallet did not answer. Try again in a moment.',
+            BeamProblem(
+              context.l10n.airdropCreateCantReadTitle,
+              context.l10n.airdropCreateCantReadMessage,
             ),
       );
     }
@@ -142,7 +143,9 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
 
   String? get _countProblem {
     if (_count.text.trim().isEmpty) return null;
-    return _n == null ? 'Choose 1 to $kAirdropMaxVouchersPerBatch codes' : null;
+    return _n == null
+        ? context.l10n.airdropCreateCountProblem(kAirdropMaxVouchersPerBatch)
+        : null;
   }
 
   BigInt? get _value => BeamUnits.parse(_amount.text);
@@ -162,8 +165,10 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
     if (t == null || _balances == null) return null;
     final (total, fee) = t;
     if (total + fee <= _available) return null;
-    return 'You have ${_names.amount(_assetId, _available)}: not enough for '
-        '${_n!} codes plus the 1% fee.';
+    return context.l10n.airdropCreateFundsShort(
+      _n!,
+      _names.amount(_assetId, _available),
+    );
   }
 
   Future<void> _pickAsset() async {
@@ -171,7 +176,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
       context: context,
       assets: _held,
       names: _names,
-      title: 'What to give away',
+      title: context.l10n.airdropCreateWhatToGive,
     );
     if (picked != null && mounted) setState(() => _assetId = picked);
   }
@@ -242,14 +247,14 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
           _fundsProblem == null &&
           _balances != null &&
           _available > BigInt.zero;
+      final l10n = context.l10n;
       return BeamPageScaffold(
         title: BeamCreateAirdropView.title,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Lock tokens into one-time codes. Whoever gets a code can claim '
-              'its tokens once.',
+              l10n.airdropCreateIntro,
               style: STextStyles.itemSubtitle(context),
             ),
             const BeamGap(16),
@@ -265,20 +270,22 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
                 kind: BeamNoticeKind.danger,
                 title: _loadProblem!.title,
                 message: _loadProblem!.message,
-                actionLabel: 'Try again',
+                actionLabel: l10n.commonTryAgain,
                 onAction: _loadBalances,
               ),
               const BeamGap(),
             ],
-            const BeamLabel('What to give away'),
+            BeamLabel(l10n.airdropCreateWhatToGive),
             RoundedWhiteContainer(
               key: const ValueKey('create-asset'),
               onPressed: _held.length > 1 ? _pickAsset : null,
               child: BeamAssetTitle(
                 display: _names.display(_assetId),
                 subtitle: _balances == null
-                    ? 'Reading your balance…'
-                    : 'You have ${_names.amount(_assetId, _available)}',
+                    ? l10n.airdropCreateReadingBalance
+                    : l10n.beamAssetYouHave(
+                        _names.amount(_assetId, _available),
+                      ),
                 trailing: _held.length > 1
                     ? Icon(
                         Icons.expand_more_rounded,
@@ -298,7 +305,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
                   child: BeamTextField(
                     fieldKey: const ValueKey('create-amount'),
                     controller: _amount,
-                    label: 'Each code gives',
+                    label: l10n.airdropEachCodeGives,
                     hint: '0.1',
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -323,7 +330,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
                   child: BeamTextField(
                     fieldKey: const ValueKey('create-count'),
                     controller: _count,
-                    label: 'Number of codes',
+                    label: l10n.airdropNumberOfCodes,
                     hint: '10',
                     keyboardType: TextInputType.number,
                     inputFormatters: [
@@ -341,19 +348,19 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
               BeamDetailCard(
                 children: [
                   BeamDetailRow(
-                    label: 'Locked for the codes',
+                    label: l10n.airdropLockedForCodes,
                     value: _names.amount(_assetId, totals.$1),
                     detail: '$n × ${_names.amount(_assetId, _value!)}',
                     valueKey: const ValueKey('create-locked'),
                   ),
                   BeamDetailRow(
-                    label: 'Airdrop fee (1%)',
+                    label: l10n.airdropFeeLabel,
                     value: _names.amount(_assetId, totals.$2),
                     valueKey: const ValueKey('create-fee'),
                   ),
-                  const BeamDetailRow(
-                    label: 'Network fee',
-                    value: 'Shown before you confirm',
+                  BeamDetailRow(
+                    label: l10n.beamNetworkFee,
+                    value: l10n.airdropCreateFeeShownLater,
                   ),
                 ],
               ),
@@ -362,10 +369,13 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
               BeamNotice(
                 key: const ValueKey('create-funds-problem'),
                 kind: BeamNoticeKind.danger,
-                title: 'Not enough ${_names.symbol(_assetId)}',
-                message:
-                    '${_fundsProblem!} Lower the amount or the number '
-                    'of codes.',
+                title: l10n.airdropCreateNotEnoughTitle(
+                  _names.symbol(_assetId),
+                ),
+                message: joinSentences([
+                  _fundsProblem,
+                  l10n.airdropCreateLowerAmount,
+                ], l10n),
               ),
             ],
             if (_problem != null) ...[
@@ -386,9 +396,11 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
             BeamSyncNotice(sync: sync, action: BeamPausedAction.creatingCodes),
             BeamCtaBar(
               primaryKey: const ValueKey('create-cta'),
-              label: n == null ? 'Create codes' : 'Create $n codes',
+              label: n == null
+                  ? l10n.airdropCreateCodesCtaNoCount
+                  : l10n.airdropCreateCodesCta(n),
               busy: _preparing,
-              busyLabel: 'Preparing…',
+              busyLabel: l10n.airdropPreparing,
               onPressed: valid && sync.canSpend ? _create : null,
             ),
           ],

@@ -10,10 +10,12 @@
 // What the Buy BEAM screens say: dollars and BEAM the way people read
 // them, how long a buy usually takes, the smallest buy in the coin being
 // paid with, and every way buybeam.my can say no, in plain words, never
-// the user's fault, each with the one thing that fixes it.
+// the user's fault, each with the one thing that fixes it. The words are
+// in lib/l10n (buy* keys), in the language the app speaks.
 
 import 'dart:math' as math;
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/buy/buybeam_client.dart';
 import '../../../wallets/beam/buy/buybeam_order.dart';
 import '../../eth/uniswap/uniswap_format.dart';
@@ -86,10 +88,10 @@ abstract final class BuyBeamWords {
   /// under three).
   static String eta(int seconds) {
     final minutes = (seconds / 60).ceil();
-    if (minutes < 3) return 'Usually done in a few minutes';
-    if (minutes < 90) return 'Usually done in about $minutes minutes';
+    if (minutes < 3) return appL10n.buyEtaFewMinutes;
+    if (minutes < 90) return appL10n.buyEtaMinutes(minutes);
     final hours = (minutes / 60).ceil();
-    return 'Usually done in about $hours hours';
+    return appL10n.buyEtaHours(hours);
   }
 
   /// The amount of [asset] worth at least [minimumUsd] (a little over, so
@@ -126,100 +128,90 @@ abstract final class BuyBeamWords {
     bool tor = false,
   }) {
     final sym = coin.symbol;
+    final l = appL10n;
     switch (e.code) {
       case BuyBeamErrorCode.amountBelowUpstreamMinimum:
       case BuyBeamErrorCode.amountBelowOurMinimum:
         final usdText = e.minimumUsd == null ? null : usd(e.minimumUsd!);
         if (minimum != null) {
+          final amount = BuyBeamWords.coin(minimum, sym);
           return BuyProblem(
-            title:
-                'Buy at least $minimum $sym'
-                '${usdText == null ? '' : ' ($usdText)'}',
-            detail:
-                "That's the smallest buy buybeam.my can do right now. "
-                'Nothing was sent.',
+            title: usdText == null
+                ? l.buyProblemAtLeast(amount)
+                : l.buyProblemAtLeastUsd(amount, usdText),
+            detail: l.buyProblemSmallestDetail,
             fix: BuyFix.useMinimum,
-            fixLabel: 'Use $minimum $sym',
+            fixLabel: l.buyFixUseAmount(amount),
           );
         }
         return BuyProblem(
           title: usdText == null
-              ? 'This is under the smallest buy'
-              : 'Buy at least $usdText of $sym',
-          detail:
-              "That's the smallest buy buybeam.my can do right now. "
-              'Nothing was sent.',
+              ? l.buyProblemUnderSmallest
+              : l.buyProblemAtLeastUsdOf(usdText, sym),
+          detail: l.buyProblemSmallestDetail,
           fix: BuyFix.editAmount,
-          fixLabel: 'Change the amount',
+          fixLabel: l.buyFixChangeAmount,
         );
       case BuyBeamErrorCode.badAmount:
       case BuyBeamErrorCode.amountTooSmall:
         return BuyProblem(
-          title: "buybeam.my can't use this amount of $sym",
-          detail: 'It is too small to send. Nothing was sent.',
+          title: l.buyProblemCantUseAmount(sym),
+          detail: l.buyProblemTooSmallDetail,
           fix: BuyFix.editAmount,
-          fixLabel: 'Change the amount',
+          fixLabel: l.buyFixChangeAmount,
         );
       case BuyBeamErrorCode.unknownAsset:
         return BuyProblem(
-          title: 'buybeam.my no longer takes $sym on ${coin.chainName}',
-          detail: 'Pick another coin. Nothing was sent.',
+          title: l.buyProblemNoLongerTakes(sym, coin.chainName),
+          detail: l.buyProblemPickCoinDetail,
           fix: BuyFix.pickCoin,
-          fixLabel: 'Pick another coin',
+          fixLabel: l.buyFixPickCoin,
         );
       case BuyBeamErrorCode.assetUnavailable:
         return BuyProblem(
-          title: "$sym on ${coin.chainName} can't be used right now",
-          detail:
-              'buybeam.my has paused it for a while. Pick another coin, or '
-              'try again later. Nothing was sent.',
+          title: l.buyProblemPaused(sym, coin.chainName),
+          detail: l.buyProblemPausedDetail,
           fix: BuyFix.pickCoin,
-          fixLabel: 'Pick another coin',
+          fixLabel: l.buyFixPickCoin,
         );
       case BuyBeamErrorCode.noLiquidity:
         return BuyProblem(
-          title: "buybeam.my can't take this much $sym right now",
-          detail: 'Try a smaller amount or another coin. Nothing was sent.',
+          title: l.buyProblemTooMuch(sym),
+          detail: l.buyProblemTooMuchDetail,
           fix: BuyFix.editAmount,
-          fixLabel: 'Change the amount',
+          fixLabel: l.buyFixChangeAmount,
         );
       case BuyBeamErrorCode.refundAddressRequired:
         return BuyProblem(
-          title: 'Add your ${coin.chainName} address',
-          detail:
-              'Your $sym goes back there if the buy can\'t go through. '
-              'Nothing was sent.',
+          title: l.buyProblemAddRefund(coin.chainName),
+          detail: l.buyProblemAddRefundDetail(sym),
           fix: BuyFix.editRefund,
-          fixLabel: 'Add the address',
+          fixLabel: l.buyFixAddAddress,
         );
       case BuyBeamErrorCode.beamWalletRequired:
       case BuyBeamErrorCode.beamWalletTooShort:
       case BuyBeamErrorCode.beamWalletTooLong:
       case BuyBeamErrorCode.beamWalletInvalid:
-        return const BuyProblem(
-          title: "buybeam.my didn't take your wallet's new BEAM address",
-          detail:
-              'This is not something you did. Nothing was sent. Try again: '
-              'Campfire makes another one.',
+        return BuyProblem(
+          title: l.buyProblemBeamAddress,
+          detail: l.buyProblemBeamAddressDetail,
           fix: BuyFix.tryAgain,
-          fixLabel: 'Try again',
+          fixLabel: l.commonTryAgain,
         );
       case BuyBeamErrorCode.assetIdRequired:
       case BuyBeamErrorCode.badBody:
-        return const BuyProblem(
-          title: "buybeam.my couldn't read Campfire's request",
-          detail: 'This is not something you did. Nothing was sent.',
+        return BuyProblem(
+          title: l.buyProblemBadRequest,
+          detail: l.buyNotYourFault,
           fix: BuyFix.tryAgain,
-          fixLabel: 'Try again',
+          fixLabel: l.commonTryAgain,
         );
       case BuyBeamErrorCode.orderNotFound:
-        return const BuyProblem(
-          title: "buybeam.my can't find this buy",
-          detail:
-              'If you already paid, contact buybeam.my support with the '
-              'deposit address.',
+        return BuyProblem(
+          title: l.buyProblemNotFound,
+          detail: l.buyProblemNotFoundDetail,
           fix: BuyFix.contactSupport,
-          fixLabel: 'Contact buybeam.my support',
+          fixLabel: l.buyContactSupport,
           serious: true,
         );
       case BuyBeamErrorCode.priceUnavailable:
@@ -227,76 +219,73 @@ abstract final class BuyBeamWords {
       case BuyBeamErrorCode.upstreamUnavailable:
       case BuyBeamErrorCode.quoteFailed:
         return BuyProblem(
-          title: "buybeam.my can't price this right now",
-          detail:
-              'This is not something you did, and nothing was sent. '
-              '${_later(e.retryAfter)}',
+          title: l.buyProblemNoPrice,
+          detail: joinSentences([
+            l.buyProblemNoPriceDetail,
+            _later(e.retryAfter),
+          ], l),
           fix: BuyFix.tryAgain,
-          fixLabel: 'Try again',
+          fixLabel: l.commonTryAgain,
         );
       case BuyBeamErrorCode.noDepositAddress:
-        return const BuyProblem(
-          title: "buybeam.my didn't give a deposit address",
-          detail: 'Nothing to pay, and nothing was sent. Try again.',
+        return BuyProblem(
+          title: l.buyProblemNoDeposit,
+          detail: l.buyProblemNoDepositDetail,
           fix: BuyFix.tryAgain,
-          fixLabel: 'Try again',
+          fixLabel: l.commonTryAgain,
         );
       case BuyBeamErrorCode.blocked:
       case BuyBeamErrorCode.network:
         final server = (e.httpStatus ?? 0) >= 500;
         return BuyProblem(
-          title: "Couldn't reach buybeam.my",
-          detail: [
-            'Nothing was sent.',
-            if (server && !coin.isEvm)
-              'If it keeps happening, check that your ${coin.chainName} '
-                  'address is right.',
-            if (tor) 'If Tor is on, a new connection usually helps.',
-          ].join(' '),
+          title: l.buyCantReach,
+          detail: joinSentences([
+            l.buyNothingSent,
+            if (server && !coin.isEvm) l.buyCheckRefundAddress(coin.chainName),
+            if (tor) l.buyTorHint,
+          ], l),
           fix: BuyFix.tryAgain,
-          fixLabel: 'Try again',
+          fixLabel: l.commonTryAgain,
         );
       case BuyBeamErrorCode.unexpectedAnswer:
-        return const BuyProblem(
-          title:
-              "buybeam.my sent an answer Campfire didn't expect. Nothing to "
-              'pay.',
-          detail: 'This is not something you did. Try again in a moment.',
+        return BuyProblem(
+          title: l.buyProblemUnexpected,
+          detail: l.buyProblemUnexpectedDetail,
           fix: BuyFix.tryAgain,
-          fixLabel: 'Try again',
+          fixLabel: l.commonTryAgain,
           serious: true,
         );
       case BuyBeamErrorCode.unknown:
-        return const BuyProblem(
-          title: "buybeam.my couldn't do this buy",
-          detail: 'Nothing was sent. Try again, or pick another coin.',
+        return BuyProblem(
+          title: l.buyProblemUnknown,
+          detail: l.buyProblemUnknownDetail,
           fix: BuyFix.tryAgain,
-          fixLabel: 'Try again',
+          fixLabel: l.commonTryAgain,
         );
     }
   }
 
   static String _later(Duration? after) {
-    if (after == null || after.inSeconds < 5) return 'Try again in a moment.';
+    if (after == null || after.inSeconds < 5) return appL10n.buyRetrySoon;
     if (after.inSeconds < 90) {
-      return 'Try again in ${after.inSeconds} seconds.';
+      return appL10n.buyRetrySeconds(after.inSeconds);
     }
-    return 'Try again in ${(after.inSeconds / 60).ceil()} minutes.';
+    return appL10n.buyRetryMinutes((after.inSeconds / 60).ceil());
   }
 
   /// One line for a buy in a list: where it is, in plain words.
   static String stateLine(BuyBeamOrder o) => switch (o.lastState) {
-    null || BuyBeamState.awaitingDeposit => 'Waiting for your payment',
-    BuyBeamState.depositDetected => 'Payment received',
-    BuyBeamState.sending => 'Sending BEAM to your wallet',
-    BuyBeamState.delivered => 'BEAM sent to your wallet',
-    BuyBeamState.refunded => 'Sent back to you',
-    BuyBeamState.expired => 'No payment arrived in time',
-    BuyBeamState.failed => "The payment couldn't be processed",
-    BuyBeamState.attention => 'buybeam.my is checking it',
+    null || BuyBeamState.awaitingDeposit => appL10n.buyStateWaiting,
+    BuyBeamState.depositDetected => appL10n.buyStateReceived,
+    BuyBeamState.sending => appL10n.buyStateSending,
+    BuyBeamState.delivered => appL10n.buyStateSent,
+    BuyBeamState.refunded => appL10n.buyStateRefunded,
+    BuyBeamState.expired => appL10n.buyStateExpired,
+    BuyBeamState.failed => appL10n.buyStateFailed,
+    BuyBeamState.attention => appL10n.buyStateChecking,
     BuyBeamState.swapping ||
     BuyBeamState.buying ||
     BuyBeamState.processing ||
-    BuyBeamState.inProgress => 'Buying your BEAM',
+    BuyBeamState.inProgress => appL10n.buyStateBuying,
   };
 }

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/text_styles.dart';
@@ -627,7 +628,7 @@ class DexFlipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     return Semantics(
-      label: 'Swap the two assets',
+      label: context.l10n.dexFlipAssets,
       button: true,
       excludeSemantics: true,
       child: MouseRegion(

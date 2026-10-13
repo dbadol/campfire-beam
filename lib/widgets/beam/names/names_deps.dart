@@ -10,6 +10,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/util.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/bans/bans_inbox_monitor.dart';
@@ -153,12 +154,12 @@ class BansPendingName {
 
   /// What the names list says while it is on its way.
   String get label => switch (kind) {
-    BansPendingKind.register => 'Registering… usually under 2 minutes',
-    BansPendingKind.buy => 'Buying… usually under 2 minutes',
-    BansPendingKind.renew => 'Renewal on its way…',
-    BansPendingKind.transfer => 'Transfer on its way…',
-    BansPendingKind.list => 'Listing on its way…',
-    BansPendingKind.unlist => 'Taking it off sale…',
+    BansPendingKind.register => appL10n.namesPendingRegistering,
+    BansPendingKind.buy => appL10n.namesPendingBuying,
+    BansPendingKind.renew => appL10n.namesPendingRenewal,
+    BansPendingKind.transfer => appL10n.namesPendingTransfer,
+    BansPendingKind.list => appL10n.namesPendingListing,
+    BansPendingKind.unlist => appL10n.namesPendingUnlisting,
   };
 }
 

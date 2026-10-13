@@ -28,6 +28,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/dex/beam_dex_quotes.dart';
@@ -189,18 +190,14 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
       setState(() {
         _quoting = false;
         _problem = e.code == BeamDexErrorCode.ratioMismatch
-            ? 'Those amounts do not match the pool price. Type one side '
-                  'and the other is filled in for you.'
-            : 'The pool would not take this deposit. It said: '
-                  '"${e.message}". Nothing was sent.';
+            ? context.l10n.dexRatioMismatch
+            : context.l10n.dexDepositRefused(e.message);
       });
     } catch (_) {
       if (!mounted || seq != _seq) return;
       setState(() {
         _quoting = false;
-        _problem =
-            "Couldn't get the other amount: the wallet didn't "
-            'answer. This is not something you did.';
+        _problem = context.l10n.dexOtherAmountFailed;
       });
     }
   }
@@ -239,9 +236,7 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
         if (!mounted || seq != _seq) return;
         setState(() {
           _quoting = false;
-          _problem =
-              "Couldn't work out what you would get back: the "
-              "wallet didn't answer. This is not something you did.";
+          _problem = context.l10n.dexWithdrawQuoteFailed;
         });
       }
     }());
@@ -285,9 +280,7 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
       if (!mounted) return;
       setState(() {
         _preparing = false;
-        _problem =
-            "Couldn't build the transaction: the wallet didn't "
-            'answer or the pool changed. Nothing was sent. Try again.';
+        _problem = context.l10n.dexLiquidityBuildFailed;
       });
       return;
     }
@@ -312,33 +305,30 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
   // ------------------------------------------------------------------ state
 
   ({VoidCallback? onPressed, String? reason}) _cta() {
-    if (_preparing) {
-      return (onPressed: null, reason: 'Building the transaction…');
-    }
+    final l10n = context.l10n;
+    if (_preparing) return (onPressed: null, reason: l10n.dexBuildingTx);
     if (!deps.canSpend) {
-      return (
-        onPressed: null,
-        reason: 'Paused until the wallet is up to date.',
-      );
+      return (onPressed: null, reason: l10n.dexPausedUntilSynced);
     }
     final fee = kDexCallFee;
     final beam = deps.available(0);
     if (_mode == BeamDexLiquidityMode.withdraw) {
       if (_lpHeld <= BigInt.zero) {
-        return (onPressed: null, reason: 'You have no coins in this pool.');
+        return (onPressed: null, reason: l10n.dexNoCoinsInPool);
       }
       final q = _withdrawQuote;
       if (_problem != null) return (onPressed: null, reason: null);
       if (q == null || _quoting) {
-        return (onPressed: null, reason: 'Working out what you get back…');
+        return (onPressed: null, reason: l10n.dexWorkingOutBack);
       }
       final beamBack = _pool.aid1 == 0 ? q.amount1 : BigInt.zero;
       if (fee - beamBack > beam) {
         return (
           onPressed: null,
-          reason:
-              'You need ${DexFormat.exact(fee)} BEAM for the network fee. '
-              'You have ${DexFormat.exact(beam)} BEAM.',
+          reason: l10n.dexNeedBeamForFee(
+            '${DexFormat.exact(fee)} BEAM',
+            '${DexFormat.exact(beam)} BEAM',
+          ),
         );
       }
       return (onPressed: _prepare, reason: null);
@@ -349,15 +339,14 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
       return (
         onPressed: null,
         reason: _pool.isEmpty
-            ? 'Enter both amounts. They set the pool\'s starting price.'
-            : 'Enter how much ${_sym(_pool.aid1)} or ${_sym(_pool.aid2)} '
-                  'to add.',
+            ? l10n.dexEnterBothAmounts
+            : l10n.dexEnterAddAmount(_sym(_pool.aid1), _sym(_pool.aid2)),
       );
     }
     if (_problem != null) return (onPressed: null, reason: null);
     final q = _addQuote;
     if (q == null || _quoting) {
-      return (onPressed: null, reason: 'Working out the other amount…');
+      return (onPressed: null, reason: l10n.dexWorkingOutOther);
     }
     for (final (aid, amount) in [
       (_pool.aid1, q.amount1),
@@ -367,9 +356,11 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
       if (amount > have) {
         return (
           onPressed: null,
-          reason:
-              'Not enough ${_sym(aid)}. You need ${DexFormat.exact(amount)}, '
-              'you have ${DexFormat.exact(have)}.',
+          reason: l10n.dexNotEnoughForDeposit(
+            _sym(aid),
+            DexFormat.exact(amount),
+            DexFormat.exact(have),
+          ),
         );
       }
     }
@@ -377,9 +368,10 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
     if (beamOut > beam) {
       return (
         onPressed: null,
-        reason:
-            'Not enough BEAM. You need ${DexFormat.exact(beamOut)} BEAM, '
-            'including the ${DexFormat.exact(fee)} BEAM network fee.',
+        reason: l10n.dexNotEnoughBeamWithFee(
+          '${DexFormat.exact(beamOut)} BEAM',
+          '${DexFormat.exact(fee)} BEAM',
+        ),
       );
     }
     return (onPressed: _prepare, reason: null);
@@ -392,12 +384,16 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
     final cta = _cta();
     return DexPage(
       deps: deps,
-      title: '${_sym(_pool.aid1)}/${_sym(_pool.aid2)} pool',
+      title: context.l10n.dexPoolTitle(
+        '${_sym(_pool.aid1)}/${_sym(_pool.aid2)}',
+      ),
       body: _body(context),
       bottom: DexPrimaryAction(
         deps: deps,
         buttonKey: const Key('dex-liquidity-cta'),
-        label: _mode == BeamDexLiquidityMode.add ? 'Add liquidity' : 'Withdraw',
+        label: _mode == BeamDexLiquidityMode.add
+            ? context.l10n.dexAddLiquidityCta
+            : context.l10n.dexWithdrawCta,
         reason: cta.reason,
         onPressed: cta.onPressed,
       ),
@@ -418,7 +414,9 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
           DexChoiceChips<BeamDexLiquidityMode>(
             values: BeamDexLiquidityMode.values,
             selected: _mode,
-            labelOf: (m) => m == BeamDexLiquidityMode.add ? 'Add' : 'Withdraw',
+            labelOf: (m) => m == BeamDexLiquidityMode.add
+                ? context.l10n.dexModeAdd
+                : context.l10n.dexModeWithdraw,
             keyOf: (m) => Key('dex-mode-${m.name}'),
             onSelected: _setMode,
           ),
@@ -473,17 +471,15 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
           if (a2.impersonates != null) DexImpersonationWarning(asset: a2),
           const SizedBox(height: 8),
           if (_pool.isEmpty)
-            const DexNotice(
-              key: Key('dex-pool-is-empty'),
+            DexNotice(
+              key: const Key('dex-pool-is-empty'),
               kind: DexNoticeKind.warning,
-              title: 'This pool is empty',
-              detail:
-                  'The first coins added set its price. Enter both '
-                  'amounts at the price you believe is fair.',
+              title: context.l10n.dexPoolIsEmptyTitle,
+              detail: context.l10n.dexPoolIsEmptyDetail,
             )
           else ...[
             DexDetailRow(
-              label: 'Price',
+              label: context.l10n.dexPriceLabel,
               valueKey: const Key('dex-pool-price'),
               value:
                   '1 ${a1.symbol} = '
@@ -491,13 +487,13 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
                   '${a2.symbol}',
             ),
             DexDetailRow(
-              label: 'In the pool',
+              label: context.l10n.dexInPoolLabel,
               valueKey: const Key('dex-pool-reserves'),
               value:
                   '${DexFormat.compact(_pool.tok1)} ${a1.symbol} · '
                   '${DexFormat.compact(_pool.tok2)} ${a2.symbol}',
               note: switch (deps.poolSize(_pool)) {
-                null => 'No price',
+                null => context.l10n.dexNoPrice,
                 final size => deps.worthOfBeam(size, inBeam: true),
               },
               noteKey: const Key('dex-pool-size'),
@@ -514,7 +510,7 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
     final value = deps.valueInBeam(_pool.lpToken, held);
     final String worth;
     if (value == null) {
-      worth = 'Not priced: no BEAM pool values these assets yet';
+      worth = context.l10n.dexPositionNotPriced;
     } else {
       // "12.34 BEAM · 0.11 USD": the label already says "about".
       final money = deps.fiat?.value?.approx(value)?.replaceFirst('≈ ', '');
@@ -527,13 +523,13 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DexDetailRow(
-            label: 'Your share of the pool',
+            label: context.l10n.dexYourShareLabel,
             valueKey: const Key('dex-position-share'),
             value: DexFormat.percent(pos.share),
             valueColor: colors.accentColorGreen,
           ),
           DexDetailRow(
-            label: 'Worth about',
+            label: context.l10n.dexWorthAboutLabel,
             valueKey: const Key('dex-position-value'),
             value: worth,
           ),
@@ -557,19 +553,22 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
             children: [
               Expanded(
                 child: Text(
-                  computed ? 'Matching amount' : 'You add',
+                  computed
+                      ? context.l10n.dexMatchingAmount
+                      : context.l10n.dexYouAdd,
                   style: labelStyle,
                 ),
               ),
               Text(
-                'Balance ${DexFormat.compact(deps.available(aid))} '
-                '${_sym(aid)}',
+                context.l10n.dexBalance(
+                  '${DexFormat.compact(deps.available(aid))} ${_sym(aid)}',
+                ),
                 style: STextStyles.label(context),
               ),
               const SizedBox(width: 8),
               CustomTextButton(
                 key: Key('dex-add-max-$n'),
-                text: 'Max',
+                text: context.l10n.dexMax,
                 onTap: () => _addMax(n),
               ),
             ],
@@ -606,12 +605,12 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
             child: Column(
               children: [
                 DexDetailRow(
-                  label: 'Your share of the pool after',
+                  label: context.l10n.dexShareAfterLabel,
                   valueKey: const Key('dex-add-share'),
                   value: DexFormat.percent(q.shareOfPoolAfter),
                 ),
                 DexDetailRow(
-                  label: 'Network fee',
+                  label: context.l10n.beamNetworkFee,
                   value: '≈ ${DexFormat.exact(q.networkFee)} BEAM',
                   note: deps.worthOfBeam(q.networkFee),
                 ),
@@ -628,7 +627,7 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
   String? _backWorth(BeamWithdrawQuote q) {
     final v1 = deps.valueInBeam(_pool.aid1, q.amount1);
     final v2 = deps.valueInBeam(_pool.aid2, q.amount2);
-    if (v1 == null || v2 == null) return 'No price';
+    if (v1 == null || v2 == null) return context.l10n.dexNoPrice;
     return deps.worthOfBeam(v1 + v2, inBeam: true);
   }
 
@@ -649,7 +648,7 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'How much of your share to withdraw',
+          context.l10n.dexWithdrawHowMuch,
           style: STextStyles.itemSubtitle(context)
               .copyWith(color: colors.textDark3),
         ),
@@ -666,7 +665,7 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
           child: Column(
             children: [
               DexDetailRow(
-                label: 'You get back',
+                label: context.l10n.dexYouGetBack,
                 valueKey: const Key('dex-withdraw-back'),
                 value: q == null
                     ? (_quoting ? '…' : '—')
@@ -676,7 +675,7 @@ class _BeamDexPoolDetailViewState extends State<BeamDexPoolDetailView> {
                 noteKey: const Key('dex-withdraw-worth'),
               ),
               DexDetailRow(
-                label: 'Network fee',
+                label: context.l10n.beamNetworkFee,
                 value: '≈ ${DexFormat.exact(kDexCallFee)} BEAM',
                 note: deps.worthOfBeam(kDexCallFee),
               ),

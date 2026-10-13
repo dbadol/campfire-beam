@@ -24,6 +24,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/text_styles.dart';
@@ -65,7 +66,7 @@ class BeamAirdropBatchesView extends StatefulWidget {
   });
 
   static const routeName = '/beamAirdropBatches';
-  static const title = 'My airdrop batches';
+  static String get title => appL10n.airdropBatchesTitle;
 
   final BeamAirdropService service;
   final ValueListenable<BeamSyncAssessment> sync;
@@ -181,7 +182,7 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
       setState(
         () => _problem = BeamProblem(
           t.title,
-          '${t.message} Your saved codes are safe on this device.',
+          joinSentences([t.message, context.l10n.airdropBatchesCodesSafe]),
         ),
       );
     } finally {
@@ -289,10 +290,10 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
     final back = p.summary.receives[p.summary.assetId]!;
     setState(
       () => _done = BeamProblem(
-        'Cancel sent',
-        'The unclaimed codes stop working and '
-            '${_names.amount(p!.summary.assetId, back)} comes back once the '
-            'network confirms it, usually within a few minutes.',
+        context.l10n.airdropBatchesCancelSentTitle,
+        context.l10n.airdropBatchesCancelSentMessage(
+          _names.amount(p!.summary.assetId, back),
+        ),
       ),
     );
     unawaited(_refresh());
@@ -302,16 +303,14 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => StackDialog(
-        title: 'Remove this batch from the list?',
-        message:
-            'Every code is claimed or cancelled, so none of them holds funds '
-            'any more. This removes them from this device only.',
+        title: context.l10n.airdropBatchesForgetTitle,
+        message: context.l10n.airdropBatchesForgetMessage,
         leftButton: SecondaryButton(
-          label: 'Keep',
+          label: context.l10n.airdropBatchesForgetKeep,
           onPressed: () => Navigator.of(context).pop(false),
         ),
         rightButton: PrimaryButton(
-          label: 'Remove',
+          label: context.l10n.airdropBatchesForgetRemove,
           onPressed: () => Navigator.of(context).pop(true),
         ),
       ),
@@ -333,23 +332,27 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
       final rows = _rows;
       final loaded = _saved != null;
       final empty = loaded && rows.isEmpty && !_refreshing && _problem == null;
+      final l10n = context.l10n;
       return BeamPageScaffold(
         title: BeamAirdropBatchesView.title,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_refreshing)
-              const BeamWorking('Checking your codes on the network…')
+              BeamWorking(l10n.airdropBatchesChecking)
             else if (_checkedNetwork && rows.isNotEmpty)
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      'Up to date with the network',
+                      l10n.airdropBatchesUpToDate,
                       style: STextStyles.label(context),
                     ),
                   ),
-                  CustomTextButton(text: 'Check again', onTap: _refresh),
+                  CustomTextButton(
+                    text: l10n.airdropBatchesCheckAgain,
+                    onTap: _refresh,
+                  ),
                 ],
               ),
             if (_done != null) ...[
@@ -368,19 +371,17 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
                 kind: BeamNoticeKind.danger,
                 title: _problem!.title,
                 message: _problem!.message,
-                actionLabel: 'Try again',
+                actionLabel: l10n.commonTryAgain,
                 onAction: _refresh,
               ),
             ],
-            if (_preparing) const BeamWorking('Preparing the cancel…'),
+            if (_preparing) BeamWorking(l10n.airdropBatchesPreparingCancel),
             if (empty)
-              const BeamEmptyState(
-                key: ValueKey('batches-empty'),
-                art: BeamStickerImage(BeamSticker.hi, size: 120),
-                title: 'No airdrop codes yet',
-                message:
-                    'Create codes to give tokens to people. Each code can be '
-                    'claimed once, by whoever has it.',
+              BeamEmptyState(
+                key: const ValueKey('batches-empty'),
+                art: const BeamStickerImage(BeamSticker.hi, size: 120),
+                title: l10n.airdropBatchesEmptyTitle,
+                message: l10n.airdropBatchesEmptyMessage,
               ),
             const BeamGap(8),
             for (final r in rows)
@@ -392,7 +393,9 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
         ),
         bottom: BeamCtaBar(
           primaryKey: const ValueKey('batches-create'),
-          label: empty ? 'Create airdrop codes' : 'Create new codes',
+          label: empty
+              ? l10n.airdropBatchesCreateFirstCta
+              : l10n.airdropBatchesCreateNewCta,
           onPressed: _openCreate,
         ),
       );
@@ -410,9 +413,10 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
     final unclaimed = c?.unclaimedCount ?? 0;
     final settled =
         s != null && c == null && airdropBatchLooksSettled(s, widget.clock());
+    final l10n = context.l10n;
     final created = s == null
-        ? 'Created at block ${c!.createdAtHeight}'
-        : 'Created ${_date(s.createdAt.toLocal())}';
+        ? l10n.airdropBatchCreatedAtBlock('${c!.createdAtHeight}')
+        : _created(l10n, s.createdAt.toLocal());
     return RoundedWhiteContainer(
       key: ValueKey('batch-${s?.localId ?? c!.id}'),
       child: Column(
@@ -420,7 +424,10 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
         children: [
           BeamAssetTitle(
             display: _names.display(assetId),
-            subtitle: '$count codes × ${_names.amount(assetId, value)}',
+            subtitle: l10n.airdropBatchCodesTimesValue(
+              count,
+              _names.amount(assetId, value),
+            ),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -435,8 +442,7 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
           if (s == null) ...[
             const SizedBox(height: 4),
             Text(
-              'Its codes are not on this device, but you can still take '
-              'back what nobody claimed.',
+              l10n.airdropBatchNotOnDevice,
               style: STextStyles.label(context),
             ),
           ],
@@ -450,20 +456,20 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
                 if (s != null)
                   CustomTextButton(
                     key: ValueKey('batch-codes-${s.localId}'),
-                    text: 'Show codes',
+                    text: l10n.airdropBatchShowCodes,
                     onTap: () => _showCodes(s),
                   ),
                 if (unclaimed > 0)
                   CustomTextButton(
                     key: ValueKey('batch-cancel-${c!.id}'),
-                    text: 'Take back $unclaimed unclaimed',
+                    text: l10n.airdropBatchTakeBack(unclaimed),
                     enabled: canSpend && !_preparing,
                     onTap: () => _cancel(c),
                   ),
                 if (settled)
                   CustomTextButton(
                     key: ValueKey('batch-forget-${s.localId}'),
-                    text: 'Remove from this list',
+                    text: l10n.airdropBatchForget,
                     onTap: () => _forget(s),
                   ),
               ],
@@ -474,11 +480,17 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
     );
   }
 
-  static String _date(DateTime d) {
+  /// "Created Oct 13, 2026": the month is a case of the message (its
+  /// short name is translated), the day and year are written as numbers.
+  static String _created(AppLocalizations l10n, DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'jan', 'feb', 'mar', 'apr', 'may', 'jun', //
+      'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
     ];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+    return l10n.airdropBatchCreatedOn(
+      months[d.month - 1],
+      '${d.day}',
+      '${d.year}',
+    );
   }
 }

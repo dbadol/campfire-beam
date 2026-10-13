@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../../../services/wallets.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../widgets/crypto_notifications.dart';
@@ -42,11 +43,11 @@ class BeamPaymentReceived {
   /// called "BEAM".
   String get title {
     final amount = Amount(rawValue: value, fractionDigits: 8).decimal;
-    if (assetId == 0) return 'Received $amount BEAM';
+    if (assetId == 0) return appL10n.walletPaymentReceived('$amount BEAM');
     final contract = BeamAssetRegistry.build(assetId);
     return contract.verified
-        ? 'Received $amount ${contract.symbol}'
-        : 'Received $amount of token #$assetId';
+        ? appL10n.walletPaymentReceived('$amount ${contract.symbol}')
+        : appL10n.walletPaymentReceivedToken('$amount', '$assetId');
   }
 }
 

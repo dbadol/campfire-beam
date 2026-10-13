@@ -26,6 +26,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/bans/bans_exceptions.dart';
@@ -159,7 +160,7 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
     final ok = await widget.authenticate(context);
     if (!mounted) return;
     if (!ok) {
-      setState(() => _notConfirmed = 'Not confirmed, so nothing was claimed.');
+      setState(() => _notConfirmed = appL10n.homeClaimNotConfirmed);
       return;
     }
     if (_executed) return;
@@ -176,11 +177,8 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
         _phase = _Phase.failed;
         _outcomeUnknown = unknown;
         _error = unknown
-            ? "The connection dropped while claiming, so it's not certain "
-                  'the claim went out. Check your transaction history '
-                  'before claiming again.'
-            : '${_sendProblem(e)} Your payments are still waiting for you; '
-                  'nothing was taken.';
+            ? appL10n.homeClaimOutcomeUnknown
+            : joinSentences([_sendProblem(e), appL10n.homeClaimStillWaiting]);
       });
     } finally {
       // The inbox changed (or may have): read it again now.
@@ -190,22 +188,18 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
 
   static String _prepareProblem(Object e) => switch (e) {
     BansException(:final message) => message,
-    BeamConnectionException() || TimeoutException() =>
-      'The wallet did not answer in time. Check your connection, then try '
-          'again. Your payments stay safe meanwhile.',
-    BeamRpcException(:final message) =>
-      'The wallet could not prepare the claim ("$message"). Try again in a '
-          'moment. Your payments stay safe meanwhile.',
-    _ =>
-      'The claim could not be prepared. Try again in a moment. Your '
-          'payments stay safe meanwhile.',
+    BeamConnectionException() ||
+    TimeoutException() => appL10n.homeClaimPrepareNoAnswer,
+    BeamRpcException(:final message) => appL10n.homeClaimPrepareRefused(
+      message,
+    ),
+    _ => appL10n.homeClaimPrepareFailed,
   };
 
   static String _sendProblem(Object e) => switch (e) {
     BansException(:final message) => message,
-    BeamRpcException(:final message) =>
-      'The wallet refused the claim ("$message").',
-    _ => 'The claim was not sent.',
+    BeamRpcException(:final message) => appL10n.homeClaimRefused(message),
+    _ => appL10n.homeClaimNotSent,
   };
 
   void _close() => Navigator.of(context).pop();
@@ -213,6 +207,7 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final text = BeamHomeText.claim(
       summary: widget.summary,
       advice: _advice,
@@ -240,11 +235,9 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
       case _Phase.done:
         return _Result(
           isDesktop: desktop,
-          title: 'Claim sent',
-          message:
-              'Your balance changes by ${text.balanceChange} once the '
-              'network confirms it, usually within a few minutes.',
-          primary: 'Done',
+          title: l10n.homeClaimSentTitle,
+          message: l10n.homeClaimSentMessage(text.balanceChange),
+          primary: l10n.commonDone,
           onPrimary: _close,
           sticker: BeamAnimatedStickerView(
             BeamMoments.claimDone,
@@ -256,11 +249,11 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
         return _Result(
           isDesktop: desktop,
           title: _outcomeUnknown
-              ? 'Not sure the claim went out'
-              : 'The claim was not sent',
+              ? l10n.homeClaimUnsureTitle
+              : l10n.homeClaimNotSentTitle,
           message: _error ?? '',
           isProblem: true,
-          primary: 'Close',
+          primary: l10n.commonClose,
           onPrimary: _close,
           sticker: BeamStickerImage(
             BeamMoments.somethingWentWrong,
@@ -270,10 +263,8 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
       case _Phase.sending:
         return _Result(
           isDesktop: desktop,
-          title: 'Claiming…',
-          message:
-              'Sending the claim to the BEAM network. This takes a few '
-              'seconds.',
+          title: l10n.homeClaimingTitle,
+          message: l10n.homeClaimingMessage,
           busy: true,
         );
       case _Phase.preparing:
@@ -305,13 +296,13 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
     );
 
     final cancel = SecondaryButton(
-      label: 'Cancel',
+      label: l10n.commonCancel,
       buttonHeight: desktop ? ButtonHeight.l : null,
       onPressed: _close,
     );
     final Widget primary = _phase == _Phase.prepareFailed
         ? PrimaryButton(
-            label: 'Try again',
+            label: l10n.commonTryAgain,
             buttonHeight: desktop ? ButtonHeight.l : null,
             onPressed: _retryPrepare,
           )
@@ -348,14 +339,18 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
             child: Column(
               children: [
                 row(
-                  'You receive',
+                  l10n.homeClaimYouReceive,
                   text.receive,
                   key: const Key('beamClaimReceive'),
                 ),
-                if (text.from != null) row('Sent to', [text.from!]),
-                row(_prepared == null ? 'Network fee (about)' : 'Network fee', [
-                  text.fee,
-                ], key: const Key('beamClaimFee')),
+                if (text.from != null) row(l10n.homeClaimSentTo, [text.from!]),
+                row(
+                  _prepared == null
+                      ? l10n.homeClaimNetworkFeeAbout
+                      : l10n.beamNetworkFee,
+                  [text.fee],
+                  key: const Key('beamClaimFee'),
+                ),
               ],
             ),
           ),
@@ -363,7 +358,7 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
           BeamLayoutScope(
             desktop: desktop,
             child: BeamTotalRow(
-              label: 'Your balance changes by',
+              label: l10n.homeClaimBalanceChangesBy,
               value: text.balanceChange,
               valueKey: const Key('beamClaimBalanceChange'),
               confirm: false,
@@ -415,7 +410,7 @@ class _BeamClaimSheetState extends State<BeamClaimSheet> {
           if (preparing) ...[
             const SizedBox(height: 12),
             Text(
-              'Checking the exact fee with the wallet…',
+              l10n.homeClaimCheckingFee,
               key: const Key('beamClaimPreparing'),
               style: note,
             ),

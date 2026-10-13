@@ -33,6 +33,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/buy/buybeam_client.dart';
@@ -164,8 +165,7 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
     final r = _refund.text.trim();
     if (coin == null || r.isEmpty || !coin.isEvm) return null;
     if (_evmAddress.hasMatch(r)) return null;
-    return '${coin.chainName} addresses start with 0x and have 42 '
-        'characters.';
+    return appL10n.buyRefundAddressFormat(coin.chainName);
   }
 
   void _changed() {
@@ -235,19 +235,11 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
       if (mounted) setState(() => _orderError = e);
     } on BuyBeamWalletNotReady {
       if (mounted) {
-        setState(
-          () => _walletProblem =
-              'Your BEAM wallet is still starting, so it cannot make an '
-              'address for the BEAM yet. Try again in a moment.',
-        );
+        setState(() => _walletProblem = context.l10n.buyWalletStarting);
       }
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _walletProblem =
-              "Campfire couldn't finish setting up this buy. Nothing was "
-              'sent. Try again.',
-        );
+        setState(() => _walletProblem = context.l10n.buySetupFailed);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -256,28 +248,27 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
 
   _Cta _cta() {
     final coin = _coin;
-    if (_busy) return _off('Asking buybeam.my for a deposit address…');
+    final l10n = context.l10n;
+    if (_busy) return _off(l10n.buyAskingDeposit);
     if (_assetsFailed) return _off(null);
     if (coin == null) {
       return _off(
-        _assets == null
-            ? 'Loading the coins buybeam.my takes…'
-            : 'Pick the coin you pay with.',
+        _assets == null ? l10n.buyLoadingCoins : l10n.buyPickCoinReason,
       );
     }
     if (_amountError != null) return _off(_amountError);
     final v = _value;
     if (v == null || !v.isPositive) {
-      return _off('Enter how much ${coin.symbol} you pay.');
+      return _off(l10n.buyEnterAmountReason(coin.symbol));
     }
     if (!v.exact) return _off(null);
     if (_refund.text.trim().isEmpty) {
-      return _off('Add your ${coin.chainName} address for a refund.');
+      return _off(l10n.buyAddRefundReason(coin.chainName));
     }
     if (_refundError != null) return _off(_refundError);
     if (c.quoteError != null) return _off(null);
     if (c.quoting || c.quote == null) {
-      return _off('Getting a price from buybeam.my…');
+      return _off(l10n.buyGettingPrice);
     }
     return (onPressed: _getAddress, reason: null);
   }
@@ -292,14 +283,14 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
     final coin = _coin;
     return DexPage(
       deps: deps,
-      title: 'Buy BEAM',
+      title: context.l10n.buyTitle,
       body: _form(context),
       bottom: DexPrimaryAction(
         deps: deps,
         buttonKey: const Key('buy-cta'),
         label: coin == null
-            ? 'Get a deposit address'
-            : 'Get a ${coin.symbol} deposit address',
+            ? context.l10n.buyGetDepositAddress
+            : context.l10n.buyGetCoinDepositAddress(coin.symbol),
         reason: cta.reason,
         onPressed: cta.onPressed,
       ),
@@ -308,6 +299,7 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
 
   Widget _form(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final label = STextStyles.itemSubtitle(context)
         .copyWith(color: colors.textDark3);
     final quiet = STextStyles.label(context)
@@ -333,12 +325,12 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
             key: const Key('buy-assets-failed'),
             sticker: BeamMoments.somethingWentWrong,
             kind: DexNoticeKind.error,
-            title: "Couldn't reach buybeam.my",
-            detail: [
-              'This is not something you did. Nothing was sent.',
-              if (deps.tor) 'If Tor is on, a new connection usually helps.',
-            ].join(' '),
-            actionLabel: 'Try again',
+            title: l10n.buyCantReach,
+            detail: joinSentences([
+              l10n.buyNotYourFault,
+              if (deps.tor) l10n.buyTorHint,
+            ], l10n),
+            actionLabel: l10n.commonTryAgain,
             onAction: () {
               setState(() => _assetsFailed = false);
               unawaited(_load(refresh: true));
@@ -346,7 +338,7 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
           ),
           const SizedBox(height: 12),
         ],
-        Text('You pay', style: label),
+        Text(l10n.buyYouPay, style: label),
         const SizedBox(height: 6),
         DexAmountField(
           fieldKey: const Key('buy-amount'),
@@ -355,7 +347,7 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
           focusNode: _amountFocus,
           asset: null,
           assetLabel: coin == null
-              ? Text('Choose', style: STextStyles.smallMed14(context))
+              ? Text(l10n.buyChooseCoin, style: STextStyles.smallMed14(context))
               : BuyCoinChip(asset: coin),
           error: _amountError != null,
           onChanged: (_) => _changed(),
@@ -374,8 +366,7 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
                 child: hint == null
                     ? const SizedBox.shrink()
                     : Text(
-                        'Smallest buy right now: about '
-                        '${BuyBeamWords.usd(hint)}',
+                        l10n.buySmallestHint(BuyBeamWords.usd(hint)),
                         key: const Key('buy-minimum-hint'),
                         textAlign: TextAlign.right,
                         style: quiet,
@@ -387,9 +378,8 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
         const SizedBox(height: 12),
         Text(
           coin == null
-              ? 'Your address, for a refund if the buy can\'t go through'
-              : 'Your ${coin.chainName} address, for a refund if the buy '
-                    'can\'t go through',
+              ? l10n.buyRefundLabel
+              : l10n.buyRefundLabelChain(coin.chainName),
           style: label,
         ),
         const SizedBox(height: 6),
@@ -406,8 +396,8 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
           ),
           decoration: InputDecoration(
             hintText: coin == null
-                ? 'Address'
-                : 'Paste your ${coin.symbol} address',
+                ? l10n.buyRefundHint
+                : l10n.buyRefundHintCoin(coin.symbol),
           ),
         ),
         if (_refundError != null)
@@ -421,23 +411,19 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
             ),
           ),
         const SizedBox(height: 12),
-        Text('You get', style: label),
+        Text(l10n.buyYouGet, style: label),
         const SizedBox(height: 6),
         _gets(context),
         if (problem != null) ...[const SizedBox(height: 12), problem],
         const SizedBox(height: 16),
-        Text(
-          'buybeam.my buys the BEAM and sends it to your wallet.',
-          key: const Key('buy-footer'),
-          style: quiet,
-        ),
+        Text(l10n.buyFooter, key: const Key('buy-footer'), style: quiet),
         if (deps.onWantWbeam != null) ...[
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
             child: CustomTextButton(
               key: const Key('buy-want-wbeam'),
-              text: 'Want WBEAM on Ethereum instead?',
+              text: l10n.buyWantWbeam,
               onTap: () => deps.onWantWbeam!(context, ref),
             ),
           ),
@@ -461,7 +447,9 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              open > 0 ? 'Your buys ($open in progress)' : 'Your buys',
+              open > 0
+                  ? context.l10n.buyYourBuysOpen(open)
+                  : context.l10n.buyYourBuys,
               style: STextStyles.smallMed14(context)
                   .copyWith(color: colors.textDark),
             ),
@@ -520,7 +508,7 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Arrives in ${deps.walletName}',
+            context.l10n.buyArrivesIn(deps.walletName),
             key: const Key('buy-arrives-in'),
             style: quiet,
           ),
@@ -542,14 +530,15 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
   Widget? _problem(BuildContext context) {
     final coin = _coin;
     final v = _value;
+    final l10n = context.l10n;
     if (coin == null) return null;
     if (_walletProblem != null) {
       return DexNotice(
         key: const Key('buy-wallet-problem'),
         kind: DexNoticeKind.warning,
-        title: 'Nothing was sent',
+        title: l10n.buyNothingSentTitle,
         detail: _walletProblem,
-        actionLabel: 'Try again',
+        actionLabel: l10n.commonTryAgain,
         onAction: () => unawaited(_getAddress()),
       );
     }
@@ -558,16 +547,13 @@ class _BuyBeamViewState extends ConsumerState<BuyBeamView> {
       return DexNotice(
         key: const Key('buy-inexact'),
         kind: DexNoticeKind.warning,
-        title: "buybeam.my can't take exactly ${v.text} ${coin.symbol}",
+        title: l10n.buyInexactTitle(BuyBeamWords.coin(v.text, coin.symbol)),
         detail: nearest == null
-            ? "Campfire can't send buybeam.my an exact amount of "
-                  '${coin.symbol}. Pick another coin.'
-            : 'It would read it as a slightly different amount, and the '
-                  'payment would not match. $nearest ${coin.symbol} is '
-                  'read exactly.',
+            ? l10n.buyInexactNoExact(coin.symbol)
+            : l10n.buyInexactNearest(BuyBeamWords.coin(nearest, coin.symbol)),
         actionLabel: nearest == null
-            ? 'Pick another coin'
-            : 'Use $nearest ${coin.symbol}',
+            ? l10n.buyFixPickCoin
+            : l10n.buyFixUseAmount(BuyBeamWords.coin(nearest, coin.symbol)),
         onAction: nearest == null
             ? () => unawaited(_pickCoin())
             : () => _setAmount(nearest),

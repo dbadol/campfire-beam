@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages_desktop_specific/desktop_menu.dart';
 import '../../../pages_desktop_specific/settings/settings_menu.dart';
 import '../../../providers/desktop/current_desktop_menu_item.dart';
@@ -42,21 +43,27 @@ import 'beam_sidebar.dart';
 
 /// What the node chip says.
 enum BeamSidebarNodeState {
-  publicNode('Public node'),
-  privateNode('Private node'),
-  catchingUp('Catching up'),
-  connecting('Connecting'),
-  notSyncing('Not syncing'),
+  publicNode,
+  privateNode,
+  catchingUp,
+  connecting,
+  notSyncing,
 
   /// The core is up but reaches no node, or failed to start.
-  notConnected('Not connected'),
+  notConnected,
 
   /// No BEAM wallet in use, or its core is not running.
-  closed('Not connected');
+  closed;
 
-  const BeamSidebarNodeState(this.label);
-
-  final String label;
+  /// The chip's words (lib/l10n, sidebarNode* keys).
+  String get label => switch (this) {
+    publicNode => appL10n.sidebarNodePublic,
+    privateNode => appL10n.sidebarNodePrivate,
+    catchingUp => appL10n.sidebarNodeCatchingUp,
+    connecting => appL10n.sidebarNodeConnecting,
+    notSyncing => appL10n.sidebarNodeNotSyncing,
+    notConnected || closed => appL10n.sidebarNodeNotConnected,
+  };
 
   /// Following the chain: sending is possible.
   bool get healthy => this == publicNode || this == privateNode;
@@ -172,8 +179,9 @@ class BeamSidebarNodeChip extends ConsumerWidget {
     // list nothing else does).
     final ctx = ref.watch(pBeamSidebarWallet);
     final whose = ctx.canSwitch && ctx.wallet != null
-        ? '${ctx.wallet!.info.name} · '
-        : '';
+        ? ctx.wallet!.info.name
+        : null;
+    final l10n = context.l10n;
     final icon = SvgPicture.asset(
       Assets.svg.node,
       width: 16,
@@ -209,12 +217,20 @@ class BeamSidebarNodeChip extends ConsumerWidget {
     );
     return Semantics(
       button: true,
-      label: '$whose${state.label}. Opens node and sync.',
+      label: whose == null
+          ? l10n.sidebarNodeChipA11y(state.label)
+          : l10n.sidebarNodeChipA11yWallet(whose, state.label),
       excludeSemantics: true,
       child: Tooltip(
-        message: iconOnly
-            ? '$whose${state.label} · Node & sync'
-            : '${whose}Node & sync',
+        message: switch ((iconOnly, whose)) {
+          (true, null) => l10n.sidebarNodeChipTooltipStatus(state.label),
+          (true, final w?) => l10n.sidebarNodeChipTooltipWalletStatus(
+            w,
+            state.label,
+          ),
+          (false, null) => l10n.sidebarNodeAndSync,
+          (false, final w?) => l10n.sidebarNodeChipTooltipWallet(w),
+        },
         waitDuration: const Duration(milliseconds: 400),
         child: SizedBox.expand(child: button),
       ),
@@ -276,20 +292,21 @@ class _BeamSidebarTorButtonState extends ConsumerState<BeamSidebarTorButton> {
     final useTor = ref.watch(
       prefsChangeNotifierProvider.select((p) => p.useTor),
     );
+    final l10n = context.l10n;
     final (tint, word) = !useTor
-        ? (colors.textSubtitle3, 'Tor is off')
+        ? (colors.textSubtitle3, l10n.sidebarTorOff)
         : switch (_status) {
             TorConnectionStatus.disconnected => (
               colors.textSubtitle3,
-              'Tor: Disconnected',
+              l10n.sidebarTorDisconnected,
             ),
             TorConnectionStatus.connecting => (
               colors.accentColorYellow,
-              'Tor: Connecting',
+              l10n.sidebarTorConnecting,
             ),
             TorConnectionStatus.connected => (
               colors.accentColorGreen,
-              'Tor: Connected',
+              l10n.sidebarTorConnected,
             ),
           };
     return Tooltip(
@@ -298,7 +315,7 @@ class _BeamSidebarTorButtonState extends ConsumerState<BeamSidebarTorButton> {
       waitDuration: const Duration(milliseconds: 400),
       child: Semantics(
         button: true,
-        label: '$word. Opens Tor settings.',
+        label: l10n.sidebarTorA11y(word),
         excludeSemantics: true,
         child: SizedBox(
           width: 34,
@@ -368,15 +385,17 @@ class BeamNodeSyncSettingsButton extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'BEAM node & sync',
+                      context.l10n.sidebarSettingsNodeTitle,
                       style: STextStyles.desktopTextSmall(context),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       wallet == null
-                          ? 'Open a BEAM wallet to see which node it uses.'
-                          : '${wallet.info.name}: ${state.label}. Which node '
-                                'you use, and how up to date.',
+                          ? context.l10n.sidebarSettingsNodeNoWallet
+                          : context.l10n.sidebarSettingsNodeWallet(
+                              wallet.info.name,
+                              state.label,
+                            ),
                       style: STextStyles.desktopTextExtraExtraSmall(context),
                     ),
                   ],

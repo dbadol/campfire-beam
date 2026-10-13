@@ -28,30 +28,56 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The BEAM UI directories and the core files whose text screens show:
-/// each area joins the list once its text is in the catalogue.
+/// The BEAM UI directories and the files whose text screens show: each
+/// area joins the list once its text is in the catalogue.
 const scanned = <String>[
   'lib/l10n',
+  'lib/pages/beam/airdrop',
+  'lib/pages/beam/buy',
+  'lib/pages/beam/dex',
+  'lib/pages/beam/import',
+  'lib/pages/beam/minter',
+  'lib/pages/beam/names',
   'lib/pages/beam/settings',
   'lib/pages/beam/split',
+  'lib/pages_desktop_specific/beam/buy',
+  'lib/pages_desktop_specific/beam/dex',
+  'lib/pages_desktop_specific/beam/sidebar',
+  'lib/pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/beam_desktop_wallet_summary.dart',
+  'lib/widgets/beam/airdrop',
+  'lib/widgets/beam/beam_decimal_input.dart',
+  'lib/widgets/beam/dex',
+  'lib/widgets/beam/minter',
+  'lib/widgets/beam/names',
+  'lib/widgets/beam/quit',
+  'lib/widgets/beam/sidebar',
   'lib/widgets/beam/split',
-  'lib/widgets/beam/airdrop/airdrop_text.dart',
-  'lib/widgets/beam/airdrop/beam_asset_names.dart',
-  'lib/widgets/beam/airdrop/beam_blocks.dart',
-  'lib/widgets/beam/airdrop/beam_layout.dart',
-  'lib/widgets/beam/airdrop/beam_send_flow.dart',
-  'lib/widgets/beam/airdrop/beam_spend_auth.dart',
-  'lib/widgets/beam/airdrop/beam_sync_gate.dart',
-  'lib/widgets/beam/airdrop/beam_units.dart',
-  'lib/wallets/beam/sync/beam_sync_messages.dart',
-  'lib/wallets/beam/wallet/beam_wallet_errors.dart',
+  'lib/widgets/beam/stickers',
+  'lib/widgets/beam/wallet_home',
+  'lib/widgets/beam/wbeam_icon.dart',
+  'lib/widgets/beam/wiring/beam_features.dart',
+  'lib/widgets/beam/wiring/beam_wallet_listenables.dart',
+];
+
+/// The wallet-core directories: mostly protocol strings, logs and developer
+/// errors, so only their files that read the catalogue (they import
+/// lib/l10n/l10n.dart: they make text a screen shows) are scanned.
+const scannedWhenLocalized = <String>[
+  'lib/wallets/beam',
+  'lib/wallets/bridge',
+  'lib/wallets/ethereum/bridge',
+  'lib/wallets/wallet/impl/beam_wallet.dart',
+  'lib/wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart',
+  'lib/pages/token_view',
+  'lib/utilities/test_beam_node_connection.dart',
 ];
 
 final _skipLine = RegExp(
   r'Logging\.instance|debugPrint\(|\blog\(|\bKey\(|ValueKey\(|assert\(|'
   r'^\s*(import|export|part) |@pragma|RouteSettings\(|routeName\s*=|'
-  r'StateError\(|ArgumentError\(|UnimplementedError\(|UnsupportedError\(|'
-  r'FormatException\(|semanticsIdentifier:|debugLabel:|restorationId:',
+  r'\b(StateError|ArgumentError|UnimplementedError|UnsupportedError|'
+  r'FormatException|RangeError)(\.\w+)?\(|'
+  r'semanticsIdentifier:|debugLabel:|restorationId:',
 );
 
 /// A named argument or call that shows its string to the person.
@@ -214,17 +240,28 @@ bool isUserText(Literal l) {
   return word && _uiPosition.hasMatch(l.before.trimRight());
 }
 
-List<String> _sourceFiles() => [
-  for (final path in scanned)
-    if (FileSystemEntity.isFileSync(path))
-      path
-    else if (FileSystemEntity.isDirectorySync(path))
-      for (final e in Directory(path).listSync(recursive: true))
-        if (e is File &&
-            e.path.endsWith('.dart') &&
-            !e.path.contains('/generated/'))
-          e.path,
-]..sort();
+Iterable<String> _dartFiles(String path) sync* {
+  if (FileSystemEntity.isFileSync(path)) {
+    yield path;
+  } else if (FileSystemEntity.isDirectorySync(path)) {
+    for (final e in Directory(path).listSync(recursive: true)) {
+      if (e is File &&
+          e.path.endsWith('.dart') &&
+          !e.path.contains('/generated/')) {
+        yield e.path;
+      }
+    }
+  }
+}
+
+final _importsL10n = RegExp(r"^import '[./]*l10n/l10n\.dart';", multiLine: true);
+
+List<String> _sourceFiles() => {
+  for (final path in scanned) ..._dartFiles(path),
+  for (final path in scannedWhenLocalized)
+    for (final f in _dartFiles(path))
+      if (_importsL10n.hasMatch(File(f).readAsStringSync())) f,
+}.toList()..sort();
 
 /// file | literal | reason, one per line; '#' starts a comment line.
 Map<String, Set<String>> _allowList() {

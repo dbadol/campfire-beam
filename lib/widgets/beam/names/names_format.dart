@@ -9,6 +9,7 @@
 
 import 'package:intl/intl.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/bans/bans_constants.dart';
 
 /// Number and date wording for the Names screens. Every BEAM asset uses the
@@ -80,19 +81,13 @@ abstract final class NamesFormat {
   static String date(DateTime d) => DateFormat('d MMM y').format(d.toLocal());
 
   /// `1 year`, `5 years`.
-  static String years(int n) => n == 1 ? '1 year' : '$n years';
+  static String years(int n) => appL10n.namesYears(n);
 
   /// Whole days from [tipHeight] to [height] at one block a minute.
   static int daysBetween(int tipHeight, int height) =>
       ((height - tipHeight) * kBeamTargetBlockTime.inSeconds) ~/ 86400;
 
-  /// `in 12 days`, `tomorrow`, `today`.
-  static String inDays(int days) => switch (days) {
-    <= 0 => 'today',
-    1 => 'tomorrow',
-    _ => 'in $days days',
-  };
-
   /// `block 4,918,184`, shown only on tap (heights are jargon).
-  static String block(int height) => 'block ${_thousands(BigInt.from(height))}';
+  static String block(int height) =>
+      appL10n.namesBlockHeight(_thousands(BigInt.from(height)));
 }

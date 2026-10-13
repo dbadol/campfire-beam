@@ -27,6 +27,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/beam/airdrop/beam_airdrop_batches_view.dart';
 import '../../../pages/beam/airdrop/beam_claim_voucher_view.dart';
 import '../../../pages/beam/airdrop/beam_create_airdrop_view.dart';
@@ -64,29 +65,29 @@ class BeamSidebarTask {
   final String routeName;
 
   /// The tasks of [destination] (Airdrops or Tokens), most used first. The
-  /// words are the wallet screen's (`openBeamFeature`).
+  /// words are the wallet screen's (`openBeamFeature`), in lib/l10n.
   static List<BeamSidebarTask> of(BeamSidebarDestination destination) =>
       switch (destination) {
         BeamSidebarDestination.airdrops => [
           BeamSidebarTask(
             key: const Key('beamAirdropClaim'),
             icon: Assets.svg.arrowDownLeft,
-            title: 'Claim a code',
-            detail: 'Someone gave you a code? Get what it holds',
+            title: appL10n.sidebarClaimCode,
+            detail: appL10n.sidebarClaimCodeDetail,
             routeName: BeamClaimVoucherView.routeName,
           ),
           BeamSidebarTask(
             key: const Key('beamAirdropMine'),
             icon: Assets.svg.list,
-            title: 'My airdrops',
-            detail: 'See which of your codes were claimed',
+            title: appL10n.sidebarMyAirdrops,
+            detail: appL10n.sidebarMyAirdropsDetail,
             routeName: BeamAirdropBatchesView.routeName,
           ),
           BeamSidebarTask(
             key: const Key('beamAirdropCreate'),
             icon: Assets.svg.circlePlus,
-            title: 'Create codes',
-            detail: 'Put BEAM or a token into codes to give away',
+            title: appL10n.sidebarCreateCodes,
+            detail: appL10n.sidebarCreateCodesDetail,
             routeName: BeamCreateAirdropView.routeName,
           ),
         ],
@@ -94,22 +95,22 @@ class BeamSidebarTask {
           BeamSidebarTask(
             key: const Key('beamTokensCreate'),
             icon: Assets.svg.circlePlus,
-            title: 'Create a token',
-            detail: 'Your own asset on BEAM, named by you',
+            title: appL10n.sidebarCreateToken,
+            detail: appL10n.sidebarCreateTokenDetail,
             routeName: BeamMintTokenView.routeName,
           ),
           BeamSidebarTask(
             key: const Key('beamTokensMine'),
             icon: Assets.svg.tokens,
-            title: 'My tokens',
-            detail: 'Tokens you created: see them, mint more',
+            title: appL10n.sidebarMyTokens,
+            detail: appL10n.sidebarMyTokensDetail,
             routeName: BeamMyTokensView.routeName,
           ),
           BeamSidebarTask(
             key: const Key('beamTokensBurn'),
             icon: Assets.svg.trash,
-            title: 'Burn tokens',
-            detail: 'Destroy tokens you hold, for good',
+            title: appL10n.sidebarBurnTokens,
+            detail: appL10n.sidebarBurnTokensDetail,
             routeName: BeamBurnView.routeName,
           ),
         ],
@@ -197,7 +198,7 @@ class _TaskCard extends StatelessWidget {
     final colors = Theme.of(context).extension<StackColors>()!;
     return Semantics(
       button: true,
-      label: '${task.title}. ${task.detail}',
+      label: context.l10n.sidebarTaskCardA11y(task.title, task.detail),
       excludeSemantics: true,
       child: RoundedWhiteContainer(
         key: task.key,

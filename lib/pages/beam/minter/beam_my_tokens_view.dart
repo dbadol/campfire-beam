@@ -22,6 +22,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/minter/minter.dart';
@@ -54,7 +55,7 @@ class BeamMyTokensView extends StatefulWidget {
   });
 
   static const routeName = '/beamMyTokens';
-  static const title = 'My tokens';
+  static String get title => appL10n.minterMyTokensTitle;
 
   final BeamMinterService service;
   final ValueListenable<BeamSyncAssessment> sync;
@@ -149,9 +150,10 @@ class _BeamMyTokensViewState extends State<BeamMyTokensView> {
     if (minted == null || !mounted) return;
     setState(
       () => _done = BeamProblem(
-        'Mint sent',
-        '${_names.amount(t.assetId, minted)} reach your wallet once the '
-            'network confirms it, usually within a few minutes.',
+        context.l10n.minterMyTokensMintSentTitle,
+        context.l10n.minterMyTokensMintSentMessage(
+          _names.amount(t.assetId, minted),
+        ),
       ),
     );
     unawaited(_load());
@@ -163,13 +165,14 @@ class _BeamMyTokensViewState extends State<BeamMyTokensView> {
     builder: (context, sync) {
       final tokens = _tokens;
       final empty = tokens != null && tokens.isEmpty && _problem == null;
+      final l10n = context.l10n;
       return BeamPageScaffold(
         title: BeamMyTokensView.title,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_loading && tokens == null)
-              const BeamWorking('Looking up the tokens you created…'),
+              BeamWorking(l10n.minterMyTokensLoading),
             if (_done != null) ...[
               Row(
                 children: [
@@ -193,20 +196,17 @@ class _BeamMyTokensViewState extends State<BeamMyTokensView> {
                 kind: BeamNoticeKind.danger,
                 title: _problem!.title,
                 message: _problem!.message,
-                actionLabel: 'Try again',
+                actionLabel: l10n.commonTryAgain,
                 onAction: _load,
               ),
               const BeamGap(),
             ],
             if (empty)
-              const BeamEmptyState(
-                key: ValueKey('tokens-empty'),
-                art: BeamStickerImage(BeamSticker.hi, size: 120),
-                title: "You haven't created a token yet",
-                message:
-                    'Create your own token on BEAM, then mint as much of it '
-                    'as you like, up to its maximum. A token you just created '
-                    'shows here once the network confirms it.',
+              BeamEmptyState(
+                key: const ValueKey('tokens-empty'),
+                art: const BeamStickerImage(BeamSticker.hi, size: 120),
+                title: l10n.minterMyTokensEmptyTitle,
+                message: l10n.minterMyTokensEmptyMessage,
               ),
             for (final t in tokens ?? const <MinterToken>[])
               Padding(
@@ -217,7 +217,7 @@ class _BeamMyTokensViewState extends State<BeamMyTokensView> {
         ),
         bottom: BeamCtaBar(
           primaryKey: const ValueKey('tokens-create'),
-          label: 'Create a token',
+          label: l10n.minterMyTokensCreate,
           onPressed: _openCreate,
         ),
       );
@@ -229,6 +229,7 @@ class _BeamMyTokensViewState extends State<BeamMyTokensView> {
     final share = t.limit == BigInt.zero
         ? 0.0
         : (t.minted * BigInt.from(1000) ~/ t.limit).toInt() / 1000;
+    final l10n = context.l10n;
     return RoundedWhiteContainer(
       key: ValueKey('token-${t.assetId}'),
       child: Column(
@@ -250,20 +251,25 @@ class _BeamMyTokensViewState extends State<BeamMyTokensView> {
             children: [
               Expanded(
                 child: Text(
-                  'Minted ${BeamUnits.format(t.minted)} of '
-                  '${BeamUnits.format(t.limit)}',
+                  l10n.minterMyTokensMinted(
+                    BeamUnits.format(t.minted),
+                    BeamUnits.format(t.limit),
+                  ),
                   style: STextStyles.label(context),
                 ),
               ),
               if (t.mintable > BigInt.zero)
                 CustomTextButton(
                   key: ValueKey('token-mint-${t.assetId}'),
-                  text: 'Mint more',
+                  text: l10n.minterMyTokensMintMore,
                   enabled: canSpend,
                   onTap: () => _mintMore(t),
                 )
               else
-                Text('All minted', style: STextStyles.label(context)),
+                Text(
+                  l10n.minterMyTokensAllMinted,
+                  style: STextStyles.label(context),
+                ),
             ],
           ),
         ],

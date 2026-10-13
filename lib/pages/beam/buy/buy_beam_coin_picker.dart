@@ -22,6 +22,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/buy/buybeam_client.dart';
@@ -91,9 +92,10 @@ class _BuyBeamCoinPickerState extends State<BuyBeamCoinPicker> {
     final rest = shown?.where((a) => !isPopularBuyBeamAsset(a)).toList();
     final heading = STextStyles.itemSubtitle(context)
         .copyWith(color: colors.textDark3);
+    final l10n = context.l10n;
     return DexPage(
       deps: widget.deps,
-      title: 'Pay with',
+      title: l10n.buyPayWith,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -103,9 +105,9 @@ class _BuyBeamCoinPickerState extends State<BuyBeamCoinPicker> {
             controller: _search,
             onChanged: (_) => setState(() {}),
             autocorrect: false,
-            decoration: const InputDecoration(
-              hintText: 'Coin or chain (BTC, Tron, Solana…)',
-              prefixIcon: Icon(Icons.search_rounded, size: 20),
+            decoration: InputDecoration(
+              hintText: l10n.buyCoinSearchHint,
+              prefixIcon: const Icon(Icons.search_rounded, size: 20),
             ),
           ),
           const SizedBox(height: 12),
@@ -114,37 +116,32 @@ class _BuyBeamCoinPickerState extends State<BuyBeamCoinPicker> {
               key: const Key('buy-coins-failed'),
               sticker: BeamMoments.somethingWentWrong,
               kind: DexNoticeKind.error,
-              title: "Couldn't reach buybeam.my",
-              detail: [
-                'This is not something you did. Nothing was sent.',
-                if (widget.deps.tor)
-                  'If Tor is on, a new connection usually helps.',
-              ].join(' '),
-              actionLabel: 'Try again',
+              title: l10n.buyCantReach,
+              detail: joinSentences([
+                l10n.buyNotYourFault,
+                if (widget.deps.tor) l10n.buyTorHint,
+              ], l10n),
+              actionLabel: l10n.commonTryAgain,
               onAction: () {
                 setState(() => _failed = false);
                 unawaited(_load(refresh: true));
               },
             )
           else if (all == null)
-            Text(
-              'Loading the coins buybeam.my takes…',
-              style: STextStyles.label(context),
-            )
+            Text(l10n.buyLoadingCoins, style: STextStyles.label(context))
           else ...[
             if (popular!.isNotEmpty) ...[
-              Text('Most used', style: heading),
+              Text(l10n.buyMostUsed, style: heading),
               for (final a in popular) _row(context, a),
               const SizedBox(height: 12),
             ],
             if (rest!.isNotEmpty) ...[
-              Text('All coins (${all.length})', style: heading),
+              Text(l10n.buyAllCoins(all.length), style: heading),
               for (final a in rest) _row(context, a),
             ],
             if (shown!.isEmpty)
               Text(
-                'buybeam.my does not take "${_search.text.trim()}". Try '
-                'its ticker or its chain.',
+                l10n.buyNoCoinMatch(_search.text.trim()),
                 style: STextStyles.label(context),
               ),
           ],
@@ -171,7 +168,9 @@ class _BuyBeamCoinPickerState extends State<BuyBeamCoinPicker> {
                 children: [
                   Text(a.symbol, style: STextStyles.titleBold12(context)),
                   Text(
-                    a.isNative ? a.chainName : 'on ${a.chainName}',
+                    a.isNative
+                        ? a.chainName
+                        : context.l10n.buyCoinOnChain(a.chainName),
                     style: STextStyles.label(context)
                         .copyWith(color: colors.textSubtitle1),
                   ),

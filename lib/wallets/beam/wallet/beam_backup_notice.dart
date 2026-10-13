@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../../wallet/impl/beam_wallet.dart';
 import '../../wallet/wallet.dart';
 
@@ -23,11 +24,5 @@ List<String> beamWalletsNotInBackup(Iterable<Wallet> wallets) => [
 String? beamBackupOmissionNotice(List<String> names) {
   if (names.isEmpty) return null;
   final list = names.map((n) => '"$n"').join(', ');
-  return names.length == 1
-      ? 'Not in this backup: $list. This BEAM wallet was imported from a '
-            "wallet.db file and has no recovery phrase, so a backup can't "
-            'restore it. Keep its wallet.db file and password safe.'
-      : 'Not in this backup: $list. These BEAM wallets were imported from '
-            "wallet.db files and have no recovery phrase, so a backup can't "
-            'restore them. Keep each wallet.db file and its password safe.';
+  return appL10n.walletBackupOmission(names.length, list);
 }

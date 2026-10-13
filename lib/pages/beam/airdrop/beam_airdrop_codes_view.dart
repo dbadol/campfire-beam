@@ -23,6 +23,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../utilities/beam/secret_clipboard.dart';
 import '../../../utilities/clipboard_interface.dart';
@@ -110,10 +111,9 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
         _batch = found.isEmpty ? null : found.single;
         _loading = false;
         if (found.isEmpty) {
-          _problem = const BeamProblem(
-            "These codes aren't on this device",
-            'They may have been saved by another device or app. Open My '
-                'batches to see what this wallet has.',
+          _problem = BeamProblem(
+            context.l10n.airdropCodesNotOnDeviceTitle,
+            context.l10n.airdropCodesNotOnDeviceMessage,
           );
         }
       });
@@ -122,16 +122,21 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _problem = const BeamProblem(
-          "Couldn't open the saved codes",
-          'The secure storage on this device did not answer. Close this '
-              'screen and open it again; the codes are not lost.',
+        _problem = BeamProblem(
+          context.l10n.airdropCodesCantOpenTitle,
+          context.l10n.airdropCodesCantOpenMessage,
         );
       });
     }
   }
 
-  Future<void> _copy(String text, String what) async {
+  /// [copied] says what was copied; [copiedClears] says the same and that
+  /// it leaves the clipboard in a minute.
+  Future<void> _copy(
+    String text, {
+    required String copied,
+    required String copiedClears,
+  }) async {
     // A code is a bearer claim on locked funds (issue #76): on desktop it
     // leaves the clipboard a minute later if it is still there.
     final clears = await SecretClipboard.copy(
@@ -142,9 +147,7 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
     unawaited(
       showFloatingFlushBar(
         type: FlushBarType.info,
-        message: clears
-            ? '$what copied. It leaves the clipboard in a minute.'
-            : '$what copied',
+        message: clears ? copiedClears : copied,
         context: context,
       ),
     );
@@ -170,7 +173,7 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.success,
-          message: 'Codes exported',
+          message: context.l10n.airdropCodesExported,
           context: context,
         ),
       );
@@ -179,7 +182,7 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.warning,
-          message: "Couldn't export the file. Try Copy all codes instead.",
+          message: context.l10n.airdropCodesExportFailed,
           context: context,
         ),
       );
@@ -189,10 +192,13 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
   @override
   Widget build(BuildContext context) {
     final b = _batch;
+    final l10n = context.l10n;
     return BeamPageScaffold(
-      title: widget.justCreated ? 'Your airdrop codes' : 'Airdrop codes',
+      title: widget.justCreated
+          ? l10n.airdropCodesTitleNew
+          : l10n.airdropCodesTitle,
       body: _loading
-          ? const BeamWorking('Opening your saved codes…')
+          ? BeamWorking(l10n.airdropCodesOpening)
           : b == null
           ? BeamNotice(
               kind: BeamNoticeKind.danger,
@@ -203,13 +209,17 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
           : FlagSecureScope(child: _codes(context, b)),
       bottom: b == null
           ? BeamCtaBar(
-              label: 'Back',
+              label: l10n.commonBack,
               onPressed: () => Navigator.of(context).maybePop(),
             )
           : BeamCtaBar(
               primaryKey: const ValueKey('codes-copy-all'),
-              label: 'Copy all codes',
-              onPressed: () => _copy(_allCodes, 'All ${b.count} codes'),
+              label: l10n.airdropCodesCopyAll,
+              onPressed: () => _copy(
+                _allCodes,
+                copied: l10n.airdropCodesAllCopied(b.count),
+                copiedClears: l10n.airdropCodesAllCopiedClears(b.count),
+              ),
             ),
     );
   }
@@ -218,22 +228,24 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
     final same = b.codes.every((c) => c.value == b.codes.first.value);
     final status = airdropBatchStatus(b, null);
     final desktop = BeamLayoutScope.isDesktop(context);
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.justCreated && widget.notice == null) ...[
-          const Row(
+          Row(
             children: [
-              BeamAnimatedStickerView(BeamMoments.walletCreated, size: 72),
-              SizedBox(width: 8),
+              const BeamAnimatedStickerView(
+                BeamMoments.walletCreated,
+                size: 72,
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: BeamNotice(
-                  key: ValueKey('codes-sent'),
+                  key: const ValueKey('codes-sent'),
                   kind: BeamNoticeKind.success,
-                  title: 'Batch sent',
-                  message:
-                      'The codes start working once the network confirms it, '
-                      'usually within a few minutes.',
+                  title: l10n.airdropCodesBatchSentTitle,
+                  message: l10n.airdropCodesBatchSentMessage,
                 ),
               ),
             ],
@@ -253,24 +265,25 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
           child: BeamAssetTitle(
             display: _names.display(b.assetId),
             subtitle: same
-                ? '${b.count} codes · '
-                      '${_names.amount(b.assetId, b.codes.first.value)} each'
-                : '${b.count} codes · '
-                      '${_names.amount(b.assetId, b.total)} in total',
+                ? l10n.airdropCodesCountEach(
+                    b.count,
+                    _names.amount(b.assetId, b.codes.first.value),
+                  )
+                : l10n.airdropCodesCountTotal(
+                    b.count,
+                    _names.amount(b.assetId, b.total),
+                  ),
             trailing: widget.justCreated
                 ? null
                 : BeamPill(text: status.text, kind: status.kind),
           ),
         ),
         const BeamGap(),
-        const BeamNotice(
-          key: ValueKey('codes-key-warning'),
+        BeamNotice(
+          key: const ValueKey('codes-key-warning'),
           kind: BeamNoticeKind.warning,
-          title: 'These codes are the only key to the locked funds',
-          message:
-              'Anyone who has a code can claim it, so send each one only to '
-              'its recipient. They are saved on this device but not in your '
-              'wallet backup: export a copy to keep them safe.',
+          title: l10n.airdropCodesKeyWarningTitle,
+          message: l10n.airdropCodesKeyWarningMessage,
         ),
         const BeamGap(8),
         Row(
@@ -278,14 +291,14 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
           children: [
             CustomTextButton(
               key: const ValueKey('codes-export'),
-              text: 'Export file',
+              text: l10n.airdropCodesExport,
               onTap: _export,
             ),
             if (!desktop) ...[
               const SizedBox(width: 16),
               CustomTextButton(
                 key: const ValueKey('codes-share'),
-                text: 'Share',
+                text: l10n.airdropCodesShare,
                 onTap: () => widget.exporter.shareText(context, _allCodes),
               ),
             ],
@@ -342,8 +355,12 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
           ),
           TextFieldIconButton(
             key: ValueKey('code-copy-$i'),
-            semanticsLabel: 'Copy code',
-            onTap: () => _copy(c.code, 'Code'),
+            semanticsLabel: context.l10n.airdropCodeCopyLabel,
+            onTap: () => _copy(
+              c.code,
+              copied: context.l10n.airdropCodeCopied,
+              copiedClears: context.l10n.airdropCodeCopiedClears,
+            ),
             child: const CopyIcon(),
           ),
         ],

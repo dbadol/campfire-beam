@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../pages/send_view/send_view.dart';
 import '../../../pages/token_view/beam_asset_navigation.dart';
@@ -119,6 +120,7 @@ class BeamDashboardModel {
     required DateTime now,
     int maxRows = maxRowsPhone,
   }) {
+    final l = appL10n;
     final beam = Amount(rawValue: beamSpendable, fractionDigits: 8);
     final rows = <BeamDashboardRow>[
       BeamDashboardRow(
@@ -148,7 +150,9 @@ class BeamDashboardModel {
       final fiatValue = inBeam == null ? null : fiat(inBeam);
       // An unverified asset is valued at what its pool would pay for it
       // (BeamAssetPricer.isSaleValue), so say that rather than a price.
-      final sold = h.saleValue ? ' if sold now' : '';
+      String approx(Amount a) => h.saleValue
+          ? l.homeAssetValueIfSold(formatBeam(a))
+          : '≈ ${formatBeam(a)}';
       final copied = c.impersonates;
       rows.add(
         BeamDashboardRow(
@@ -163,15 +167,16 @@ class BeamDashboardModel {
               '${c.isPoolShare ? 'LP' : c.symbol}',
           value:
               fiatValue ??
-              (inBeam == null ? 'No price' : '≈ ${formatBeam(inBeam)}$sold'),
+              (inBeam == null ? l.homeAssetNoPrice : approx(inBeam)),
           valueNote: fiatValue != null && inBeam != null
-              ? '≈ ${formatBeam(inBeam)}$sold'
+              ? approx(inBeam)
               : null,
           warning: copied == null
               ? null
-              : 'Not the verified '
-                    '${BeamAssetCatalog.verified[copied]?.symbol ?? '#$copied'}'
-                    ' (#$copied)',
+              : l.beamAssetNotTheVerified(
+                  BeamAssetCatalog.verified[copied]?.symbol ?? '#$copied',
+                  '$copied',
+                ),
           contract: c,
           display: beamAssetLook(c),
         ),
@@ -180,20 +185,22 @@ class BeamDashboardModel {
     final priced = rows.length > 1 || more > 0;
     String? note;
     if (priced && market == null) {
-      note = 'Getting prices…';
+      note = l.homePricesLoading;
     } else if (market != null) {
       final age = now.difference(market.readAt);
       if (age > const Duration(minutes: 10)) {
-        note = 'Prices from ${_age(age)} ago';
+        note = _pricesFrom(age);
       }
     }
     return BeamDashboardModel(rows: rows, moreCount: more, priceNote: note);
   }
 
-  static String _age(Duration d) {
-    if (d.inMinutes < 60) return '${d.inMinutes} min';
-    if (d.inHours < 48) return '${d.inHours} h';
-    return '${d.inDays} days';
+  /// "Prices from 25 min ago", "Prices from 3 h ago", "Prices from 4 days
+  /// ago".
+  static String _pricesFrom(Duration d) {
+    if (d.inMinutes < 60) return appL10n.homePricesAgeMinutes(d.inMinutes);
+    if (d.inHours < 48) return appL10n.homePricesAgeHours(d.inHours);
+    return appL10n.homePricesAgeDays(d.inDays);
   }
 
   /// "568.1297", "1,234,567.5", "0.00012345": at most 4 decimals from 1 up,
@@ -313,6 +320,7 @@ class _BeamDashboardAssetsState extends ConsumerState<BeamDashboardAssets> {
       return const SizedBox.shrink();
     }
     final c = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -321,15 +329,17 @@ class _BeamDashboardAssetsState extends ConsumerState<BeamDashboardAssets> {
           children: [
             Expanded(
               child: Text(
-                'Your assets',
+                l10n.homeYourAssets,
                 style: STextStyles.itemSubtitle(context),
               ),
             ),
             CustomTextButton(
               key: const Key('beamDashboardSeeAll'),
               text: model.moreCount > 0
-                  ? 'See all (${model.rows.length - 1 + model.moreCount})'
-                  : 'See all',
+                  ? l10n.homeSeeAllCount(
+                      model.rows.length - 1 + model.moreCount,
+                    )
+                  : l10n.homeSeeAll,
               onTap: () =>
                   Navigator.of(context)
                       .pushNamed(MyTokensView.routeName, arguments: walletId),
@@ -369,7 +379,7 @@ class _BeamDashboardAssetsState extends ConsumerState<BeamDashboardAssets> {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Values in BEAM: price lookups are off in Settings.',
+              l10n.homeValuesInBeam,
               style: STextStyles.w500_12(context)
                   .copyWith(color: c.textSubtitle1),
             ),
@@ -458,11 +468,11 @@ class _AssetRow extends StatelessWidget {
             if (showSend)
               Semantics(
                 button: true,
-                label: 'Send ${row.title}',
+                label: context.l10n.homeSendAsset(row.title),
                 excludeSemantics: true,
                 child: IconButton(
                   key: Key('beamDashboardSend${row.assetId}'),
-                  tooltip: 'Send ${row.title}',
+                  tooltip: context.l10n.homeSendAsset(row.title),
                   onPressed: onSend,
                   icon: SvgPicture.asset(
                     Assets.svg.send,

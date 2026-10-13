@@ -23,6 +23,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/airdrop/airdrop.dart';
 import '../../../wallets/beam/rpc/beam_transport.dart';
 import '../../../wallets/beam/sync/beam_sync_state.dart';
@@ -114,7 +115,9 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
     Object? failure;
     final tx = await runSend(
       authorize: widget.authorize,
-      reason: _create ? 'Create airdrop codes' : 'Cancel airdrop codes',
+      reason: _create
+          ? context.l10n.airdropConfirmAuthCreate
+          : context.l10n.airdropConfirmAuthCancel,
       send: () => widget.service.execute(p),
       explain: (e) {
         failure = e;
@@ -134,12 +137,10 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       // Sent, but no answer: the batch may still go through, and its
       // codes are saved. Show them, with the warning.
       Navigator.of(context).pop(
-        const BeamAirdropSent(
+        BeamAirdropSent(
           problem: BeamProblem(
-            'Not confirmed yet',
-            "The wallet didn't confirm that the batch was sent. Your codes "
-                'are saved. Check My batches in a few minutes before you '
-                'hand any out.',
+            context.l10n.airdropConfirmNotConfirmedTitle,
+            context.l10n.airdropConfirmNotConfirmedMessage,
           ),
         ),
       );
@@ -152,8 +153,11 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
     builder: (context, sync) {
       final spent = widget.prepared.isExecuted;
       final short = _beamAvailable != null && _beamAvailable! < _beamNeeded;
+      final l10n = context.l10n;
       return BeamPageScaffold(
-        title: _create ? 'Confirm airdrop codes' : 'Confirm cancel',
+        title: _create
+            ? l10n.airdropConfirmCreateTitle
+            : l10n.airdropConfirmCancelTitle,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -161,8 +165,8 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
               child: BeamAssetTitle(
                 display: _names.display(_s.assetId),
                 subtitle: _create
-                    ? 'New airdrop codes'
-                    : 'Batch ${_s.batchId} · unclaimed codes',
+                    ? l10n.airdropConfirmNewCodes
+                    : l10n.airdropConfirmBatchUnclaimed('${_s.batchId}'),
               ),
             ),
             const BeamGap(8),
@@ -172,11 +176,11 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
               BeamNotice(
                 key: const ValueKey('confirm-short-of-beam'),
                 kind: BeamNoticeKind.danger,
-                title: 'Not enough BEAM',
-                message:
-                    'This needs ${_beam(_beamNeeded)} and the wallet has '
-                    '${_beam(_beamAvailable!)}. Add BEAM to this wallet, '
-                    'then try again.',
+                title: l10n.airdropNotEnoughBeamTitle,
+                message: l10n.airdropConfirmNotEnoughBeamMessage(
+                  _beam(_beamNeeded),
+                  _beam(_beamAvailable!),
+                ),
               ),
             ],
             if (problem != null) ...[
@@ -202,17 +206,19 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
             ),
             if (spent && problem != null)
               BeamCtaBar(
-                label: 'Back',
+                label: l10n.commonBack,
                 onPressed: () => Navigator.of(context).maybePop(),
               )
             else
               BeamCtaBar(
                 primaryKey: const ValueKey('airdrop-confirm-cta'),
                 label: _create
-                    ? 'Create ${_s.voucherCount} codes'
-                    : 'Get back ${_amount(_s.receives[_s.assetId]!)}',
+                    ? l10n.airdropCreateCodesCta(_s.voucherCount!)
+                    : l10n.airdropConfirmGetBackCta(
+                        _amount(_s.receives[_s.assetId]!),
+                      ),
                 busy: sending,
-                busyLabel: 'Sending…',
+                busyLabel: l10n.airdropSending,
                 onPressed: sync.canSpend && !short ? _confirm : null,
               ),
           ],
@@ -226,27 +232,33 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
     final same = values.every((v) => v == values.first);
     final locked = values.fold(BigInt.zero, (a, v) => a + v);
     final isBeam = _s.assetId == 0;
+    final l10n = context.l10n;
     return [
       BeamDetailCard(
         children: [
           BeamDetailRow(
-            label: 'Each code gives',
-            value: same ? _amount(values.first) : 'Different amounts',
+            label: l10n.airdropEachCodeGives,
+            value: same
+                ? _amount(values.first)
+                : l10n.airdropConfirmDifferentAmounts,
           ),
-          BeamDetailRow(label: 'Number of codes', value: '${_s.voucherCount}'),
           BeamDetailRow(
-            label: 'Locked for the codes',
+            label: l10n.airdropNumberOfCodes,
+            value: '${_s.voucherCount}',
+          ),
+          BeamDetailRow(
+            label: l10n.airdropLockedForCodes,
             value: _amount(locked),
             valueKey: const ValueKey('confirm-locked'),
           ),
           BeamDetailRow(
-            label: 'Airdrop fee (1%)',
+            label: l10n.airdropFeeLabel,
             value: _amount(_s.creationFee!),
-            detail: 'Kept by the airdrop contract',
+            detail: l10n.airdropConfirmFeeKept,
             valueKey: const ValueKey('confirm-creation-fee'),
           ),
           BeamDetailRow(
-            label: 'Network fee',
+            label: l10n.beamNetworkFee,
             value: _beam(_s.networkFee),
             valueKey: const ValueKey('confirm-network-fee'),
           ),
@@ -254,27 +266,22 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       ),
       const BeamGap(8),
       BeamTotalRow(
-        label: 'Leaves your wallet',
+        label: l10n.airdropLeavesWallet,
         value: isBeam
             ? _beam(_s.beamOut)
             : '${_amount(_s.pays[_s.assetId]!)} + ${_beam(_s.networkFee)}',
         valueKey: const ValueKey('confirm-total'),
       ),
       const BeamGap(),
-      const BeamNotice(
+      BeamNotice(
         kind: BeamNoticeKind.warning,
-        title: 'The codes are the only key to these funds',
-        message:
-            'Anyone who has a code can claim it. The codes are saved on this '
-            'device before anything is sent, but they are not in your '
-            'wallet backup: export a copy on the next screen.',
+        title: l10n.airdropConfirmOnlyKeyTitle,
+        message: l10n.airdropConfirmOnlyKeyMessage,
       ),
       const BeamGap(8),
-      const BeamNotice(
+      BeamNotice(
         kind: BeamNoticeKind.info,
-        message:
-            'Codes nobody claims can be cancelled later from My batches; '
-            'their value then comes back to you.',
+        message: l10n.airdropConfirmCancelLater,
       ),
     ];
   }
@@ -283,20 +290,21 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
     final back = _s.receives[_s.assetId]!;
     final isBeam = _s.assetId == 0;
     final net = back - _s.networkFee;
+    final l10n = context.l10n;
     return [
       BeamDetailCard(
         children: [
           BeamDetailRow(
-            label: 'Codes that stop working',
+            label: l10n.airdropConfirmCodesStop,
             value: '${_s.voucherCount}',
           ),
           BeamDetailRow(
-            label: 'Comes back to you',
+            label: l10n.airdropConfirmComesBack,
             value: _amount(back),
             valueKey: const ValueKey('confirm-returned'),
           ),
           BeamDetailRow(
-            label: 'Network fee',
+            label: l10n.beamNetworkFee,
             value: _beam(_s.networkFee),
             valueKey: const ValueKey('confirm-network-fee'),
           ),
@@ -304,7 +312,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       ),
       const BeamGap(8),
       BeamTotalRow(
-        label: 'Your balance changes by',
+        label: l10n.airdropBalanceChangesBy,
         value: isBeam
             ? '${net.isNegative ? '−' : '+'}${_beam(net.abs())}'
             : '+${_amount(back)}, −${_beam(_s.networkFee)}',
@@ -313,10 +321,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       const BeamGap(),
       BeamNotice(
         kind: BeamNoticeKind.warning,
-        message:
-            'These ${_s.voucherCount} codes stop working right away, even if '
-            'you already gave them to someone. Codes already claimed are not '
-            'affected.',
+        message: l10n.airdropConfirmCancelWarning(_s.voucherCount!),
       ),
     ];
   }

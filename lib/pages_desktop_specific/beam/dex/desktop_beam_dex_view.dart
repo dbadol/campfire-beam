@@ -17,6 +17,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/beam/dex/beam_dex_pools_view.dart';
 import '../../../pages/beam/dex/beam_dex_swap_view.dart';
 import '../../../utilities/text_styles.dart';
@@ -46,7 +47,10 @@ class DesktopBeamDexView extends StatelessWidget {
         isCompactHeight: true,
         leading: Padding(
           padding: const EdgeInsets.only(left: 24),
-          child: Text('Swap', style: STextStyles.desktopH3(context)),
+          child: Text(
+            context.l10n.dexSwapTitle,
+            style: STextStyles.desktopH3(context),
+          ),
         ),
       ),
       body: Padding(
@@ -58,14 +62,14 @@ class DesktopBeamDexView extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Swap one asset for another',
+                    context.l10n.dexSwapSubtitle,
                     style: STextStyles.desktopTextExtraExtraSmall(context),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Pools',
+                    context.l10n.dexPoolsTitle,
                     style: STextStyles.desktopTextExtraExtraSmall(context),
                   ),
                 ),

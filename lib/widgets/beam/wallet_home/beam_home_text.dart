@@ -17,6 +17,7 @@
 /// user from sending says so.
 library;
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/bans/bans_inbox_monitor.dart';
 import '../../../wallets/beam/contracts/bans/bans_name.dart';
@@ -131,7 +132,10 @@ class BeamNamePaymentsText {
   final String lead;
   final String amounts;
 
-  String get line => '$lead: $amounts';
+  String get line => appL10n.homeNamePaymentsLine(lead, amounts);
+
+  /// [lead] with the separator that comes before the amounts.
+  String get label => appL10n.homeNamePaymentsLead(lead);
 
   @override
   String toString() => line;
@@ -251,14 +255,13 @@ abstract final class BeamHomeText {
     return out.toString();
   }
 
-  static String _plural(int n, String one, String many) =>
-      n == 1 ? '1 $one' : '$n $many';
-
   // ------------------------------------------------------------ balance
 
   /// "+ 0.5 BEAM arriving", or null when nothing is on its way.
   static String? arriving(String formattedPending, BigInt pendingGroth) =>
-      pendingGroth > BigInt.zero ? '+ $formattedPending arriving' : null;
+      pendingGroth > BigInt.zero
+      ? appL10n.homeArriving(formattedPending)
+      : null;
 
   /// How far a restore scan is, in whole percent (rounded down, so it never
   /// says 100% before the end), or null when the core reports no progress.
@@ -272,19 +275,21 @@ abstract final class BeamHomeText {
   static String scanning(BeamScanProgress? scan) {
     final p = scanPercent(scan);
     return p == null
-        ? 'Scanning for your coins…'
-        : 'Scanning for your coins… $p%';
+        ? appL10n.homeScanningCoins
+        : appL10n.homeScanningCoinsPercent(p);
   }
 
   /// The headline in place of the balance while a restored wallet has found
   /// nothing yet: never a bare 0, which would look like a loss.
   static String scanningHeadline(BeamScanProgress? scan) {
     final p = scanPercent(scan);
-    return p == null ? 'Scanning…' : 'Scanning… $p%';
+    return p == null
+        ? appL10n.homeScanningHeadline
+        : appL10n.homeScanningHeadlinePercent(p);
   }
 
   /// Under the amount while the scan still runs: more may turn up.
-  static const foundSoFar = 'Found so far';
+  static String get foundSoFar => appL10n.homeFoundSoFar;
 
   /// The portfolio lines from the cached per-asset totals and, once it is
   /// known, the DEX pricer. [fiat] formats a BEAM amount in the user's
@@ -306,28 +311,25 @@ abstract final class BeamHomeText {
     if (held.isEmpty) return null;
     final n = held.length;
     if (pricer == null) {
-      return BeamPortfolioText(total: 'Plus ${_plural(n, 'asset', 'assets')}');
+      return BeamPortfolioText(total: appL10n.homePortfolioPlusAssets(n));
     }
     final beam = totals[0]?.total ?? BigInt.zero;
     final value = pricer.portfolio({0: beam, ...held});
     final unpriced = value.unpriced.where((id) => id != 0).length;
     final priced = n - unpriced;
-    final note = unpriced == 0
-        ? null
-        : unpriced == 1
-        ? '1 asset has no price'
-        : '$unpriced assets have no price';
+    final note = unpriced == 0 ? null : appL10n.homePortfolioUnpriced(unpriced);
     if (priced == 0) {
       return BeamPortfolioText(
-        total: 'Plus ${_plural(n, 'asset', 'assets')}',
+        total: appL10n.homePortfolioPlusAssets(n),
         note: note,
       );
     }
     final money = fiat?.call(value.totalGroth);
+    final inBeam = '${estimate(value.totalGroth)} BEAM';
     return BeamPortfolioText(
-      total:
-          'With assets ≈ ${estimate(value.totalGroth)} BEAM'
-          '${money == null ? '' : ' · $money'} (estimate)',
+      total: money == null
+          ? appL10n.homePortfolioEstimate(inBeam)
+          : appL10n.homePortfolioEstimateFiat(inBeam, money),
       note: note,
     );
   }
@@ -346,11 +348,11 @@ abstract final class BeamHomeText {
     final names = _displayNames(s.names);
     final String lead;
     if (s.names.length == 1 && names.length == 1) {
-      lead = 'Sent to your name ${names.single}';
+      lead = appL10n.homeNamePaymentsOneName(names.single);
     } else if (s.names.isNotEmpty) {
-      lead = 'Sent to your names';
+      lead = appL10n.homeNamePaymentsNames;
     } else {
-      lead = 'From names you sold';
+      lead = appL10n.homeNamePaymentsSold;
     }
     return BeamNamePaymentsText(lead, amounts(s.totalsByAsset));
   }
@@ -377,6 +379,7 @@ abstract final class BeamHomeText {
       ..sort((a, b) => a == 0 ? -1 : (b == 0 ? 1 : a.compareTo(b)));
     final receive = [for (final id in ids) withUnit(id, receiveTotals[id]!)];
 
+    final l = appL10n;
     final feeGroth = built?.fee ?? kBansClaimFeeGroth;
     final fee = withUnit(0, feeGroth);
     final beamWaiting = summary.totalsByAsset[0] ?? BigInt.zero;
@@ -392,54 +395,47 @@ abstract final class BeamHomeText {
 
     String? feeNote;
     if (beamWaiting >= feeGroth) {
-      feeNote =
-          'Pays its own fee: it comes out of the BEAM you are claiming, so '
-          'this works even with an empty wallet.';
+      feeNote = l.homeClaimFeeOwn;
     } else if (beamWaiting > BigInt.zero) {
-      feeNote = "Part of the fee comes from this wallet's BEAM.";
+      feeNote = l.homeClaimFeePartly;
     } else {
-      feeNote = "The fee is paid from this wallet's BEAM.";
+      feeNote = l.homeClaimFeeFromWallet;
     }
 
     String? warning;
     if (advice.beamCostsMoreThanItReturns) {
-      warning =
-          'The network fee ($fee) is at least as much as the '
-          '${withUnit(0, beamWaiting)} waiting, so claiming now gains you '
-          'nothing. You can wait until more arrives.';
+      warning = l.homeClaimCostsMore(fee, withUnit(0, beamWaiting));
     }
 
     String? blocker;
     if (!canSpend) {
-      blocker =
-          'Claiming is paused until the wallet is up to date. It catches '
-          'up by itself; this sheet can stay open.';
+      blocker = l.homeClaimPausedSync;
     } else if (advice.reason == BansClaimBlocker.needsBeamForFee) {
-      blocker =
-          'You need $fee in this wallet to pay the fee. Receive some BEAM '
-          'first, then claim.';
+      blocker = l.homeClaimNeedBeam(fee);
     } else if (advice.reason == BansClaimBlocker.needsCampfireCore) {
-      blocker =
-          "This copy of Campfire can't claim name payments yet. They stay "
-          'safe and waiting for you.';
+      blocker = l.homeClaimNeedsCampfireCore;
     }
 
     String? batches;
     if (advice.transactions > 1) {
-      batches =
-          '${summary.entryCount} payments are waiting. One claim takes up '
-          'to $kBansClaimsPerTransaction, so this takes '
-          '${advice.transactions} claims of $fee each. Claim again for the '
-          'rest once this one is confirmed.';
+      batches = joinSentences([
+        l.homeClaimBatchesWaiting(summary.entryCount),
+        l.homeClaimBatchesPerClaim(
+          advice.transactions,
+          kBansClaimsPerTransaction,
+          fee,
+        ),
+        l.homeClaimBatchesAgain,
+      ]);
     }
 
     final names = _displayNames(summary.names);
     return BeamClaimText(
       headline: names.length == 1 && summary.names.length == 1
-          ? 'Claim what was sent to ${names.single}'
+          ? l.homeClaimHeadlineOneName(names.single)
           : summary.names.isEmpty
-          ? 'Claim what your sold names earned'
-          : 'Claim what was sent to your names',
+          ? l.homeClaimHeadlineSold
+          : l.homeClaimHeadlineNames,
       receive: receive,
       from: names.isEmpty ? null : names.join(', '),
       fee: fee,
@@ -450,12 +446,10 @@ abstract final class BeamHomeText {
       warning: warning,
       blocker: blocker,
       batches: batches,
-      privacyNote: summary.names.isEmpty
-          ? null
-          : 'A payment to your name and your claim of it can be linked on '
-                'the blockchain. Claiming later, or several payments at '
-                'once, makes that harder.',
-      cta: receive.length == 1 ? 'Claim ${receive.single}' : 'Claim all',
+      privacyNote: summary.names.isEmpty ? null : l.homeClaimPrivacyNote,
+      cta: receive.length == 1
+          ? l.homeClaimCta(receive.single)
+          : l.homeClaimAllCta,
     );
   }
 
@@ -502,10 +496,7 @@ abstract final class BeamHomeText {
     if (scanning) {
       return BeamBannerContent(
         title: scanningBannerTitle(scan),
-        detail:
-            'Your balance shows what has been found so far, so it may look '
-            'low until this finishes. Keep the wallet open; you can receive '
-            'meanwhile.',
+        detail: appL10n.homeScanBannerDetail,
         tone: BeamBannerTone.progress,
         progress: scan?.fraction,
         urgent: true,
@@ -517,24 +508,25 @@ abstract final class BeamHomeText {
         final behind = blocksBehind != null && blocksBehind > 0
             ? blocksBehind
             : null;
-        final who = assessment.node == BeamNodeKind.privateNode
-            ? 'Your private node is catching up'
-            : 'Catching up';
         final eta = assessment.eta;
-        final lag = behind == null
-            ? null
-            : BeamSyncMessages.approxDuration(
-                assessment.blockInterval * behind,
-              );
+        final String title;
+        if (behind == null) {
+          title = described.title;
+        } else {
+          final blocks = BeamSyncMessages.blockCount(behind);
+          final lag = BeamSyncMessages.approxDuration(
+            assessment.blockInterval * behind,
+          );
+          title = assessment.node == BeamNodeKind.privateNode
+              ? appL10n.homeCatchingUpPrivateBehind(blocks, lag)
+              : appL10n.homeCatchingUpBehind(blocks, lag);
+        }
         return BeamBannerContent(
-          title: behind == null
-              ? described.title
-              : '$who: ${_blocks(behind)} behind ($lag)',
-          detail: [
-            if (eta != null)
-              '${_capitalize(BeamSyncMessages.approxDuration(eta))} left.',
-            "Sending is paused until it's done.",
-          ].join(' '),
+          title: title,
+          detail: joinSentences([
+            if (eta != null) BeamSyncMessages.timeLeft(eta),
+            appL10n.homeSendingPausedUntilDone,
+          ]),
           tone: BeamBannerTone.progress,
           progress: behind != null && maxBlocksBehind > 0
               ? (1 - behind / maxBlocksBehind).clamp(0.0, 1.0)
@@ -543,7 +535,10 @@ abstract final class BeamHomeText {
       case BeamSyncConnecting():
         return BeamBannerContent(
           title: described.title,
-          detail: "${described.detail} Sending is paused until it's done.",
+          detail: joinSentences([
+            described.detail,
+            appL10n.homeSendingPausedUntilDone,
+          ]),
           tone: BeamBannerTone.progress,
         );
       case BeamSynced():
@@ -570,12 +565,12 @@ abstract final class BeamHomeText {
     switch (p.problem) {
       case BeamWalletProblem.nodeUnreachable:
         action = BeamHomeAction.nodeSettings;
-        label = 'Try another node';
+        label = appL10n.syncActionTryAnotherNode;
       case BeamWalletProblem.notOpen ||
           BeamWalletProblem.walletInUse ||
           BeamWalletProblem.other:
         action = BeamHomeAction.retry;
-        label = 'Try again';
+        label = appL10n.commonTryAgain;
       default:
         action = BeamHomeAction.none;
         label = null;
@@ -621,47 +616,43 @@ abstract final class BeamHomeText {
     BeamWalletException? problem,
   }) {
     if (problem != null) {
-      return 'Sending is off: ${_split(problem.message).$1}.';
+      return appL10n.homeSendingOff(_split(problem.message).$1);
     }
     if (assessment.canSpend) return null;
     return switch (assessment) {
-      BeamSyncConnecting() =>
-        'Sending is paused while the wallet connects to the BEAM network. '
-            'This usually takes a few seconds.',
+      BeamSyncConnecting() => appL10n.homeSendingPausedConnecting,
       BeamSyncCatchingUp(:final blocksBehind) =>
         blocksBehind != null && blocksBehind > 0
-            ? 'Sending is paused while the wallet catches up '
-                  '(${_blocks(blocksBehind)} behind).'
-            : 'Sending is paused while the wallet catches up.',
-      BeamSyncStalled() || BeamSyncNotConnected() =>
-        'Sending is off: ${BeamSyncMessages.describe(assessment).title}.',
+            ? appL10n.homeSendingPausedCatchingUpBlocks(
+                BeamSyncMessages.blockCount(blocksBehind),
+              )
+            : appL10n.homeSendingPausedCatchingUp,
+      BeamSyncStalled() || BeamSyncNotConnected() => appL10n.homeSendingOff(
+        BeamSyncMessages.describe(assessment).title,
+      ),
       BeamSynced() => null,
     };
   }
-
-  static String _blocks(int n) =>
-      n == 1 ? '1 block' : '${BeamSyncMessages.number(n)} blocks';
-
-  static String _capitalize(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   // --------------------------------------------------------------- node
 
   /// The small node chip: which node the wallet uses right now.
   static String nodeChip(BeamPrivateNodeStatus? s) {
-    if (s == null) return 'Public node';
+    final l = appL10n;
+    if (s == null) return l.homeNodePublic;
     if (s.onPrivateNode || s.phase == BeamPrivateNodePhase.active) {
-      return 'Private node';
+      return l.homeNodePrivate;
     }
+    final percent = s.percent;
     return switch (s.phase) {
       BeamPrivateNodePhase.downloading =>
-        s.percent == null
-            ? 'Private node syncing'
-            : 'Private node syncing ${s.percent}%',
-      BeamPrivateNodePhase.catchingUp => 'Private node catching up',
+        percent == null
+            ? l.homeNodePrivateSyncing
+            : l.homeNodePrivateSyncingPercent(percent),
+      BeamPrivateNodePhase.catchingUp => l.homeNodePrivateCatchingUp,
       BeamPrivateNodePhase.preparing ||
-      BeamPrivateNodePhase.switching => 'Private node starting',
-      _ => 'Public node',
+      BeamPrivateNodePhase.switching => l.homeNodePrivateStarting,
+      _ => l.homeNodePublic,
     };
   }
 

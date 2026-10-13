@@ -40,6 +40,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/bans/bans_exceptions.dart';
@@ -147,54 +148,68 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
 
   String _beam(BigInt v) => '${NamesFormat.exact(v)} BEAM';
 
-  String get _title => switch (s.action) {
-    BansAction.register => 'Confirm registration',
-    BansAction.extend => 'Confirm renewal',
-    BansAction.setOwner => 'Confirm transfer',
-    BansAction.setPrice => _unlisting ? 'Stop selling' : 'Confirm listing',
-    BansAction.buy => 'Confirm purchase',
-    BansAction.claimAll ||
-    BansAction.claimSaleProceeds ||
-    BansAction.pay => 'Confirm claim',
-  };
-
-  String get _heading {
-    final years = s.periods == null ? '' : NamesFormat.years(s.periods!);
+  String get _title {
+    final l10n = context.l10n;
     return switch (s.action) {
-      BansAction.register => 'Register $_name for $years',
-      BansAction.extend => 'Renew $_name for $years',
-      BansAction.setOwner => 'Give $_name to another wallet',
+      BansAction.register => l10n.namesConfirmRegistrationTitle,
+      BansAction.extend => l10n.namesConfirmRenewalTitle,
+      BansAction.setOwner => l10n.namesConfirmTransferTitle,
       BansAction.setPrice =>
-        _unlisting
-            ? 'Take $_name off sale'
-            : 'List $_name for ${_amount(s.listPrice!)}',
-      BansAction.buy => 'Buy $_name',
+        _unlisting ? l10n.namesStopSellingTitle : l10n.namesConfirmListingTitle,
+      BansAction.buy => l10n.namesConfirmPurchaseTitle,
+      BansAction.claimAll ||
       BansAction.claimSaleProceeds ||
-      BansAction.claimAll => 'Claim the money from your name sale',
-      BansAction.pay => 'Send to $_name',
+      BansAction.pay => l10n.namesConfirmClaimTitle,
     };
   }
 
-  String get _cta => switch (s.action) {
-    BansAction.register => 'Pay & register $_name',
-    BansAction.extend => 'Pay & renew $_name',
-    BansAction.setOwner => 'Transfer $_name',
-    BansAction.setPrice =>
-      _unlisting ? 'Stop selling $_name' : 'List $_name for sale',
-    BansAction.buy => 'Buy $_name',
-    BansAction.claimAll || BansAction.claimSaleProceeds =>
-      'Claim ${s.youReceive.map(_amount).join(' + ')}',
-    BansAction.pay => 'Send',
-  };
+  String get _heading {
+    final l10n = context.l10n;
+    // Register and renew always carry their years.
+    final years = s.periods ?? 1;
+    return switch (s.action) {
+      BansAction.register => l10n.namesHeadingRegister(_name, years),
+      BansAction.extend => l10n.namesHeadingRenew(_name, years),
+      BansAction.setOwner => l10n.namesHeadingTransfer(_name),
+      BansAction.setPrice =>
+        _unlisting
+            ? l10n.namesHeadingUnlist(_name)
+            : l10n.namesListNameFor(_name, _amount(s.listPrice!)),
+      BansAction.buy => l10n.namesBuyName(_name),
+      BansAction.claimSaleProceeds ||
+      BansAction.claimAll => l10n.namesHeadingClaimSale,
+      BansAction.pay => l10n.namesHeadingSend(_name),
+    };
+  }
 
-  String get _authReason => switch (s.action) {
-    BansAction.register => 'Authenticate to register $_name',
-    BansAction.extend => 'Authenticate to renew $_name',
-    BansAction.setOwner => 'Authenticate to transfer $_name',
-    BansAction.setPrice => 'Authenticate to change the sale of $_name',
-    BansAction.buy => 'Authenticate to buy $_name',
-    _ => 'Authenticate to claim',
-  };
+  String get _cta {
+    final l10n = context.l10n;
+    return switch (s.action) {
+      BansAction.register => l10n.namesPayAndRegister(_name),
+      BansAction.extend => l10n.namesPayAndRenew(_name),
+      BansAction.setOwner => l10n.namesTransferName(_name),
+      BansAction.setPrice =>
+        _unlisting
+            ? l10n.namesStopSellingName(_name)
+            : l10n.namesListForSale(_name),
+      BansAction.buy => l10n.namesBuyName(_name),
+      BansAction.claimAll || BansAction.claimSaleProceeds =>
+        l10n.namesClaimAmount(s.youReceive.map(_amount).join(' + ')),
+      BansAction.pay => l10n.namesSend,
+    };
+  }
+
+  String get _authReason {
+    final l10n = context.l10n;
+    return switch (s.action) {
+      BansAction.register => l10n.namesAuthRegister(_name),
+      BansAction.extend => l10n.namesAuthRenew(_name),
+      BansAction.setOwner => l10n.namesAuthTransfer(_name),
+      BansAction.setPrice => l10n.namesAuthChangeSale(_name),
+      BansAction.buy => l10n.namesAuthBuy(_name),
+      _ => l10n.namesAuthClaim,
+    };
+  }
 
   /// What the wallet lacks for this transaction, in words; null when it
   /// has enough (or its balance is not known yet).
@@ -202,9 +217,10 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
     for (final a in s.youPay.where((a) => a.assetId != 0)) {
       final have = deps.available(a.assetId);
       if (have != null && have < a.amount) {
-        return 'You have ${NamesFormat.readable(have)} '
-            '${deps.symbol(a.assetId)}; this needs '
-            '${NamesFormat.readable(a.amount)} ${deps.symbol(a.assetId)}.';
+        return context.l10n.namesYouHaveThisNeeds(
+          '${NamesFormat.readable(have)} ${deps.symbol(a.assetId)}',
+          '${NamesFormat.readable(a.amount)} ${deps.symbol(a.assetId)}',
+        );
       }
     }
     var need = s.totalBeam;
@@ -214,8 +230,10 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
     if (need <= BigInt.zero) return null;
     final have = deps.available(0);
     if (have != null && have < need) {
-      return 'You have ${NamesFormat.readable(have)} BEAM; this needs '
-          '${NamesFormat.readable(need)} BEAM.';
+      return context.l10n.namesYouHaveThisNeeds(
+        '${NamesFormat.readable(have)} BEAM',
+        '${NamesFormat.readable(need)} BEAM',
+      );
     }
     return null;
   }
@@ -253,8 +271,8 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
       setState(() {
         _gateMessage = ok == false
             ? (deps.desktop
-                  ? "That password didn't match. Nothing was sent."
-                  : "That PIN didn't match. Nothing was sent.")
+                  ? context.l10n.namesWrongPassword
+                  : context.l10n.namesWrongPin)
             : null;
       });
       return;
@@ -267,7 +285,10 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
       if (!mounted) return;
       setState(() {
         _phase = _Phase.failed;
-        _error = 'Nothing was sent. ${namesErrorText(e)}';
+        _error = joinSentences([
+          context.l10n.namesNothingSent,
+          namesErrorText(e),
+        ]);
       });
       return;
     }
@@ -296,10 +317,8 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
       setState(() {
         _phase = refused ? _Phase.failed : _Phase.unknown;
         _error = refused
-            ? 'Nothing was sent. ${namesErrorText(e)}'
-            : "We couldn't confirm whether it was sent. Check your "
-                  'transaction history before trying again, so nothing is '
-                  'paid twice.';
+            ? joinSentences([context.l10n.namesNothingSent, namesErrorText(e)])
+            : context.l10n.namesSendUnknown;
       });
       return;
     }
@@ -342,6 +361,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     return NamesPage(
       deps: deps,
       title: _title,
@@ -357,17 +377,14 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
               key: const Key('names-confirm-moved'),
               kind: NamesNoticeKind.warning,
               title: switch (s.action) {
-                BansAction.buy =>
-                  'The seller changed the price; here is the new total.',
-                BansAction.claimSaleProceeds || BansAction.claimAll =>
-                  'The amount waiting changed; here is the new amount.',
-                _ => 'The BEAM price moved; here is the new total.',
+                BansAction.buy => l10n.namesMovedSellerPrice,
+                BansAction.claimSaleProceeds ||
+                BansAction.claimAll => l10n.namesMovedClaimAmount,
+                _ => l10n.namesMovedBeamPrice,
               },
               detail: s.action == BansAction.buy
-                  ? 'Nothing was sent. Check the new price and confirm again.'
-                  : 'Nothing was sent. The dollar price is the same; '
-                        "BEAM's rate changed since the first quote. Check "
-                        'the total and confirm again.',
+                  ? l10n.namesMovedBuyDetail
+                  : l10n.namesMovedRateDetail,
             ),
             const SizedBox(height: 12),
           ],
@@ -396,8 +413,8 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
                   ? NamesNoticeKind.warning
                   : NamesNoticeKind.error,
               title: _phase == _Phase.unknown
-                  ? 'Not sure it was sent'
-                  : "It wasn't sent",
+                  ? l10n.namesNotSureSent
+                  : l10n.namesNotSent,
               detail: _error,
             ),
           ],
@@ -416,13 +433,14 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
   }
 
   List<Widget> _rows(StackColors colors) {
+    final l10n = context.l10n;
     final clock = widget.clock;
     String? dateOf(int? h) => h == null || clock == null
         ? null
         : '≈ ${NamesFormat.date(clock.dateOf(h))}';
     final rows = <Widget>[
       NamesDetailRow(
-        label: 'Name',
+        label: l10n.namesRowName,
         value: s.name?.display ?? '',
         valueKey: const Key('names-confirm-name'),
       ),
@@ -435,8 +453,8 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
           rows.add(
             NamesDetailRow(
               label: s.action == BansAction.register
-                  ? 'Yours until'
-                  : 'Renewed until',
+                  ? l10n.namesRowYoursUntil
+                  : l10n.namesRowRenewedUntil,
               value: until,
               valueKey: const Key('names-confirm-expiry'),
               sub: _showBlocks ? NamesFormat.block(s.expireHeight!) : null,
@@ -446,27 +464,31 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         }
         rows.add(
           NamesDetailRow(
-            label: s.action == BansAction.register ? 'Name price' : 'Price',
+            label: s.action == BansAction.register
+                ? l10n.namesRowNamePrice
+                : l10n.namesPriceLabel,
             value: s.youPay.map(_amount).join(' + '),
             valueKey: const Key('names-confirm-pay-0'),
             sub: s.usdTotal == null
                 ? null
-                : '${NamesFormat.usd(s.usdTotal!)} · '
-                      '${NamesFormat.years(s.periods ?? 1)}',
+                : l10n.namesUsdForYears(
+                    NamesFormat.usd(s.usdTotal!),
+                    s.periods ?? 1,
+                  ),
           ),
         );
         rows.add(_feeRow());
         rows.add(
           NamesDetailRow(
-            label: 'Paid to',
-            value: 'The BEAM DAO vault',
+            label: l10n.namesRowPaidTo,
+            value: l10n.namesPaidToDaoVault,
             sub: _shortCid(s.contractId),
           ),
         );
       case BansAction.buy:
         rows.add(
           NamesDetailRow(
-            label: "Seller's price",
+            label: l10n.namesRowSellerPrice,
             value: s.youPay.map(_amount).join(' + '),
             valueKey: const Key('names-confirm-pay-0'),
           ),
@@ -476,7 +498,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         if (until != null) {
           rows.add(
             NamesDetailRow(
-              label: 'Yours until',
+              label: l10n.namesRowYoursUntil,
               value: until,
               valueKey: const Key('names-confirm-expiry'),
               sub: _showBlocks ? NamesFormat.block(s.expireHeight!) : null,
@@ -485,9 +507,9 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
           );
         }
         rows.add(
-          const NamesDetailRow(
-            label: 'Paid to',
-            value: 'The seller, through the BEAM vault',
+          NamesDetailRow(
+            label: l10n.namesRowPaidTo,
+            value: l10n.namesPaidToSeller,
           ),
         );
       case BansAction.setOwner:
@@ -495,8 +517,8 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
       case BansAction.setPrice:
         rows.add(
           NamesDetailRow(
-            label: 'Price',
-            value: _unlisting ? 'Not for sale' : _amount(s.listPrice!),
+            label: l10n.namesPriceLabel,
+            value: _unlisting ? l10n.namesNotForSale : _amount(s.listPrice!),
             valueKey: const Key('names-confirm-price'),
           ),
         );
@@ -508,7 +530,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         for (final r in s.youReceive) {
           rows.add(
             NamesDetailRow(
-              label: 'You receive',
+              label: l10n.namesRowYouReceive,
               value: _amount(r),
               valueKey: Key('names-confirm-receive-${r.assetId}'),
             ),
@@ -520,7 +542,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
   }
 
   Widget _feeRow() => NamesDetailRow(
-    label: 'Network fee',
+    label: context.l10n.beamNetworkFee,
     value: _beam(s.fee),
     valueKey: const Key('names-confirm-fee'),
   );
@@ -539,7 +561,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
           .fold(BigInt.zero, (t, r) => t + r.amount);
       if (beamIn > BigInt.zero) {
         return NamesTotalBox(
-          label: 'You get',
+          label: context.l10n.namesTotalYouGet,
           value: _beam(beamIn - s.fee),
           valueKey: const Key('names-confirm-total'),
         );
@@ -547,33 +569,27 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
     }
     final tokens = s.youPay.where((a) => a.assetId != 0).map(_amount);
     return NamesTotalBox(
-      label: 'Total',
+      label: context.l10n.namesTotal,
       value: [_beam(s.totalBeam), ...tokens].join(' + '),
       valueKey: const Key('names-confirm-total'),
     );
   }
 
-  static String _rateText(String? usdPerBeam) =>
-      usdPerBeam == null ? '' : ' (1 BEAM ≈ \$$usdPerBeam)';
-
   List<Widget> _afterTotal(StackColors colors) {
+    final l10n = context.l10n;
+    final rate = s.usdPerBeamText;
     final note = switch (s.action) {
       BansAction.register || BansAction.extend =>
-        "The price is set by BEAM's name service in dollars and paid in "
-            "BEAM at today's rate${_rateText(s.usdPerBeamText)}.",
-      BansAction.buy =>
-        'Buying does not renew the name: you get the time left on it. Renew '
-            'it afterwards to keep it longer.',
+        rate == null
+            ? l10n.namesConfirmPriceNote
+            : l10n.namesConfirmPriceNoteRate(rate),
+      BansAction.buy => l10n.namesBuyNote,
       BansAction.setPrice =>
-        _unlisting
-            ? 'Nobody can buy $_name after this.'
-            : 'Anyone can buy $_name at this price at any moment, with no '
-                  'further question to you. The payment waits for you on '
-                  'the Names screen, where you claim it.',
+        _unlisting ? l10n.namesUnlistNote(_name) : l10n.namesListNote(_name),
       BansAction.claimSaleProceeds || BansAction.claimAll =>
         s.youReceive.any((r) => r.assetId == 0)
-            ? 'The network fee is taken from the money you claim.'
-            : 'The network fee is paid from your BEAM.',
+            ? l10n.namesClaimFeeFromClaim
+            : l10n.namesClaimFeeFromBeam,
       _ => null,
     };
     final out = <Widget>[];
@@ -597,7 +613,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'New owner',
+                l10n.namesNewOwner,
                 style: STextStyles.smallMed12(context)
                     .copyWith(color: colors.infoItemLabel),
               ),
@@ -619,11 +635,11 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         const SizedBox(height: 12),
         NamesNotice(
           kind: NamesNoticeKind.warning,
-          title: "This can't be undone",
-          detail:
-              '$_name will belong to the wallet whose key reads '
-              '${BansKey.checkCode(s.ownerKey!)}. Only that wallet can '
-              'give it back.',
+          title: l10n.namesCantBeUndone,
+          detail: l10n.namesTransferIrreversible(
+            _name,
+            BansKey.checkCode(s.ownerKey!),
+          ),
         ),
       ]);
     }
@@ -642,8 +658,10 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         ? (v) => setState(() => _ack = v ?? false)
         : null,
     title: Text(
-      'I checked all ${BansKey.checkCodeLength} characters, '
-      '${BansKey.checkCode(s.ownerKey!)}, with the receiving wallet.',
+      context.l10n.namesAckCheckCode(
+        BansKey.checkCodeLength,
+        BansKey.checkCode(s.ownerKey!),
+      ),
       style: STextStyles.smallMed12(context),
     ),
   );
@@ -661,12 +679,13 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
   }
 
   Widget _action() {
+    final l10n = context.l10n;
     final busy = _phase == _Phase.checking || _phase == _Phase.sending;
     if (_phase == _Phase.unknown) {
       return NamesPrimaryAction(
         deps: deps,
         buttonKey: const Key('names-confirm-cta'),
-        label: 'Back to my names',
+        label: l10n.namesBackToMyNames,
         onPressed: () => Navigator.of(context).pop(),
       );
     }
@@ -675,8 +694,8 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         deps: deps,
         buttonKey: const Key('names-confirm-cta'),
         label: _phase == _Phase.checking
-            ? 'Checking the price once more…'
-            : 'Sending…',
+            ? l10n.namesCheckingPriceAgain
+            : l10n.namesSending,
         onPressed: null,
       );
     }
@@ -686,7 +705,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         buttonKey: const Key('names-confirm-cta'),
         label: _cta,
         onPressed: null,
-        reason: 'Signing is paused until your wallet is up to date.',
+        reason: l10n.namesSigningPaused,
       );
     }
     final short = _shortfall;
@@ -695,7 +714,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
       return NamesPrimaryAction(
         deps: deps,
         buttonKey: const Key('names-confirm-cta'),
-        label: add == null ? _cta : 'Add BEAM',
+        label: add == null ? _cta : l10n.namesAddBeam,
         onPressed: add,
         reason: short,
       );
@@ -706,7 +725,7 @@ class _BeamNameConfirmViewState extends State<BeamNameConfirmView> {
         buttonKey: const Key('names-confirm-cta'),
         label: _cta,
         onPressed: null,
-        reason: 'Tick the box once all 16 characters match.',
+        reason: l10n.namesTickBox,
       );
     }
     return NamesPrimaryAction(

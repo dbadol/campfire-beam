@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/beam/node/beam_node_sync_view.dart';
 import '../../../pages/receive_view/receive_view.dart';
 import '../../../pages_desktop_specific/beam/node/desktop_beam_node_sync_dialog.dart';
@@ -422,7 +423,7 @@ Future<void> showBeamReceive(BuildContext context, String walletId) {
               Padding(
                 padding: const EdgeInsets.only(left: 32),
                 child: Text(
-                  'Receive BEAM',
+                  context.l10n.wiringReceiveBeam,
                   style: STextStyles.desktopH3(context),
                 ),
               ),

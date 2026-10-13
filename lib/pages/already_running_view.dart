@@ -16,6 +16,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../app_config.dart';
+import '../l10n/l10n.dart';
 import '../themes/stack_colors.dart';
 import '../themes/theme_providers.dart';
 import '../themes/theme_service.dart';
@@ -77,9 +78,8 @@ class _AlreadyRunningAppState extends ConsumerState<AlreadyRunningApp> {
 class AlreadyRunningView extends ConsumerWidget {
   const AlreadyRunningView({super.key});
 
-  static const _errorMessage =
-      "${AppConfig.appName} is already running.  "
-      "Close the other window and try again.";
+  static String get _errorMessage =>
+      appL10n.appStartAlreadyRunning(AppConfig.appName);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -126,7 +126,9 @@ class AlreadyRunningView extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 48),
                         child: Text(
-                          AppConfig.shortDescriptionText,
+                          BeamAppIdentity.isActive
+                              ? context.l10n.introTagline
+                              : AppConfig.shortDescriptionText,
                           textAlign: TextAlign.center,
                           style: STextStyles.subtitle(context),
                         ),
@@ -166,7 +168,9 @@ class AlreadyRunningView extends ConsumerWidget {
                         ),
                         const Spacer(flex: 24),
                         Text(
-                          AppConfig.shortDescriptionText,
+                          BeamAppIdentity.isActive
+                              ? context.l10n.introTagline
+                              : AppConfig.shortDescriptionText,
                           textAlign: TextAlign.center,
                           style: STextStyles.subtitle(
                             context,

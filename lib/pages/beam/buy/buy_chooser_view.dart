@@ -23,6 +23,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/ethereum/uniswap/uniswap_models.dart';
@@ -68,30 +69,29 @@ class BuyChooserView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final beam = _ChoiceCard(
       key: const Key('buy-choose-beam'),
       icon: const BuyBeamIcon(size: 40),
       title: 'BEAM',
-      text:
-          'The private coin, in your BEAM wallet. Pay with Bitcoin, Ether, '
-          'USDT or another coin.',
-      action: deps.hasBeamWallet ? 'Buy BEAM' : 'Create a BEAM wallet first',
+      text: l10n.buyChooserBeamText,
+      action: deps.hasBeamWallet
+          ? l10n.buyBeamButton
+          : l10n.buyCreateBeamWalletFirst,
       onTap: () => deps.onBeam(context, ref),
     );
     final wbeam = _ChoiceCard(
       key: const Key('buy-choose-wbeam'),
       icon: const _WbeamOnEthereumIcon(size: 40),
-      title: 'WBEAM on Ethereum',
-      text:
-          'BEAM as a token on Ethereum, in your Ethereum wallet. Pay with '
-          'ETH or another coin.',
+      title: l10n.buyChooserWbeamTitle,
+      text: l10n.buyChooserWbeamText,
       action: deps.hasEthWallet
-          ? 'Buy WBEAM'
-          : 'Create an Ethereum wallet first',
+          ? l10n.buyWbeamButton
+          : l10n.buyCreateEthWalletFirst,
       onTap: () => deps.onWbeam(context, ref),
     );
     final heading = Text(
-      'What do you want to buy?',
+      l10n.buyChooserQuestion,
       key: const Key('buy-chooser-title'),
       style: embedded
           ? STextStyles.desktopTextMedium(context)
@@ -127,7 +127,7 @@ class BuyChooserView extends ConsumerWidget {
     }
     return DexPage(
       deps: deps,
-      title: 'Buy',
+      title: l10n.buyChooserTitle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -135,7 +135,7 @@ class BuyChooserView extends ConsumerWidget {
           heading,
           const SizedBox(height: 4),
           Text(
-            'Both are BEAM. They live in different wallets.',
+            l10n.buyChooserBothBeam,
             style: STextStyles.label(context)
                 .copyWith(color: colors.textSubtitle1),
           ),

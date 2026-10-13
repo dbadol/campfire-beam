@@ -12,6 +12,7 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../api/beam_api.dart';
 import '../../models/beam_call_results.dart';
 import '../common/contract_args.dart';
@@ -284,7 +285,7 @@ class BeamMinterService {
     if (value > t.mintable) {
       throw BeamMinterException(
         MinterErrorCode.aboveLimit,
-        'At most ${t.mintable} more can be minted.',
+        appL10n.minterErrAboveLimit('${t.mintable}'),
       );
     }
     final args = MinterArgs.mint(

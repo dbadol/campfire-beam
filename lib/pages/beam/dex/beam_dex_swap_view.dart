@@ -33,6 +33,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/dex/beam_dex_quotes.dart';
@@ -223,7 +224,9 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
     final chosen = await showDexAssetPicker(
       context,
       deps: deps,
-      title: paySide ? 'You pay with' : 'You receive',
+      title: paySide
+          ? context.l10n.dexPickPayTitle
+          : context.l10n.dexYouReceive,
       assets: dexTradableAssets(deps),
       selected: paySide ? _pay : _receive,
     );
@@ -343,15 +346,14 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
   /// asset whose coins are tied up in a transaction that has not finished
   /// (the money is there, just not for a minute).
   _DexCta _cta() {
+    final l10n = context.l10n;
     final paySym = _sym(_pay);
-    if (_preparing) return _off('Building your swap…');
-    if (!deps.canSpend) {
-      return _off('Swaps are paused until the wallet is up to date.');
-    }
+    if (_preparing) return _off(l10n.dexBuildingSwap);
+    if (!deps.canSpend) return _off(l10n.dexSwapsPaused);
     if (_input.error != null) return _off(_input.error);
     final amount = _input.value;
     if (amount == null || amount == BigInt.zero) {
-      return _off('Enter how much $paySym to swap.');
+      return _off(l10n.dexEnterPayAmount(paySym));
     }
     final have = deps.available(_pay);
     if (amount > have) {
@@ -360,13 +362,12 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
         return _off(_waitingLine(back, paySym), waiting: _pay);
       }
       return _off(
-        'Not enough $paySym. You have ${DexFormat.exact(have)} '
-        '$paySym.',
+        l10n.dexNotEnoughAsset(paySym, '${DexFormat.exact(have)} $paySym'),
       );
     }
     if (_problem != null) return _off(null);
     final q = _quote;
-    if (_quoting || q == null) return _off('Getting the best price…');
+    if (_quoting || q == null) return _off(l10n.dexGettingPrice);
     final fee = q.networkFee;
     final beamOut =
         (_pay == 0 ? q.pay : BigInt.zero) +
@@ -380,11 +381,14 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
       }
       return _off(
         _pay == 0
-            ? 'Not enough BEAM. You need ${DexFormat.exact(q.pay + fee)} '
-                  'BEAM, including the ${DexFormat.exact(fee)} BEAM network '
-                  'fee.'
-            : 'You need ${DexFormat.exact(fee)} BEAM for the network fee. '
-                  'You have ${DexFormat.exact(beam)} BEAM.',
+            ? l10n.dexNotEnoughBeamWithFee(
+                '${DexFormat.exact(q.pay + fee)} BEAM',
+                '${DexFormat.exact(fee)} BEAM',
+              )
+            : l10n.dexNeedBeamForFee(
+                '${DexFormat.exact(fee)} BEAM',
+                '${DexFormat.exact(beam)} BEAM',
+              ),
       );
     }
     return (onPressed: _swapNow, reason: null, waiting: null);
@@ -394,8 +398,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
       (onPressed: null, reason: reason, waiting: waiting);
 
   static String _waitingLine(BigInt back, String symbol) =>
-      '${DexFormat.exact(back)} $symbol is in a payment that hasn\'t '
-      "finished yet; it's back in about a minute.";
+      appL10n.dexCoinsReturning('${DexFormat.exact(back)} $symbol');
 
   // ------------------------------------------------------------------ build
 
@@ -403,8 +406,10 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
   /// form does; the confirmation still comes before anything leaves.
   String get _ctaLabel {
     final amount = _input.value;
-    if (amount == null || amount <= BigInt.zero) return 'Swap';
-    return 'Swap ${DexFormat.exact(amount)} ${deps.assetLabel(_pay)}';
+    if (amount == null || amount <= BigInt.zero) return context.l10n.dexSwapCta;
+    return context.l10n.dexSwapAmountCta(
+      '${DexFormat.exact(amount)} ${deps.assetLabel(_pay)}',
+    );
   }
 
   @override
@@ -417,7 +422,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
       reason: cta.reason,
       onPressed: cta.onPressed,
       reasonActionLabel: cta.waiting != null && deps.onSplitCoins != null
-          ? 'Split coins for next time'
+          ? context.l10n.dexSplitCoinsLink
           : null,
       onReasonAction: cta.waiting == null || deps.onSplitCoins == null
           ? null
@@ -433,7 +438,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
     }
     return DexPage(
       deps: deps,
-      title: 'Swap',
+      title: context.l10n.dexSwapTitle,
       body: body,
       bottom: bottom,
       actions: [
@@ -442,7 +447,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
           child: Center(
             child: CustomTextButton(
               key: const Key('dex-open-pools'),
-              text: 'Pools',
+              text: context.l10n.dexPoolsButton,
               onTap: _openPools,
             ),
           ),
@@ -465,6 +470,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
         .copyWith(color: colors.textDark3);
     final have = deps.available(_pay);
     final q = _quote;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -472,9 +478,9 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
         DexSyncBanner(deps: deps),
         Row(
           children: [
-            Expanded(child: Text('You pay', style: labelStyle)),
+            Expanded(child: Text(l10n.dexYouPay, style: labelStyle)),
             Text(
-              'Balance ${DexFormat.compact(have)} ${_sym(_pay)}',
+              l10n.dexBalance('${DexFormat.compact(have)} ${_sym(_pay)}'),
               key: const Key('dex-pay-balance'),
               style: STextStyles.label(context),
             ),
@@ -505,7 +511,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Expanded(child: Text('You receive', style: labelStyle)),
+            Expanded(child: Text(l10n.dexYouReceive, style: labelStyle)),
             DexFlipButton(onTap: _flip),
           ],
         ),
@@ -546,13 +552,8 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
             DexNotice(
               key: const Key('dex-impact-warning'),
               kind: DexNoticeKind.warning,
-              title:
-                  'This swap moves the price '
-                  '${DexFormat.percent(q.priceImpact)}',
-              detail:
-                  'The pool is small for this amount, so you get noticeably '
-                  'less than the current rate. A smaller amount gets a '
-                  'better price.',
+              title: l10n.dexImpactTitle(DexFormat.percent(q.priceImpact)),
+              detail: l10n.dexImpactDetail,
             ),
           ],
         ],
@@ -565,29 +566,30 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
     final paySym = _sym(q.payAsset);
     final receiveSym = _sym(q.receiveAsset);
     final impactHigh = q.priceImpact >= kDexPriceImpactWarning;
+    final l10n = context.l10n;
     return DexCard(
       child: Column(
         children: [
           DexDetailRow(
-            label: 'Rate',
+            label: l10n.dexRateLabel,
             valueKey: const Key('dex-rate'),
             value:
                 '1 $paySym ≈ ${DexFormat.number(q.effectiveRate)} '
                 '$receiveSym',
           ),
           DexDetailRow(
-            label: 'Price change from your swap',
+            label: l10n.dexPriceChangeLabel,
             valueKey: const Key('dex-impact'),
             value: DexFormat.percent(q.priceImpact),
             valueColor: impactHigh ? colors.accentColorRed : null,
           ),
           DexDetailRow(
-            label: 'Pool fee (${q.kind.feePercent})',
+            label: l10n.dexPoolFeeLabel(q.kind.feePercent),
             valueKey: const Key('dex-pool-fee'),
             value: '${DexFormat.exact(q.fee)} $paySym',
           ),
           DexDetailRow(
-            label: 'Network fee',
+            label: l10n.beamNetworkFee,
             valueKey: const Key('dex-network-fee'),
             value: '≈ ${DexFormat.exact(q.networkFee)} BEAM',
             note: deps.worthOfBeam(q.networkFee),
@@ -595,7 +597,7 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
           ),
           DexDetailRow(
             key: const Key('dex-protection'),
-            label: 'Price protection',
+            label: l10n.dexPriceProtection,
             valueKey: const Key('dex-protection-value'),
             value: DexFormat.percent(_protection),
             onTap: _pickProtection,
@@ -622,31 +624,38 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
     final share = BeamRatio(q.networkFee, value);
     if (share < kDexFeeShareWarning) return null;
     final percent = DexFormat.percent(share);
+    final l10n = context.l10n;
     final String title;
     if (share > BeamRatio.one) {
-      title = 'The network fee is more than what you swap';
+      title = l10n.dexFeeWarnMoreThanSwap;
     } else if (share > BeamRatio(BigInt.one, BigInt.two)) {
-      title = 'The network fee is more than half of what you swap';
+      title = l10n.dexFeeWarnMoreThanHalf;
     } else {
-      title = 'The network fee is $percent of what you swap';
+      title = l10n.dexFeeWarnShare(percent);
     }
-    final swapped = q.payAsset == 0
-        ? 'the ${DexFormat.exact(q.pay)} BEAM you swap'
-        : 'what you swap (worth about ${DexFormat.compact(value)} BEAM)';
+    final fee = '${DexFormat.exact(q.networkFee)} BEAM';
     return DexNotice(
       key: const Key('dex-fee-warning'),
       kind: DexNoticeKind.warning,
       title: title,
-      detail:
-          'Every swap costs ${DexFormat.exact(q.networkFee)} BEAM in network '
-          'fees, whatever the amount. Here that is $percent of $swapped. '
-          'A larger swap pays the same fee.',
+      detail: q.payAsset == 0
+          ? l10n.dexFeeWarnDetailBeam(
+              fee,
+              percent,
+              '${DexFormat.exact(q.pay)} BEAM',
+            )
+          : l10n.dexFeeWarnDetailAsset(
+              fee,
+              percent,
+              '${DexFormat.compact(value)} BEAM',
+            ),
     );
   }
 
   Widget _problemNotice(BuildContext context) {
     final pay = _sym(_pay);
     final receive = _sym(_receive);
+    final l10n = context.l10n;
     switch (_problem!) {
       case _Problem.noPool:
         final viaBeam =
@@ -657,15 +666,13 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
         return DexNotice(
           key: const Key('dex-no-pool'),
           sticker: BeamMoments.trading,
-          title: 'No pool trades $pay for $receive yet',
+          title: l10n.dexNoPoolTitle(pay, receive),
           detail: viaBeam
-              ? 'Swaps on BEAM go through pools. Both trade against BEAM: '
-                    'swap $pay for BEAM first, then BEAM for $receive.'
-              : 'Swaps on BEAM go through pools. Pick another asset, or '
-                    'create this pool and earn its fees.',
-          actionLabel: viaBeam ? 'Swap $pay for BEAM' : null,
+              ? l10n.dexNoPoolViaBeam(pay, receive)
+              : l10n.dexNoPoolDetail,
+          actionLabel: viaBeam ? l10n.dexSwapForBeam(pay) : null,
           onAction: viaBeam ? _receiveBeam : null,
-          secondaryLabel: 'Create a pool',
+          secondaryLabel: l10n.dexCreatePoolAction,
           onSecondary: _createPool,
         );
       case _Problem.poolEmpty:
@@ -675,11 +682,9 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
         return DexNotice(
           key: const Key('dex-pool-empty'),
           sticker: BeamMoments.trading,
-          title: 'The $pay/$receive pool is empty',
-          detail:
-              'Nobody has added coins to it yet, so it cannot swap. '
-              'Add the first coins and set its price.',
-          actionLabel: pools == null || pools.isEmpty ? null : 'Add coins',
+          title: l10n.dexPoolEmptyTitle('$pay/$receive'),
+          detail: l10n.dexPoolEmptyDetail,
+          actionLabel: pools == null || pools.isEmpty ? null : l10n.dexAddCoins,
           onAction: pools == null || pools.isEmpty
               ? null
               : () => _openPool(pools.first),
@@ -687,21 +692,19 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
       case _Problem.tooSmall:
         return DexNotice(
           key: const Key('dex-too-small'),
-          title: 'Too small to get any $receive',
-          detail:
-              'After the pool fee nothing is left to swap. Try a larger '
-              'amount.',
+          title: l10n.dexTooSmallTitle(receive),
+          detail: l10n.dexTooSmallDetail,
         );
       case _Problem.refused:
         return DexNotice(
           key: const Key('dex-refused'),
           sticker: BeamMoments.somethingWentWrong,
           kind: DexNoticeKind.error,
-          title: 'The DEX would not price this swap',
-          detail:
-              'It said: "${_problemDetail ?? 'unknown reason'}". '
-              'Nothing was sent.',
-          actionLabel: 'Try again',
+          title: l10n.dexQuoteRefusedTitle,
+          detail: l10n.dexQuoteRefusedDetail(
+            _problemDetail ?? l10n.dexUnknownReason,
+          ),
+          actionLabel: l10n.commonTryAgain,
           onAction: _requote,
         );
       case _Problem.failed:
@@ -709,25 +712,18 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
           key: const Key('dex-quote-failed'),
           sticker: BeamMoments.somethingWentWrong,
           kind: DexNoticeKind.error,
-          title: "Couldn't get a price",
-          detail:
-              "The wallet didn't answer. This is not something you "
-              'did, and nothing was sent.',
-          actionLabel: 'Try again',
+          title: l10n.dexQuoteFailedTitle,
+          detail: l10n.dexQuoteFailedDetail,
+          actionLabel: l10n.commonTryAgain,
           onAction: _requote,
         );
       case _Problem.priceMoved:
         return DexNotice(
           key: const Key('dex-price-moved'),
           kind: DexNoticeKind.warning,
-          title:
-              'The price moved ${DexFormat.percent(_moved!)} since your '
-              'quote',
-          detail:
-              'That is more than your '
-              '${DexFormat.percent(_protection)} price protection, so '
-              'nothing was sent.',
-          actionLabel: 'Get a new price',
+          title: l10n.dexPriceMovedTitle(DexFormat.percent(_moved!)),
+          detail: l10n.dexPriceMovedTooMuch(DexFormat.percent(_protection)),
+          actionLabel: l10n.dexGetNewPrice,
           onAction: _requote,
         );
       case _Problem.buildFailed:
@@ -735,11 +731,9 @@ class _BeamDexSwapViewState extends State<BeamDexSwapView> {
           key: const Key('dex-build-failed'),
           sticker: BeamMoments.somethingWentWrong,
           kind: DexNoticeKind.error,
-          title: "Couldn't build the swap",
-          detail:
-              "The wallet didn't answer or refused the swap. Nothing "
-              'was sent.',
-          actionLabel: 'Try again',
+          title: l10n.dexBuildFailedTitle,
+          detail: l10n.dexBuildFailedDetail,
+          actionLabel: l10n.commonTryAgain,
           onAction: _requote,
         );
     }
@@ -798,11 +792,9 @@ class _ProtectionPicker extends StatelessWidget {
   final BeamDexDeps deps;
   final BeamRatio selected;
 
-  String _label(BeamRatio r) {
-    if (r == kDexProtections.first) return '1% — the most BEAM allows';
-    if (r == kDexProtections.last) {
-      return '0.1% — strict; fails more often when others trade';
-    }
+  String _label(BuildContext context, BeamRatio r) {
+    if (r == kDexProtections.first) return context.l10n.dexProtectionMost;
+    if (r == kDexProtections.last) return context.l10n.dexProtectionStrict;
     return DexFormat.percent(r);
   }
 
@@ -814,16 +806,12 @@ class _ProtectionPicker extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'If the price moves against you by more than this before your '
-          'swap is built, Campfire stops and shows you the new price. '
-          'Nothing is sent.',
+          context.l10n.dexProtectionExplain,
           style: STextStyles.smallMed14(context),
         ),
         const SizedBox(height: 8),
         Text(
-          'After you confirm, BEAM itself never accepts a result more than '
-          '1% worse: if someone trades first, it redoes your swap within '
-          '1% or cancels it. (Also called slippage tolerance.)',
+          context.l10n.dexProtectionBeamLimit,
           style: STextStyles.smallMed12(context),
         ),
         const SizedBox(height: 12),
@@ -847,7 +835,7 @@ class _ProtectionPicker extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _label(r),
+                      _label(context, r),
                       style: STextStyles.smallMed14(context),
                     ),
                   ),
@@ -858,7 +846,11 @@ class _ProtectionPicker extends StatelessWidget {
       ],
     );
     if (deps.desktop) {
-      return DexPage(deps: deps, title: 'Price protection', body: body);
+      return DexPage(
+        deps: deps,
+        title: context.l10n.dexPriceProtection,
+        body: body,
+      );
     }
     return SafeArea(
       child: Padding(
@@ -867,7 +859,10 @@ class _ProtectionPicker extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Price protection', style: STextStyles.pageTitleH2(context)),
+            Text(
+              context.l10n.dexPriceProtection,
+              style: STextStyles.pageTitleH2(context),
+            ),
             const SizedBox(height: 12),
             body,
           ],
@@ -876,7 +871,6 @@ class _ProtectionPicker extends StatelessWidget {
     );
   }
 }
-
 
 /// 25% · 50% · 75% · Max of what can be paid, in one row that fits a 375 px
 /// phone (#83). The chip in use stays marked until the amount is typed.
@@ -912,7 +906,7 @@ class _ShareChips extends StatelessWidget {
                     height: 36,
                     child: Center(
                       child: Text(
-                        p == 100 ? 'Max' : '$p%',
+                        p == 100 ? context.l10n.dexMax : '$p%',
                         style: STextStyles.label(context).copyWith(
                           color: selected == p
                               ? colors.buttonTextPrimary

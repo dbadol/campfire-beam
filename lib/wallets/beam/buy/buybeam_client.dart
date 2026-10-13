@@ -35,6 +35,7 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/coin_chains.dart';
 import '../../../utilities/logger.dart';
 
@@ -206,10 +207,10 @@ class BuyBeamAmount {
     final t = text.trim();
     if (t.isEmpty) return (amount: null, error: null);
     if (t.contains(',')) {
-      return (amount: null, error: 'Use a dot for decimals, like 0.5');
+      return (amount: null, error: appL10n.buyAmountUseDot);
     }
     if (!_number.hasMatch(t) || t == '.') {
-      return (amount: null, error: 'Enter a number, like 0.5');
+      return (amount: null, error: appL10n.buyAmountNotNumber);
     }
     final dot = t.indexOf('.');
     final whole = (dot < 0 ? t : t.substring(0, dot)).replaceFirst(
@@ -219,15 +220,10 @@ class BuyBeamAmount {
     var frac = dot < 0 ? '' : t.substring(dot + 1);
     final max = maxFractionDigits(decimals);
     if (frac.length > max) {
-      return (
-        amount: null,
-        error:
-            'Use at most $max digit${max == 1 ? '' : 's'} after the '
-            'point',
-      );
+      return (amount: null, error: appL10n.buyAmountTooManyDigits(max));
     }
     if (whole.length > 15) {
-      return (amount: null, error: 'That amount is too large');
+      return (amount: null, error: appL10n.buyAmountTooLarge);
     }
     frac = frac.replaceFirst(RegExp(r'0+$'), '');
     final w = whole.isEmpty ? '0' : whole;

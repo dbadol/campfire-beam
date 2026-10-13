@@ -13,6 +13,7 @@ import 'dart:math';
 
 import 'package:meta/meta.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../api/beam_api.dart';
 import '../../models/beam_call_results.dart';
 import '../../models/beam_transaction.dart';
@@ -486,10 +487,9 @@ class BeamAirdropService {
     required List<BigInt> values,
   }) => _flowed(() async {
     if (store == null) {
-      throw const BeamAirdropException(
+      throw BeamAirdropException(
         AirdropErrorCode.noCodeStore,
-        'This wallet has nowhere safe to keep the codes, so it cannot '
-        'create a batch.',
+        appL10n.airdropErrNoCodeStore,
       );
     }
     if (values.isEmpty || values.length > kAirdropMaxVouchersPerBatch) {
@@ -863,9 +863,9 @@ class BeamAirdropService {
   VoucherCodeStore _requireStore() {
     final s = store;
     if (s == null) {
-      throw const BeamAirdropException(
+      throw BeamAirdropException(
         AirdropErrorCode.noCodeStore,
-        'This wallet has no saved airdrop codes.',
+        appL10n.airdropErrNoSavedCodes,
       );
     }
     return s;

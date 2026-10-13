@@ -32,6 +32,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app_config.dart';
 import '../../../db/isar/main_db.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
 import '../../../models/isar/models/blockchain_data/transaction.dart'
     show TransactionType;
@@ -138,7 +139,7 @@ BuyBeamDeps buyBeamDepsFor(
       return api.createAddress(
         type: BeamAddressType.regular,
         expiration: BeamAddressExpiration.never,
-        comment: 'Buy BEAM',
+        comment: appL10n.buyAddressComment,
       );
     },
     refundAddressFor: (asset) async {
@@ -239,7 +240,7 @@ Future<void> openBuyBeamFromAnywhere(
     return;
   }
   if (wallet == null) {
-    final id = await _pickWallet(context, 'Which BEAM wallet?', [
+    final id = await _pickWallet(context, context.l10n.buyPickBeamWallet, [
       for (final w in ctx.wallets) (id: w.walletId, name: w.info.name),
     ]);
     if (id == null || !context.mounted) return;
@@ -272,7 +273,7 @@ Future<void> openWbeamBuy(
       ? eths.single
       : eths.where((w) => w.walletId == chosen).firstOrNull;
   if (wallet == null) {
-    final id = await _pickWallet(context, 'Which Ethereum wallet?', [
+    final id = await _pickWallet(context, context.l10n.buyPickEthWallet, [
       for (final w in eths) (id: w.walletId, name: w.info.name),
     ]);
     if (id == null || !context.mounted) return;

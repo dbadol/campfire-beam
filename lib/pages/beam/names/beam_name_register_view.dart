@@ -33,6 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/constants.dart';
@@ -266,13 +267,13 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
   Widget build(BuildContext context) {
     return NamesPage(
       deps: deps,
-      title: 'Get a name',
+      title: context.l10n.namesGetANameTitle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           NamesSyncBanner(deps: deps),
           Text(
-            'Let people pay you with a short name instead of a long address.',
+            context.l10n.namesRegisterIntro,
             style: STextStyles.smallMed12(context).copyWith(
               color: Theme.of(context).extension<StackColors>()!.textDark3,
             ),
@@ -331,7 +332,7 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
                 ),
               ),
               fillColor: Colors.transparent,
-              hintText: 'Type the name you want',
+              hintText: context.l10n.namesRegisterHint,
               hintStyle: STextStyles.fieldLabel(context),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -347,8 +348,7 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
               child: Text(
                 _problem != null
                     ? BansName.describe(_problem!)
-                    : '3 to 64 characters: lowercase letters, numbers, '
-                          '- _ and ~.',
+                    : context.l10n.namesRegisterRules,
                 key: const Key('names-register-hint'),
                 style: STextStyles.w500_10(context).copyWith(
                   color: _problem != null
@@ -385,7 +385,7 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Checking ${name.value}…',
+                  context.l10n.namesRegisterChecking(name.value),
                   style: STextStyles.smallMed14(context),
                 ),
               ),
@@ -402,9 +402,9 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
         NamesNotice(
           key: const Key('names-register-lookup-error'),
           kind: NamesNoticeKind.error,
-          title: "Can't check ${name.value} right now",
+          title: context.l10n.namesRegisterCantCheck(name.value),
           detail: namesErrorText(err),
-          actionLabel: 'Check again',
+          actionLabel: context.l10n.namesCheckAgain,
           onAction: () => _lookup(name),
         ),
       ];
@@ -412,60 +412,61 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
     final r = _found;
     final state = _state;
     if (r == null || state == null) return [_tiers(context, name)];
+    final l10n = context.l10n;
     final d = r.domain;
     final clock = r.clock;
     String date(int h) => NamesFormat.date(clock.dateOf(h));
     final out = <Widget>[];
     if (!r.walletInSync) {
       out.addAll([
-        const NamesNotice(
+        NamesNotice(
           kind: NamesNoticeKind.warning,
-          title: 'Your wallet is catching up, so this may be out of date.',
+          title: l10n.namesRegisterMaybeOutdated,
         ),
         const SizedBox(height: 12),
       ]);
     }
     final (String title, Color color, String? detail) = switch (state) {
       _Found.available => (
-        '${name.value} is available',
+        l10n.namesRegisterAvailable(name.value),
         colors.accentColorGreen,
         null,
       ),
       _Found.availableAgain => (
-        '${name.value} is available',
+        l10n.namesRegisterAvailable(name.value),
         colors.accentColorGreen,
-        'Its last owner let it expire, so anyone can register it now.',
+        l10n.namesRegisterAvailableAgainDetail,
       ),
       _Found.mine => (
-        '${name.value} is already yours',
+        l10n.namesRegisterMine(name.value),
         colors.accentColorGreen,
         r.status == BansNameStatus.availableAgain
-            ? 'It expired; renew it before someone else registers it.'
-            : 'Registered until ${date(d!.expireHeight)}.',
+            ? l10n.namesRegisterMineExpiredDetail
+            : l10n.namesRegisterMineUntil(date(d!.expireHeight)),
       ),
       _Found.taken => (
-        '${name.value} is taken',
+        l10n.namesRegisterTaken(name.value),
         colors.accentColorRed,
-        'Registered until ${date(d!.expireHeight)}. If it is not renewed, '
-            'anyone can get it after '
-            '${date(BansTimeline.holdEndHeight(d.expireHeight))}.',
+        l10n.namesRegisterTakenDetail(
+          date(d!.expireHeight),
+          date(BansTimeline.holdEndHeight(d.expireHeight)),
+        ),
       ),
       _Found.onHold => (
-        '${name.value} is taken',
+        l10n.namesRegisterTaken(name.value),
         colors.accentColorRed,
-        'Its registration lapsed, but its owner can still renew it until '
-            '${date(BansTimeline.holdEndHeight(d!.expireHeight))}. After '
-            'that anyone can get it.',
+        l10n.namesRegisterOnHoldDetail(
+          date(BansTimeline.holdEndHeight(d!.expireHeight)),
+        ),
       ),
       _Found.forSale => (
-        '${name.value} is for sale: ${_price(d!.salePrice!)}',
+        l10n.namesRegisterForSale(name.value, _price(d!.salePrice!)),
         colors.accentColorBlue,
         r.status == BansNameStatus.onHold
-            ? 'Its registration lapsed. Buying does not renew it: renew it '
-                  'by ${date(BansTimeline.holdEndHeight(d.expireHeight))} '
-                  'or anyone can take it.'
-            : 'Buying it gives you the time left on it, until '
-                  '${date(d.expireHeight)}. It does not renew it.',
+            ? l10n.namesRegisterForSaleOnHoldDetail(
+                date(BansTimeline.holdEndHeight(d.expireHeight)),
+              )
+            : l10n.namesRegisterForSaleDetail(date(d.expireHeight)),
       ),
     };
     out.add(
@@ -504,7 +505,7 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
         NamesNotice(
           key: const Key('names-register-prepare-error'),
           kind: NamesNoticeKind.error,
-          title: "Couldn't prepare it",
+          title: l10n.namesCouldntPrepare,
           detail: _prepareError,
         ),
       ]);
@@ -515,16 +516,16 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
   /// Prices by length, before and beside a result (honest anchoring).
   Widget _tiers(BuildContext context, BansName? name) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final mine = name == null
         ? null
-        : '${name.value} has ${name.length} characters: '
-              '${NamesFormat.usd(name.usdPerPeriod)} a year.';
+        : l10n.namesNameTier(
+            name.value,
+            name.length,
+            NamesFormat.usd(name.usdPerPeriod),
+          );
     return Text(
-      [
-        'Names cost \$10 a year for 5 or more characters, \$120 for 4 and '
-            '\$320 for 3, paid in BEAM.',
-        ?mine,
-      ].join(' '),
+      joinSentences([l10n.namesPriceTiers, mine], l10n),
       key: const Key('names-register-tiers'),
       style: STextStyles.smallMed12(context)
           .copyWith(color: colors.textSubtitle1),
@@ -533,19 +534,19 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
 
   List<Widget> _quote(BuildContext context, BansName name) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final est = _estimate;
     final usd = name.usdPerPeriod * _years;
     final beamText = est == null
         ? (_paramsError != null
-              ? "BEAM price unavailable right now"
-              : 'Getting the BEAM price…')
+              ? l10n.namesBeamPriceUnavailable
+              : l10n.namesGettingBeamPrice)
         : '≈ ${NamesFormat.whole((est.minGroth + est.maxGroth) ~/ BigInt.two)}'
               ' BEAM';
     final hasNames = deps.lastNames?.names.isNotEmpty ?? false;
     final usdPerBeam = _params?.usdPerBeamText;
-    final rate = usdPerBeam == null ? '' : ' (1 BEAM ≈ \$$usdPerBeam)';
     return [
-      const NamesSectionLabel('How long'),
+      NamesSectionLabel(l10n.namesHowLong),
       NamesCard(
         child: NamesYearsStepper(
           value: _years,
@@ -561,20 +562,21 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
         child: Column(
           children: [
             NamesDetailRow(
-              label: 'Price',
+              label: l10n.namesPriceLabel,
               value: NamesFormat.usd(usd),
               valueKey: const Key('names-register-usd'),
-              sub:
-                  '${NamesFormat.usd(name.usdPerPeriod)} a year × '
-                  '${NamesFormat.years(_years)}',
+              sub: l10n.namesPerYearTimesYears(
+                NamesFormat.usd(name.usdPerPeriod),
+                _years,
+              ),
             ),
             NamesDetailRow(
-              label: 'In BEAM today',
+              label: l10n.namesInBeamToday,
               value: beamText,
               valueKey: const Key('names-register-beam'),
             ),
             NamesDetailRow(
-              label: 'Network fee',
+              label: l10n.beamNetworkFee,
               value: '≈ ${NamesFormat.exact(BeamContractFee.minimum)} BEAM',
             ),
           ],
@@ -582,9 +584,9 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
       ),
       const SizedBox(height: 8),
       Text(
-        "The price is set by BEAM's name service in dollars and paid in BEAM "
-        "at today's rate$rate. You see the exact amount before you "
-        'confirm.',
+        usdPerBeam == null
+            ? l10n.namesRegisterPriceNote
+            : l10n.namesRegisterPriceNoteRate(usdPerBeam),
         key: const Key('names-register-price-note'),
         style: STextStyles.smallMed12(context)
             .copyWith(color: colors.textSubtitle1),
@@ -592,8 +594,7 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
       if (hasNames) ...[
         const SizedBox(height: 8),
         Text(
-          'Every name in this wallet shares one key, so anyone can see they '
-          'belong together.',
+          l10n.namesSharedKeyNote,
           style: STextStyles.smallMed12(context)
               .copyWith(color: colors.textSubtitle1),
         ),
@@ -603,13 +604,16 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
 
   Widget _bottom() {
     const key = Key('names-register-cta');
+    final l10n = context.l10n;
     final name = _name;
     final state = _state;
     if (name == null || state == null) {
       return NamesPrimaryAction(
         deps: deps,
         buttonKey: key,
-        label: name == null ? 'Get a name' : 'Get ${name.value}',
+        label: name == null
+            ? l10n.namesGetANameCta
+            : l10n.namesGetName(name.value),
         onPressed: null,
       );
     }
@@ -617,9 +621,9 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
       return NamesPrimaryAction(
         deps: deps,
         buttonKey: key,
-        label: 'Preparing…',
+        label: l10n.namesPreparing,
         onPressed: null,
-        reason: 'Building the transaction so you can check it.',
+        reason: l10n.namesBuildingTx,
       );
     }
     switch (state) {
@@ -627,7 +631,7 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
         return NamesPrimaryAction(
           deps: deps,
           buttonKey: key,
-          label: 'Manage ${name.value}',
+          label: l10n.namesManageName(name.value),
           onPressed: _manage,
         );
       case _Found.taken:
@@ -635,20 +639,20 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
         return NamesPrimaryAction(
           deps: deps,
           buttonKey: key,
-          label: 'Get ${name.value}',
+          label: l10n.namesGetName(name.value),
           onPressed: null,
-          reason: '${name.value} is taken. Try another name above.',
+          reason: l10n.namesTakenTryAnother(name.value),
         );
       case _Found.forSale:
         final price = _found!.domain!.salePrice!;
-        final label = 'Buy ${name.value} for ${_price(price)}';
+        final label = l10n.namesBuyNameFor(name.value, _price(price));
         if (!deps.canSpend) {
           return NamesPrimaryAction(
             deps: deps,
             buttonKey: key,
             label: label,
             onPressed: null,
-            reason: 'Buying is paused until your wallet is up to date.',
+            reason: l10n.namesBuyingPaused,
           );
         }
         final need = price.assetId == 0
@@ -659,9 +663,10 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
           return _addFunds(
             key,
             label,
-            'You have ${NamesFormat.readable(have)} '
-            '${deps.symbol(price.assetId)}; this costs '
-            '${_price(BansAmount(price.assetId, need))}.',
+            l10n.namesYouHaveThisCosts(
+              '${NamesFormat.readable(have)} ${deps.symbol(price.assetId)}',
+              _price(BansAmount(price.assetId, need)),
+            ),
           );
         }
         return NamesPrimaryAction(
@@ -672,14 +677,14 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
         );
       case _Found.available:
       case _Found.availableAgain:
-        final label = 'Get ${name.value} for ${NamesFormat.years(_years)}';
+        final label = l10n.namesGetNameForYears(name.value, _years);
         if (!deps.canSpend) {
           return NamesPrimaryAction(
             deps: deps,
             buttonKey: key,
             label: label,
             onPressed: null,
-            reason: 'Registering is paused until your wallet is up to date.',
+            reason: l10n.namesRegisteringPaused,
           );
         }
         final est = _estimate;
@@ -690,9 +695,12 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
             return _addFunds(
               key,
               label,
-              'You have ${NamesFormat.readable(have)} BEAM; '
-              '${name.value} costs about ${NamesFormat.whole(need)} BEAM '
-              'for ${NamesFormat.years(_years)}.',
+              l10n.namesYouHaveNameCosts(
+                '${NamesFormat.readable(have)} BEAM',
+                name.value,
+                '${NamesFormat.whole(need)} BEAM',
+                _years,
+              ),
             );
           }
         }
@@ -710,7 +718,7 @@ class _BeamNameRegisterViewState extends State<BeamNameRegisterView> {
     return NamesPrimaryAction(
       deps: deps,
       buttonKey: key,
-      label: add == null ? label : 'Add BEAM',
+      label: add == null ? label : context.l10n.namesAddBeam,
       onPressed: add,
       reason: reason,
     );

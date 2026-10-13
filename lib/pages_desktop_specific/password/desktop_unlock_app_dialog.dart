@@ -22,6 +22,7 @@ import '../../../../utilities/text_styles.dart';
 import '../../../../widgets/desktop/primary_button.dart';
 import '../../../../widgets/stack_text_field.dart';
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../utilities/show_loading.dart';
 import '../../widgets/desktop/desktop_dialog.dart';
@@ -56,7 +57,7 @@ class _DesktopUnlockAppDialogState
             .read(storageCryptoHandlerProvider)
             .verifyPassphrase(passwordController.text),
         context: context,
-        message: "Verifying password...",
+        message: context.l10n.loginVerifying,
         delay: const Duration(seconds: 1),
       );
 
@@ -67,7 +68,7 @@ class _DesktopUnlockAppDialogState
           unawaited(
             showFloatingFlushBar(
               type: FlushBarType.warning,
-              message: "Invalid password!",
+              message: context.l10n.loginInvalidPassword,
               context: context,
             ),
           );
@@ -107,12 +108,12 @@ class _DesktopUnlockAppDialogState
             SvgPicture.asset(Assets.svg.keys, width: 100),
             const SizedBox(height: 56),
             Text(
-              "Unlock ${AppConfig.appName}",
+              context.l10n.loginUnlockTitle(AppConfig.appName),
               style: STextStyles.desktopH3(context),
             ),
             const SizedBox(height: 16),
             Text(
-              "Enter your wallet password to unlock ${AppConfig.appName}",
+              context.l10n.loginUnlockMessage(AppConfig.appName),
               style: STextStyles.desktopTextMedium(context).copyWith(
                 color: Theme.of(context).extension<StackColors>()!.textDark3,
               ),
@@ -139,7 +140,7 @@ class _DesktopUnlockAppDialogState
                   }
                 },
                 decoration: standardInputDecoration(
-                  "Enter password",
+                  context.l10n.loginEnterPasswordHint,
                   passwordFocusNode,
                   context,
                 ).copyWith(
@@ -191,7 +192,7 @@ class _DesktopUnlockAppDialogState
                 Expanded(
                   child: PrimaryButton(
                     enabled: _confirmEnabled,
-                    label: "Unlock",
+                    label: context.l10n.loginUnlock,
                     buttonHeight: ButtonHeight.l,
                     onPressed: _confirmPressed,
                   ),

@@ -45,7 +45,7 @@ void main() {
                 required String password,
               }) async {
                 imports.add('$name|$sourcePath');
-                throw const BeamWalletException(
+                throw BeamWalletException(
                   BeamWalletProblem.wrongPassword,
                   BeamImportMessages.wrongPassword,
                 );

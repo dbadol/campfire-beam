@@ -12,6 +12,7 @@ import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../models/balance.dart';
 import '../../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../../models/paymint/fee_object_model.dart';
@@ -239,18 +240,18 @@ class BeamAssetWallet extends Wallet<Beam> {
     try {
       final recipients = txData.recipients;
       if (recipients == null || recipients.length != 1) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
-          'A BEAM payment goes to one address at a time.',
+          appL10n.walletSendOneAddress,
         );
       }
       final recipient = recipients.first;
       final address = recipient.address.trim();
       BeamSendRules.checkAddress(address);
       if (recipient.amount.raw <= BigInt.zero) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.invalidAmount,
-          'Enter an amount above zero.',
+          appL10n.walletSendAmountAboveZero,
         );
       }
       final api = _requireApi();
@@ -258,9 +259,9 @@ class BeamAssetWallet extends Wallet<Beam> {
 
       final validation = await api.validateAddress(address);
       if (!validation.isValid) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.invalidAddress,
-          "That address isn't valid or has expired. Ask for a new one.",
+          appL10n.walletSendInvalidAddress,
         );
       }
       BeamSendRules.checkAddressType(validation.type);
@@ -277,8 +278,11 @@ class BeamAssetWallet extends Wallet<Beam> {
       if (amount > assetAvailable) {
         throw BeamWalletException(
           BeamWalletProblem.insufficientFunds,
-          'Not enough $tokenSymbol. You are sending ${_units(amount)} and '
-          '${_units(assetAvailable)} is available.',
+          appL10n.walletSendNotEnoughAsset(
+            tokenSymbol,
+            _units(amount),
+            _units(assetAvailable),
+          ),
         );
       }
 
@@ -347,19 +351,18 @@ class BeamAssetWallet extends Wallet<Beam> {
           fee == null ||
           txId == null ||
           _preparedAsset(txData) != assetId) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
-          'This payment was not prepared. Go back and review it again.',
+          appL10n.walletSendNotPrepared,
         );
       }
       final mode = BeamSendMode.forType(
         BeamSendRules.checkAddress(recipient.address),
       );
       if (fee.raw < mode.minimumFee) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
-          'The fee changed for this kind of address. Go back and review '
-          'the payment again.',
+          appL10n.walletSendFeeChanged,
         );
       }
       final api = _requireApi();
@@ -368,8 +371,7 @@ class BeamAssetWallet extends Wallet<Beam> {
         final sent = await _lookUpSent(
           api,
           txId,
-          'This payment was already handed to the wallet. Check your '
-          'transaction history before sending again.',
+          appL10n.walletSendAlreadyHandedOff,
         );
         return txData.copyWith(txid: sent);
       }
@@ -397,7 +399,7 @@ class BeamAssetWallet extends Wallet<Beam> {
             e.message.toLowerCase().contains('funds')
                 ? BeamWalletProblem.insufficientFunds
                 : BeamWalletProblem.sendRejected,
-            'The payment was not sent: ${e.message}',
+            appL10n.walletSendNotSent(e.message),
           );
         }
       } on BeamConnectionException {
@@ -457,15 +459,15 @@ class BeamAssetWallet extends Wallet<Beam> {
   static Future<String> _lookUpSent(
     BeamApi api,
     String txId, [
-    String message =
-        "The connection dropped while sending, so it's not certain whether "
-        'the payment went out. Check your transaction history before '
-        'sending again.',
+    String? message,
   ]) async {
     try {
       return (await api.txStatus(txId)).txId;
     } catch (_) {
-      throw BeamWalletException(BeamWalletProblem.sendOutcomeUnknown, message);
+      throw BeamWalletException(
+        BeamWalletProblem.sendOutcomeUnknown,
+        message ?? appL10n.walletSendOutcomeUnknown,
+      );
     }
   }
 }

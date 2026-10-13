@@ -27,6 +27,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
@@ -113,8 +114,8 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
   /// "Pool size: no price" when a side has none.
   String _size(BeamPool p) {
     final size = deps.poolSize(p);
-    if (size == null) return 'Pool size: no price';
-    return 'Pool size ${deps.worthOfBeam(size, inBeam: true)}';
+    if (size == null) return context.l10n.dexPoolSizeNoPrice;
+    return context.l10n.dexPoolSize(deps.worthOfBeam(size, inBeam: true)!);
   }
 
   Future<void> _open(BeamPool pool) => showDexPage<void>(
@@ -140,7 +141,7 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
         ? null
         : SecondaryButton(
             key: const Key('dex-create-pool'),
-            label: 'Create a pool',
+            label: context.l10n.dexCreatePoolAction,
             buttonHeight: deps.desktop ? ButtonHeight.l : ButtonHeight.xl,
             onPressed: _create,
           );
@@ -153,16 +154,21 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
         ],
       );
     }
-    return DexPage(deps: deps, title: 'Pools', body: body, bottom: bottom);
+    return DexPage(
+      deps: deps,
+      title: context.l10n.dexPoolsTitle,
+      body: body,
+      bottom: bottom,
+    );
   }
 
   Widget _list(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final store = deps.pools;
     final all = store.all;
+    final l10n = context.l10n;
     final intro = Text(
-      'Add your coins to a pool and earn a share of the fee on every swap '
-      'it makes.',
+      l10n.dexPoolsIntro,
       style: STextStyles.smallMed12(context),
     );
     if (all == null) {
@@ -176,11 +182,9 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
               key: const Key('dex-pools-error'),
               sticker: BeamMoments.somethingWentWrong,
               kind: DexNoticeKind.error,
-              title: "Couldn't load the pools",
-              detail:
-                  "The wallet didn't answer. This is not something you "
-                  'did.',
-              actionLabel: 'Try again',
+              title: l10n.dexPoolsLoadFailedTitle,
+              detail: l10n.dexPoolsLoadFailedDetail,
+              actionLabel: l10n.commonTryAgain,
               onAction: () => unawaited(store.refresh()),
             ),
           ],
@@ -192,7 +196,7 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
           intro,
           const SizedBox(height: 24),
           Text(
-            'Loading pools from the BEAM network…',
+            l10n.dexPoolsLoading,
             key: const Key('dex-pools-loading'),
             textAlign: TextAlign.center,
             style: STextStyles.smallMed12(context),
@@ -233,7 +237,7 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
           onChanged: (_) => setState(() {}),
           style: STextStyles.field(context),
           decoration: standardInputDecoration(
-            'Search by name, ticker or #id',
+            l10n.dexSearchHint,
             _searchFocus,
             context,
           ),
@@ -248,20 +252,18 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
         ..clear()
         ..addAll([intro, const SizedBox(height: 12)]);
       children.add(
-        const DexNotice(
-          key: Key('dex-pools-empty'),
+        DexNotice(
+          key: const Key('dex-pools-empty'),
           sticker: BeamMoments.trading,
-          title: 'No pools have coins yet',
-          detail:
-              'Create the first pool and earn the fee on every swap it '
-              'makes.',
+          title: l10n.dexPoolsEmptyTitle,
+          detail: l10n.dexPoolsEmptyDetail,
         ),
       );
       children.add(const SizedBox(height: 12));
       children.add(
         PrimaryButton(
           key: const Key('dex-pools-empty-create'),
-          label: 'Create a pool',
+          label: l10n.dexCreatePoolAction,
           onPressed: _create,
         ),
       );
@@ -274,15 +276,15 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
       children.add(
         DexNotice(
           key: const Key('dex-pools-no-match'),
-          title: 'No pool matches "$q"',
-          detail: 'Search by name, ticker or #id, or create the pool.',
-          actionLabel: 'Create a pool',
+          title: l10n.dexPoolsNoMatchTitle(q),
+          detail: l10n.dexPoolsNoMatchDetail,
+          actionLabel: l10n.dexCreatePoolAction,
           onAction: _create,
         ),
       );
     }
     if (mine.isNotEmpty) {
-      children.add(_section(context, 'Your pools'));
+      children.add(_section(context, l10n.dexYourPools));
       for (final p in mine) {
         children
           ..add(_card(context, p, balances))
@@ -291,7 +293,7 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
       children.add(const SizedBox(height: 8));
     }
     if (rest.isNotEmpty) {
-      children.add(_section(context, 'All pools · ${rest.length}'));
+      children.add(_section(context, l10n.dexAllPools(rest.length)));
       for (final p in rest) {
         children
           ..add(_card(context, p, balances))
@@ -304,8 +306,7 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
-            'Showing the last pools we loaded; the latest could not be '
-            'fetched.',
+            l10n.dexPoolsStale,
             style: STextStyles.label(context)
                 .copyWith(color: colors.textSubtitle1),
           ),
@@ -387,7 +388,7 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
                 const SizedBox(height: 2),
                 Text(
                   p.isEmpty
-                      ? 'Empty'
+                      ? context.l10n.dexPoolEmptyBadge
                       : '${DexFormat.compact(p.tok1)} ${a1.symbol} · '
                             '${DexFormat.compact(p.tok2)} ${a2.symbol}',
                   style: STextStyles.label(context),
@@ -406,8 +407,9 @@ class _BeamDexPoolsViewState extends State<BeamDexPoolsView> {
                 if (a2.impersonates != null) DexImpersonationWarning(asset: a2),
                 if (held > BigInt.zero)
                   Text(
-                    'Your share of the pool: '
-                    '${DexFormat.percent(p.position(held).share)}',
+                    context.l10n.dexYourShareValue(
+                      DexFormat.percent(p.position(held).share),
+                    ),
                     key: Key('dex-pool-share-${p.lpToken}'),
                     style: STextStyles.label(context)
                         .copyWith(color: colors.accentColorGreen),

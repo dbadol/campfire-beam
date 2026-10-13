@@ -154,6 +154,10 @@ void main() {
         if (spec.containsKey('format')) {
           problems.add('$key.${e.key}: has a number/date format');
         }
+        final example = spec['example'];
+        if (example != null && (example is! String || example.isEmpty)) {
+          problems.add('$key.${e.key}: example must be a non-empty string');
+        }
       }
     }
     for (final k in en.keys.where(
