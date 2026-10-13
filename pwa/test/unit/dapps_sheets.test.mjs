@@ -37,7 +37,7 @@ test('opening and installing from the store say the dApp can see the balance; fr
 // A dApp installed from a file asks first (lib/dapps/session.js confirmBalance); More shows the answer.
 test('a dApp from a file asks before it sees the balance, and More shows the answer with a way to change it', () => {
   const ask = sheet('dapps.js', 'askBalance');
-  assert.match(ask, /Let \$\{name\} see your balance\?/);
+  assert.match(ask, /Let \{name\} see your balance\?/);
   assert.match(ask, /It can send what it sees to any server\./);
   assert.match(sheet('dapps.js', 'fileMoreSheet'), /rec\.store \? null : balanceRow\(/);
   const row = sheet('dapps.js', 'balanceRow');
