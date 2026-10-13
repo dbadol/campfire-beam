@@ -13,6 +13,7 @@ import { LOADER_WORDS, loaderTemplate, loaderText } from '../../src/lib/loader_w
 import { activateLanguage, t } from '../../src/lib/i18n.js';
 import { normalizeNodeAddress, NODE_EXAMPLE } from '../../src/lib/node_address.js';
 import { verifyManifest, verifyFile, ReleaseError } from '../../src/lib/release.js';
+import { normalizeSource } from '../../src/lib/update_sources.js';
 
 const src = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src');
 const FILES = ['lib/release.js', 'lib/update_sources.js', 'lib/node_address.js', 'sw.js'];
@@ -34,6 +35,12 @@ const MAP = {
   'A file in this update ({…}) is not the one that was signed.': ['A file in this update ({path}) is not the one that was signed.'],
   'No BEAM Campfire release is published at this address.': ['No BEAM Campfire release is published at this address.'],
   'unknown error': ['unknown error'],
+  'A different release claims version {…}.': ['A different release claims version {version}.'],
+  'Paste the address of a copy of BEAM Campfire.': ['Paste the address of a copy of BEAM Campfire.'],
+  'That address is too long.': ['That address is too long.'],
+  "That isn't a web address.": ["That isn't a web address."],
+  'Use an address that starts with https://.': ['Use an address that starts with https://.'],
+  'Leave out the user name and password: the address must work without them.': ['Leave out the user name and password: the address must work without them.'],
   "Type your node's address, for example {…}.": ["Type your node's address, for example {example}."],
   'The app connects to nodes over a secure connection (wss) only. Type the address without ws://, like {…}.': ['The app connects to nodes over a secure connection (wss) only. Type the address without ws://, like {example}.'],
   'Leave out {…} and type only the host and port, like {…}.': ['Leave out {scheme} and type only the host and port, like {example}.'],
@@ -71,7 +78,7 @@ test("every sentence of the loader's code is listed: templates for the shown one
 });
 
 test('a sentence is matched back to its own template with its values, the longest template first', () => {
-  const fill = (tpl) => tpl.replace(/\{(\w+)\}/g, (m, k) => ({ path: 'lib/app.js', host: 'mirror.test:8812', status: '503', example: NODE_EXAMPLE, scheme: 'https://' })[k]);
+  const fill = (tpl) => tpl.replace(/\{(\w+)\}/g, (m, k) => ({ path: 'lib/app.js', host: 'mirror.test:8812', status: '503', example: NODE_EXAMPLE, scheme: 'https://', version: '0.2.15' })[k]);
   for (const tpl of LOADER_WORDS) {
     const s = fill(tpl);
     const r = loaderTemplate(s);
@@ -90,6 +97,11 @@ test('what the inlined code really writes has a template: node addresses, manife
     const r = normalizeNodeAddress(bad);
     assert.equal(r.ok, false, bad);
     assert.ok(loaderTemplate(r.error), `${bad}: ${r.error}`);
+  }
+  for (const bad of ['', 'x'.repeat(5000), 'http://copy.example/', 'https://u:p@copy.example/', 'https://']) {
+    const r = normalizeSource(bad);
+    assert.equal(r.ok, false, bad);
+    assert.ok(loaderTemplate(r.reason), `${bad.slice(0, 20)}: ${r.reason}`);
   }
   const release = { app: 'beam-campfire-pwa', version: '1.0.0', manifest_sha256: '0'.repeat(64) };
   await assert.rejects(verifyManifest(release, new TextEncoder().encode('{}')), (e) => e instanceof ReleaseError && Boolean(loaderTemplate(e.message)));

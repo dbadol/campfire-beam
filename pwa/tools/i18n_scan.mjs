@@ -449,6 +449,15 @@ export function wordLike(s) {
   return true;
 }
 
+/** Words that read as a sentence: three or more, or two or more ending in . ! ? … */
+export function sentenceLike(s) {
+  const v = String(s).replace(/\{…\}/g, ' x ').trim();
+  if (!wordLike(v)) return false;
+  const words = v.split(/\s+/).filter((w) => /[A-Za-z]{2}/.test(w));
+  if (/^[a-z0-9_-]+( [a-z0-9_-]+)*$/.test(v) && /[-_]/.test(v)) return false;
+  return words.length >= 3 || (words.length >= 2 && /[.!?…]$/.test(v));
+}
+
 // Properties whose values are words.
 export const TEXT_KEYS = new Set(['text', 'aria-label', 'placeholder', 'title', 'alt', 'label', 'detail', 'lead', 'hint', 'cta', 'sub', 'body', 'message', 'note', 'explanation', 'heading', 'subtitle', 'description', 'caption', 'tooltip', 'what', 'why', 'how', 'line', 'words', 'confirm', 'ok', 'cancel', 'yes', 'no', 'button']);
 const TEXT_SETTERS = new Set(['textContent', 'innerText', 'placeholder', 'title', 'ariaLabel', 'alt', 'label']);
@@ -616,7 +625,9 @@ function classify(toks, i, ctx) {
   const propKey = ctx.propKey;
   const f = ctx.frames[ctx.frames.length - 1];
   const directProp = f && f.kind === 'object' && propKey != null;
-  if (directProp && NAME_KEYS.has(propKey)) return { text: false, reason: `${propKey}:` };
+  // A property that usually holds a name (reason, status, kind…) can still hold a sentence: three
+  // words or more, or words ending like a sentence, are words.
+  if (directProp && NAME_KEYS.has(propKey)) return { text: sentenceLike(value), reason: `${propKey}:`, call: callee };
   if (call && call.callee) {
     const c = `${call.isNew ? 'new ' : ''}${call.callee}`;
     if (call.callee === 'setAttribute' || /\.setAttribute$/.test(call.callee)) {

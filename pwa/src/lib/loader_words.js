@@ -29,6 +29,12 @@ export const LOADER_WORDS = Object.freeze([
   // lib/update_sources.js
   tk('No BEAM Campfire release is published at this address.'),
   tk('unknown error'),
+  tk('A different release claims version {version}.'),
+  tk('Paste the address of a copy of BEAM Campfire.'),
+  tk('That address is too long.'),
+  tk("That isn't a web address."),
+  tk('Use an address that starts with https://.'),
+  tk('Leave out the user name and password: the address must work without them.'),
   // sw.js: one file of a release, from this app's address or from a copy at {host}
   tk('Could not download {path}.'),
   tk('Could not download {path} from {host}.'),
