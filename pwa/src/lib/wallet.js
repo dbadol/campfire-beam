@@ -3,7 +3,7 @@
 
 import { startWallet, nodeGuard, EngineError, currentWalletPath, engineLog } from './engine.js';
 import { assessSync, reconnectView } from './sync.js';
-import { RANDOM_NODE, poolOrder, nextInOrder } from './nodes.js';
+import { RANDOM_NODE, poolOrder, nextInOrder, isPoolNode } from './nodes.js';
 import { assessNodeHealth, hopAllowed } from './node_health.js';
 import { toGroth, REGULAR_FEE, OFFLINE_FEE, toJsonNumber } from './amount.js';
 import { assetLabel } from './meta.js';
@@ -329,15 +329,17 @@ export class Wallet {
 
   /**
    * Starts the engine with the database password. node: RANDOM_NODE (the pool:
-   * a random start, and the next node whenever this one fails or stalls) or the
-   * person's own node "host:port" (only that node, never a fallback).
+   * a random start, and the next node whenever this one fails or stalls), one of
+   * the pool's addresses (the same, starting on that node: lib/nodes.js
+   * walletNode) or the person's own node "host:port" (only that node, never a
+   * fallback).
    */
   async start({ dbPass, node, recovery = null, onImport = null, bodyRequests = true, rescan = false }) {
     if (this.session) throw new EngineError('running', 'The wallet is already open.');
     this.gen = (this.gen || 0) + 1;
     this.state = this.emptyState();
-    const random = !node || node === RANDOM_NODE;
-    this.plan = { random, order: random ? poolOrder() : [node], bestHeight: 0, emptyHops: 0, staleHops: 0, lastHopAt: 0 };
+    const random = !node || node === RANDOM_NODE || isPoolNode(node);
+    this.plan = { random, order: random ? poolOrder(Math.random, node) : [node], bestHeight: 0, emptyHops: 0, staleHops: 0, lastHopAt: 0 };
     this.state.node = this.plan.order[0];
     this.state.nodeMode = random ? 'random' : 'own';
     this.state.scanning = Boolean(bodyRequests || recovery);
@@ -519,12 +521,43 @@ export class Wallet {
     p.emptyHops = gaveNothing ? p.emptyHops + 1 : 0;
     if (reason === 'stalled') p.staleHops++;
     p.lastHopAt = Date.now();
+    return this.moveTo(to, reason);
+  }
+
+  /**
+   * "Use this one" on the node screen: a wallet on BEAM's pool moves to `address` now and keeps
+   * the other pool nodes behind it, so it still moves on by itself when that one stops answering
+   * (lib/nodes.js poolOrder). The same restart as a hop: wallet.db flushed, payments under way
+   * resumed by the engine, balances and payments stay on screen. The sync line says "Connecting…"
+   * (it is the person's choice, not a failure); a node that does not answer is then left by the
+   * usual rules. Resolves once the engine runs on the new node.
+   */
+  async useNode(address) {
+    const p = this.plan;
+    if (!isPoolNode(address)) throw new EngineError('node', "That is not one of BEAM's public nodes.");
+    if (!p || !p.random || !this.session) throw new EngineError('node', "The wallet is not running on BEAM's public nodes.");
+    if (this.state.importing) throw new EngineError('busy', 'The wallet is still getting ready. Try again when it is done.');
+    if (this.hopping) throw new EngineError('busy', 'The wallet is moving to another node right now. Try again in a moment.');
+    p.order = poolOrder(Math.random, address);
+    p.emptyHops = 0;
+    p.staleHops = 0;
+    p.lastHopAt = Date.now();
+    if (this.state.node === address) return;
+    await this.moveTo(address, 'chosen');
+  }
+
+  /** Stops the engine and starts it again on `to`: a hop (reason from lib/node_health.js) or the person's choice ('chosen'). */
+  async moveTo(to, reason) {
+    const from = this.state.node;
+    const chosen = reason === 'chosen';
     this.hopping = true;
     const gen = this.gen;
     const current = () => this.gen === gen && this.run;
-    const entry = { from, to, reason, at: p.lastHopAt };
+    const entry = { from, to, reason, at: Date.now() };
     this.state.switchLog.push(entry);
-    this.state.switching = entry;
+    // A hop says "Reconnecting to another node…"; a choice is a fresh start on that node ("Connecting…").
+    this.state.switching = chosen ? null : entry;
+    if (chosen) this.state.startedAt = Date.now();
     console.info(`[campfire] node ${from} ${reason}; moving to ${to}`);
     this.emit();
     try {

@@ -25,6 +25,7 @@ import { h, put } from '../lib/dom.js';
 import { icon } from '../lib/icons.js';
 import { screen, toast } from '../lib/ui.js';
 import { isOwnNode } from '../lib/own_node.js';
+import { isPoolNode, nodeName } from '../lib/nodes.js';
 import { hasPasskey, removePasskey, isImported } from '../lib/session.js';
 import { passkeyAvailable } from '../lib/passkey.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
@@ -124,7 +125,7 @@ export default function settings(app) {
     h(
       'div',
       { class: 'card list' },
-      row('globe', 'BEAM node', isOwnNode(app.prefs.node) ? `Your own node: ${app.prefs.node}` : 'Random BEAM nodes', () => app.go('nodeSettings'), { 'data-testid': 'node-row' }),
+      row('globe', 'BEAM node', isOwnNode(app.prefs.node) ? `Your own node: ${app.prefs.node}` : isPoolNode(app.prefs.poolNode) ? `BEAM's public nodes, ${nodeName(app.prefs.poolNode)} first` : "BEAM's public nodes", () => app.go('nodeSettings'), { 'data-testid': 'node-row' }),
       row('shield', 'IP privacy', 'Who can see your IP address', () => app.go('ipNotice'), { 'data-testid': 'ip-privacy' }),
       row('eth', 'Ethereum wallet', 'Server, privacy, backup', () => app.go('ethSettings'), { 'data-testid': 'eth-settings-row' }),
     ),

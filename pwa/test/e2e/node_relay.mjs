@@ -9,6 +9,7 @@
 //   refuse  - close the connection as soon as TLS is up (a node that refuses);
 //   silent  - relay the upgrade so the WebSocket opens, then drop everything the
 //             node sends (a node that accepts and never answers).
+// kill(name) ends the connections already open under a name (a node that goes away).
 import tls from 'node:tls';
 import net from 'node:net';
 import { execFileSync } from 'node:child_process';
@@ -71,6 +72,7 @@ export function startRelay({ port, tlsCert, ca, behaviour = () => 'forward', ups
     total++;
     counts.set(name, (counts.get(name) || 0) + 1);
     log.push({ name, how, at: Date.now() });
+    client.relayName = name;
     live.add(client);
     client.on('close', () => live.delete(client));
     client.on('error', () => {});
@@ -108,6 +110,12 @@ export function startRelay({ port, tlsCert, ca, behaviour = () => 'forward', ups
         log,
         get total() {
           return total;
+        },
+        /** Ends every connection the browser has open under `name` now (a node that goes away). */
+        kill: (name) => {
+          let n = 0;
+          for (const s of live) if (s.relayName === name) (s.destroy(), n++);
+          return n;
         },
         stop: () =>
           new Promise((r) => {
