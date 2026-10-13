@@ -1,0 +1,9 @@
+{
+ "comment": "What eu-node02.mainnet.beam.mw:8100 (BEAM mainnet, beam-node 7.5.x, the same stream its wss port 8200 relays) sent to one tip check on 2026-10-13, with the check key fixed to secret 0x00..07: its SChannelInitiate and SChannelReady in plaintext, then GetTime, Authentication, Login and NewTip encrypted. Public chain data and an ephemeral key only. The explorer (explorer.0xmx.net/api/status) gave the same height and timestamp at the time.",
+ "node": "eu-node02.mainnet.beam.mw:8100",
+ "recorded": "2026-10-13",
+ "secret": "0000000000000000000000000000000000000000000000000000000000000007",
+ "height": 4078390,
+ "timestamp": 1791901566,
+ "transcript": "426d0a042000000019cbe4184945aed387517d22589e03ade387357b3210ff721df9796b55dcfc74426d0a050000000020949899d31d493e3159c1c103853b26533b9af2a84b7855d4f9eb6b2ae43d744010a8a5609f3241917cc98c27331728c6b342f8592bc32905de9aab46fc3a142c37dc116bdbf2d6ddbfbdb3d434e798b64a277a8613c7cb0e0c2999b05910bc940e2403bb9ea1f65b43d69c17e65ace8d5100f1df5d05e9906de83381b3e93a9edab570865d45b6dd43ebd344abed7ab4e0541c8a27a25e48f50b1392a8410b6dd386f1afd4773ddd6918365be060cf7169fba011fdc4a810f0c50b8c76f7ba57aae676a25e7c811f843dc88e75cc6760eb89035ae9c9c106f8d121383a20b80e649f671e906bb18a2ae0ad904bbc3345eb1c3f28c1c66c8c08242fb988c14a9cc2394c1a50e983111638d39c0fbe88576673ef4d81244f9fafd722f3af266d139687dcc783ff512ba2e8710e136cb0f6105e6251ca11853f67df237da32eea9c7dde7cd1fca997236869a00b0c4a549502ab34c053207ed37727e36484f1d4fbcd32898a108d22d7b40b8cefb723e833a5a15dbba8fd2b87d3cd1b3440410ef534f84b47863e3499d42dbe2724a2249f9f06993fe8677768ab1a950a665fb6db712c4f7f8fb332ecf308cb07bcd5ee26a0a5fa7bbf460c82c85f4f7d9c36fe6a5c2e3b"
+}
