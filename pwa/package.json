@@ -72,7 +72,8 @@
     "e2e:dapp-store": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/dapp_store.test.mjs",
     "e2e:scan": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/scan.test.mjs",
     "e2e:one-tab": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/one_tab.test.mjs",
-    "e2e:version": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/version_line.test.mjs"
+    "e2e:version": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/version_line.test.mjs",
+    "e2e:fast-start": "node tools/stage_engine.mjs && node --test --test-concurrency=1 test/e2e/fast_start.test.mjs"
   },
   "devDependencies": {
     "jsqr": "1.4.0",
