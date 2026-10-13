@@ -91,7 +91,7 @@ test("css: the dark palette under the device's dark mode and under Dark is one p
   }
 });
 
-// ---------------------------------------------------------------- colours: Campfire red or BEAM blue (#80)
+// ---------------------------------------------------------------- colours: Campfire red or BEAM (#80)
 
 const css = src('css/app.css');
 const tokens = (body) => Object.fromEntries([...body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map((x) => [x[1], x[2].trim()]));
@@ -108,9 +108,9 @@ const PALETTES = {
 };
 const COLOUR_KEYS = Object.keys(PALETTES['campfire dark']);
 
-test('colours: Campfire red unless BEAM blue is saved; anything unknown or unreadable is Campfire red', () => {
+test('colours: Campfire red unless BEAM is saved; anything unknown or unreadable is Campfire red', () => {
   assert.deepEqual(SKINS, ['campfire', 'beam']);
-  assert.deepEqual(SKIN_WORDS, { campfire: 'Campfire red', beam: 'BEAM blue' });
+  assert.deepEqual(SKIN_WORDS, { campfire: 'Campfire red', beam: 'BEAM' });
   assert.equal(readSkin(memoryStorage()), 'campfire');
   assert.equal(readSkin(memoryStorage({ 'campfire-skin': 'beam' })), 'beam');
   assert.equal(readSkin(memoryStorage({ 'campfire-skin': 'purple' })), 'campfire');
@@ -121,11 +121,11 @@ test('colours applied with the theme: the attribute, and the browser bar in that
   const d = fakeDoc();
   applyLook({ theme: 'system', skin: 'beam' }, d);
   assert.equal(d.documentElement.dataset.skin, 'beam');
-  assert.equal(d.light.attrs.content, '#eef5fa');
-  assert.equal(d.dark.attrs.content, '#042548');
+  assert.equal(d.light.attrs.content, '#e0ebf4');
+  assert.equal(d.dark.attrs.content, '#04325a');
   applyTheme('dark', d); // the theme changes, the colours stay
   assert.equal(d.documentElement.dataset.skin, 'beam');
-  assert.equal(d.light.attrs.content, '#042548');
+  assert.equal(d.light.attrs.content, '#04325a');
   const st = memoryStorage();
   assert.equal(setSkin('campfire', { storage: st, doc: d }), 'campfire');
   assert.equal('skin' in d.documentElement.dataset, false, 'Campfire red: no attribute');
@@ -137,8 +137,9 @@ test('colours applied with the theme: the attribute, and the browser bar in that
   const d2 = fakeDoc();
   assert.equal(setSkin('beam', { storage: blocked, doc: d2 }), 'beam', 'storage blocked: this page only');
   assert.equal(d2.documentElement.dataset.skin, 'beam');
-  // Each bar colour is its palette's background.
-  for (const k of SKINS) for (const m of ['light', 'dark']) assert.equal(BARS[k][m], PALETTES[`${k} ${m}`].bg, `${k} ${m}`);
+  // Each bar colour is its palette's colour at the top of the page (Campfire's is its background).
+  for (const k of SKINS) for (const m of ['light', 'dark']) assert.equal(BARS[k][m], PALETTES[`${k} ${m}`]['bg-top'], `${k} ${m}`);
+  for (const m of ['light', 'dark']) assert.equal(PALETTES[`campfire ${m}`]['bg-top'], PALETTES[`campfire ${m}`].bg, `campfire ${m}: no band`);
 });
 
 test('before the first paint: theme-boot.js sets the colours and the bar from the same key, the same values', () => {
@@ -151,16 +152,40 @@ test('before the first paint: theme-boot.js sets the colours and the bar from th
   assert.ok(html.indexOf('theme-boot.js') > html.lastIndexOf('name="theme-color"'), 'the bar tags are read before it runs');
 });
 
-test('css: BEAM blue gives every colour Campfire has, light and dark, and its two dark blocks are one palette', () => {
+test('css: BEAM gives every colour Campfire has, light and dark, and its two dark blocks are one palette', () => {
   for (const name of ['beam light', 'beam dark']) assert.deepEqual(Object.keys(PALETTES[name]), COLOUR_KEYS, name);
   for (const k of COLOUR_KEYS) assert.ok(k in PALETTES['campfire light'], `campfire light has --${k}`);
   const sys = /@media \(prefers-color-scheme: dark\) \{\n {2}:root\[data-skin="beam"\]:not\(\[data-theme="light"\]\) \{\n([\s\S]*?)\n {2}\}\n\}/.exec(css);
   assert.ok(sys, 'the dark block under the device\'s dark mode');
   assert.deepEqual(tokens(sys[1]), PALETTES['beam dark']);
-  // The palette is BEAM's own: navy, its blue and turquoise.
+  // BEAM's own wallet: navy, the turquoise button with its marine label, received blue, sent violet.
   assert.equal(PALETTES['beam dark'].bg, '#042548');
-  assert.equal(PALETTES['beam light'].primary, '#035b8f');
-  assert.equal(PALETTES['beam dark'].primary, '#00f6d2');
+  for (const m of ['light', 'dark']) {
+    assert.equal(PALETTES[`beam ${m}`].primary, '#00f6d2', m);
+    assert.equal(PALETTES[`beam ${m}`]['on-primary'], '#032e49', m);
+  }
+  assert.equal(PALETTES['beam dark'].in, '#0bccf7');
+  assert.equal(PALETTES['beam dark'].out, '#da68f5');
+});
+
+// docs/beam-brand-palette.json: BEAM's colours with their sources, and the skin made from them.
+const BRAND = JSON.parse(readFileSync(new URL('../../docs/beam-brand-palette.json', import.meta.url), 'utf8'));
+
+test("css: the BEAM skin is docs/beam-brand-palette.json's, and every value it calls BEAM's own is one of BEAM's", () => {
+  const own = new Set([...BRAND.wallet_ui.colors, ...BRAND.brand_kit.colors].map((c) => c.hex.toLowerCase()));
+  for (const m of ['light', 'dark']) {
+    const skin = BRAND.campfire_skin[m];
+    const css = PALETTES[`beam ${m}`];
+    const colours = Object.keys(css).filter((k) => k !== 'shadow');
+    assert.deepEqual(Object.keys(skin).sort(), colours.sort(), `${m}: the same tokens`);
+    for (const k of colours) {
+      assert.equal(css[k], skin[k].hex.toLowerCase(), `${m} --${k}`);
+      if (skin[k].basis === 'exact') assert.ok(own.has(css[k]), `${m} --${k} ${css[k]} is called BEAM's own`);
+      else assert.ok(skin[k].basis === 'derived' && skin[k].how, `${m} --${k}: how it was derived`);
+    }
+  }
+  // Every colour cited has a source with a link.
+  for (const c of [...BRAND.wallet_ui.colors, ...BRAND.website.colors]) assert.match(c.url, /^https:\/\/github\.com\/BeamMW\/[\w-]+\/blob\/[0-9a-f]{40}\//, c.name);
 });
 
 // WCAG 2 contrast of two opaque colours.
@@ -175,7 +200,9 @@ const ratio = (a, b) => {
 };
 // Every text colour, on every background the stylesheet puts it on.
 const TEXT_PAIRS = [
-  ...['text', 'text-2', 'muted', 'primary-text', 'on-secondary', 'error', 'success'].flatMap((f) => ['bg', 'surface', 'surface-2'].map((b) => [f, b])),
+  ...['text', 'text-2', 'muted', 'primary-text', 'on-secondary', 'error', 'success'].flatMap((f) => ['bg', 'surface', 'surface-2', 'bg-top'].map((b) => [f, b])),
+  // Received and sent amounts: history rows sit in cards, on the page, or under the band.
+  ...['in', 'out-text'].flatMap((f) => ['bg', 'surface', 'bg-top'].map((b) => [f, b])),
   ['on-primary', 'primary'], ['on-secondary', 'secondary'], ['bg', 'text'],
   ['success', 'success-bg'], ['error', 'error-bg'], ['info', 'info-bg'], ['warn', 'warn-bg'], ['text', 'secondary'],
 ];
@@ -189,6 +216,33 @@ test('every text colour reads at 4.5:1 or more on what it sits on, in both skins
     }
   }
   assert.deepEqual(low, []);
+});
+
+// BEAM's skin, beyond what Campfire's palette was built for: its yellow is text too (.tone-wait), and its
+// marks and controls read at 3:1 (WCAG 1.4.11): the arrows on their discs (received, sent, swapped), the icon on a done or failed
+// step, and the accent (progress, radio, focus) on every surface.
+const BEAM_TEXT = [['yellow', 'bg'], ['yellow', 'surface']];
+const BEAM_MARKS = [['in', 'in-bg'], ['out', 'out-bg'], ['swap', 'swap-bg'], ['on-green', 'green'], ['on-red', 'red'], ['accent', 'bg'], ['accent', 'surface'], ['accent', 'surface-2'], ['green', 'surface'], ['red', 'surface']];
+
+test('BEAM: its yellow text reads at 4.5:1, and its marks and controls at 3:1, light and dark', () => {
+  const low = [];
+  for (const m of ['light', 'dark']) {
+    const p = PALETTES[`beam ${m}`];
+    for (const [f, b] of BEAM_TEXT) if (ratio(p[f], p[b]) < 4.5) low.push(`beam ${m}: --${f} on --${b} ${ratio(p[f], p[b]).toFixed(2)}`);
+    for (const [f, b] of BEAM_MARKS) if (ratio(p[f], p[b]) < 3) low.push(`beam ${m}: --${f} on --${b} ${ratio(p[f], p[b]).toFixed(2)}`);
+  }
+  assert.deepEqual(low, []);
+});
+
+test('css: Campfire red looks as it did: the new colours are Campfire\'s own', () => {
+  for (const m of ['light', 'dark']) {
+    const p = PALETTES[`campfire ${m}`];
+    assert.equal(p.accent, p.primary, m);
+    assert.deepEqual([p.in, p['in-bg']], [p.success, p['success-bg']], m);
+    assert.deepEqual([p.out, p['out-bg'], p['out-text']], [p['on-secondary'], p.secondary, p.text], m);
+    assert.deepEqual([p.swap, p['swap-bg']], [p.info, p['info-bg']], m);
+    assert.deepEqual([p['on-green'], p['on-red'], p['bg-top']], ['#ffffff', '#ffffff', p.bg], m);
+  }
 });
 
 test('css: text never takes the icon grey (--subtle) or the button colour (--primary) as its colour', () => {

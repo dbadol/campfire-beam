@@ -1,0 +1,895 @@
+{
+  "title": "BEAM's colours: the brand kit, and the palette BEAM's own wallets use",
+  "retrieved": "2026-10-13",
+  "notation": "Hex is #RRGGBB. Qt and Android write 8 digits as #AARRGGBB; iOS writes rgb/255, converted here. Every URL is a permalink to the commit read on 2026-10-13.",
+  "sources": {
+    "brand_kit": {
+      "what": "BEAM Media Kit (the \"Media Kit (Zip)\" link in the beam.mw footer), with the logo guidelines PDF inside",
+      "url": "https://beam.mw/assets/BEAM_Media_Kit_and_resources_v4.zip",
+      "file": "Beam Branding/Beam Digital Logo Guidelines Oct 2019.pdf"
+    },
+    "logo": {
+      "what": "the live logo, a prism",
+      "url": "https://beam.mw/svg/logo.svg",
+      "same_as": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/public/svg/logo.svg#L1"
+    },
+    "website": {
+      "what": "beam.mw site source (Nuxt + Tailwind)",
+      "repo": "https://github.com/BeamMW/beam-web",
+      "commit": "fba454b11022e5220b460283fc9fc3f435128a64"
+    },
+    "desktop": {
+      "what": "BEAM Desktop Wallet (beam-ui), mainnet theme; the theme follows the network the binary is built for (ui/view/controls/Style.qml#L16, ui/viewmodel/theme.cpp#L40)",
+      "repo": "https://github.com/BeamMW/beam-ui",
+      "commit": "1cc4d1abacd084baf109b1c09a01dfe1a0014455",
+      "file": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml"
+    },
+    "extension": {
+      "what": "Beam Web Wallet (the browser extension), theme mainnet (src/app/config.ts#L35)",
+      "repo": "https://github.com/BeamMW/web-wallet",
+      "commit": "41a6627b996fe7731c61007fae33df51139eb182",
+      "file": "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts"
+    },
+    "android": {
+      "what": "BEAM Android wallet",
+      "repo": "https://github.com/BeamMW/android-wallet",
+      "commit": "4a8d927ec6576122ea06ebc9ea3943dd26de43cb",
+      "file": "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml"
+    },
+    "ios": {
+      "what": "BEAM iOS wallet",
+      "repo": "https://github.com/BeamMW/ios-wallet",
+      "commit": "85c5f95dd85a35334d8e6bc84140abdabe09e5ca",
+      "file": "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift"
+    }
+  },
+  "brand_kit": {
+    "note": "Page 7 \"CORPORATE COLORS\" and page 8 typography of the logo guidelines. These are logo and marketing colours; none of them is used as a wallet UI colour. The guidelines also say not to place the logo on similar colours or on white.",
+    "colors": [
+      {
+        "hex": "#25C1FF",
+        "name": "corporate 1",
+        "role": "primary light blue; the logo's left half and the BEAM wordmark",
+        "source": "brand_kit",
+        "raw": "Hex 25C1FF  RGB 37, 193, 255",
+        "page": 7
+      },
+      {
+        "hex": "#0B76FF",
+        "name": "corporate 2",
+        "role": "logo, right half",
+        "source": "brand_kit",
+        "raw": "Hex 0B76FF  RGB 11, 118, 255",
+        "page": 7
+      },
+      {
+        "hex": "#39FFF2",
+        "name": "corporate 3",
+        "role": "logo, inner triangle (left)",
+        "source": "brand_kit",
+        "raw": "Hex 39FFF2  RGB 57, 255, 242",
+        "page": 7
+      },
+      {
+        "hex": "#00E2C2",
+        "name": "corporate 4",
+        "role": "logo, inner triangle (right)",
+        "source": "brand_kit",
+        "raw": "Hex 00E2C2  RGB 0, 226, 194",
+        "page": 7
+      },
+      {
+        "hex": "#9D6EFF",
+        "name": "corporate 5",
+        "role": "prism ray, violet",
+        "source": "brand_kit",
+        "raw": "Hex 9D6EFF  RGB 157, 110, 255",
+        "page": 7
+      },
+      {
+        "hex": "#FE52FF",
+        "name": "corporate 6",
+        "role": "prism ray, pink (the logo files use #FF51FF)",
+        "source": "brand_kit",
+        "raw": "Hex FE52FF  RGB 254, 82, 255",
+        "page": 7
+      },
+      {
+        "hex": "#AB37E6",
+        "name": "corporate 7",
+        "role": "prism ray, purple (the logo files use #AB38E6)",
+        "source": "brand_kit",
+        "raw": "Hex AB37E6  RGB 171, 55, 230",
+        "page": 7
+      },
+      {
+        "hex": "#FFFFFF",
+        "name": "corporate 8",
+        "role": "white",
+        "source": "brand_kit",
+        "raw": "Hex FFFFFF  RGB 255, 255, 255",
+        "page": 7
+      },
+      {
+        "hex": "#24C1FF",
+        "name": "Header 1",
+        "role": "headings",
+        "source": "brand_kit",
+        "raw": "HEADER 1  Proxima Nova Bold, All Caps, 16 pt, #24C1FF",
+        "page": 8
+      },
+      {
+        "hex": "#00E2C2",
+        "name": "Header 2, links",
+        "role": "sub-headings and links",
+        "source": "brand_kit",
+        "raw": "Links  Proxima Nova Regular, 12-10 pt, #00E2C2",
+        "page": 8
+      },
+      {
+        "hex": "#FFFFFF",
+        "name": "primary text",
+        "role": "text",
+        "source": "brand_kit",
+        "raw": "Primary text  Proxima Nova Regular, 12 pt, #FFFFFF",
+        "page": 8
+      },
+      {
+        "hex": "#FFFFFF80",
+        "name": "secondary text",
+        "role": "notes (white at 50%)",
+        "source": "brand_kit",
+        "raw": "Secondary text, notes  Proxima Nova Regular, 10 pt, #FFFFFF, 50%",
+        "page": 8
+      },
+      {
+        "hex": "#0B1624",
+        "name": "logo tile",
+        "role": "background of the square, circle and horizontal logo files",
+        "source": "brand_kit",
+        "raw": ".cls-1{fill:#0b1624;}",
+        "file": "Beam_logo_square.svg"
+      },
+      {
+        "hex": "#042548",
+        "name": "wallet suite logo background",
+        "role": "background of the Wallet Suite logo, the same navy as the wallets",
+        "source": "brand_kit",
+        "raw": "<rect fill=\"#042548\" x=\"0\" y=\"0\" width=\"398\" height=\"425\">",
+        "file": "beam_wallet_suite_logo.svg",
+        "line": 66
+      }
+    ]
+  },
+  "logo": {
+    "note": "A prism: white light enters on the left, coloured rays leave on the right.",
+    "colors": [
+      {
+        "hex": "#0B76FF",
+        "name": "right half",
+        "role": "logo fill",
+        "source": "logo",
+        "raw": "<path fill=\"#0B76FF\" d=\"M28.47 33.21H40.3L28.48 12.58V.08l23.15 39.77H28.47z\"/>"
+      },
+      {
+        "hex": "#24C1FF",
+        "name": "left half",
+        "role": "logo fill",
+        "source": "logo",
+        "raw": "<path fill=\"#24C1FF\" ..."
+      },
+      {
+        "hex": "#39FFF2",
+        "name": "inner left",
+        "role": "logo fill",
+        "source": "logo"
+      },
+      {
+        "hex": "#00E2C2",
+        "name": "inner right",
+        "role": "logo fill",
+        "source": "logo"
+      },
+      {
+        "hex": "#FFFFFF",
+        "name": "incoming ray",
+        "role": "gradient a: transparent at 0%, #FFF at 100%",
+        "source": "logo",
+        "raw": "<stop offset=\"0%\" stop-opacity=\"0\"/><stop offset=\"100%\" stop-color=\"#FFF\"/>"
+      },
+      {
+        "hex": "#FF51FF",
+        "name": "ray b",
+        "role": "gradient b: transparent at 0%, #FF51FF at 100%",
+        "source": "logo"
+      },
+      {
+        "hex": "#A18CFF",
+        "name": "ray c",
+        "role": "gradient c: transparent at 0%, #A18CFF at 100%",
+        "source": "logo"
+      },
+      {
+        "hex": "#AB38E6",
+        "name": "ray d",
+        "role": "gradient d: transparent at 0%, #AB38E6 at 100%",
+        "source": "logo"
+      }
+    ]
+  },
+  "website": {
+    "note": "beam.mw today: brand blues, purples and greens on a dark navy page. #99ECFF and #A69EFF are not in the brand kit.",
+    "colors": [
+      {
+        "hex": "#99ECFF",
+        "name": "--beam-blue",
+        "role": "links, outline buttons, focus rings",
+        "source": "website",
+        "raw": "--beam-blue: #99ecff;",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/app.vue#L101"
+      },
+      {
+        "hex": "#0B76FF",
+        "name": "--beam-blue-dark",
+        "role": "brand blue",
+        "source": "website",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/app.vue#L102"
+      },
+      {
+        "hex": "#9D6EFF",
+        "name": "--beam-purple",
+        "role": "brand purple",
+        "source": "website",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/app.vue#L103"
+      },
+      {
+        "hex": "#AB37E6",
+        "name": "--beam-purple-dark",
+        "role": "brand purple",
+        "source": "website",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/app.vue#L104"
+      },
+      {
+        "hex": "#A69EFF",
+        "name": "--beam-pink",
+        "role": "lavender",
+        "source": "website",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/app.vue#L105"
+      },
+      {
+        "hex": "#39FFF2",
+        "name": "--beam-green",
+        "role": "main call-to-action outline buttons",
+        "source": "website",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/app.vue#L106"
+      },
+      {
+        "hex": "#00E2C2",
+        "name": "--beam-green-dark",
+        "role": "brand green",
+        "source": "website",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/app.vue#L107"
+      },
+      {
+        "hex": "#041D3C",
+        "name": "beam-bg-blue",
+        "role": "page background",
+        "source": "website",
+        "raw": "\"beam-bg-blue\": \"#041D3C\",",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/tailwind.config.ts#L100"
+      },
+      {
+        "hex": "#072B51",
+        "name": "page-radial-gradient",
+        "role": "top of the page, fading into #041D3C",
+        "source": "website",
+        "raw": "\"radial-gradient(ellipse at top, #072B51, #041D3C, #041D3C)\"",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/tailwind.config.ts#L60"
+      },
+      {
+        "hex": "#025B8F",
+        "name": "hero gradient",
+        "role": "top of the home page hero, fading out",
+        "source": "website",
+        "raw": "bg-gradient-to-b from-[#025b8f] to-transparent to-[500px]",
+        "url": "https://github.com/BeamMW/beam-web/blob/fba454b11022e5220b460283fc9fc3f435128a64/components/index-hero.vue#L276"
+      }
+    ]
+  },
+  "wallet_ui": {
+    "note": "The palette all four BEAM wallets share (desktop, browser extension, Android, iOS). None of these values is in the brand kit except the navy, which is also the Wallet Suite logo's background. Every BEAM wallet is dark; none has a light theme (Android and iOS have an optional dark mode that swaps the navy for neutral greys).",
+    "colors": [
+      {
+        "hex": "#042548",
+        "name": "background_main",
+        "role": "main background",
+        "source": "desktop",
+        "raw": "property color background_main:       \"#042548\"",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L19",
+        "also": [
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L13 --color-dark-blue: #042548;",
+          "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L7 colorPrimaryDark",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L93 marine"
+        ]
+      },
+      {
+        "hex": "#035B8F",
+        "name": "background_main_top",
+        "role": "the band at the top of the main screen: a 230 px gradient from #035b8f to transparent (ui/view/main.qml#L175-L192)",
+        "source": "desktop",
+        "raw": "property color background_main_top:   \"#035b8f\"",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L20",
+        "also": [
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L39 --color-gradient-finish-mainnet: #035b8f;",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L251 peacockBlue"
+        ]
+      },
+      {
+        "hex": "#103051",
+        "name": "colorPrimary",
+        "role": "cards and dialogs (desktop: white at 5% over the navy, #113051)",
+        "source": "android",
+        "raw": "<color name=\"colorPrimary\">#103051</color>",
+        "url": "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L5",
+        "also": [
+          "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L21 background_second: Qt.rgba(1, 1, 1, 0.05)"
+        ]
+      },
+      {
+        "hex": "#00446C",
+        "name": "background_popup",
+        "role": "popups and dialogs",
+        "source": "desktop",
+        "raw": "property color background_popup:      \"#00446c\"",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L30",
+        "also": [
+          "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L16 alert_dialog_color",
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L19 --color-popup-mainnet: #003f6f"
+        ]
+      },
+      {
+        "hex": "#09425E",
+        "name": "background_details",
+        "role": "details panels",
+        "source": "desktop",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L28"
+      },
+      {
+        "hex": "#33566B",
+        "name": "separator",
+        "role": "lines between rows",
+        "source": "desktop",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L33"
+      },
+      {
+        "hex": "#2C5066",
+        "name": "section",
+        "role": "section headers",
+        "source": "desktop",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L16"
+      },
+      {
+        "hex": "#FFFFFF",
+        "name": "content_main",
+        "role": "text",
+        "source": "desktop",
+        "raw": "property color content_main:          \"#ffffff\"  // white",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L6"
+      },
+      {
+        "hex": "#8DA1AD",
+        "name": "content_secondary",
+        "role": "secondary text",
+        "source": "desktop",
+        "raw": "property color content_secondary:     \"#8da1ad\"  // bluey-grey",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L11",
+        "also": [
+          "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L14 common_text_dark_color",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L193 blueyGrey"
+        ]
+      },
+      {
+        "hex": "#889DA9",
+        "name": "content_disabled",
+        "role": "disabled",
+        "source": "desktop",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L12"
+      },
+      {
+        "hex": "#D6D9E0",
+        "name": "passive",
+        "role": "inactive elements",
+        "source": "desktop",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L36"
+      },
+      {
+        "hex": "#00F6D2",
+        "name": "active",
+        "role": "the accent: main buttons, links, selection, online",
+        "source": "desktop",
+        "raw": "property color active :               \"#00f6d2\"",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L35",
+        "also": [
+          "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L38 online",
+          "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L47 linkStyle",
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L11 --color-green: #00f6d2;",
+          "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L8 colorAccent",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L168 brightTeal"
+        ]
+      },
+      {
+        "hex": "#032E49",
+        "name": "content_opposite",
+        "role": "text on accent-coloured buttons",
+        "source": "desktop",
+        "raw": "property color content_opposite:      \"#032e49\" // marine",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L13"
+      },
+      {
+        "hex": "#0BCCF7",
+        "name": "accent_incoming",
+        "role": "received",
+        "source": "desktop",
+        "raw": "property color accent_incoming:       \"#0bccf7\"  // bright-sky-blue",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L8",
+        "also": [
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L12 --color-blue: #0bccf7;",
+          "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L17 received_color",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L201 brightSkyBlue"
+        ]
+      },
+      {
+        "hex": "#DA68F5",
+        "name": "accent_outgoing",
+        "role": "sent",
+        "source": "desktop",
+        "raw": "property color accent_outgoing:       \"#da68f5\"  // heliotrope",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L7",
+        "also": [
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L8 --color-purple: #da68f5;",
+          "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L19 sent_color",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L197 heliotrope"
+        ]
+      },
+      {
+        "hex": "#39FDF2",
+        "name": "accent_swap",
+        "role": "swaps",
+        "source": "desktop",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L9"
+      },
+      {
+        "hex": "#FF746B",
+        "name": "accent_fail",
+        "role": "failed transactions",
+        "source": "desktop",
+        "raw": "property color accent_fail:           \"#ff746b\"",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L10",
+        "also": [
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L65 failed"
+        ]
+      },
+      {
+        "hex": "#FF625C",
+        "name": "validator_error",
+        "role": "errors",
+        "source": "desktop",
+        "raw": "property color validator_error:       \"#ff625c\"",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L15",
+        "also": [
+          "https://github.com/BeamMW/android-wallet/blob/4a8d927ec6576122ea06ebc9ea3943dd26de43cb/app/src/main/res/values/colors.xml#L13 common_error_color",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L156 red",
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L9 --color-red: #f25f5b (the extension)"
+        ]
+      },
+      {
+        "hex": "#F4CE4A",
+        "name": "validator_warning",
+        "role": "warnings",
+        "source": "desktop",
+        "raw": "property color validator_warning:     \"#f4ce4a\"",
+        "url": "https://github.com/BeamMW/beam-ui/blob/1cc4d1abacd084baf109b1c09a01dfe1a0014455/ui/view/color_themes/Mainnet.qml#L14",
+        "also": [
+          "https://github.com/BeamMW/web-wallet/blob/41a6627b996fe7731c61007fae33df51139eb182/src/app/styles.ts#L10 --color-yellow: #f4ce4a;",
+          "https://github.com/BeamMW/ios-wallet/blob/85c5f95dd85a35334d8e6bc84140abdabe09e5ca/BeamWallet/Extensions/Color.swift#L160 maize"
+        ]
+      }
+    ]
+  },
+  "received_sent": {
+    "received": "#0BCCF7",
+    "sent": "#DA68F5",
+    "failed": "#FF746B",
+    "colour_is_never_the_only_signal": [
+      "Desktop: the amount is coloured and starts with + or - (ui/view/wallet/TxTable.qml#L575-L584), the status text is coloured (#L762), and each direction has its own arrow icon (#L709-L727). Send and Receive are labelled buttons in the two colours with marine text (ui/view/wallet/wallet.qml#L63, #L76).",
+      "Extension: the status icon and label are coloured, the arrow turns 180 degrees for sent, the amount is white with + or - (src/app/shared/components/StatusLabel.tsx#L93).",
+      "Android and iOS: the status text and icon are coloured, + or - on the amount."
+    ]
+  },
+  "light_theme": "None in any BEAM product (desktop, extension, Android, iOS, website). A light BEAM look has to be derived.",
+  "campfire_skin": {
+    "note": "BEAM Campfire's optional BEAM colours. 'exact' = BEAM's own value (from the wallet_ui list); 'derived' = how it was made. Every text colour reads at 4.5:1 or more on what it sits on (pwa/test/unit/theme.test.mjs; the app's test/beam/theme/beam_theme_test.dart).",
+    "dark": {
+      "bg": {
+        "hex": "#042548",
+        "basis": "exact",
+        "from": "background_main"
+      },
+      "bg-top": {
+        "hex": "#04325A",
+        "basis": "derived",
+        "how": "background_main_top #035b8f at 25% over #042548 (BEAM draws it at 100%: its own secondary text would read 2.7:1 there)"
+      },
+      "surface": {
+        "hex": "#103051",
+        "basis": "exact",
+        "from": "colorPrimary (Android cards; desktop white at 5% = #113051)"
+      },
+      "surface-2": {
+        "hex": "#183657",
+        "basis": "derived",
+        "how": "white at about 8% over #042548, the desktop wallet's white-overlay panels; the lightest that keeps #8da1ad at 4.5:1"
+      },
+      "text": {
+        "hex": "#FFFFFF",
+        "basis": "exact",
+        "from": "content_main"
+      },
+      "text-2": {
+        "hex": "#D6D9E0",
+        "basis": "exact",
+        "from": "passive"
+      },
+      "muted": {
+        "hex": "#8DA1AD",
+        "basis": "exact",
+        "from": "content_secondary"
+      },
+      "subtle": {
+        "hex": "#889DA9",
+        "basis": "exact",
+        "from": "content_disabled"
+      },
+      "primary": {
+        "hex": "#00F6D2",
+        "basis": "exact",
+        "from": "active"
+      },
+      "on-primary": {
+        "hex": "#032E49",
+        "basis": "exact",
+        "from": "content_opposite"
+      },
+      "primary-text": {
+        "hex": "#00F6D2",
+        "basis": "exact",
+        "from": "active (linkStyle)"
+      },
+      "primary-disabled": {
+        "hex": "#2C5066",
+        "basis": "exact",
+        "from": "section"
+      },
+      "on-primary-disabled": {
+        "hex": "#889DA9",
+        "basis": "exact",
+        "from": "content_disabled"
+      },
+      "secondary": {
+        "hex": "#03445D",
+        "basis": "derived",
+        "how": "active #00f6d2 at 15% over #042548 (BEAM tints with it: table_header 10%, coinPaneBorder 15%)"
+      },
+      "on-secondary": {
+        "hex": "#00F6D2",
+        "basis": "exact",
+        "from": "active"
+      },
+      "border": {
+        "hex": "#33566B",
+        "basis": "exact",
+        "from": "separator"
+      },
+      "success-bg": {
+        "hex": "#03445D",
+        "basis": "derived",
+        "how": "active at 15% over the navy"
+      },
+      "success": {
+        "hex": "#00F6D2",
+        "basis": "exact",
+        "from": "active / online"
+      },
+      "error-bg": {
+        "hex": "#2A2E4B",
+        "basis": "derived",
+        "how": "validator_error #ff625c at 15% over the navy"
+      },
+      "error": {
+        "hex": "#FF746B",
+        "basis": "exact",
+        "from": "accent_fail (error text: validator_error #ff625c reads 4.20:1 on surface-2)"
+      },
+      "info-bg": {
+        "hex": "#053E62",
+        "basis": "derived",
+        "how": "accent_incoming at 15% over the navy"
+      },
+      "info": {
+        "hex": "#0BCCF7",
+        "basis": "exact",
+        "from": "accent_incoming"
+      },
+      "warn-bg": {
+        "hex": "#283E48",
+        "basis": "derived",
+        "how": "validator_warning at 15% over the navy"
+      },
+      "warn": {
+        "hex": "#F4CE4A",
+        "basis": "exact",
+        "from": "validator_warning"
+      },
+      "green": {
+        "hex": "#00F6D2",
+        "basis": "exact",
+        "from": "online"
+      },
+      "yellow": {
+        "hex": "#F4CE4A",
+        "basis": "exact",
+        "from": "validator_warning"
+      },
+      "red": {
+        "hex": "#FF625C",
+        "basis": "exact",
+        "from": "validator_error"
+      },
+      "accent": {
+        "hex": "#00F6D2",
+        "basis": "exact",
+        "from": "active"
+      },
+      "in": {
+        "hex": "#0BCCF7",
+        "basis": "exact",
+        "from": "accent_incoming"
+      },
+      "in-bg": {
+        "hex": "#0F476A",
+        "basis": "derived",
+        "how": "accent_incoming at 15% over the cards"
+      },
+      "out": {
+        "hex": "#DA68F5",
+        "basis": "exact",
+        "from": "accent_outgoing"
+      },
+      "out-bg": {
+        "hex": "#2E386A",
+        "basis": "derived",
+        "how": "accent_outgoing at 15% over the cards"
+      },
+      "out-text": {
+        "hex": "#DA68F5",
+        "basis": "exact",
+        "from": "accent_outgoing"
+      },
+      "swap": {
+        "hex": "#39FDF2",
+        "basis": "exact",
+        "from": "accent_swap"
+      },
+      "swap-bg": {
+        "hex": "#164F69",
+        "basis": "derived",
+        "how": "accent_swap at 15% over the cards"
+      },
+      "on-green": {
+        "hex": "#032E49",
+        "basis": "exact",
+        "from": "content_opposite"
+      },
+      "on-red": {
+        "hex": "#032E49",
+        "basis": "exact",
+        "from": "content_opposite"
+      }
+    },
+    "light": {
+      "bg": {
+        "hex": "#EEF4FA",
+        "basis": "derived",
+        "how": "the navy's hue, nearly white"
+      },
+      "bg-top": {
+        "hex": "#E0EBF4",
+        "basis": "derived",
+        "how": "background_main_top #035b8f at 6% over the page"
+      },
+      "surface": {
+        "hex": "#FFFFFF",
+        "basis": "exact",
+        "from": "content_main"
+      },
+      "surface-2": {
+        "hex": "#E2EBF3",
+        "basis": "derived",
+        "how": "the navy's hue, light"
+      },
+      "text": {
+        "hex": "#042548",
+        "basis": "exact",
+        "from": "background_main, as ink"
+      },
+      "text-2": {
+        "hex": "#23405E",
+        "basis": "derived",
+        "how": "the navy, lighter"
+      },
+      "muted": {
+        "hex": "#566A76",
+        "basis": "derived",
+        "how": "content_secondary #8da1ad (hue 202, saturation 16%) darkened from 62% to 40% lightness: 4.68:1 on surface-2"
+      },
+      "subtle": {
+        "hex": "#8DA1AD",
+        "basis": "exact",
+        "from": "content_secondary (icons and disabled only)"
+      },
+      "primary": {
+        "hex": "#00F6D2",
+        "basis": "exact",
+        "from": "active: the turquoise button, as in every BEAM wallet"
+      },
+      "on-primary": {
+        "hex": "#032E49",
+        "basis": "exact",
+        "from": "content_opposite: 10.14:1 on the turquoise"
+      },
+      "primary-text": {
+        "hex": "#007564",
+        "basis": "derived",
+        "how": "active #00f6d2 (hue 171, saturation 100%) darkened from 48% to 23% lightness: 5.08:1 on the page"
+      },
+      "primary-disabled": {
+        "hex": "#D3E4E1",
+        "basis": "derived",
+        "how": "the turquoise, greyed and light"
+      },
+      "on-primary-disabled": {
+        "hex": "#7C918E",
+        "basis": "derived",
+        "how": "grey-teal (disabled controls are exempt from the 4.5:1 rule)"
+      },
+      "secondary": {
+        "hex": "#D9F7F2",
+        "basis": "derived",
+        "how": "active at about 15% over white"
+      },
+      "on-secondary": {
+        "hex": "#00665A",
+        "basis": "derived",
+        "how": "active darkened further, for text on that tint"
+      },
+      "border": {
+        "hex": "#D3E0EA",
+        "basis": "derived",
+        "how": "the navy's hue, light"
+      },
+      "success-bg": {
+        "hex": "#D9F7F2",
+        "basis": "derived",
+        "how": "active at about 15% over white"
+      },
+      "success": {
+        "hex": "#00665A",
+        "basis": "derived",
+        "how": "active, darkened"
+      },
+      "error-bg": {
+        "hex": "#FFE7E7",
+        "basis": "derived",
+        "how": "validator_error #ff625c at 15% over white"
+      },
+      "error": {
+        "hex": "#B80F0A",
+        "basis": "derived",
+        "how": "validator_error's hue, darkened"
+      },
+      "info-bg": {
+        "hex": "#DCF5FC",
+        "basis": "derived",
+        "how": "accent_incoming at about 15% over white"
+      },
+      "info": {
+        "hex": "#035E73",
+        "basis": "derived",
+        "how": "accent_incoming's hue, darkened"
+      },
+      "warn-bg": {
+        "hex": "#FDF3D6",
+        "basis": "derived",
+        "how": "validator_warning at about 20% over white"
+      },
+      "warn": {
+        "hex": "#5C4700",
+        "basis": "derived",
+        "how": "validator_warning's hue, darkened"
+      },
+      "green": {
+        "hex": "#007564",
+        "basis": "derived",
+        "how": "active, darkened (as primary-text)"
+      },
+      "yellow": {
+        "hex": "#7D6407",
+        "basis": "derived",
+        "how": "validator_warning (hue 47, saturation 89%) darkened from 62% to 26% lightness"
+      },
+      "red": {
+        "hex": "#D10700",
+        "basis": "derived",
+        "how": "validator_error (hue 2, saturation 100%) darkened from 68% to 41% lightness"
+      },
+      "accent": {
+        "hex": "#007564",
+        "basis": "derived",
+        "how": "active, darkened: controls (progress, radio, focus) need 3:1, the turquoise reads 1.39:1 on white"
+      },
+      "in": {
+        "hex": "#04728B",
+        "basis": "derived",
+        "how": "accent_incoming #0bccf7 (hue 191, saturation 94%) darkened from 51% to 28% lightness: 5.01:1 on the page"
+      },
+      "in-bg": {
+        "hex": "#DCF5FC",
+        "basis": "derived",
+        "how": "accent_incoming at about 15% over white"
+      },
+      "out": {
+        "hex": "#AB0DCE",
+        "basis": "derived",
+        "how": "accent_outgoing #da68f5 (hue 289, saturation 88%) darkened from 68% to 43% lightness: 5.15:1 on the page"
+      },
+      "out-bg": {
+        "hex": "#F7E5FD",
+        "basis": "derived",
+        "how": "accent_outgoing at about 15% over white"
+      },
+      "out-text": {
+        "hex": "#AB0DCE",
+        "basis": "derived",
+        "how": "as out"
+      },
+      "swap": {
+        "hex": "#017972",
+        "basis": "derived",
+        "how": "accent_swap #39fdf2 (hue 177, saturation 98%) darkened from 61% to 24% lightness: 5.28:1 on white"
+      },
+      "swap-bg": {
+        "hex": "#D6F7F5",
+        "basis": "derived",
+        "how": "accent_swap at about 18% over white"
+      },
+      "on-green": {
+        "hex": "#FFFFFF",
+        "basis": "exact",
+        "from": "content_main"
+      },
+      "on-red": {
+        "hex": "#FFFFFF",
+        "basis": "exact",
+        "from": "content_main"
+      }
+    }
+  },
+  "accessibility": [
+    "BEAM's accents are made for its navy and read 1.39:1 (#00f6d2), 1.91:1 (#0bccf7) and 2.88:1 (#da68f5) on white: in light the text and control colours keep BEAM's hue and saturation and are darkened to 4.5:1; the turquoise button keeps its marine label (10.14:1), as in BEAM's wallets.",
+    "BEAM's top band (#035b8f at full strength) gives its own secondary text #8da1ad 2.70:1 and its sent colour 2.51:1: the band here is 25% of it (4.87:1 and 4.52:1).",
+    "BEAM's popup colour #00446c gives its secondary text 3.83:1, sent 3.56:1 and error 3.50:1: sheets stay on the main navy, where all three read 5.25:1 or more.",
+    "BEAM's error red #ff625c reads 4.20:1 on the input colour (and 4.58:1 on cards): error text uses BEAM's failed colour #ff746b (4.67:1 on inputs); #ff625c stays for marks and borders.",
+    "White on BEAM's turquoise reads 1.39:1 and on its error red 2.94:1: step marks on them use BEAM's marine #032e49 (10.14:1 and 4.80:1).",
+    "Received and sent are never told by colour alone: an arrow icon each, a + or − on the amount, and the words Received / Sent, as in BEAM's own wallets."
+  ]
+}

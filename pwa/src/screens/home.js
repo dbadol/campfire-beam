@@ -140,7 +140,7 @@ export function txRow(app, tx, onclick) {
     { class: 'row', onclick, 'data-txid': tx.txId },
     h('span', { class: `ico ${failed ? 'fail' : income ? 'in' : 'out'}` }, icon(isPendingTx(tx) ? 'clock' : income ? 'receive' : 'send')),
     h('span', { class: 'main' }, h('div', { class: 't', text: txStatusText(tx) }), h('div', { class: 's', text: [fmtDate(tx.create_time), rowExtra(tx)].filter(Boolean).join(' · ') })),
-    h('span', { class: `end${income && !failed ? ' in' : ''}`, text: `${income ? '+' : '−'}${formatAmount(value)} ${label.unit}` }),
+    h('span', { class: `end${failed ? '' : income ? ' in' : ' out'}`, text: `${income ? '+' : '−'}${formatAmount(value)} ${label.unit}` }),
   );
 }
 

@@ -1,5 +1,5 @@
 // Settings -> Appearance, end to end: Theme (like this device, light, dark) and Colours (Campfire
-// red or BEAM blue, issue #80). The installed Google Chrome (headless), its own build and port, a
+// red or BEAM, issue #80). The installed Google Chrome (headless), its own build and port, a
 // throwaway mainnet wallet that holds nothing. The device's own light / dark is emulated. A sweep
 // measures the rendered contrast of every visible text on the app's screens in all four palettes.
 //
@@ -17,7 +17,7 @@ const PORT = 8828;
 const tid = (id) => `[data-testid="${id}"]`;
 const LIGHT_BG = 'rgb(255, 241, 241)';
 const DARK_BG = 'rgb(28, 29, 34)';
-const BEAM_LIGHT_BG = 'rgb(238, 245, 250)';
+const BEAM_LIGHT_BG = 'rgb(238, 244, 250)';
 const BEAM_DARK_BG = 'rgb(4, 37, 72)';
 const PASSWORD = `theme-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -102,7 +102,7 @@ test('Settings -> Theme: Light, Dark and Like this device, at once, and kept aft
   assert.equal(await bg(), LIGHT_BG);
 });
 
-test('Settings -> Colours: BEAM blue at once, light and dark; from the first paint after a reload; Campfire red again', { timeout: 10 * 60000 }, async () => {
+test('Settings -> Colours: BEAM at once, light and dark; from the first paint after a reload; Campfire red again', { timeout: 10 * 60000 }, async () => {
   await unlockWithPassword(page, PASSWORD);
   await waitHome(page);
   await page.evaluate(() => window.__campfire.go('settings'));
@@ -113,17 +113,17 @@ test('Settings -> Colours: BEAM blue at once, light and dark; from the first pai
     const k = document.querySelector('[data-testid="skin-row"]');
     return { same: t.parentElement === k.parentElement, title: t.parentElement.previousElementSibling.textContent, sub: k.querySelector('.s').textContent };
   });
-  assert.deepEqual(card, { same: true, title: 'Appearance', sub: 'Red or blue' });
+  assert.deepEqual(card, { same: true, title: 'Appearance', sub: 'Campfire or BEAM' });
   await page.locator(tid('skin-row')).scrollIntoViewIfNeeded();
   assert.equal(await page.inputValue(tid('skin-select')), 'campfire', 'Campfire red by default');
-  assert.deepEqual(await page.$$eval(`${tid('skin-select')} option`, (o) => o.map((x) => x.textContent)), ['Campfire red', 'BEAM blue']);
+  assert.deepEqual(await page.$$eval(`${tid('skin-select')} option`, (o) => o.map((x) => x.textContent)), ['Campfire red', 'BEAM']);
   await page.selectOption(tid('skin-select'), 'beam');
   assert.equal(await bg(), BEAM_LIGHT_BG, 'at once');
   assert.equal(await page.evaluate(() => localStorage.getItem('campfire-skin')), 'beam');
-  assert.deepEqual(await bars(), ['#eef5fa', '#042548']);
+  assert.deepEqual(await bars(), ['#e0ebf4', '#04325a']);
   await shot(page, 'theme-04-settings-beam-light');
   await page.emulateMedia({ colorScheme: 'dark' });
-  assert.equal(await bg(), BEAM_DARK_BG, 'BEAM blue, dark');
+  assert.equal(await bg(), BEAM_DARK_BG, 'BEAM, dark');
   await shot(page, 'theme-05-settings-beam-dark');
   await page.emulateMedia({ colorScheme: 'light' });
   // The logo is Campfire's in either colours.
@@ -131,9 +131,9 @@ test('Settings -> Colours: BEAM blue at once, light and dark; from the first pai
 
   await page.reload();
   await waitScreen(page, 'unlock', 120000);
-  assert.deepEqual(await page.evaluate(() => window.__atInteractive), { theme: null, bg: '#eef5fa' }, 'BEAM blue as soon as the page is read');
+  assert.deepEqual(await page.evaluate(() => window.__atInteractive), { theme: null, bg: '#eef4fa' }, 'BEAM as soon as the page is read');
   assert.equal(await page.evaluate(() => document.documentElement.dataset.skin), 'beam');
-  assert.deepEqual(await bars(), ['#eef5fa', '#042548'], 'the browser bar too');
+  assert.deepEqual(await bars(), ['#e0ebf4', '#04325a'], 'the browser bar too');
   await shot(page, 'theme-06-unlock-beam-light');
   await unlockWithPassword(page, PASSWORD);
   await waitHome(page);
@@ -147,8 +147,8 @@ test('Settings -> Colours: BEAM blue at once, light and dark; from the first pai
 });
 
 /**
- * Every visible text on the page: its colour against what it is drawn on (translucent layers and
- * faded ancestors composited), WCAG 2: 4.5:1, or 3:1 for large text. Disabled controls are left
+ * Every visible text on the page: its colour against what it is drawn on (translucent layers, faded
+ * ancestors and the band at the top of the page composited), WCAG 2: 4.5:1, or 3:1 for large text. Disabled controls are left
  * out (WCAG exempts them), and so is an asset's own badge colour (it is the asset's, not ours).
  * With a sheet open, only the sheet.
  */
@@ -168,6 +168,13 @@ async function lowContrast() {
       return (x + 0.05) / (y + 0.05);
     };
     const pageBg = parse(getComputedStyle(document.body).backgroundColor);
+    // The page's own colour under a text: --bg, or within the top 230 px the --bg-top band fading into it.
+    const hexRgb = (x) => ({ r: parseInt(x.slice(1, 3), 16), g: parseInt(x.slice(3, 5), 16), b: parseInt(x.slice(5, 7), 16), a: 1 });
+    const top = hexRgb(getComputedStyle(document.documentElement).getPropertyValue('--bg-top').trim());
+    const pageAt = (el) => {
+      const y = el.getBoundingClientRect().top + window.scrollY;
+      return y >= 230 ? pageBg : over(top, pageBg, 1 - Math.max(0, y) / 230);
+    };
     const bgOf = (el) => {
       const layers = [];
       for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
@@ -177,7 +184,7 @@ async function lowContrast() {
           if (c.a >= 1) break;
         }
       }
-      let base = layers.length && layers[layers.length - 1].a >= 1 ? layers.pop() : pageBg;
+      let base = layers.length && layers[layers.length - 1].a >= 1 ? layers.pop() : pageAt(el);
       for (let i = layers.length - 1; i >= 0; i--) base = over(layers[i], base);
       return base;
     };
@@ -207,7 +214,7 @@ async function lowContrast() {
 const SWEEP = ['home', 'receive', 'send', 'activity', 'settings', 'nodeSettings', 'about', 'swap', 'dapps', 'names', 'airdrop', 'airdropCreate', 'airdropBatches', 'contacts', 'addresses', 'checkProof', 'notifications', 'coins', 'minterTokens', 'minterCreate', 'pools', 'hiddenTokens', 'wallets', 'changePassword', 'ethStart'];
 const LOOK = [['campfire', 'light'], ['campfire', 'dark'], ['beam', 'light'], ['beam', 'dark']];
 
-test('every visible text on the app\'s screens reads at 4.5:1 (large text 3:1) in Campfire red and BEAM blue, light and dark', { timeout: 15 * 60000 }, async () => {
+test('every visible text on the app\'s screens reads at 4.5:1 (large text 3:1) in Campfire red and BEAM, light and dark', { timeout: 15 * 60000 }, async () => {
   const low = [];
   for (const [skin, scheme] of LOOK) {
     await page.evaluate(async (k) => (await import('./lib/theme.js')).setSkin(k), skin);
