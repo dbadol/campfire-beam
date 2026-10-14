@@ -13,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../app_config.dart';
+import '../../pages/beam/colours/beam_colours_view.dart';
+import '../../themes/beam/beam_themes.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/assets.dart';
 import '../../utilities/constants.dart';
@@ -41,6 +43,7 @@ class _SettingsMenuState extends ConsumerState<SettingsMenu> {
       "Nodes",
       "Syncing preferences",
       if (AppConfig.hasFeature(AppFeature.themeSelection)) "Appearance",
+      if (BeamThemes.offered) BeamColoursText.title,
       "Advanced",
       if (Constants.enableExchange && AppConfig.hasFeature(.shopinBit))
         "ShopinBit",

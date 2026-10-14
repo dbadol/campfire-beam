@@ -205,8 +205,10 @@ class FakeTxBackend {
 
 // -------------------------------------------------------------------- theme
 
-StackTheme _campfireLight() {
-  final zip = File('asset_sources/default_themes/campfire/light.zip')
+/// A theme of Campfire's: [name] is light (Campfire's own, the default) or one
+/// of BEAM's (beam_light, beam_dark).
+StackTheme _campfireTheme(String name) {
+  final zip = File('asset_sources/default_themes/campfire/$name.zip')
       .readAsBytesSync();
   final themeJson = ZipDecoder()
       .decodeBytes(zip)
@@ -241,13 +243,13 @@ class _ThemeIcons implements IThemeAssets {
   dynamic noSuchMethod(Invocation invocation) => '';
 }
 
-_ThemeIcons? _icons;
+final _icons = <String, _ThemeIcons>{};
 
-_ThemeIcons _themeIcons() {
-  final cached = _icons;
+_ThemeIcons _themeIcons([String name = 'light']) {
+  final cached = _icons[name];
   if (cached != null) return cached;
   final dir = Directory.systemTemp.createTempSync('cfb_txui_theme');
-  final zip = File('asset_sources/default_themes/campfire/light.zip')
+  final zip = File('asset_sources/default_themes/campfire/$name.zip')
       .readAsBytesSync();
   for (final f in ZipDecoder().decodeBytes(zip).files) {
     if (f.isFile && f.name.startsWith('assets/svg/tx-icon-')) {
@@ -256,10 +258,15 @@ _ThemeIcons _themeIcons() {
         ..writeAsBytesSync(f.content as List<int>);
     }
   }
-  return _icons = _ThemeIcons(dir.path);
+  return _icons[name] = _ThemeIcons(dir.path);
 }
 
-final StackTheme _light = _campfireLight();
+final StackTheme _light = _campfireTheme('light');
+final _themes = <String, StackTheme>{'light': _light};
+
+/// The theme named [name] (see [_campfireTheme]).
+StackTheme campfireTheme(String name) =>
+    _themes[name] ??= _campfireTheme(name);
 final StackColors kColors = StackColors.fromStackColorTheme(_light);
 
 // The parts of lib/main.dart's ThemeData that Campfire's widgets read.
@@ -320,7 +327,8 @@ const kFixtureTipHeight = 3677099;
 
 /// [home] inside Campfire's theme with every BEAM provider faked.
 /// [coinScan] is a restore scan still looking for the wallet's coins;
-/// [restoredWithFunds] a restored wallet that holds something.
+/// [restoredWithFunds] a restored wallet that holds something; [theme] one
+/// of Campfire's themes by name (Campfire's own light one by default).
 Widget app({
   required Widget home,
   required FakeTxBackend fake,
@@ -328,7 +336,12 @@ Widget app({
   RouteFactory? onGenerateRoute,
   BeamCoinScan? coinScan,
   bool restoredWithFunds = false,
+  String theme = 'light',
 }) {
+  final stackTheme = campfireTheme(theme);
+  final colors = theme == 'light'
+      ? kColors
+      : StackColors.fromStackColorTheme(stackTheme);
   return RepaintBoundary(
     key: kShot,
     child: ProviderScope(
@@ -363,14 +376,16 @@ Widget app({
           (_) => Provider<int>((_) => kFixtureTipHeight),
         ),
         themeAssetsProvider.overrideWithValue(
-          StateController<IThemeAssets>(_themeIcons()),
+          StateController<IThemeAssets>(_themeIcons(theme)),
         ),
         // Background reads the theme for an optional background image.
-        themeProvider.overrideWithValue(StateController<StackTheme>(_light)),
+        themeProvider.overrideWithValue(
+          StateController<StackTheme>(stackTheme),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: _appTheme(kColors),
+        theme: _appTheme(colors),
         home: home,
         onGenerateRoute: onGenerateRoute,
       ),

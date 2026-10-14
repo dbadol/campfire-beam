@@ -11,6 +11,7 @@ import '../../../pages/shopinbit/shopinbit_tickets_view.dart';
 import '../../../providers/db/drift_provider.dart';
 import '../../../providers/desktop/current_desktop_menu_item.dart';
 import '../../../providers/global/shopin_bit_service_provider.dart';
+import '../../../themes/beam/beam_themes.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/show_loading.dart';
@@ -217,6 +218,7 @@ class _DesktopServicesViewState extends ConsumerState<DesktopShopInBitView> {
                           if (AppConfig.hasFeature(AppFeature.themeSelection)) {
                             idx++;
                           }
+                          if (BeamThemes.offered) idx++;
                           ref
                                   .read(
                                     selectedSettingsMenuItemStateProvider.state,

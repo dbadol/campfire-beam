@@ -12,8 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app_config.dart';
+import '../../pages/beam/colours/beam_colours_view.dart';
 import '../../pages/shopinbit/shopinbit_settings_view.dart';
 import '../../route_generator.dart';
+import '../../themes/beam/beam_themes.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/constants.dart';
 import '../../utilities/text_styles.dart';
@@ -85,6 +87,7 @@ class _DesktopSettingsViewState extends ConsumerState<DesktopSettingsView> {
           onGenerateRoute: RouteGenerator.generateRoute,
           initialRoute: AppearanceOptionSettings.routeName,
         ), //appearance
+      if (BeamThemes.offered) const BeamColoursDesktopSettings(), // BEAM
       const Navigator(
         key: Key("settingsAdvancedDesktopKey"),
         onGenerateRoute: RouteGenerator.generateRoute,

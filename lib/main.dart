@@ -362,6 +362,14 @@ void main(List<String> args) async {
   ))) {
     Prefs.instance.systemBrightnessDarkThemeId = "dark";
   }
+  // Campfire ships no "dark" theme: following the device needs a dark theme
+  // that is installed (BEAM's, lib/themes/beam/beam_themes.dart), or it is off.
+  if (Prefs.instance.enableSystemBrightness &&
+      !(await ThemeService.instance.verifyInstalled(
+        themeId: Prefs.instance.systemBrightnessDarkThemeId,
+      ))) {
+    Prefs.instance.enableSystemBrightness = false;
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }

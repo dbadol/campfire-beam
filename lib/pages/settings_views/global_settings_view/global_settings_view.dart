@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app_config.dart';
 import '../../../route_generator.dart';
+import '../../../themes/beam/beam_themes.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/constants.dart';
@@ -22,6 +23,7 @@ import '../../../widgets/background.dart';
 import '../../../widgets/custom_buttons/app_bar_icon_button.dart';
 import '../../../widgets/rounded_white_container.dart';
 import '../../address_book_views/address_book_view.dart';
+import '../../beam/colours/beam_colours_view.dart';
 import '../../pinpad_views/lock_screen_view.dart';
 import '../../shopinbit/shopinbit_settings_view.dart';
 import '../sub_widgets/settings_list_button.dart';
@@ -211,6 +213,17 @@ class GlobalSettingsView extends StatelessWidget {
                                           AppearanceSettingsView.routeName,
                                         );
                                       },
+                                    ),
+                                  // BEAM's colours (Campfire's Appearance).
+                                  if (BeamThemes.offered)
+                                    const SizedBox(height: 8),
+                                  if (BeamThemes.offered)
+                                    SettingsListButton(
+                                      iconAssetName: Assets.svg.sun,
+                                      iconSize: 18,
+                                      title: BeamColoursText.title,
+                                      onPressed: () =>
+                                          BeamColoursView.open(context),
                                     ),
                                   if (Platform.isIOS) const SizedBox(height: 8),
                                   if (Platform.isIOS)
