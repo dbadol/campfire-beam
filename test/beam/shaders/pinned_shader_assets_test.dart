@@ -27,6 +27,7 @@ import 'package:stackwallet/wallets/beam/contracts/common/asset_shader_source.da
 import 'package:stackwallet/wallets/beam/contracts/common/pinned_shader.dart';
 import 'package:stackwallet/wallets/beam/contracts/dapps_store/dapps_store_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/dex/dex_constants.dart';
+import 'package:stackwallet/wallets/beam/contracts/fuddle/fuddle_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/minter/minter_constants.dart';
 import 'package:stackwallet/wallets/bridge/bridge_routes.dart';
 
@@ -41,6 +42,8 @@ List<PinnedShader> _pinned(ShaderSource source) => [
   pipeAppShader(BridgeShader.forward, source),
   pipeAppShader(BridgeShader.reverse, source),
   dappsStoreAppShader(source),
+  // Shipped for the web wallet (pwa/tools/shader_check.mjs reads it here); the app does not use it.
+  fuddleAppShader(source),
   // Shipped for the web wallet's payments to a name; this app does not load
   // it, but the bytes in the bundle must still be the pinned ones.
   PinnedShader(
@@ -72,7 +75,7 @@ void main() {
       () => Future.wait([for (final s in _pinned(source)) s.load()]),
     );
     final shaders = _pinned(source);
-    expect(loaded, hasLength(10));
+    expect(loaded, hasLength(11));
     for (var i = 0; i < shaders.length; i++) {
       final bytes = loaded![i];
       expect(bytes.length, shaders[i].size, reason: shaders[i].name);
@@ -92,6 +95,7 @@ void main() {
       kPipeAppShaderName,
       kPipeReverseAppShaderName,
       kDappsStoreAppShaderName,
+      kFuddleAppShaderName,
       kVaultAnonShaderName,
     ]);
   });
