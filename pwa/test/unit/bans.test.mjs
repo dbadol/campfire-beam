@@ -10,7 +10,7 @@ import {
   BANS_CID, args, nameProblem, normaliseName, parseName, tryName, describeNameProblem, usdPerPeriod, isKey, requireKey, fingerprint, checkCode, ZERO_KEY,
   parseMyKey, parseViewName, parseViewDomain, parseViewParams, refusal, mapError, isPrivilegeFailure, statusOf, STATUS, canRegister, canReceivePayments,
   holdEndHeight, expiryAfterRegister, expiryAfterExtend, maxExtendPeriods, priceEstimate, classifyRecipient, createBans, consentExpectation, BansError,
-  HOLD_BLOCKS, BLOCKS_PER_PERIOD, dateOf, pinVerdict, nameMessage,
+  HOLD_BLOCKS, BLOCKS_PER_PERIOD, dateOf, pinVerdict, pinAfterTimeout, nameMessage,
 } from '../../src/lib/bans.js';
 import { parseShaderJson, bindSession, unbindSession, nativeApp, setConsentPresenter } from '../../src/lib/contracts.js';
 import { fakeEngine } from './helpers/fake_engine.mjs';
@@ -452,4 +452,21 @@ test('through lib/contracts.js: inspect reads the built bytes, a refusal keeps i
     unset();
     unbindSession();
   }
+});
+
+test('a payment to a name with no answer in time keeps the owner it was built for, never over a different remembered one', () => {
+  const K1 = '01'.repeat(33);
+  const K2 = '02'.repeat(33);
+  // What this wallet remembers could not be read: nothing is kept (it could hide a change).
+  assert.equal(pinAfterTimeout({ known: null, checked: K2 }), null);
+  assert.equal(pinAfterTimeout({ known: null, checked: K2, accepted: K2 }), null);
+  // Never paid before, or the same owner: kept.
+  assert.equal(pinAfterTimeout({ known: { pinned: null }, checked: K2 }), K2);
+  assert.equal(pinAfterTimeout({ known: { pinned: K1 }, checked: K1 }), K1);
+  // A different remembered owner the person did not choose: never replaced (release audit 0.2.18, S1).
+  assert.equal(pinAfterTimeout({ known: { pinned: K1 }, checked: K2 }), null);
+  // ...unless the person chose the new owner on Send.
+  assert.equal(pinAfterTimeout({ known: { pinned: K1 }, checked: K2, accepted: K2 }), K2);
+  // No key checked: nothing.
+  assert.equal(pinAfterTimeout({ known: { pinned: K1 }, checked: null }), null);
 });

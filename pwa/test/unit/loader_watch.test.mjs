@@ -152,7 +152,9 @@ async function otherWindowMoves({ record, install, takeOver = install, served, f
     }
     sw.controller = { scriptURL: `https://wallet.example/${takeOver}` };
     sw.fire('controllerchange');
-    await new Promise((r) => setTimeout(r, 30));
+    // Wait for the check to finish (it is asynchronous), up to 1.5 s, instead of a fixed 30 ms that a
+    // loaded machine could outrun (release audit 0.2.18, NIT).
+    for (let i = 0; i < 75 && !moved; i++) await new Promise((r) => setTimeout(r, 20));
     return { afterInstall, why, moved, asked, firstAnswer, record: store.get('campfire-loader-check') };
   } finally {
     globalThis.window = prev.window;

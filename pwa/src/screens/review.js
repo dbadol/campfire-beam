@@ -16,7 +16,7 @@ import { screen, primary, notice, textButton } from '../lib/ui.js';
 import { formatAmount } from '../lib/amount.js';
 import { wallet, sendModeFor } from '../lib/wallet.js';
 import { confirmIdentity } from '../lib/auth_ui.js';
-import { checkCode, display, pinVerdict } from '../lib/bans.js';
+import { checkCode, display, pinAfterTimeout } from '../lib/bans.js';
 import { bans, nameProblemText } from './names.js';
 import { contactNameFor, readNamePin, pinNamePayment, NAME_PIN_UNREAD } from '../lib/contacts.js';
 import { cleanNote } from '../lib/payments.js';
@@ -128,9 +128,8 @@ function nameReview(app, p) {
       // changed owner is still flagged next time instead of reading as a first payment (audit 1.3.0, S3) -
       // but only when what this wallet remembers was read and does not say otherwise: a different
       // remembered owner is never replaced without the person's choice (release audit 0.2.18, S1).
-      const checked = p.acceptedKey || p.ownerKey;
-      const fits = known && checked && pinVerdict({ pinned: known.pinned, now: checked, accepted: p.acceptedKey || null }) !== 'changed';
-      if (e.code === 'timeout' && fits) await pinNamePayment(app, p.name, checked).catch((err) => console.warn('[campfire] name pin', err && err.message));
+      const keep = pinAfterTimeout({ known, checked: p.acceptedKey || p.ownerKey || null, accepted: p.acceptedKey || null });
+      if (e.code === 'timeout' && keep) await pinNamePayment(app, p.name, keep).catch((err) => console.warn('[campfire] name pin', err && err.message));
       cta.disabled = false;
       cta.textContent = label;
       put(msg, notice(e.code === 'rejected' ? 'info' : 'error', nameProblemText(e, 'payment')));
