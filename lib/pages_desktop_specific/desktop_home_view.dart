@@ -25,6 +25,7 @@ import '../providers/ui/transaction_filter_provider.dart';
 import '../providers/ui/unread_notifications_provider.dart';
 import '../route_generator.dart';
 import '../themes/stack_colors.dart';
+import '../utilities/beam/secret_clipboard.dart';
 import '../utilities/enums/backup_frequency_type.dart';
 import '../utilities/idle_monitor.dart';
 import '../utilities/prefs.dart';
@@ -61,6 +62,8 @@ class _DesktopHomeViewState extends ConsumerState<DesktopHomeView> {
   IdleMonitor? _idleMonitor;
 
   void _onIdle() async {
+    // A voucher code copied before the lock leaves the clipboard now.
+    unawaited(SecretClipboard.onAppLocked());
     final context = myStackViewNavKey.currentContext;
     if (context != null) {
       await showDialog<void>(

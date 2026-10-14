@@ -709,7 +709,9 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(
+                // Not selectable: a code leaves only through the copy
+                // button, which takes it off the clipboard again.
+                Text(
                   c.code,
                   key: ValueKey('code-$i'),
                   style: voucherCodeStyle(context, size: 15),

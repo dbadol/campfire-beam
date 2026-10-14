@@ -542,11 +542,12 @@ void main() {
       expect(find.byKey(const ValueKey('codes-ready')), findsOneWidget);
       expect(find.byKey(const ValueKey('codes-key-warning')), findsOneWidget);
       for (var i = 0; i < 3; i++) {
-        final shown = tester
-            .widget<SelectableText>(find.byKey(ValueKey('code-$i')))
-            .data;
+        final shown = tester.widget<Text>(find.byKey(ValueKey('code-$i'))).data;
         expect(shown, saved.codes[i].code);
       }
+      // Nothing to select: a code leaves only through Copy, which takes it
+      // off the clipboard again (release audit 1.3.0).
+      expect(find.byType(SelectableText), findsNothing);
       await expectScreen(tester, 'codes_new');
     });
 

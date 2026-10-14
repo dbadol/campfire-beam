@@ -339,7 +339,7 @@ void main() {
       expect(saved.check!.ok, isTrue);
       for (var i = 0; i < 3; i++) {
         expect(
-          tester.widget<SelectableText>(find.byKey(ValueKey('code-$i'))).data,
+          tester.widget<Text>(find.byKey(ValueKey('code-$i'))).data,
           saved.codes[i].code,
         );
       }
