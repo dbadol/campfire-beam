@@ -3,20 +3,28 @@
 // network fees from the declared charges, argument builders, answer parsing, the check before a new
 // batch's codes are shared (truncated lists included), v3-then-old lookups, and the service over a
 // fake v3 contract: every built transaction checked byte for byte, tampered builds never signed.
-import test from 'node:test';
+import test, { before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import {
   V3_CID, V3_SHADER_ID, V3_METHOD, V3_CHARGE, V3_KERNEL, V3_MAX_VOUCHERS, V3_CLAIM_FEE, GAS_PER_VOUCHER, CONFIRMATIONS_BEFORE_CHECK, CHECK_PROBLEM_TEXT,
   feeForUnits, createFee, cancelFee, createCharge, cancelCharge, v3CreationFee, claimCost, normaliseV3, isV3Code, seedOf, secretOf, voucherKeyOf, seedsBlob, gasArg,
-  v3args, parseV3Voucher, parseV3Batches, parseV3Batch, parseVoucherKey, v3CodeFor, mapV3Error, squatCheck, createAirdropV3, createAirdrops,
-} from '../../src/lib/airdrop_v3.js';
+  v3args, parseV3Voucher, parseV3Batches, parseV3Batch, parseVoucherKey, v3CodeFor, mapV3Error, squatCheck, createAirdropV3, createAirdrops, cryptoReady } from '../../src/lib/airdrop_v3.js';
 import { AIRDROP_CID, CALL_FEE, creationFee, MAX_TOTAL, normaliseCode, codeHash, codeVault, createAirdrop, airdropLock, readSavedBatch, TX_STATUS, CODE_STATUS, CHECK_STATE } from '../../src/lib/airdrop.js';
 import { SHADERS } from '../../src/lib/shaders.js';
 import { entryFee, readContractTx, toHex, fromHex, le } from '../../src/lib/contract_tx.js';
 import { parseShaderJson } from '../../src/lib/contracts.js';
 import { invokeData, invokeEntry } from './helpers/invoke_builder.mjs';
+
+// The curve code loads on first use (lib/airdrop_v3.js cryptoReady); the synchronous helpers below need it.
+before(cryptoReady);
+
+test('the curve code never comes with the first paint: lib/airdrop_v3.js imports it only on first use', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../src/lib/airdrop_v3.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /^import [^;]*vendor\/noble/m, 'no static import of the noble code');
+});
 
 const TXID = 'ab'.repeat(16);
 const CREATOR = '7c'.repeat(32) + '01';

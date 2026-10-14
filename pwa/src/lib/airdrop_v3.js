@@ -23,8 +23,23 @@
 // The old contract (lib/airdrop.js) keeps working for the codes it holds; a code is looked up here
 // first, then there (createAirdrops).
 
-import { secp256k1 } from '../vendor/noble/noble-curves/secp256k1.js';
-import { sha256 } from '../vendor/noble/noble-hashes/sha2.js';
+// The curve and hash code load when an airdrop is used, never with the first paint: every screen is
+// imported at start (app.js), and this module came with them (buy.test.mjs, 0.2.16 sweep).
+let curveLib = null;
+let hashLib = null;
+/** Loads the secp256k1 and SHA-256 code this module needs; every service call awaits it first. */
+export async function cryptoReady() {
+  if (curveLib && hashLib) return;
+  const [c, h] = await Promise.all([import('../vendor/noble/noble-curves/secp256k1.js'), import('../vendor/noble/noble-hashes/sha2.js')]);
+  curveLib = c.secp256k1;
+  hashLib = h.sha256;
+}
+const loaded = (lib) => {
+  if (!lib) throw new Error('airdrop: the curve code is not loaded yet (await cryptoReady())');
+  return lib;
+};
+const sha256 = (data) => loaded(hashLib)(data);
+const secp256k1 = { getPublicKey: (x, compressed) => loaded(curveLib).getPublicKey(x, compressed) };
 import { nativeApp } from './contracts.js';
 import { loadShader } from './shaders.js';
 import { readContractTx, toHex, fromHex, le, concat, bytesEqual, InvokeDataError, ArgsReader } from './contract_tx.js';
@@ -733,6 +748,14 @@ export function createAirdropV3(deps) {
       });
     },
   };
+  // Every call first loads the curve code (cryptoReady): none of it comes with the first paint. Getters
+  // (busy) stay as they are.
+  for (const [k, d] of Object.entries(Object.getOwnPropertyDescriptors(svc))) {
+    if (typeof d.value !== 'function') continue;
+    const f = d.value;
+    // Once loaded, straight through: a create takes its lock in the same tick, as before.
+    svc[k] = (...args) => (curveLib && hashLib ? f.apply(svc, args) : cryptoReady().then(() => f.apply(svc, args)));
+  }
   return svc;
 }
 
@@ -803,7 +826,7 @@ let live = null;
  * transaction at a time. One per wallet session.
  *   vault() -> the code vault;  txStatus(txId) -> the wallet's tx_status
  */
-export function airdropFor(session, { vault, txStatus }) {
+export function airdropFor(session, { vault, txStatus, tipHeight }) {
   if (live && live.session === session) return live.svc;
   const lock = airdropLock();
   const wire = (key) => {
@@ -820,7 +843,7 @@ export function airdropFor(session, { vault, txStatus }) {
     };
   };
   const old = createAirdrop({ ...wire('airdrop'), vault, lock });
-  const v3 = createAirdropV3({ ...wire('airdropV3'), vault, lock, txStatus });
+  const v3 = createAirdropV3({ ...wire('airdropV3'), vault, lock, txStatus, tipHeight });
   const svc = createAirdrops({ v3, old });
   live = { session, svc };
   return svc;

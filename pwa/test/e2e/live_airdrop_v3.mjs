@@ -17,7 +17,7 @@
 //   - take back: pays nothing, receives 0.023 BEAM, fee exactly 0.011 BEAM.
 // Codes are never printed. BEAM's node certificates lapsed on 2026-10-13: run with CAMPFIRE_IGNORE_NODE_CERTS=1.
 import { startServer, launch, recordedPage, shot, waitScreen, sleep } from './harness.mjs';
-import { waitHome, waitSynced, createWallet } from './flows.mjs';
+import { waitHome, waitSynced, createWallet, unlockWithPassword } from './flows.mjs';
 import { tid, log, funderWords, restoreFunder, total, waitTx } from './live_common.mjs';
 
 const PORT = Number(process.env.LIVE_PORT || 8861);
@@ -81,6 +81,15 @@ async function approveIf(p, password, label, problem) {
   return sheet;
 }
 
+/** A wallet left idle locks itself after a few minutes, as it should: unlock it before using it again. */
+async function awake(p, password) {
+  const screen = await p.evaluate(() => document.getElementById('app') && document.getElementById('app').dataset.screen);
+  if (screen === 'unlock') {
+    await unlockWithPassword(p, password);
+    await waitHome(p, { timeout: 120000 });
+  }
+}
+
 const txIds = async (p) => new Set((await p.evaluate(() => window.__campfire.txs())).map((t) => t.txId));
 const newTx = (seen) => (t) => !seen.has(t.txId);
 
@@ -126,6 +135,7 @@ try {
   const a0x = BigInt((await total(A, 0)).available);
 
   // ---------------------------------------------------------------- 1. A creates 2 codes, fees paid
+  await awake(A, pwA);
   await A.evaluate(() => window.__campfire.go('airdropCreate'));
   await waitScreen(A, 'airdropCreate');
   await A.fill(tid('drop-amount'), '0.001');
@@ -147,6 +157,7 @@ try {
   await shot(A, 'live-v3-01-ready');
 
   // ---------------------------------------------------------------- 2. B (0 BEAM) claims one, gasless
+  await awake(B, pwB);
   await B.evaluate(() => window.__campfire.go('airdrop'));
   await waitScreen(B, 'airdrop');
   await B.fill(tid('airdrop-code'), codes[0]);
@@ -169,6 +180,7 @@ try {
   await shot(B, 'live-v3-03-claimed');
 
   // A's codes screen now shows where the codes stand (release audit 0.2.16).
+  await awake(A, pwA);
   await A.evaluate(() => window.__campfire.go('airdropBatches'));
   await waitScreen(A, 'airdropBatches');
   await A.waitForFunction(() => [...document.querySelectorAll('[data-testid="batch-counts"]')].some((e) => /1 claimed · 1 not claimed/.test(e.textContent)), null, { timeout: 300000, polling: 3000 });
