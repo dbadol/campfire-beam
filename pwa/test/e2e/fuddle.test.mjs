@@ -145,12 +145,13 @@ test('as it ships (no contract id): dApps lists Fuddle as opening soon, its scre
   const before = rec.requests.length;
   await page.click(tid('open-dapps'));
   await waitScreen(page, 'dapps');
-  await page.waitForSelector(tid('dapp-fuddle'));
-  assert.equal((await page.textContent(tid('dapp-fuddle-state'))).trim(), 'Opens soon');
-  const first = await page.$eval(tid('dapp-list'), (el) => el.querySelector('.dapp-row').dataset.testid);
-  assert.equal(first, 'dapp-fuddle', 'Fuddle is the first row of dApps');
-  await shots(page, '00-dapps-soon');
-  await page.click(tid('dapp-fuddle'));
+  // Paused (owner, 2026-10-14): while the contract id is unset, dApps does not list Fuddle at all.
+  await page.waitForSelector(tid('dapp-list'));
+  assert.equal(await page.$(tid('dapp-fuddle')), null, 'no Fuddle row while it is paused');
+  assert.equal(await page.$(tid('dapp-builtin')), null);
+  await shots(page, '00-dapps-no-fuddle');
+  // Its screen, reached any other way (an old link), still only says it is not open.
+  await page.evaluate(() => window.__campfire.go('fuddle'));
   await waitScreen(page, 'fuddle');
   await page.waitForSelector(tid('fuddle-soon'));
   assert.match(await page.textContent(tid('fuddle-soon')), /Fuddle opens soon/);

@@ -183,8 +183,9 @@ export default function dapps(app, params = {}) {
     const available = CATALOGUE.filter((e) => !cached.get(e.guid));
     put(
       listBox,
-      h('p', { class: 'section-title', text: t('Built into BEAM Campfire') }),
-      h('div', { class: 'card list dapp-list', 'data-testid': 'dapp-builtin' }, fuddleRow()),
+      // Fuddle is paused (owner, 2026-10-14): nothing shows until its contract id is set (lib/fuddle_id.js).
+      fuddleLive() ? h('p', { class: 'section-title', text: t('Built into BEAM Campfire') }) : null,
+      fuddleLive() ? h('div', { class: 'card list dapp-list', 'data-testid': 'dapp-builtin' }, fuddleRow()) : null,
       items.length ? h('p', { class: 'section-title', text: t('Installed') }) : null,
       items.length ? h('div', { class: 'card list dapp-list', 'data-testid': 'dapp-installed' }, ...items.map((i) => i.el)) : null,
       h('p', { class: 'section-title', text: t('Available') }),
