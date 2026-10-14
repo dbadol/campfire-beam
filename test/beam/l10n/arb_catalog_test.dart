@@ -26,8 +26,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Languages whose translation is finished: their file must have exactly
-/// the English key set. Stage 2 adds each language here when it is done.
-const completeLocales = <String>{};
+/// the English key set. A message added to English must be translated into
+/// each of them in the same change.
+const completeLocales = <String>{'ru', 'zh', 'ja'};
 
 const _types = {'String', 'int', 'DateTime'};
 

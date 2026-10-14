@@ -191,8 +191,9 @@ void main() {
     });
   });
 
-  testWidgets('Russian with an empty catalogue: the split screen in English, '
-      'amounts with a dot', (tester) async {
+  testWidgets('Russian: the split screen in Russian, amounts with a dot', (
+    tester,
+  ) async {
     await _pump(
       tester,
       BeamSplitView(backend: _Backend()),
@@ -203,9 +204,10 @@ void main() {
       const Locale('ru'),
     );
     expect(appL10n.localeName, 'ru');
-    expect(find.text('Split coins'), findsWidgets);
-    expect(find.text('Now'), findsOneWidget);
-    expect(find.text('Send several payments at once'), findsOneWidget);
+    expect(find.text('Разделить монеты'), findsWidgets);
+    expect(find.text('Split coins'), findsNothing);
+    expect(find.text('Сейчас'), findsOneWidget);
+    expect(find.text('Отправляйте несколько платежей сразу'), findsOneWidget);
     expect(find.textContaining('45.2 BEAM'), findsWidgets);
     // Nothing picked the language up for numbers.
     expect(Intl.defaultLocale, isNull);
@@ -275,7 +277,12 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('app-language-ja')));
     await tester.pumpAndSettle();
     expect(language.value, AppLanguage.ja);
-    // With an empty Japanese catalogue the page stays readable, in English.
-    expect(find.text('Like this device'), findsOneWidget);
+    // The page redraws in Japanese at once; the languages keep their names.
+    expect(find.text('言語'), findsOneWidget);
+    expect(find.text('端末と同じ'), findsOneWidget);
+    expect(find.text('Like this device'), findsNothing);
+    for (final name in ['English', 'Русский', '简体中文', '日本語']) {
+      expect(find.text(name), findsWidgets);
+    }
   });
 }
