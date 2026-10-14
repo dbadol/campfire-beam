@@ -17,6 +17,7 @@ import 'package:isar_community/isar.dart';
 
 import '../../../app_config.dart';
 import '../../../db/isar/main_db.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/add_wallet_list_entity.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/eth_token_entity.dart';
@@ -279,7 +280,7 @@ class _AddWalletViewState extends ConsumerState<AddWalletView> {
                                 .copyWith(height: 2),
                             decoration:
                                 standardInputDecoration(
-                                  "Search",
+                                  context.l10n.addWalletSearch,
                                   _searchFocusNode,
                                   context,
                                 ).copyWith(
@@ -338,7 +339,7 @@ class _AddWalletViewState extends ConsumerState<AddWalletView> {
                           child: Column(
                             children: [
                               ExpandingSubListItem(
-                                title: "Coins",
+                                title: context.l10n.addWalletCoins,
                                 entities: filter(_searchTerm, coinEntities),
                                 initialState: ExpandableState.expanded,
                                 animationDurationMultiplier: 0.5,
@@ -355,7 +356,7 @@ class _AddWalletViewState extends ConsumerState<AddWalletView> {
                                 ),
                               if (tokenEntities.isNotEmpty)
                                 ExpandingSubListItem(
-                                  title: "Ethereum tokens",
+                                  title: context.l10n.addWalletEthereumTokens,
                                   entities: filter(_searchTerm, tokenEntities),
                                   initialState: ExpandableState.expanded,
                                   animationDurationMultiplier: 0.5,
@@ -424,7 +425,7 @@ class _AddWalletViewState extends ConsumerState<AddWalletView> {
                         Constants.size.circularBorderRadius,
                       ),
                       child: Semantics(
-                        label: "Search Text Field. Inputs Text To Search In Wallets.",
+                        label: context.l10n.addWalletSearchSemantics,
                         excludeSemantics: true,
                         child: TextField(
                           autofocus: isDesktop,
@@ -437,7 +438,7 @@ class _AddWalletViewState extends ConsumerState<AddWalletView> {
                           style: STextStyles.field(context),
                           decoration:
                               standardInputDecoration(
-                                "Search",
+                                context.l10n.addWalletSearch,
                                 _searchFocusNode,
                                 context,
                                 desktopMed: isDesktop,
@@ -488,7 +489,7 @@ class _AddWalletViewState extends ConsumerState<AddWalletView> {
                         child: Column(
                           children: [
                             ExpandingSubListItem(
-                              title: "Coins",
+                              title: context.l10n.addWalletCoins,
                               entities: filter(_searchTerm, coinEntities),
                               initialState: ExpandableState.expanded,
                             ),
@@ -503,7 +504,7 @@ class _AddWalletViewState extends ConsumerState<AddWalletView> {
                               ),
                             if (tokenEntities.isNotEmpty)
                               ExpandingSubListItem(
-                                title: "Ethereum tokens",
+                                title: context.l10n.addWalletEthereumTokens,
                                 entities: filter(_searchTerm, tokenEntities),
                                 initialState: ExpandableState.expanded,
                               ),

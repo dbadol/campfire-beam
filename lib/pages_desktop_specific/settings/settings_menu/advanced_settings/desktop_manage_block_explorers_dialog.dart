@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/prefs_provider.dart';
 import '../../../../themes/coin_icon_provider.dart';
 import '../../../../themes/stack_colors.dart';
@@ -57,7 +58,7 @@ class DesktopManageBlockExplorersDialog extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.all(32),
                 child: Text(
-                  "Manage block explorers",
+                  context.l10n.desktopSettingsExplorersTitle,
                   style: STextStyles.desktopH3(context),
                   textAlign: TextAlign.center,
                 ),
@@ -102,7 +103,7 @@ class DesktopManageBlockExplorersDialog extends ConsumerWidget {
                         ),
                         Expanded(
                           child: Text(
-                            "${coin.prettyName} block explorer",
+                            context.l10n.desktopSettingsExplorerCoin(coin.prettyName),
                             style: STextStyles.desktopTextSmall(context),
                           ),
                         ),
@@ -185,7 +186,7 @@ class _DesktopEditBlockExplorerDialogState
               Padding(
                 padding: const EdgeInsets.all(32),
                 child: Text(
-                  "${widget.coin.prettyName} block explorer",
+                  context.l10n.desktopSettingsExplorerCoin(widget.coin.prettyName),
                   style: STextStyles.desktopH3(context),
                   textAlign: TextAlign.center,
                 ),
@@ -222,13 +223,7 @@ class _DesktopEditBlockExplorerDialogState
                   borderColor:
                       Theme.of(context).extension<StackColors>()!.textSubtitle6,
                   child: Text(
-                    "Edit your block explorer above. Keep in mind that"
-                    " every block explorer has a slightly different URL scheme."
-                    "\n\n"
-                    "Paste in your block explorer of choice, then edit in"
-                    " [TXID] where the transaction ID should go, and "
-                    "${AppConfig.appName} will auto fill the transaction"
-                    " ID in that place of the URL.",
+                    context.l10n.desktopSettingsExplorerHelp(AppConfig.appName),
                     style: STextStyles.desktopTextExtraExtraSmall(context),
                   ),
                 ),
@@ -239,7 +234,7 @@ class _DesktopEditBlockExplorerDialogState
                   children: [
                     Expanded(
                       child: SecondaryButton(
-                        label: "Cancel",
+                        label: context.l10n.commonCancel,
                         buttonHeight: ButtonHeight.l,
                         onPressed: Navigator.of(context).pop,
                       ),
@@ -249,7 +244,7 @@ class _DesktopEditBlockExplorerDialogState
                     ),
                     Expanded(
                       child: PrimaryButton(
-                        label: "Save",
+                        label: context.l10n.desktopSettingsSave,
                         buttonHeight: ButtonHeight.l,
                         onPressed: () async {
                           _textEditingController.text =

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../l10n/l10n.dart';
 import '../themes/stack_colors.dart';
 import '../utilities/assets.dart';
 import '../utilities/text_styles.dart';
@@ -129,7 +130,7 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
               ).extension<StackColors>()!.topNavIconPrimary.withAlpha(100),
               icon: const Icon(Icons.first_page),
               onPressed: _currentPage > 0 ? _firstPage : null,
-              tooltip: "First page",
+              tooltip: context.l10n.sharedFirstPage,
             ),
             const SizedBox(width: 8),
             AppBarIconButton(
@@ -145,7 +146,7 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
                       .withAlpha(_currentPage > 0 ? 255 : 100),
                 ),
               ),
-              tooltip: "Previous page",
+              tooltip: context.l10n.sharedPreviousPage,
               onPressed: _currentPage > 0 ? _previousPage : null,
             ),
 
@@ -171,7 +172,7 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
                     .topNavIconPrimary
                     .withAlpha(_currentPage < _totalPages - 1 ? 255 : 100),
               ),
-              tooltip: "Next page",
+              tooltip: context.l10n.sharedNextPage,
               onPressed: _currentPage < _totalPages - 1 ? _nextPage : null,
             ),
             const SizedBox(width: 8),
@@ -184,7 +185,7 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
               ).extension<StackColors>()!.topNavIconPrimary.withAlpha(100),
               icon: const Icon(Icons.last_page),
               onPressed: _currentPage < _totalPages - 1 ? _lastPage : null,
-              tooltip: "Last page",
+              tooltip: context.l10n.sharedLastPage,
             ),
           ],
         ),

@@ -15,10 +15,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../themes/theme_providers.dart';
 import '../../../utilities/assets.dart';
+import '../../../utilities/beam_app_identity.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../utilities/util.dart';
 import '../../add_wallet_views/add_wallet_view/add_wallet_view.dart';
@@ -71,7 +73,9 @@ class EmptyWallets extends ConsumerWidget {
                 height: isDesktop ? 30 : 16,
               ),
               Text(
-                AppConfig.emptyWalletsMessage,
+                BeamAppIdentity.isActive
+                    ? context.l10n.walletListEmptyCampfire
+                    : AppConfig.emptyWalletsMessage,
                 textAlign: TextAlign.center,
                 style: isDesktop
                     ? STextStyles.desktopSubtitleH2(context).copyWith(
@@ -182,7 +186,7 @@ class AddWalletButton extends ConsumerWidget {
                 width: isDesktop ? 8 : 5,
               ),
               Text(
-                "Add Wallet",
+                context.l10n.walletListAddWallet,
                 style: isDesktop
                     ? STextStyles.desktopButtonEnabled(context)
                     : STextStyles.button(context),

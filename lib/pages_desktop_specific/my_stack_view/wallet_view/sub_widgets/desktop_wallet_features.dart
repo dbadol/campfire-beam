@@ -18,6 +18,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../models/keys/view_only_wallet_data.dart';
 import '../../../../notifications/show_flush_bar.dart';
 import '../../../../pages/masternodes/masternodes_home_view.dart';
@@ -100,15 +101,16 @@ enum WalletFeature {
   sign("Sign/Verify", "Sign / Verify messages"),
   masternodes("Masternodes", "Manage masternodes"),
 
-  // BEAM (lib/widgets/beam/wiring/beam_features.dart)
-  beamBuy("Buy", "Pay with another coin, get BEAM"),
-  beamSwap("Swap", "Swap one asset for another"),
-  beamNames("Names", "Your BEAM names, and getting one"),
-  beamDapps("dApps", "Apps that run on BEAM"),
-  beamAirdrops("Airdrops", "Claim a code, or give some away"),
-  beamTokens("Tokens", "Create your own token on BEAM"),
-  beamNode("Node & sync", "Which node you use, and how up to date"),
-  beamSplit("Split coins", "Send several payments at once"),
+  // BEAM (lib/widgets/beam/wiring/beam_features.dart): label and
+  // description are BeamFeature's, in the app's language (see [label]).
+  beamBuy("", ""),
+  beamSwap("", ""),
+  beamNames("", ""),
+  beamDapps("", ""),
+  beamAirdrops("", ""),
+  beamTokens("", ""),
+  beamNode("", ""),
+  beamSplit("", ""),
 
   // Ethereum (lib/pages/eth/uniswap)
   ethUniswap("Swap", "Swap on Uniswap, straight from this wallet"),
@@ -120,9 +122,24 @@ enum WalletFeature {
   enableMweb("", ""),
   enableLegacyAddresses("", "");
 
-  final String label;
-  final String description;
-  const WalletFeature(this.label, this.description);
+  final String _label;
+  final String _description;
+  const WalletFeature(this._label, this._description);
+
+  BeamFeature? get _beam => switch (this) {
+    beamBuy => BeamFeature.buy,
+    beamSwap => BeamFeature.swap,
+    beamNames => BeamFeature.names,
+    beamDapps => BeamFeature.dapps,
+    beamAirdrops => BeamFeature.airdrops,
+    beamTokens => BeamFeature.tokens,
+    beamNode => BeamFeature.node,
+    beamSplit => BeamFeature.split,
+    _ => null,
+  };
+
+  String get label => _beam?.label ?? _label;
+  String get description => _beam?.description ?? _description;
 }
 
 class DesktopWalletFeatures extends ConsumerStatefulWidget {
@@ -640,7 +657,7 @@ class _DesktopWalletFeaturesState extends ConsumerState<DesktopWalletFeatures> {
         return Padding(
           padding: const EdgeInsets.only(left: 16),
           child: SecondaryButton(
-            label: "More",
+            label: context.l10n.walletViewMore,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             buttonHeight: ButtonHeight.l,
             icon: SvgPicture.asset(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 
+import '../l10n/l10n.dart';
 import '../providers/global/prefs_provider.dart';
 import '../themes/stack_colors.dart';
 import '../utilities/extensions/extensions.dart';
@@ -46,7 +47,7 @@ class _LogLevelPreferenceWidgetState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Current level: ${current.name.capitalize()}",
+          context.l10n.sharedCurrentLogLevel(current.name.capitalize()),
           style: Util.isDesktop
               ? STextStyles.desktopTextFieldLabel(context)
               : STextStyles.fieldLabel(context),

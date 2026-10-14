@@ -24,6 +24,7 @@ import '../../../../../app_config.dart';
 import '../../../../../db/drift/shared_db/shared_database.dart';
 import '../../../../../db/hive/db.dart';
 import '../../../../../db/isar/main_db.dart';
+import '../../../../../l10n/l10n.dart';
 import '../../../../../models/exchange/change_now/exchange_transaction.dart';
 import '../../../../../models/exchange/response_objects/trade.dart';
 import '../../../../../models/isar/models/contact_entry.dart';
@@ -102,11 +103,11 @@ bool validateFail(
   String repeatPassphrase,
 ) {
   for (final e in [
-    [pathToSave.isEmpty, "Directory not chosen"],
+    [pathToSave.isEmpty, appL10n.appBackupDirNotChosen],
     if (!pathToSave.startsWith("content://"))
-      [!(Directory(pathToSave).existsSync()), "Directory does not exist"],
-    [passphrase.isEmpty, "A passphrase is required"],
-    [passphrase != repeatPassphrase, "Passphrase does not match"],
+      [!(Directory(pathToSave).existsSync()), appL10n.appBackupDirMissing],
+    [passphrase.isEmpty, appL10n.appBackupPassphraseRequired],
+    [passphrase != repeatPassphrase, appL10n.appBackupPassphraseMismatch],
   ]) {
     if (e[0] as bool) {
       if (context.mounted) {

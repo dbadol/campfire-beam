@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../../providers/global/notifications_provider.dart';
 import '../../providers/global/prefs_provider.dart';
 import '../../providers/global/shopin_bit_service_provider.dart';
@@ -83,15 +84,16 @@ class _HomeViewState extends ConsumerState<HomeView> {
         context,
         RouteGenerator.getRoute(
           shouldUseMaterialRoute: RouteGenerator.useMaterialPageRoute,
-          builder: (_) => const LockscreenView(
+          builder: (_) => LockscreenView(
             showBackButton: false,
             popOnSuccess: true,
             routeOnSuccessArguments: true,
             routeOnSuccess: "",
-            biometricsCancelButtonString: "CANCEL",
+            biometricsCancelButtonString: appL10n.beamAuthCancel,
             biometricsLocalizedReason:
-                "Authenticate to unlock ${AppConfig.appName}",
-            biometricsAuthenticationTitle: "Unlock ${AppConfig.appName}",
+                appL10n.walletListUnlockReason(AppConfig.appName),
+            biometricsAuthenticationTitle:
+                appL10n.walletListUnlockTitle(AppConfig.appName),
           ),
           settings: const RouteSettings(name: "/unlockTimedOutAppScreen"),
         ),
@@ -143,7 +145,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
             _exitEnabled = true;
             return true;
           },
-          child: const StackDialog(title: "Tap back again to exit"),
+          child: StackDialog(title: context.l10n.walletListTapBackToExit),
         ),
       ).timeout(
         timeout,
@@ -322,7 +324,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 ),
                 const SizedBox(width: 16),
                 Text(
-                  "My ${AppConfig.prefix}",
+                  context.l10n.walletListTitle(AppConfig.prefix),
                   style: STextStyles.navBarTitle(context),
                 ),
               ],
@@ -339,7 +341,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   aspectRatio: 1,
                   child: AppBarIconButton(
                     semanticsLabel:
-                        "Notifications Button. Takes To Notifications Page.",
+                        context.l10n.sharedNotificationsButtonLabel,
                     key: const Key("walletsViewAlertsButton"),
                     size: 36,
                     shadows: const [],
@@ -421,7 +423,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: AppBarIconButton(
-                    semanticsLabel: "Settings Button. Takes To Settings Page.",
+                    semanticsLabel: context.l10n.walletListSettingsButtonLabel,
                     key: const Key("walletsViewSettingsButton"),
                     size: 36,
                     shadows: const [],

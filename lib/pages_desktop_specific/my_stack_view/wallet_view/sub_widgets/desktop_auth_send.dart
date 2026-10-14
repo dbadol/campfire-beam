@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/desktop/storage_crypto_handler_provider.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/assets.dart';
@@ -31,6 +32,7 @@ class DesktopAuthSend extends ConsumerStatefulWidget {
     required this.coin,
     this.tokenTicker,
     this.action,
+    this.prompt,
   });
 
   final CryptoCurrency coin;
@@ -38,7 +40,13 @@ class DesktopAuthSend extends ConsumerStatefulWidget {
 
   /// What the password is for, finishing "Enter your wallet password to
   /// ...": "swap", "add liquidity". Null: "send" and the ticker.
+  /// Superseded by [prompt]; kept for callers that still pass a fragment.
   final String? action;
+
+  /// The whole sentence under the title, in the app's language, e.g.
+  /// "Enter your wallet password to swap". When given it is shown instead
+  /// of the sentence built from [action] or the ticker.
+  final String? prompt;
 
   @override
   ConsumerState<DesktopAuthSend> createState() => _DesktopAuthSendState();
@@ -103,9 +111,13 @@ class _DesktopAuthSendState extends ConsumerState<DesktopAuthSend> {
     super.dispose();
   }
 
-  String get _purpose {
+  String _prompt(BuildContext context) {
+    final prompt = widget.prompt;
+    if (prompt != null) return prompt;
+    final action = widget.action;
+    if (action != null) return "Enter your wallet password to $action";
     final ticker = widget.tokenTicker ?? widget.coin.ticker;
-    return widget.action ?? "send ${ticker.toUpperCase()}";
+    return context.l10n.walletViewAuthSendPrompt(ticker.toUpperCase());
   }
 
   @override
@@ -115,10 +127,13 @@ class _DesktopAuthSendState extends ConsumerState<DesktopAuthSend> {
       children: [
         SvgPicture.asset(Assets.svg.keys, width: 100),
         const SizedBox(height: 56),
-        Text("Confirm transaction", style: STextStyles.desktopH3(context)),
+        Text(
+          context.l10n.beamAuthTitle,
+          style: STextStyles.desktopH3(context),
+        ),
         const SizedBox(height: 16),
         Text(
-          "Enter your wallet password to $_purpose",
+          _prompt(context),
           style: STextStyles.desktopTextMedium(context).copyWith(
             color: Theme.of(context).extension<StackColors>()!.textDark3,
           ),
@@ -144,7 +159,7 @@ class _DesktopAuthSendState extends ConsumerState<DesktopAuthSend> {
             },
             decoration:
                 standardInputDecoration(
-                  "Enter password",
+                  context.l10n.sharedEnterPassword,
                   passwordFocusNode,
                   context,
                 ).copyWith(
@@ -192,7 +207,7 @@ class _DesktopAuthSendState extends ConsumerState<DesktopAuthSend> {
           children: [
             Expanded(
               child: SecondaryButton(
-                label: "Cancel",
+                label: context.l10n.commonCancel,
                 buttonHeight: ButtonHeight.l,
                 onPressed: Navigator.of(context).pop,
               ),
@@ -201,7 +216,7 @@ class _DesktopAuthSendState extends ConsumerState<DesktopAuthSend> {
             Expanded(
               child: PrimaryButton(
                 enabled: _confirmEnabled,
-                label: "Confirm",
+                label: context.l10n.sharedConfirm,
                 buttonHeight: ButtonHeight.l,
                 onPressed: _confirmPressed,
               ),

@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../../../l10n/l10n.dart';
 import '../../../../../models/wallet_restore_state.dart';
 import '../../../../../providers/stack_restore/stack_restoring_ui_state_provider.dart';
 import '../../../../../route_generator.dart';
@@ -188,7 +189,7 @@ class _RestoringWalletCardState extends ConsumerState<RestoringWalletCard> {
                 "${ref.watch(provider.select((value) => value.walletName))} (${coin.ticker})",
             subTitle: restoringStatus == StackRestoringStatus.failed
                 ? Text(
-                    "Unable to restore. Tap icon to retry.",
+                    context.l10n.appBackupWalletRestoreFailed,
                     style: STextStyles.errorSmall(context),
                   )
                 : ref.watch(provider.select((value) => value.address)) != null
@@ -231,7 +232,7 @@ class _RestoringWalletCardState extends ConsumerState<RestoringWalletCard> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: Text(
-                          "Show recovery phrase",
+                          context.l10n.appBackupShowRecoveryPhrase,
                           style: STextStyles.infoSmall(context).copyWith(
                             color: Theme.of(
                               context,
@@ -277,7 +278,7 @@ class _RestoringWalletCardState extends ConsumerState<RestoringWalletCard> {
                   "${ref.watch(provider.select((value) => value.walletName))} (${coin.ticker})",
               subTitle: restoringStatus == StackRestoringStatus.failed
                   ? Text(
-                      "Unable to restore. Tap icon to retry.",
+                      context.l10n.appBackupWalletRestoreFailed,
                       style: STextStyles.errorSmall(context),
                     )
                   : ref.watch(provider.select((value) => value.address)) != null
@@ -320,7 +321,7 @@ class _RestoringWalletCardState extends ConsumerState<RestoringWalletCard> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                           child: Text(
-                            "Show recovery phrase",
+                            context.l10n.appBackupShowRecoveryPhrase,
                             style: STextStyles.infoSmall(context).copyWith(
                               color: Theme.of(
                                 context,

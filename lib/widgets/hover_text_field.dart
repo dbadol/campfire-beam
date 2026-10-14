@@ -12,6 +12,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/l10n.dart';
 import '../notifications/show_flush_bar.dart';
 import '../providers/db/main_db_provider.dart';
 import '../providers/global/wallets_provider.dart';
@@ -69,7 +70,7 @@ class _HoverTextFieldState extends ConsumerState<DesktopWalletNameField> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.success,
-            message: "Wallet renamed",
+            message: context.l10n.walletViewWalletRenamed,
             context: context,
           ),
         );
@@ -77,7 +78,7 @@ class _HoverTextFieldState extends ConsumerState<DesktopWalletNameField> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.warning,
-            message: "Wallet named \"$newName\" already exists",
+            message: context.l10n.walletViewWalletNameTaken(newName),
             context: context,
           ),
         );

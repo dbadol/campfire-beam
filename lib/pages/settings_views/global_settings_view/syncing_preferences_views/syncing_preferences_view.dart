@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/providers.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/constants.dart';
@@ -30,11 +31,11 @@ class SyncingPreferencesView extends ConsumerWidget {
   String _currentTypeDescription(SyncingType type) {
     switch (type) {
       case SyncingType.currentWalletOnly:
-        return "Sync only currently open wallet";
+        return appL10n.settingsSyncCurrentWalletOnly;
       case SyncingType.selectedWalletsAtStartup:
-        return "Sync only selected wallets at startup";
+        return appL10n.settingsSyncSelectedAtStartup;
       case SyncingType.allWalletsOnStartup:
-        return "Sync all wallets at startup";
+        return appL10n.settingsSyncAllAtStartup;
     }
   }
 
@@ -50,7 +51,7 @@ class SyncingPreferencesView extends ConsumerWidget {
             },
           ),
           title: Text(
-            "Syncing preferences",
+            context.l10n.settingsSyncingPreferences,
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -94,7 +95,7 @@ class SyncingPreferencesView extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "Syncing",
+                                          context.l10n.settingsSyncing,
                                           style: STextStyles.titleBold12(
                                             context,
                                           ),
@@ -145,7 +146,7 @@ class SyncingPreferencesView extends ConsumerWidget {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          "AutoSync only on Wi-Fi",
+                                          context.l10n.settingsAutoSyncWifiOnly,
                                           style: STextStyles.titleBold12(
                                             context,
                                           ),

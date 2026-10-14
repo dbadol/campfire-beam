@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../providers/providers.dart';
 import '../../../themes/coin_icon_provider.dart';
 import '../../../themes/stack_colors.dart';
@@ -46,8 +47,7 @@ class WalletListItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // debugPrint("BUILD: $runtimeType");
-    final walletCountString =
-        walletCount == 1 ? "$walletCount wallet" : "$walletCount wallets";
+    final walletCountString = context.l10n.walletListWalletCount(walletCount);
     final currency = ref.watch(
       prefsChangeNotifierProvider.select((value) => value.currency),
     );
@@ -128,7 +128,9 @@ class WalletListItem extends ConsumerWidget {
             await showLoading(
               whileFuture: loadFuture,
               context: context,
-              message: 'Opening ${wallet.info.name}',
+              message: context.l10n.walletListOpeningWallet(
+                wallet.info.name,
+              ),
               rootNavigator: Util.isDesktop,
             );
             if (context.mounted) {

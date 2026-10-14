@@ -15,6 +15,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/beam_app_identity.dart';
 import '../../../utilities/git_status.dart';
@@ -41,7 +42,7 @@ class AboutView extends ConsumerWidget {
               Navigator.of(context).pop();
             },
           ),
-          title: Text("About", style: STextStyles.navBarTitle(context)),
+          title: Text(context.l10n.settingsAbout, style: STextStyles.navBarTitle(context)),
         ),
         body: SafeArea(
           child: Padding(
@@ -92,7 +93,7 @@ class AboutView extends ConsumerWidget {
                                               CrossAxisAlignment.stretch,
                                           children: [
                                             Text(
-                                              "Version",
+                                              context.l10n.settingsAboutVersion,
                                               style: STextStyles.titleBold12(
                                                 context,
                                               ),
@@ -114,7 +115,7 @@ class AboutView extends ConsumerWidget {
                                               CrossAxisAlignment.stretch,
                                           children: [
                                             Text(
-                                              "Build number",
+                                              context.l10n.settingsAboutBuildNumber,
                                               style: STextStyles.titleBold12(
                                                 context,
                                               ),
@@ -136,7 +137,7 @@ class AboutView extends ConsumerWidget {
                                               CrossAxisAlignment.stretch,
                                           children: [
                                             Text(
-                                              "Build commit",
+                                              context.l10n.settingsAboutBuildCommit,
                                               style: STextStyles.titleBold12(
                                                 context,
                                               ),
@@ -160,7 +161,7 @@ class AboutView extends ConsumerWidget {
                                                 CrossAxisAlignment.stretch,
                                             children: [
                                               Text(
-                                                "Build signature",
+                                                context.l10n.settingsAboutBuildSignature,
                                                 style: STextStyles.titleBold12(
                                                   context,
                                                 ),
@@ -186,7 +187,7 @@ class AboutView extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Website",
+                                  context.l10n.settingsAboutWebsite,
                                   style: STextStyles.titleBold12(context),
                                 ),
                                 const SizedBox(height: 4),
@@ -261,10 +262,10 @@ class AboutView extends ConsumerWidget {
                                 // apply to it.
                                 TextSpan(
                                   text:
-                                      "${BeamAppIdentity.displayName} is free and open source. ",
+                                      "${context.l10n.settingsAboutOpenSource(BeamAppIdentity.displayName)} ",
                                 ),
                                 TextSpan(
-                                  text: "Source code",
+                                  text: context.l10n.settingsAboutSourceCode,
                                   style: STextStyles.richLink(context),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {

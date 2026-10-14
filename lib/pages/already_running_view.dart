@@ -60,6 +60,10 @@ class _AlreadyRunningAppState extends ConsumerState<AlreadyRunningApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: BeamAppIdentity.displayName,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: resolveAppLocale,
+      builder: (context, child) => AppL10nBinding(child: child!),
       theme: ThemeData(
         extensions: [colorScheme],
         fontFamily: GoogleFonts.inter().fontFamily,

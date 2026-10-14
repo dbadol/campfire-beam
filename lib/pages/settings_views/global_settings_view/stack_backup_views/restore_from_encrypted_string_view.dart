@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../notifications/show_flush_bar.dart';
 import '../../../../route_generator.dart';
 import '../../../../themes/stack_colors.dart';
@@ -88,7 +89,7 @@ class _RestoreFromEncryptedStringViewState
               },
             ),
             title: Text(
-              "Restore from file",
+              context.l10n.appBackupRestoreFromFile,
               style: STextStyles.navBarTitle(context),
             ),
           ),
@@ -122,7 +123,7 @@ class _RestoreFromEncryptedStringViewState
                                 autocorrect: false,
                                 decoration:
                                     standardInputDecoration(
-                                      "Enter password",
+                                      context.l10n.appBackupEnterPassword,
                                       passwordFocusNode,
                                       context,
                                     ).copyWith(
@@ -201,7 +202,7 @@ class _RestoreFromEncryptedStringViewState
                                                 color: Colors.transparent,
                                                 child: Center(
                                                   child: Text(
-                                                    "Decrypting ${AppConfig.prefix} backup file",
+                                                    appL10n.appBackupDecrypting(AppConfig.prefix),
                                                     style:
                                                         STextStyles.pageTitleH2(
                                                           context,
@@ -248,7 +249,7 @@ class _RestoreFromEncryptedStringViewState
                                           showFloatingFlushBar(
                                             type: FlushBarType.warning,
                                             message:
-                                                "Failed to decrypt backup file",
+                                                appL10n.appBackupDecryptFailed,
                                             context: context,
                                           );
                                           return;
@@ -266,7 +267,7 @@ class _RestoreFromEncryptedStringViewState
                                       }
                                     },
                               child: Text(
-                                "Restore",
+                                context.l10n.appBackupRestore,
                                 style: STextStyles.button(context),
                               ),
                             ),

@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/constants.dart';
@@ -92,7 +93,7 @@ class _FavoriteWalletsState extends ConsumerState<FavoriteWallets> {
           child: Row(
             children: [
               Text(
-                "Favorite Wallets",
+                context.l10n.favoritesSectionTitle,
                 style: STextStyles.itemSubtitle(context).copyWith(
                   color: Theme.of(context).extension<StackColors>()!.textDark3,
                 ),
@@ -171,7 +172,7 @@ class _FavoriteWalletsState extends ConsumerState<FavoriteWallets> {
                           width: 4,
                         ),
                         Text(
-                          "Add a favorite",
+                          context.l10n.favoritesAddFavorite,
                           style: STextStyles.itemSubtitle(context).copyWith(
                             fontSize: 10,
                           ),

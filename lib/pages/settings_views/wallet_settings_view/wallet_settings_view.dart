@@ -17,6 +17,7 @@ import 'package:tuple/tuple.dart';
 
 import '../../../db/hive/db.dart';
 import '../../../db/sqlite/firo_cache.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/epicbox_config_model.dart';
 import '../../../models/keys/key_data_interface.dart';
 import '../../../models/keys/view_only_wallet_data.dart';
@@ -247,9 +248,9 @@ class _WalletSettingsViewState extends ConsumerState<WalletSettingsView> {
               ),
               showBackButton: true,
               routeOnSuccess: WalletBackupView.routeName,
-              biometricsCancelButtonString: "CANCEL",
-              biometricsLocalizedReason: "Authenticate to view recovery phrase",
-              biometricsAuthenticationTitle: "View recovery phrase",
+              biometricsCancelButtonString: context.l10n.beamAuthCancel,
+              biometricsLocalizedReason: context.l10n.walletSettingsViewPhraseAuthReason,
+              biometricsAuthenticationTitle: context.l10n.walletSettingsViewPhrase,
             ),
             settings: const RouteSettings(name: "/viewRecoverPhraseLockscreen"),
           ),
@@ -367,14 +368,14 @@ class _WalletSettingsViewState extends ConsumerState<WalletSettingsView> {
               Navigator.of(context).pop();
             },
           ),
-          title: Text("Settings", style: STextStyles.navBarTitle(context)),
+          title: Text(context.l10n.walletSettingsTitle, style: STextStyles.navBarTitle(context)),
         ),
         body: _WalletSettingsViewBody(
           children: [
             SettingsListButton(
               iconAssetName: Assets.svg.addressBook,
               iconSize: 16,
-              title: "Address book",
+              title: context.l10n.settingsAddressBook,
               onPressed: () {
                 Navigator.of(
                   context,
@@ -398,7 +399,7 @@ class _WalletSettingsViewState extends ConsumerState<WalletSettingsView> {
             SettingsListButton(
               iconAssetName: Assets.svg.node,
               iconSize: 16,
-              title: "Network",
+              title: context.l10n.walletSettingsNetwork,
               onPressed: () {
                 Navigator.of(context).pushNamed(
                   WalletNetworkSettingsView.routeName,
@@ -430,7 +431,7 @@ class _WalletSettingsViewState extends ConsumerState<WalletSettingsView> {
                   return SettingsListButton(
                     iconAssetName: Assets.svg.lock,
                     iconSize: 16,
-                    title: "Wallet backup",
+                    title: context.l10n.walletSettingsBackup,
                     onPressed: _walletBackupPressed,
                   );
                 },
@@ -438,7 +439,7 @@ class _WalletSettingsViewState extends ConsumerState<WalletSettingsView> {
             const SizedBox(height: 8),
             SettingsListButton(
               iconAssetName: Assets.svg.downloadFolder,
-              title: "Wallet settings",
+              title: context.l10n.walletSettingsWalletSettings,
               iconSize: 16,
               onPressed: () {
                 Navigator.of(context).pushNamed(
@@ -450,7 +451,7 @@ class _WalletSettingsViewState extends ConsumerState<WalletSettingsView> {
             const SizedBox(height: 8),
             SettingsListButton(
               iconAssetName: Assets.svg.arrowRotate,
-              title: "Syncing preferences",
+              title: context.l10n.settingsSyncingPreferences,
               onPressed: () {
                 Navigator.of(
                   context,
@@ -609,7 +610,7 @@ class _WalletSettingsViewBody extends StatelessWidget {
                                   .extension<StackColors>()!
                                   .getSecondaryEnabledButtonStyle(context),
                               child: Text(
-                                "Log out",
+                                context.l10n.walletSettingsLogOut,
                                 style: STextStyles.button(context).copyWith(
                                   color: Theme.of(
                                     context,

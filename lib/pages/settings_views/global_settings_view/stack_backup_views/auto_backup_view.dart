@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/auto_swb_service_provider.dart';
 import '../../../../providers/providers.dart';
 import '../../../../themes/stack_colors.dart';
@@ -76,11 +77,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
       ).format(time);
     }
 
-    if (value == 1) {
-      postfix = postfix.substring(0, postfix.length - 1);
-    }
-
-    return "$value $postfix ago";
+    return context.l10n.appBackupTimeAgo(value, postfix);
   }
 
   Future<void> attemptEnable() async {
@@ -90,14 +87,14 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
       barrierDismissible: true,
       builder: (context) {
         return StackDialog(
-          title: "Enable Auto Backup",
-          message: "To enable Auto Backup, you need to create a backup file.",
+          title: context.l10n.appBackupEnableAutoTitle,
+          message: context.l10n.appBackupEnableAutoNeedsFile,
           leftButton: TextButton(
             style: Theme.of(
               context,
             ).extension<StackColors>()!.getSecondaryEnabledButtonStyle(context),
             child: Text(
-              "Back",
+              context.l10n.commonBack,
               style: STextStyles.button(context).copyWith(
                 color: Theme.of(
                   context,
@@ -112,7 +109,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
             style: Theme.of(
               context,
             ).extension<StackColors>()!.getPrimaryEnabledButtonStyle(context),
-            child: Text("Continue", style: STextStyles.button(context)),
+            child: Text(context.l10n.commonContinue, style: STextStyles.button(context)),
             onPressed: () {
               Navigator.of(context).pop(true);
             },
@@ -144,15 +141,15 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
       barrierDismissible: true,
       builder: (context) {
         return StackDialog(
-          title: "Disable Auto Backup",
+          title: context.l10n.appBackupDisableTitle,
           message:
-              "You are turning off Auto Backup. You can turn it back on at any time. Your previous Auto Backup file will not be deleted. Remember to backup your wallets manually so you don't lose important information.",
+              context.l10n.appBackupDisableBody,
           leftButton: TextButton(
             style: Theme.of(
               context,
             ).extension<StackColors>()!.getSecondaryEnabledButtonStyle(context),
             child: Text(
-              "Back",
+              context.l10n.commonBack,
               style: STextStyles.button(context).copyWith(
                 color: Theme.of(
                   context,
@@ -167,7 +164,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
             style: Theme.of(
               context,
             ).extension<StackColors>()!.getPrimaryEnabledButtonStyle(context),
-            child: Text("Disable", style: STextStyles.button(context)),
+            child: Text(context.l10n.appBackupDisable, style: STextStyles.button(context)),
             onPressed: () {
               Navigator.of(context).pop(true);
             },
@@ -243,7 +240,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
               Navigator.of(context).pop();
             },
           ),
-          title: Text("Auto Backup", style: STextStyles.navBarTitle(context)),
+          title: Text(context.l10n.appBackupAutoTitle, style: STextStyles.navBarTitle(context)),
         ),
         body: SafeArea(
           child: Padding(
@@ -271,7 +268,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "Auto Backup",
+                            context.l10n.appBackupAutoTitle,
                             style: STextStyles.titleBold12(context),
                             textAlign: TextAlign.left,
                           ),
@@ -305,10 +302,10 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                       textAlign: TextAlign.left,
                       text: TextSpan(
                         style: STextStyles.label(context),
-                        children: const [
+                        children: [
                           TextSpan(
                             text:
-                                "Auto Backup is a custom ${AppConfig.appName} feature that offers a convenient backup of your data.\n\nTo ensure maximum security, we recommend using a unique password that you haven't used anywhere else on the internet before. Your password is not stored.",
+                                context.l10n.appBackupAutoBodyPhone(AppConfig.appName),
                           ),
                         ],
                       ),
@@ -323,13 +320,13 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             CustomTextButton(
-                              text: "Back up now",
+                              text: context.l10n.appBackupBackUpNow,
                               onTap: () {
                                 ref.read(autoSWBServiceProvider).doBackup();
                               },
                             ),
                             Text(
-                              "Backed up ${prettySinceLastBackupString(ref.watch(prefsChangeNotifierProvider.select((value) => value.lastAutoBackup)))}",
+                              context.l10n.appBackupBackedUp(prettySinceLastBackupString(ref.watch(prefsChangeNotifierProvider.select((value) => value.lastAutoBackup)))),
                               style: STextStyles.itemSubtitle(context),
                             ),
                           ],
@@ -337,7 +334,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        "Auto Backup file",
+                        context.l10n.appBackupAutoFileLabel,
                         style: STextStyles.smallMed12(context),
                       ),
                       const SizedBox(height: 10),
@@ -368,7 +365,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                             selectAll: true,
                           ),
                           decoration: standardInputDecoration(
-                            "Saved to",
+                            context.l10n.appBackupSavedTo,
                             fileLocationFocusNode,
                             context,
                           ),
@@ -400,7 +397,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                             selectAll: true,
                           ),
                           decoration: standardInputDecoration(
-                            "Passphrase",
+                            context.l10n.appBackupPassphrase,
                             passwordFocusNode,
                             context,
                           ),
@@ -408,7 +405,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        "Auto Backup frequency",
+                        context.l10n.appBackupFrequencyLabel,
                         style: STextStyles.smallMed12(context),
                       ),
                       const SizedBox(height: 10),
@@ -433,7 +430,7 @@ class _AutoBackupViewState extends ConsumerState<AutoBackupView> {
                       const SizedBox(height: 20),
                       Center(
                         child: CustomTextButton(
-                          text: "Edit Auto Backup",
+                          text: context.l10n.appBackupEditAutoTitle,
                           onTap: () async {
                             Navigator.of(
                               context,

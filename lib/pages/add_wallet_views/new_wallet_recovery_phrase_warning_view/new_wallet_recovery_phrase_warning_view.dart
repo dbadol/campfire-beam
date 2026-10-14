@@ -18,6 +18,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tuple/tuple.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../pages_desktop_specific/my_stack_view/exit_to_my_stack_button.dart';
 import '../../../providers/global/secure_store_provider.dart';
 import '../../../providers/providers.dart';
@@ -71,7 +72,7 @@ class _NewWalletRecoveryPhraseWarningViewState
     final result = await showLoading(
       whileFuture: _initNewFuture(),
       context: context,
-      message: "Generating...",
+      message: context.l10n.addWalletGenerating,
       onException: (e) => ex = e,
     );
 
@@ -81,8 +82,8 @@ class _NewWalletRecoveryPhraseWarningViewState
         await showDialog<void>(
           context: context,
           builder: (_) => StackOkDialog(
-            title: "Create Wallet Error",
-            message: ex?.toString() ?? "Unknown error",
+            title: context.l10n.addWalletCreateErrorTitle,
+            message: ex?.toString() ?? context.l10n.addWalletUnknownError,
             maxWidth: 600,
           ),
         );
@@ -289,7 +290,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                   ),
                   child: AppBarIconButton(
                     semanticsLabel:
-                        "Question Button. Opens A Dialog For Recovery Phrase Explanation.",
+                        context.l10n.addWalletPhraseHelpSemantics,
                     icon: SvgPicture.asset(
                       Assets.svg.circleQuestion,
                       width: 20,
@@ -338,7 +339,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                       ),
                     if (!isDesktop) const SizedBox(height: 4),
                     Text(
-                      "Recovery Phrase",
+                      context.l10n.backupRecoveryPhraseTitle,
                       textAlign: TextAlign.center,
                       style: isDesktop
                           ? STextStyles.desktopH2(context)
@@ -350,15 +351,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                       width: isDesktop ? 480 : null,
                       child: isDesktop
                           ? Text(
-                              "On the next screen you will see "
-                              "$seedCount "
-                              "words that make up your recovery phrase.\n\nPlease "
-                              "write it down. Keep it safe and never share it with "
-                              "anyone. Your recovery phrase is the only way you can"
-                              " access your funds if you forget your PIN, lose your"
-                              " phone, etc.\n\n${AppConfig.appName} does not keep nor is "
-                              "able to restore your recover phrase. Only you have "
-                              "access to your wallet.",
+                              "${context.l10n.addWalletWarningDesktopCount(seedCount)}\n\n${context.l10n.addWalletWarningDesktopBody(AppConfig.appName)}",
                               style: isDesktop
                                   ? STextStyles.desktopTextMediumRegular(
                                       context,
@@ -370,7 +363,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                           : Column(
                               children: [
                                 Text(
-                                  "Important",
+                                  context.l10n.addWalletWarningImportant,
                                   style: STextStyles.desktopH3(context)
                                       .copyWith(
                                         color: Theme.of(context)
@@ -385,64 +378,27 @@ class _NewWalletRecoveryPhraseWarningViewState
                                     style: STextStyles.desktopH3(
                                       context,
                                     ).copyWith(fontSize: 18),
-                                    children: [
-                                      TextSpan(
-                                        text:
-                                            "On the next screen you will be given ",
-                                        style: STextStyles.desktopH3(context)
-                                            .copyWith(
-                                              color: Theme.of(context)
-                                                  .extension<StackColors>()!
-                                                  .textDark,
-                                              fontSize: 18,
-                                              height: 1.3,
-                                            ),
+                                    children: _highlightTagSpans(
+                                      context.l10n.addWalletWarningGiven(
+                                        seedCount,
                                       ),
-                                      TextSpan(
-                                        text: "$seedCount words",
-                                        style: STextStyles.desktopH3(context)
-                                            .copyWith(
-                                              color: Theme.of(context)
-                                                  .extension<StackColors>()!
-                                                  .accentColorBlue,
-                                              fontSize: 18,
-                                              height: 1.3,
-                                            ),
-                                      ),
-                                      TextSpan(
-                                        text: ". They are your ",
-                                        style: STextStyles.desktopH3(context)
-                                            .copyWith(
-                                              color: Theme.of(context)
-                                                  .extension<StackColors>()!
-                                                  .textDark,
-                                              fontSize: 18,
-                                              height: 1.3,
-                                            ),
-                                      ),
-                                      TextSpan(
-                                        text: "recovery phrase",
-                                        style: STextStyles.desktopH3(context)
-                                            .copyWith(
-                                              color: Theme.of(context)
-                                                  .extension<StackColors>()!
-                                                  .accentColorBlue,
-                                              fontSize: 18,
-                                              height: 1.3,
-                                            ),
-                                      ),
-                                      TextSpan(
-                                        text: ".",
-                                        style: STextStyles.desktopH3(context)
-                                            .copyWith(
-                                              color: Theme.of(context)
-                                                  .extension<StackColors>()!
-                                                  .textDark,
-                                              fontSize: 18,
-                                              height: 1.3,
-                                            ),
-                                      ),
-                                    ],
+                                      STextStyles.desktopH3(context)
+                                          .copyWith(
+                                            color: Theme.of(context)
+                                                .extension<StackColors>()!
+                                                .textDark,
+                                            fontSize: 18,
+                                            height: 1.3,
+                                          ),
+                                      STextStyles.desktopH3(context)
+                                          .copyWith(
+                                            color: Theme.of(context)
+                                                .extension<StackColors>()!
+                                                .accentColorBlue,
+                                            fontSize: 18,
+                                            height: 1.3,
+                                          ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 40),
@@ -469,7 +425,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                                         ),
                                         const SizedBox(width: 20),
                                         Text(
-                                          "Write them down.",
+                                          context.l10n.addWalletWarningWriteDown,
                                           style: STextStyles.navBarTitle(
                                             context,
                                           ),
@@ -498,7 +454,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                                         ),
                                         const SizedBox(width: 20),
                                         Text(
-                                          "Keep them safe.",
+                                          context.l10n.addWalletWarningKeepSafe,
                                           style: STextStyles.navBarTitle(
                                             context,
                                           ),
@@ -528,7 +484,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                                         const SizedBox(width: 20),
                                         Expanded(
                                           child: Text(
-                                            "Do not show them to anyone.",
+                                            context.l10n.addWalletWarningDoNotShow,
                                             style: STextStyles.navBarTitle(
                                               context,
                                             ),
@@ -593,7 +549,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                                       SizedBox(width: isDesktop ? 20 : 10),
                                       Flexible(
                                         child: Text(
-                                          "I understand that ${AppConfig.appName} does not keep and cannot restore my recovery phrase, and If I lose my recovery phrase, I will not be able to access my funds.",
+                                          context.l10n.addWalletWarningUnderstand(AppConfig.appName),
                                           style: isDesktop
                                               ? STextStyles.desktopTextMedium(
                                                   context,
@@ -634,7 +590,7 @@ class _NewWalletRecoveryPhraseWarningViewState
                                               context,
                                             ),
                                   child: Text(
-                                    "View recovery phrase",
+                                    context.l10n.addWalletViewPhrase,
                                     style: isDesktop
                                         ? ref
                                                   .read(
@@ -669,4 +625,27 @@ class _NewWalletRecoveryPhraseWarningViewState
       ),
     );
   }
+}
+
+/// [text] as spans: the parts between <b> and </b> in [highlight], the rest
+/// in [plain]. The message keeps the highlighted words inside its whole
+/// sentence.
+List<TextSpan> _highlightTagSpans(
+  String text,
+  TextStyle plain,
+  TextStyle highlight,
+) {
+  final spans = <TextSpan>[];
+  var start = 0;
+  for (final m in RegExp(r"<b>(.*?)</b>").allMatches(text)) {
+    if (m.start > start) {
+      spans.add(TextSpan(text: text.substring(start, m.start), style: plain));
+    }
+    spans.add(TextSpan(text: m.group(1), style: highlight));
+    start = m.end;
+  }
+  if (start < text.length) {
+    spans.add(TextSpan(text: text.substring(start), style: plain));
+  }
+  return spans;
 }

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:zxing2/qrcode.dart';
 
+import '../../l10n/l10n.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../utilities/assets.dart';
 import '../../utilities/logger.dart';
@@ -275,7 +276,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                 Padding(
                   padding: const EdgeInsets.only(left: 32),
                   child: Text(
-                    "Scan QR code",
+                    context.l10n.sharedQrScanTitle,
                     style: STextStyles.desktopH3(context),
                   ),
                 ),
@@ -294,9 +295,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: Text(
-                          "No camera found. Choose a picture of the QR code "
-                          "with \"Select file\", or close this and paste "
-                          "the address.",
+                          context.l10n.sharedQrNoCamera,
                           key: const Key("qrScannerNoCamera"),
                           textAlign: TextAlign.center,
                           style: STextStyles.desktopTextSmall(context),
@@ -316,7 +315,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                   // "Select file" button.
                   SecondaryButton(
                     buttonHeight: ButtonHeight.l,
-                    label: "Select file",
+                    label: context.l10n.sharedQrSelectFile,
                     width: 200,
                     onPressed: () async {
                       final result = await FilePicker.platform.pickFiles(
@@ -329,7 +328,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                             result.files.single.path == null) {
                           await showFloatingFlushBar(
                             type: FlushBarType.info,
-                            message: "No file selected",
+                            message: context.l10n.sharedQrNoFileSelected,
                             iconAsset: Assets.svg.file,
                             context: context,
                           );
@@ -340,7 +339,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                         if (filePath == null) {
                           await showFloatingFlushBar(
                             type: FlushBarType.info,
-                            message: "Error selecting file.",
+                            message: context.l10n.sharedQrFileError,
                             iconAsset: Assets.svg.file,
                             context: context,
                           );
@@ -353,7 +352,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                           if (image == null) {
                             await showFloatingFlushBar(
                               type: FlushBarType.info,
-                              message: "Failed to decode image.",
+                              message: context.l10n.sharedQrDecodeFailed,
                               iconAsset: Assets.svg.file,
                               context: context,
                             );
@@ -367,7 +366,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                             } else {
                               await showFloatingFlushBar(
                                 type: FlushBarType.info,
-                                message: "No QR code found in the image.",
+                                message: context.l10n.sharedQrNotFound,
                                 iconAsset: Assets.svg.file,
                                 context: context,
                               );
@@ -382,8 +381,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                           if (context.mounted) {
                             await showFloatingFlushBar(
                               type: FlushBarType.info,
-                              message:
-                                  "Error processing the image. Please try again.",
+                              message: context.l10n.sharedQrProcessingError,
                               iconAsset: Assets.svg.file,
                               context: context,
                             );
@@ -396,7 +394,7 @@ class _QrCodeScannerDialogState extends State<QrCodeScannerDialog> {
                   // Close button.
                   PrimaryButton(
                     buttonHeight: ButtonHeight.l,
-                    label: "Close",
+                    label: context.l10n.commonClose,
                     width: 272.5,
                     onPressed: () {
                       Navigator.of(context).pop();

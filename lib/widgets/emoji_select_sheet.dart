@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../l10n/l10n.dart';
 import '../themes/stack_colors.dart';
 import '../utilities/assets.dart';
 import '../utilities/constants.dart';
@@ -135,7 +136,7 @@ class _EmojiSelectSheetState extends ConsumerState<EmojiSelectSheet> {
               height: 36,
             ),
           Text(
-            "Select emoji",
+            context.l10n.sharedSelectEmoji,
             style: isDesktop
                 ? STextStyles.desktopH3(context)
                 : STextStyles.pageTitleH2(context),
@@ -160,7 +161,7 @@ class _EmojiSelectSheetState extends ConsumerState<EmojiSelectSheet> {
                 },
                 style: STextStyles.field(context),
                 decoration: standardInputDecoration(
-                  "Search",
+                  context.l10n.sharedSearch,
                   _searchFocusNode,
                   context,
                 ).copyWith(
@@ -254,7 +255,7 @@ class _EmojiSelectSheetState extends ConsumerState<EmojiSelectSheet> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 SecondaryButton(
-                  label: "Cancel",
+                  label: context.l10n.commonCancel,
                   width: 248,
                   buttonHeight: ButtonHeight.l,
                   onPressed: Navigator.of(context).pop,

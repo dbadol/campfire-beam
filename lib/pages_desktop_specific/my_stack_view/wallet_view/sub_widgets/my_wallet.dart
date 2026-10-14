@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../frost_route_generator.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../pages/epic_finalize_view/epic_finalize_view.dart';
 import '../../../../pages/finalize_view/finalize_view.dart';
 import '../../../../pages/send_view/frost_ms/frost_send_view.dart';
@@ -61,6 +62,15 @@ class MyWallet extends ConsumerStatefulWidget {
 
 class _MyWalletState extends ConsumerState<MyWallet> {
   final titles = ["Send", "Receive"];
+
+  /// What tab [title] says, in the app's language (read on every build, so
+  /// a language change shows at once). [titles] are the tabs' ids.
+  String _tabLabel(BuildContext context, String title) => switch (title) {
+    "Send" => context.l10n.walletViewSend,
+    "Receive" => context.l10n.walletViewReceive,
+    "Transactions" => context.l10n.walletViewTransactions,
+    _ => title,
+  };
 
   late final bool isEth;
   late final bool isSolana;
@@ -137,7 +147,7 @@ class _MyWalletState extends ConsumerState<MyWallet> {
       RoundedWhiteContainer(
           padding: EdgeInsets.zero,
           child: _tabs(
-            titles: titles,
+            titles: [for (final t in titles) _tabLabel(context, t)],
             children: [
               widget.contractAddress == null
                   ? isFrost

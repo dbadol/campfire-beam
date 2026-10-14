@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../models/node_model.dart';
 import '../../../../notifications/show_flush_bar.dart';
 import '../../../../providers/global/active_wallet_provider.dart';
@@ -213,7 +214,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                         children: [
                           const SizedBox(width: 32),
                           Text(
-                            "Server currently unreachable",
+                            context.l10n.settingsNodeUnreachableTitle,
                             style: STextStyles.desktopH3(context),
                           ),
                         ],
@@ -231,7 +232,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                           children: [
                             const Spacer(),
                             Text(
-                              "Would you like to save this node anyways?",
+                              context.l10n.settingsNodeSaveAnyway,
                               style: STextStyles.desktopTextMedium(context),
                             ),
                             const Spacer(flex: 2),
@@ -239,7 +240,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                               children: [
                                 Expanded(
                                   child: SecondaryButton(
-                                    label: "Cancel",
+                                    label: context.l10n.commonCancel,
                                     buttonHeight: isDesktop
                                         ? ButtonHeight.l
                                         : null,
@@ -252,7 +253,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: PrimaryButton(
-                                    label: "Save",
+                                    label: context.l10n.settingsSave,
                                     buttonHeight: isDesktop
                                         ? ButtonHeight.l
                                         : null,
@@ -272,14 +273,14 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                 ),
               )
             : StackDialog(
-                title: "Server currently unreachable",
-                message: "Would you like to save this node anyways?",
+                title: context.l10n.settingsNodeUnreachableTitle,
+                message: context.l10n.settingsNodeSaveAnyway,
                 leftButton: TextButton(
                   onPressed: () async {
                     Navigator.of(context).pop(false);
                   },
                   child: Text(
-                    "Cancel",
+                    context.l10n.commonCancel,
                     style: STextStyles.button(context).copyWith(
                       color: Theme.of(context)
                           .extension<StackColors>()!
@@ -294,7 +295,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                   style: Theme.of(context)
                       .extension<StackColors>()!
                       .getPrimaryEnabledButtonStyle(context),
-                  child: Text("Save", style: STextStyles.button(context)),
+                  child: Text(context.l10n.settingsSave, style: STextStyles.button(context)),
                 ),
               ),
       ).then((value) {
@@ -581,7 +582,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
               },
             ),
             title: Text(
-              viewType == AddEditNodeViewType.edit ? "Edit node" : "Add node",
+              viewType == AddEditNodeViewType.edit ? context.l10n.settingsNodeEditTitle : context.l10n.settingsNodeAddTitle,
               style: STextStyles.navBarTitle(context),
             ),
             actions: [
@@ -704,7 +705,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                       const SizedBox(width: 8),
                       const AppBarBackButton(iconSize: 24, size: 40),
                       Text(
-                        "Add new node",
+                        context.l10n.settingsNodeAddNew,
                         style: STextStyles.desktopH3(context),
                       ),
                     ],
@@ -774,8 +775,8 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                 Expanded(
                   child: SecondaryButton(
                     label: _testingBeamNode || _testingEthNode
-                        ? "Testing…"
-                        : "Test connection",
+                        ? context.l10n.settingsNodeTesting
+                        : context.l10n.settingsNodeTestConnection,
                     enabled:
                         testConnectionEnabled &&
                         !_testingBeamNode &&
@@ -806,7 +807,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                                 unawaited(
                                   showFloatingFlushBar(
                                     type: FlushBarType.success,
-                                    message: "Server ping success",
+                                    message: context.l10n.settingsNodePingSuccess,
                                     context: context,
                                   ),
                                 );
@@ -814,7 +815,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                                 unawaited(
                                   showFloatingFlushBar(
                                     type: FlushBarType.warning,
-                                    message: "Server unreachable",
+                                    message: context.l10n.settingsNodeUnreachable,
                                     context: context,
                                   ),
                                 );
@@ -828,7 +829,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                 if (isDesktop)
                   Expanded(
                     child: PrimaryButton(
-                      label: "Save",
+                      label: context.l10n.settingsSave,
                       enabled: saveEnabled && !_testingEthNode,
                       buttonHeight: ButtonHeight.l,
                       onPressed: saveEnabled && !_testingEthNode
@@ -851,7 +852,7 @@ class _AddEditNodeViewState extends ConsumerState<AddEditNodeView> {
                 onPressed: saveEnabled && !_testingEthNode
                     ? attemptSave
                     : null,
-                child: Text("Save", style: STextStyles.button(context)),
+                child: Text(context.l10n.settingsSave, style: STextStyles.button(context)),
               ),
           ],
         ),
@@ -1107,7 +1108,7 @@ class _NodeFormState extends ConsumerState<NodeForm> {
             style: STextStyles.field(context),
             decoration:
                 standardInputDecoration(
-                  "Node name",
+                  context.l10n.settingsNodeName,
                   _nameFocusNode,
                   context,
                 ).copyWith(
@@ -1154,9 +1155,9 @@ class _NodeFormState extends ConsumerState<NodeForm> {
             decoration:
                 standardInputDecoration(
                   widget.coin is Beam
-                      ? "Node address"
+                      ? context.l10n.settingsNodeAddress
                       : widget.coin is Ethereum
-                      ? "RPC URL"
+                      ? context.l10n.settingsNodeRpcUrl
                       : (widget.coin is! CryptonoteCurrency)
                       ? "IP address"
                       : "Url",
@@ -1320,7 +1321,7 @@ class _NodeFormState extends ConsumerState<NodeForm> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             keyboardType: TextInputType.number,
             style: STextStyles.field(context),
-            decoration: standardInputDecoration("Port", _portFocusNode, context)
+            decoration: standardInputDecoration(context.l10n.settingsNodePort, _portFocusNode, context)
                 .copyWith(
                   suffixIcon:
                       !shouldBeReadOnly && _portController.text.isNotEmpty
@@ -1680,8 +1681,7 @@ class _NodeFormState extends ConsumerState<NodeForm> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "If this node stops answering, Campfire uses BEAM's public "
-                "nodes until it is back.",
+                context.l10n.settingsNodeBeamFallbackNote,
                 key: const Key("addCustomNodeBeamFallbackNote"),
                 style: STextStyles.itemSubtitle12(context),
               ),

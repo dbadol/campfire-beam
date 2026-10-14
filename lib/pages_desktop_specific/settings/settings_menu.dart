@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/assets.dart';
 import '../../utilities/constants.dart';
@@ -33,15 +34,15 @@ class _SettingsMenuState extends ConsumerState<SettingsMenu> {
     debugPrint("BUILD: $runtimeType");
 
     final List<String> labels = [
-      "Backup and restore",
-      "Security",
-      "Currency",
-      "Language",
-      "Tor settings",
-      "Nodes",
-      "Syncing preferences",
+      context.l10n.desktopSettingsMenuBackupRestore,
+      context.l10n.desktopSettingsMenuSecurity,
+      context.l10n.desktopSettingsMenuCurrency,
+      context.l10n.settingsLanguageTitle,
+      context.l10n.desktopSettingsMenuTor,
+      context.l10n.desktopSettingsMenuNodes,
+      context.l10n.desktopSettingsMenuSyncing,
       if (AppConfig.hasFeature(AppFeature.themeSelection)) "Appearance",
-      "Advanced",
+      context.l10n.desktopSettingsMenuAdvanced,
       if (Constants.enableExchange && AppConfig.hasFeature(.shopinBit))
         "ShopinBit",
     ];

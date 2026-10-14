@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/transaction_filter.dart';
 import '../../../providers/global/locale_provider.dart';
 import '../../../providers/ui/transaction_filter_provider.dart';
@@ -150,7 +151,7 @@ class _TransactionSearchViewState
               },
             ),
             title: Text(
-              "Transactions filter",
+              context.l10n.walletViewFilterTitle,
               style: STextStyles.navBarTitle(context),
             ),
           ),
@@ -188,7 +189,7 @@ class _TransactionSearchViewState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Transaction filter",
+                context.l10n.walletViewFilterTitleDesktop,
                 style: STextStyles.desktopH3(context),
                 textAlign: TextAlign.center,
               ),
@@ -201,7 +202,7 @@ class _TransactionSearchViewState
             alignment: Alignment.centerLeft,
             child: FittedBox(
               child: Text(
-                "Transactions",
+                context.l10n.walletViewTransactions,
                 style: STextStyles.smallMed12(context),
               ),
             ),
@@ -248,7 +249,7 @@ class _TransactionSearchViewState
                               child: Column(
                                 children: [
                                   Text(
-                                    "Sent",
+                                    context.l10n.walletViewFilterSent,
                                     style: isDesktop
                                         ? STextStyles.desktopTextSmall(context)
                                         : STextStyles.itemSubtitle12(context),
@@ -301,7 +302,7 @@ class _TransactionSearchViewState
                               child: Column(
                                 children: [
                                   Text(
-                                    "Received",
+                                    context.l10n.walletViewFilterReceived,
                                     style: isDesktop
                                         ? STextStyles.desktopTextSmall(context)
                                         : STextStyles.itemSubtitle12(context),
@@ -354,7 +355,7 @@ class _TransactionSearchViewState
                               child: Column(
                                 children: [
                                   Text(
-                                    "Trades",
+                                    context.l10n.walletViewFilterTrades,
                                     style: isDesktop
                                         ? STextStyles.desktopTextSmall(context)
                                         : STextStyles.itemSubtitle12(context),
@@ -378,7 +379,7 @@ class _TransactionSearchViewState
           alignment: Alignment.centerLeft,
           child: FittedBox(
             child: Text(
-              "Date",
+              context.l10n.walletViewFilterDate,
               style: isDesktop
                   ? STextStyles.labelExtraExtraSmall(context)
                   : STextStyles.smallMed12(context),
@@ -404,7 +405,7 @@ class _TransactionSearchViewState
           alignment: Alignment.centerLeft,
           child: FittedBox(
             child: Text(
-              "Amount",
+              context.l10n.walletViewFilterAmount,
               style: isDesktop
                   ? STextStyles.labelExtraExtraSmall(context)
                   : STextStyles.smallMed12(context),
@@ -459,7 +460,7 @@ class _TransactionSearchViewState
                   : STextStyles.field(context),
               decoration:
                   standardInputDecoration(
-                    "Enter ${widget.coin.ticker} amount...",
+                    context.l10n.walletViewFilterAmountHint(widget.coin.ticker),
                     keywordTextFieldFocusNode,
                     context,
                     desktopMed: isDesktop,
@@ -498,7 +499,7 @@ class _TransactionSearchViewState
           alignment: Alignment.centerLeft,
           child: FittedBox(
             child: Text(
-              "Keyword",
+              context.l10n.walletViewFilterKeyword,
               style: isDesktop
                   ? STextStyles.labelExtraExtraSmall(context)
                   : STextStyles.smallMed12(context),
@@ -529,7 +530,7 @@ class _TransactionSearchViewState
               onChanged: (_) => setState(() {}),
               decoration:
                   standardInputDecoration(
-                    "Type keyword...",
+                    context.l10n.walletViewFilterKeywordHint,
                     keywordTextFieldFocusNode,
                     context,
                     desktopMed: isDesktop,
@@ -569,7 +570,7 @@ class _TransactionSearchViewState
           children: [
             Expanded(
               child: SecondaryButton(
-                label: "Cancel",
+                label: context.l10n.commonCancel,
                 buttonHeight: isDesktop ? ButtonHeight.l : null,
                 onPressed: () async {
                   if (!isDesktop) {
@@ -620,7 +621,7 @@ class _TransactionSearchViewState
                 onPressed: () async {
                   await _onApplyPressed();
                 },
-                label: "Save",
+                label: context.l10n.sharedSave,
               ),
             ),
             // Expanded(

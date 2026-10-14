@@ -767,11 +767,12 @@ class _MaterialAppWithThemeState extends ConsumerState<MaterialAppWithTheme>
               showBackButton: true,
               routeOnSuccess: RestoreFromEncryptedStringView.routeName,
               routeOnSuccessArguments: encrypted,
-              biometricsCancelButtonString: "CANCEL",
-              biometricsLocalizedReason:
-                  "Authenticate to restore ${AppConfig.appName} backup",
-              biometricsAuthenticationTitle:
-                  "Restore ${AppConfig.prefix} backup",
+              biometricsCancelButtonString: appL10n.beamAuthCancel,
+              biometricsLocalizedReason: appL10n.appStartRestoreBackupReason(
+                AppConfig.appName,
+              ),
+              biometricsAuthenticationTitle: appL10n
+                  .appStartRestoreBackupTitle(AppConfig.prefix),
             ),
             settings: const RouteSettings(name: "/swbrestorelockscreen"),
           ),
@@ -962,11 +963,11 @@ class _MaterialAppWithThemeState extends ConsumerState<MaterialAppWithTheme>
                       isInitialAppLogin: true,
                       routeOnSuccess: HomeView.routeName,
                       routeOnSuccessArguments: startupWalletId,
-                      biometricsAuthenticationTitle:
-                          "Unlock ${AppConfig.prefix}",
-                      biometricsLocalizedReason:
-                          "Unlock your ${AppConfig.appName} using biometrics",
-                      biometricsCancelButtonString: "Cancel",
+                      biometricsAuthenticationTitle: context.l10n
+                          .appStartUnlockTitle(AppConfig.prefix),
+                      biometricsLocalizedReason: context.l10n
+                          .appStartUnlockReason(AppConfig.appName),
+                      biometricsCancelButtonString: context.l10n.commonCancel,
                     );
                   } else {
                     if (AppConfig.appName == "Campfire" &&

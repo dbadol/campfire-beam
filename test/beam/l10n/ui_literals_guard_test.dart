@@ -28,49 +28,18 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The BEAM UI directories and the files whose text screens show: each
-/// area joins the list once its text is in the catalogue.
+/// The BEAM UI directories, and the BEAM files that live among upstream
+/// ones.
 const scanned = <String>[
   'lib/l10n',
-  'lib/pages/beam/airdrop',
-  'lib/pages/beam/buy',
-  'lib/pages/beam/dapps',
-  'lib/pages/beam/dex',
-  'lib/pages/beam/import',
-  'lib/pages/beam/minter',
-  'lib/pages/beam/names',
-  'lib/pages/beam/node',
-  'lib/pages/beam/settings',
-  'lib/pages/beam/split',
+  'lib/pages/beam',
   'lib/pages/bridge',
-  'lib/pages_desktop_specific/beam/buy',
-  'lib/pages_desktop_specific/beam/dex',
-  'lib/pages_desktop_specific/beam/node',
-  'lib/pages_desktop_specific/beam/sidebar',
+  'lib/pages_desktop_specific/beam',
   'lib/pages_desktop_specific/bridge',
   'lib/pages_desktop_specific/my_stack_view/wallet_view/beam_desktop_asset_view.dart',
   'lib/pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/beam_desktop_wallet_summary.dart',
   'lib/utilities/beam',
-  'lib/widgets/beam/airdrop',
-  'lib/widgets/beam/assets',
-  'lib/widgets/beam/beam_decimal_input.dart',
-  'lib/widgets/beam/dapps',
-  'lib/widgets/beam/dex',
-  'lib/widgets/beam/minter',
-  'lib/widgets/beam/names',
-  'lib/widgets/beam/node',
-  'lib/widgets/beam/quit',
-  'lib/widgets/beam/receive',
-  'lib/widgets/beam/scan',
-  'lib/widgets/beam/send',
-  'lib/widgets/beam/sidebar',
-  'lib/widgets/beam/split',
-  'lib/widgets/beam/stickers',
-  'lib/widgets/beam/tx',
-  'lib/widgets/beam/wallet_home',
-  'lib/widgets/beam/wbeam_icon.dart',
-  'lib/widgets/beam/wiring/beam_features.dart',
-  'lib/widgets/beam/wiring/beam_wallet_listenables.dart',
+  'lib/widgets/beam',
 ];
 
 /// The wallet-core directories: mostly protocol strings, logs and developer

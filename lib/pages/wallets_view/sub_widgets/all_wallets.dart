@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
@@ -36,7 +37,7 @@ class AllWallets extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "All wallets",
+              context.l10n.walletListAllWallets,
               style: STextStyles.itemSubtitle(context).copyWith(
                 color: Theme.of(context).extension<StackColors>()!.textDark3,
               ),
@@ -53,7 +54,7 @@ class AllWallets extends StatelessWidget {
               const SizedBox(width: 16),
             ],
             CustomTextButton(
-              text: "Add new",
+              text: context.l10n.walletListAddNew,
               onTap: () {
                 final String route;
                 final Object? args;

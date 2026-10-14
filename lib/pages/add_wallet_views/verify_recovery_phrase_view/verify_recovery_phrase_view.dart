@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tuple/tuple.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/keys/view_only_wallet_data.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../pages_desktop_specific/desktop_home_view.dart';
@@ -395,7 +396,7 @@ class _VerifyRecoveryPhraseViewState
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.success,
-            message: "Correct! Your wallet is set up.",
+            message: appL10n.verifyCorrect,
             iconAsset: Assets.svg.check,
             context: context,
           ),
@@ -405,7 +406,7 @@ class _VerifyRecoveryPhraseViewState
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.warning,
-          message: "Incorrect. Please try again.",
+          message: context.l10n.verifyIncorrect,
           iconAsset: Assets.svg.circleX,
           context: context,
         ),
@@ -532,7 +533,7 @@ class _VerifyRecoveryPhraseViewState
                 if (isDesktop) const Spacer(flex: 10),
                 SizedBox(height: isDesktop ? 24 : 4),
                 Text(
-                  "Verify recovery phrase",
+                  context.l10n.verifyTitle,
                   textAlign: TextAlign.center,
                   style: isDesktop
                       ? STextStyles.desktopH2(context)
@@ -540,7 +541,7 @@ class _VerifyRecoveryPhraseViewState
                 ),
                 SizedBox(height: isDesktop ? 16 : 4),
                 Text(
-                  isDesktop ? "Select word number" : "Tap word number ",
+                  isDesktop ? context.l10n.verifySelectWordNumber : context.l10n.verifyTapWordNumber,
                   textAlign: TextAlign.center,
                   style: isDesktop
                       ? STextStyles.desktopSubtitleH1(context)
@@ -614,7 +615,7 @@ class _VerifyRecoveryPhraseViewState
                                         .getPrimaryDisabledButtonStyle(context),
                               child: isDesktop
                                   ? Text(
-                                      "Verify",
+                                      context.l10n.verifyButton,
                                       style: selectedWord.isNotEmpty
                                           ? STextStyles.desktopButtonEnabled(
                                               context,
@@ -624,7 +625,7 @@ class _VerifyRecoveryPhraseViewState
                                             ),
                                     )
                                   : Text(
-                                      "Continue",
+                                      context.l10n.commonContinue,
                                       style: STextStyles.button(context),
                                     ),
                             ),

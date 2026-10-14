@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tuple/tuple.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/prefs_provider.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/constants.dart';
@@ -52,7 +53,7 @@ class AdvancedSettingsView extends StatelessWidget {
               Navigator.of(context).pop();
             },
           ),
-          title: Text("Advanced", style: STextStyles.navBarTitle(context)),
+          title: Text(context.l10n.settingsAdvanced, style: STextStyles.navBarTitle(context)),
         ),
         body: SafeArea(
           child: Padding(
@@ -82,7 +83,7 @@ class AdvancedSettingsView extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            "Logging",
+                            context.l10n.settingsLogging,
                             style: STextStyles.titleBold12(context),
                             textAlign: TextAlign.left,
                           ),
@@ -112,7 +113,7 @@ class AdvancedSettingsView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "Toggle testnet coins",
+                                  context.l10n.settingsToggleTestnetCoins,
                                   style: STextStyles.titleBold12(context),
                                   textAlign: TextAlign.left,
                                 ),
@@ -159,7 +160,7 @@ class AdvancedSettingsView extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "Enable coin control",
+                                context.l10n.settingsEnableCoinControl,
                                 style: STextStyles.titleBold12(context),
                                 textAlign: TextAlign.left,
                               ),
@@ -209,7 +210,7 @@ class AdvancedSettingsView extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "Enable exchange features",
+                                  context.l10n.settingsEnableExchangeFeatures,
                                   style: STextStyles.titleBold12(context),
                                   textAlign: TextAlign.left,
                                 ),
@@ -272,13 +273,13 @@ class AdvancedSettingsView extends StatelessWidget {
                                 text: TextSpan(
                                   children: [
                                     TextSpan(
-                                      text: "${AppConfig.prefix} Experience",
+                                      text: context.l10n.settingsExperience(AppConfig.prefix),
                                       style: STextStyles.titleBold12(context),
                                     ),
                                     TextSpan(
                                       text: externalCalls
-                                          ? "\nEasy crypto"
-                                          : "\nIncognito",
+                                          ? "\n${context.l10n.settingsExperienceEasyCrypto}"
+                                          : "\n${context.l10n.settingsExperienceIncognito}",
                                       style: STextStyles.label(context)
                                           .copyWith(fontSize: 15.0),
                                     ),
@@ -306,9 +307,9 @@ class AdvancedSettingsView extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).pushNamed(
                         ChooseCoinView.routeName,
-                        arguments: const Tuple3<String, String, String>(
-                          "Manage block explorers",
-                          "block explorer",
+                        arguments: Tuple3<String, String, String>(
+                          context.l10n.settingsManageBlockExplorers,
+                          ChooseCoinView.blockExplorer,
                           ManageExplorerView.routeName,
                         ),
                       );
@@ -321,7 +322,7 @@ class AdvancedSettingsView extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            "Change block explorer",
+                            context.l10n.settingsChangeBlockExplorer,
                             style: STextStyles.titleBold12(context),
                             textAlign: TextAlign.left,
                           ),
@@ -353,7 +354,7 @@ class AdvancedSettingsView extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            "Units",
+                            context.l10n.settingsUnits,
                             style: STextStyles.titleBold12(context),
                             textAlign: TextAlign.left,
                           ),

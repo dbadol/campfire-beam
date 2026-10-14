@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../notifications/show_flush_bar.dart';
 import '../../../../route_generator.dart';
 import '../../../../themes/stack_colors.dart';
@@ -107,7 +108,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                 },
               ),
               title: Text(
-                "Restore from file",
+                context.l10n.appBackupRestoreFromFile,
                 style: STextStyles.navBarTitle(context),
               ),
             ),
@@ -140,7 +141,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10.0),
                 child: Text(
-                  "Choose file location",
+                  context.l10n.appBackupChooseLocation,
                   style: STextStyles.desktopTextExtraExtraSmall(context)
                       .copyWith(
                         color: Theme.of(
@@ -189,7 +190,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
               controller: fileLocationController,
               style: STextStyles.field(context),
               decoration: InputDecoration(
-                hintText: "Choose file...",
+                hintText: context.l10n.appBackupChooseFile,
                 hintStyle: STextStyles.fieldLabel(context),
                 suffixIcon: UnconstrainedBox(
                   child: Row(
@@ -223,7 +224,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10.0),
                 child: Text(
-                  "Enter passphrase",
+                  context.l10n.appBackupEnterPassphrase,
                   style: STextStyles.desktopTextExtraExtraSmall(context)
                       .copyWith(
                         color: Theme.of(
@@ -247,7 +248,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                 autocorrect: false,
                 decoration:
                     standardInputDecoration(
-                      "Enter passphrase",
+                      context.l10n.appBackupEnterPassphrase,
                       passwordFocusNode,
                       context,
                     ).copyWith(
@@ -320,7 +321,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                             if (!(await File(fileToRestore).exists())) {
                               await showFloatingFlushBar(
                                 type: FlushBarType.warning,
-                                message: "Backup file does not exist",
+                                message: appL10n.appBackupFileMissing,
                                 context: context,
                               );
                               return;
@@ -344,7 +345,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                                         color: Colors.transparent,
                                         child: Center(
                                           child: Text(
-                                            "Decrypting ${AppConfig.prefix} backup file",
+                                            appL10n.appBackupDecrypting(AppConfig.prefix),
                                             style:
                                                 STextStyles.pageTitleH2(
                                                   context,
@@ -389,7 +390,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                               if (jsonString == null) {
                                 await showFloatingFlushBar(
                                   type: FlushBarType.warning,
-                                  message: "Failed to decrypt backup file",
+                                  message: appL10n.appBackupDecryptFailed,
                                   context: context,
                                 );
                                 return;
@@ -405,14 +406,14 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                               );
                             }
                           },
-                    child: Text("Restore", style: STextStyles.button(context)),
+                    child: Text(context.l10n.appBackupRestore, style: STextStyles.button(context)),
                   )
                 : Row(
                     children: [
                       PrimaryButton(
                         width: 183,
                         buttonHeight: ButtonHeight.m,
-                        label: "Restore",
+                        label: context.l10n.appBackupRestore,
                         enabled:
                             !(passwordController.text.isEmpty ||
                                 fileLocationController.text.isEmpty),
@@ -436,7 +437,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                                 if (!(await File(fileToRestore).exists())) {
                                   await showFloatingFlushBar(
                                     type: FlushBarType.warning,
-                                    message: "Backup file does not exist",
+                                    message: appL10n.appBackupFileMissing,
                                     context: context,
                                   );
                                   return;
@@ -461,7 +462,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                                             color: Colors.transparent,
                                             child: Center(
                                               child: Text(
-                                                "Decrypting ${AppConfig.prefix} backup file",
+                                                appL10n.appBackupDecrypting(AppConfig.prefix),
                                                 style:
                                                     STextStyles.pageTitleH2(
                                                       context,
@@ -511,7 +512,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                                   if (jsonString == null) {
                                     await showFloatingFlushBar(
                                       type: FlushBarType.warning,
-                                      message: "Failed to decrypt backup file",
+                                      message: appL10n.appBackupDecryptFailed,
                                       context: context,
                                     );
                                     return;
@@ -549,7 +550,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                                                                   32,
                                                                 ),
                                                             child: Text(
-                                                              "Restore ${AppConfig.appName}",
+                                                              appL10n.appBackupRestoreApp(AppConfig.appName),
                                                               style:
                                                                   STextStyles.desktopH3(
                                                                     context,
@@ -593,7 +594,7 @@ class _RestoreFromFileViewState extends ConsumerState<RestoreFromFileView> {
                       SecondaryButton(
                         width: 183,
                         buttonHeight: ButtonHeight.m,
-                        label: "Cancel",
+                        label: context.l10n.commonCancel,
                         onPressed: () {},
                       ),
                     ],

@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../l10n/l10n.dart';
 import '../../pages/wallets_view/wallets_overview.dart';
 import '../../providers/providers.dart';
 import '../../themes/coin_icon_provider.dart';
@@ -152,7 +153,7 @@ class _DesktopWalletSummaryRowState
         await showLoading(
           whileFuture: loadFuture,
           context: context,
-          message: 'Opening ${wallet.info.name}',
+          message: context.l10n.walletListOpeningWallet(wallet.info.name),
           rootNavigator: Util.isDesktop,
         );
 
@@ -189,7 +190,10 @@ class _DesktopWalletSummaryRowState
                         Padding(
                           padding: const EdgeInsets.only(left: 32),
                           child: Text(
-                            "${widget.coin.prettyName} (${widget.coin.ticker}) wallets",
+                            context.l10n.walletListCoinWallets(
+                              widget.coin.prettyName,
+                              widget.coin.ticker,
+                            ),
                             style: STextStyles.desktopH3(context),
                           ),
                         ),
@@ -258,9 +262,7 @@ class _DesktopWalletSummaryRowState
             Expanded(
               flex: 4,
               child: Text(
-                widget.walletCount == 1
-                    ? "${widget.walletCount} wallet"
-                    : "${widget.walletCount} wallets",
+                context.l10n.walletListWalletCount(widget.walletCount),
                 style: STextStyles.desktopTextExtraSmall(context).copyWith(
                   color:
                       Theme.of(context).extension<StackColors>()!.textSubtitle1,

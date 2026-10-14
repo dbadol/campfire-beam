@@ -14,6 +14,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../../../l10n/l10n.dart';
 import '../../../../../utilities/beam_app_identity.dart';
 import '../../../../../utilities/fs.dart';
 
@@ -66,7 +67,7 @@ class SWBFileSystem {
     FilePickerResult? result;
     if (Platform.isAndroid) {
       result = await FilePicker.platform.pickFiles(
-        dialogTitle: "Load backup file",
+        dialogTitle: appL10n.appBackupLoadFile,
         initialDirectory: _startPath!.path,
         type: FileType.any,
         allowCompression: false,
@@ -74,7 +75,7 @@ class SWBFileSystem {
       );
     } else if (Platform.isIOS) {
       result = await FilePicker.platform.pickFiles(
-        dialogTitle: "Load backup file",
+        dialogTitle: appL10n.appBackupLoadFile,
         initialDirectory: _startPath!.path,
         type: FileType.any,
         allowCompression: false,
@@ -82,7 +83,7 @@ class SWBFileSystem {
       );
     } else {
       result = await FilePicker.platform.pickFiles(
-        dialogTitle: "Load backup file",
+        dialogTitle: appL10n.appBackupLoadFile,
         initialDirectory: _startPath!.path,
         type: FileType.custom,
         allowedExtensions: ['bin', 'swb'],

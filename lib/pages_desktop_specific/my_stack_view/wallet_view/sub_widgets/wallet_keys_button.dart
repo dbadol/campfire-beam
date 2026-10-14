@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import '../../../../l10n/l10n.dart';
 import 'unlock_wallet_keys_desktop.dart';
 import '../../../../route_generator.dart';
 import '../../../../themes/stack_colors.dart';
@@ -69,7 +70,7 @@ class WalletKeysButton extends StatelessWidget {
               width: 6,
             ),
             Text(
-              "Wallet keys",
+              context.l10n.walletViewWalletKeys,
               style: STextStyles.desktopMenuItemSelected(context),
             ),
           ],

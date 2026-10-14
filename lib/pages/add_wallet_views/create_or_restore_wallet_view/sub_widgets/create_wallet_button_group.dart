@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:tuple/tuple.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/enums/add_wallet_type_enum.dart';
 import '../../../../utilities/text_styles.dart';
@@ -52,7 +53,7 @@ class CreateWalletButtonGroup extends StatelessWidget {
               );
             },
             child: Text(
-              "Create new wallet",
+              context.l10n.addWalletCreateNew,
               style: isDesktop
                   ? STextStyles.desktopButtonEnabled(context)
                   : STextStyles.button(context),
@@ -81,7 +82,7 @@ class CreateWalletButtonGroup extends StatelessWidget {
               );
             },
             child: Text(
-              "Restore wallet",
+              context.l10n.addWalletRestoreButton,
               style: isDesktop
                   ? STextStyles.desktopButtonSecondaryEnabled(context)
                   : STextStyles.button(context).copyWith(

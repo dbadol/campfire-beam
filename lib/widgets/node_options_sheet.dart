@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tuple/tuple.dart';
 
+import '../l10n/l10n.dart';
 import '../notifications/show_flush_bar.dart';
 import '../pages/settings_views/global_settings_view/manage_nodes_views/add_edit_node_view.dart';
 import '../pages/settings_views/global_settings_view/manage_nodes_views/node_details_view.dart';
@@ -136,7 +137,7 @@ class NodeOptionsSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: 36),
                 Text(
-                  "Node options",
+                  context.l10n.sharedNodeOptions,
                   style: STextStyles.pageTitleH2(context),
                   textAlign: TextAlign.left,
                 ),
@@ -188,7 +189,12 @@ class NodeOptionsSheet extends ConsumerWidget {
                             style: STextStyles.titleBold12(context),
                           ),
                           const SizedBox(height: 2),
-                          Text(status, style: STextStyles.label(context)),
+                          Text(
+                            status == "Connected"
+                                ? context.l10n.sharedNodeConnected
+                                : context.l10n.sharedNodeDisconnected,
+                            style: STextStyles.label(context),
+                          ),
                         ],
                       ),
                       const Spacer(),
@@ -222,7 +228,7 @@ class NodeOptionsSheet extends ConsumerWidget {
                           );
                         },
                         child: Text(
-                          "Details",
+                          context.l10n.sharedNodeDetails,
                           style: STextStyles.button(context).copyWith(
                             color: Theme.of(
                               context,
@@ -314,7 +320,7 @@ class NodeOptionsSheet extends ConsumerWidget {
                               },
                         child: Text(
                           // status == "Connected" ? "Disconnect" : "Connect",
-                          "Connect",
+                          context.l10n.sharedNodeConnect,
                           style: STextStyles.button(context),
                         ),
                       ),

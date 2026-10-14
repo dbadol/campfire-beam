@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tuple/tuple.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../themes/coin_icon_provider.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/assets.dart';
@@ -84,7 +85,7 @@ class _CoinNodesViewState extends ConsumerState<CoinNodesView> {
                   width: 12,
                 ),
                 Text(
-                  "${widget.coin.prettyName} nodes",
+                  context.l10n.settingsCoinNodes(widget.coin.prettyName),
                   style: STextStyles.desktopH3(context),
                   textAlign: TextAlign.center,
                 ),
@@ -107,7 +108,7 @@ class _CoinNodesViewState extends ConsumerState<CoinNodesView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "${widget.coin.prettyName} nodes",
+                    context.l10n.settingsCoinNodes(widget.coin.prettyName),
                     style: STextStyles.desktopTextExtraSmall(context).copyWith(
                       color:
                           Theme.of(context).extension<StackColors>()!.textDark3,
@@ -115,7 +116,7 @@ class _CoinNodesViewState extends ConsumerState<CoinNodesView> {
                     textAlign: TextAlign.left,
                   ),
                   CustomTextButton(
-                    text: "Add new node",
+                    text: context.l10n.settingsNodeAddNew,
                     onTap: () {
                       Navigator.of(context).pushNamed(
                         AddEditNodeView.routeName,
@@ -169,7 +170,7 @@ class _CoinNodesViewState extends ConsumerState<CoinNodesView> {
               },
             ),
             title: Text(
-              "${widget.coin.prettyName} nodes",
+              context.l10n.settingsCoinNodes(widget.coin.prettyName),
               style: STextStyles.navBarTitle(context),
             ),
             actions: [

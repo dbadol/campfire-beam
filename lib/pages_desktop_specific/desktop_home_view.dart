@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/l10n.dart';
 import '../providers/desktop/current_desktop_menu_item.dart';
 import '../providers/desktop/desktop_open_wallet_request.dart';
 import '../providers/global/active_wallet_provider.dart';
@@ -308,7 +309,7 @@ class _DesktopHomeViewState extends ConsumerState<DesktopHomeView> {
     await showLoading(
       whileFuture: load,
       context: nav.context,
-      message: "Opening ${wallet.info.name}",
+      message: appL10n.walletListOpeningWallet(wallet.info.name),
       rootNavigator: true,
     );
     if (!nav.mounted) return;

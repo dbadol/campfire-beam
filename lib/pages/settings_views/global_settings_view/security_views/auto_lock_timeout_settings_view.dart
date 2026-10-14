@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/providers.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/constants.dart';
@@ -144,7 +145,7 @@ class _AutoLockTimeoutSettingsViewState
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Toggle auto lock",
+                      context.l10n.settingsToggleAutoLock,
                       style: STextStyles.titleBold12(context),
                       textAlign: TextAlign.left,
                     ),
@@ -168,7 +169,7 @@ class _AutoLockTimeoutSettingsViewState
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Text("Minutes", style: STextStyles.titleBold12(context)),
+                Text(context.l10n.settingsMinutesLabel, style: STextStyles.titleBold12(context)),
                 const SizedBox(width: 16),
                 Flexible(
                   child: TextField(
@@ -198,7 +199,7 @@ class _AutoLockTimeoutSettingsViewState
                       decimal: false,
                     ),
                     decoration: InputDecoration(
-                      hintText: "Minutes",
+                      hintText: context.l10n.settingsMinutesLabel,
                       hintStyle: STextStyles.fieldLabel(context),
                     ),
                   ),
@@ -218,7 +219,7 @@ class _AutoLockTimeoutSettingsViewState
             child: PrimaryButton(
               buttonHeight: isDesktop ? ButtonHeight.l : null,
               width: isDesktop ? 200 : null,
-              label: "Save",
+              label: context.l10n.settingsSave,
               onPressed: _save,
             ),
           ),

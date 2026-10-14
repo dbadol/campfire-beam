@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../models/keys/view_only_wallet_data.dart';
 import '../../../../providers/providers.dart';
 import '../../../../themes/stack_colors.dart';
@@ -53,7 +54,7 @@ class DeleteWalletWarningView extends ConsumerWidget {
                 const SizedBox(height: 32),
                 Center(
                   child: Text(
-                    "Attention!",
+                    context.l10n.walletSettingsAttention,
                     style: STextStyles.pageTitleH1(context),
                   ),
                 ),
@@ -64,11 +65,7 @@ class DeleteWalletWarningView extends ConsumerWidget {
                         context,
                       ).extension<StackColors>()!.warningBackground,
                   child: Text(
-                    "You are going to permanently delete your wallet.\n\n"
-                    "If you delete your wallet, the only way you can have access"
-                    " to your funds is by using your backup key.\n\n"
-                    "${AppConfig.appName} does not keep nor is able to restore "
-                    "your backup key or your wallet.\n\nPLEASE SAVE YOUR BACKUP KEY.",
+                    context.l10n.walletSettingsDeleteWarning(AppConfig.appName),
                     style: STextStyles.baseXS(context).copyWith(
                       color:
                           Theme.of(
@@ -86,7 +83,7 @@ class DeleteWalletWarningView extends ConsumerWidget {
                     Navigator.pop(context);
                   },
                   child: Text(
-                    "Cancel",
+                    context.l10n.commonCancel,
                     style: STextStyles.button(context).copyWith(
                       color:
                           Theme.of(
@@ -163,7 +160,7 @@ class DeleteWalletWarningView extends ConsumerWidget {
                     }
                   },
                   child: Text(
-                    "View Backup Key",
+                    context.l10n.walletSettingsViewBackupKey,
                     style: STextStyles.button(context),
                   ),
                 ),

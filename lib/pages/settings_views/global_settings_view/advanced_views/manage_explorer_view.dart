@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/block_explorers.dart';
 import '../../../../utilities/text_styles.dart';
@@ -63,7 +64,7 @@ class _ManageExplorerViewState extends ConsumerState<ManageExplorerView> {
             },
           ),
           title: Text(
-            "${widget.coin.prettyName} block explorer",
+            context.l10n.settingsCoinBlockExplorer(widget.coin.prettyName),
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -85,12 +86,7 @@ class _ManageExplorerViewState extends ConsumerState<ManageExplorerView> {
                       RoundedWhiteContainer(
                         child: Center(
                           child: Text(
-                            "Edit your block explorer above. Keep in mind that "
-                            "every block explorer has a slightly different URL "
-                            "scheme.\n\nPaste in your block explorer of choice,"
-                            " then edit in [TXID] where the transaction ID "
-                            "should go, and ${AppConfig.appName} will auto fill the "
-                            "transaction ID in that place of URL.",
+                            context.l10n.settingsBlockExplorerHelp(AppConfig.appName),
                             style: STextStyles.itemSubtitle(context),
                           ),
                         ),
@@ -121,7 +117,7 @@ class _ManageExplorerViewState extends ConsumerState<ManageExplorerView> {
                           Navigator.of(context).pop();
                         }
                       },
-                      child: Text("Save", style: STextStyles.button(context)),
+                      child: Text(context.l10n.settingsSave, style: STextStyles.button(context)),
                     ),
                   ),
                 ),

@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../models/keys/view_only_wallet_data.dart';
 import '../../../../providers/providers.dart';
 import '../../../../route_generator.dart';
@@ -282,7 +283,7 @@ class _WalletSettingsWalletSettingsViewState
             },
           ),
           title: Text(
-            "Wallet settings",
+            context.l10n.walletSettingsWalletSettings,
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -316,7 +317,7 @@ class _WalletSettingsWalletSettingsViewState
                         child: Row(
                           children: [
                             Text(
-                              "Rename wallet",
+                              context.l10n.walletSettingsRenameWallet,
                               style: STextStyles.titleBold12(context),
                             ),
                           ],
@@ -479,7 +480,7 @@ class _WalletSettingsWalletSettingsViewState
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "Show in duress",
+                                context.l10n.walletSettingsShowInDuress,
                                 style: STextStyles.titleBold12(context),
                                 textAlign: TextAlign.left,
                               ),
@@ -643,8 +644,7 @@ class _WalletSettingsWalletSettingsViewState
                           context: context,
                           builder: (_) => StackDialog(
                             title:
-                                "Do you want to delete "
-                                "${ref.read(pWalletName(widget.walletId))}?",
+                                context.l10n.walletSettingsDeleteQuestion(ref.read(pWalletName(widget.walletId))),
                             leftButton: TextButton(
                               style: Theme.of(context)
                                   .extension<StackColors>()!
@@ -653,7 +653,7 @@ class _WalletSettingsWalletSettingsViewState
                                 Navigator.pop(context);
                               },
                               child: Text(
-                                "Cancel",
+                                context.l10n.commonCancel,
                                 style: STextStyles.button(context).copyWith(
                                   color: Theme.of(
                                     context,
@@ -677,11 +677,11 @@ class _WalletSettingsWalletSettingsViewState
                                       showBackButton: true,
                                       routeOnSuccess:
                                           DeleteWalletWarningView.routeName,
-                                      biometricsCancelButtonString: "CANCEL",
+                                      biometricsCancelButtonString: context.l10n.beamAuthCancel,
                                       biometricsLocalizedReason:
-                                          "Authenticate to delete wallet",
+                                          context.l10n.walletSettingsDeleteAuthReason,
                                       biometricsAuthenticationTitle:
-                                          "Delete wallet",
+                                          context.l10n.walletSettingsDeleteWallet,
                                     ),
                                     settings: const RouteSettings(
                                       name: "/deleteWalletLockscreen",
@@ -690,7 +690,7 @@ class _WalletSettingsWalletSettingsViewState
                                 );
                               },
                               child: Text(
-                                "Delete",
+                                context.l10n.settingsDelete,
                                 style: STextStyles.button(context),
                               ),
                             ),
@@ -705,7 +705,7 @@ class _WalletSettingsWalletSettingsViewState
                         child: Row(
                           children: [
                             Text(
-                              "Delete wallet",
+                              context.l10n.walletSettingsDeleteWallet,
                               style: STextStyles.titleBold12(context),
                             ),
                           ],

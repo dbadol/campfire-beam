@@ -10,6 +10,7 @@
 
 import 'dart:typed_data';
 
+import '../l10n/l10n.dart';
 import 'constants.dart';
 import 'enums/backup_frequency_type.dart';
 
@@ -136,11 +137,11 @@ abstract class Format {
   static String prettyFrequencyType(BackupFrequencyType type) {
     switch (type) {
       case BackupFrequencyType.everyTenMinutes:
-        return "Every 10 minutes";
+        return appL10n.appBackupFrequencyTenMinutes;
       case BackupFrequencyType.everyAppStart:
-        return "Every app start";
+        return appL10n.appBackupFrequencyAppStart;
       case BackupFrequencyType.afterClosingAWallet:
-        return "After closing a cryptocurrency wallet";
+        return appL10n.appBackupFrequencyAfterClosing;
     }
   }
 }

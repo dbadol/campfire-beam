@@ -15,6 +15,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/beam_app_identity.dart';
 import '../../../utilities/git_status.dart';
@@ -40,7 +41,7 @@ class DesktopAboutView extends ConsumerWidget {
         leading: Row(
           children: [
             const SizedBox(width: 24, height: 24),
-            Text("About", style: STextStyles.desktopH3(context)),
+            Text(context.l10n.desktopSettingsAboutTitle, style: STextStyles.desktopH3(context)),
           ],
         ),
       ),
@@ -81,7 +82,7 @@ class DesktopAboutView extends ConsumerWidget {
                                     // apply to it.
                                     TextSpan(
                                       text:
-                                          "${BeamAppIdentity.displayName} is free and open source. ",
+                                          "${context.l10n.desktopSettingsAboutOpenSource(BeamAppIdentity.displayName)} ",
                                       style:
                                           STextStyles.desktopTextExtraExtraSmall(
                                             context,
@@ -92,7 +93,7 @@ class DesktopAboutView extends ConsumerWidget {
                                           ),
                                     ),
                                     TextSpan(
-                                      text: "Source code",
+                                      text: context.l10n.desktopSettingsAboutSourceCode,
                                       style: STextStyles.richLink(context)
                                           .copyWith(fontSize: 14),
                                       recognizer: TapGestureRecognizer()
@@ -151,7 +152,7 @@ class DesktopAboutView extends ConsumerWidget {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  "Version",
+                                                  context.l10n.desktopSettingsAboutVersion,
                                                   style:
                                                       STextStyles.desktopTextExtraExtraSmall(
                                                         context,
@@ -180,7 +181,7 @@ class DesktopAboutView extends ConsumerWidget {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  "Build number",
+                                                  context.l10n.desktopSettingsAboutBuildNumber,
                                                   style:
                                                       STextStyles.desktopTextExtraExtraSmall(
                                                         context,
@@ -209,7 +210,7 @@ class DesktopAboutView extends ConsumerWidget {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  "Build commit",
+                                                  context.l10n.desktopSettingsAboutBuildCommit,
                                                   style:
                                                       STextStyles.desktopTextExtraExtraSmall(
                                                         context,
@@ -245,7 +246,7 @@ class DesktopAboutView extends ConsumerWidget {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    "Build signature",
+                                                    context.l10n.desktopSettingsAboutBuildSignature,
                                                     style:
                                                         STextStyles.desktopTextExtraExtraSmall(
                                                           context,
@@ -275,7 +276,7 @@ class DesktopAboutView extends ConsumerWidget {
                                         Row(
                                           children: [
                                             Text(
-                                              "Website:",
+                                              context.l10n.desktopSettingsAboutWebsite,
                                               style:
                                                   STextStyles.desktopTextExtraExtraSmall(
                                                     context,

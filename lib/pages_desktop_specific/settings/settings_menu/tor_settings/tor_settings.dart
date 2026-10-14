@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/prefs_provider.dart';
 import '../../../../services/event_bus/events/global/tor_connection_status_changed_event.dart';
 import '../../../../services/event_bus/global_event_bus.dart';
@@ -57,7 +58,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
     switch (status) {
       case TorConnectionStatus.disconnected:
         return SecondaryButton(
-          label: "Connect to Tor",
+          label: context.l10n.desktopSettingsTorConnect,
           width: 200,
           buttonHeight: ButtonHeight.m,
           onPressed: () async {
@@ -79,7 +80,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
       case TorConnectionStatus.connecting:
         return AbsorbPointer(
           child: SecondaryButton(
-            label: "Connecting to Tor",
+            label: context.l10n.desktopSettingsTorConnecting,
             width: 200,
             buttonHeight: ButtonHeight.m,
             onPressed: () {},
@@ -87,7 +88,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
         );
       case TorConnectionStatus.connected:
         return SecondaryButton(
-          label: "Disconnect from Tor",
+          label: context.l10n.desktopSettingsTorDisconnect,
           width: 200,
           buttonHeight: ButtonHeight.m,
           onPressed: () async {
@@ -182,7 +183,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Tor settings",
+                        context.l10n.desktopSettingsTorTitle,
                         style: STextStyles.desktopTextSmall(context),
                       ),
                       RichText(
@@ -191,13 +192,13 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                           children: [
                             TextSpan(
                               text:
-                                  "\nConnect to the Tor Network with one click.",
+                                  "\n${context.l10n.desktopSettingsTorBody}",
                               style: STextStyles.desktopTextExtraExtraSmall(
                                 context,
                               ),
                             ),
                             TextSpan(
-                              text: "\tWhat is Tor?",
+                              text: "\t${context.l10n.desktopSettingsTorWhatIs}",
                               style: STextStyles.richLink(context).copyWith(
                                 fontSize: 14,
                               ),
@@ -226,7 +227,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                                                         .spaceBetween,
                                                 children: [
                                                   Text(
-                                                    "What is Tor?",
+                                                    context.l10n.desktopSettingsTorWhatIs,
                                                     style:
                                                         STextStyles.desktopH2(
                                                       context,
@@ -243,9 +244,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                                                 height: 16,
                                               ),
                                               Text(
-                                                "Short for \"The Onion Router\", is an open-source software that enables internet communication"
-                                                " to remain anonymous by routing internet traffic through a series of layered nodes,"
-                                                " to obscure the origin and destination of data.",
+                                                context.l10n.desktopSettingsTorExplained,
                                                 style: STextStyles
                                                     .desktopTextMedium(
                                                   context,
@@ -288,7 +287,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Tor killswitch",
+                            context.l10n.desktopSettingsTorKillswitch,
                             style:
                                 STextStyles.desktopTextExtraExtraSmall(context)
                                     .copyWith(
@@ -303,7 +302,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                           RichText(
                             textAlign: TextAlign.start,
                             text: TextSpan(
-                              text: "What is Tor killswitch?",
+                              text: context.l10n.desktopSettingsTorWhatIsKillswitch,
                               style: STextStyles.richLink(context).copyWith(
                                 fontSize: 14,
                               ),
@@ -332,7 +331,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                                                         .spaceBetween,
                                                 children: [
                                                   Text(
-                                                    "What is Tor killswitch?",
+                                                    context.l10n.desktopSettingsTorWhatIsKillswitch,
                                                     style:
                                                         STextStyles.desktopH2(
                                                       context,
@@ -349,9 +348,7 @@ class _TorSettingsState extends ConsumerState<TorSettings> {
                                                 height: 16,
                                               ),
                                               Text(
-                                                "A security feature that protects your information from accidental exposure by"
-                                                " disconnecting your device from the Tor network if the"
-                                                " connection is disrupted or compromised.",
+                                                context.l10n.desktopSettingsTorKillswitchExplained,
                                                 style: STextStyles
                                                     .desktopTextMedium(
                                                   context,

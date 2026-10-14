@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../../../l10n/l10n.dart';
 import '../../../../../notifications/show_flush_bar.dart';
 import '../../../../../themes/stack_colors.dart';
 import '../../../../../utilities/assets.dart';
@@ -63,7 +64,7 @@ class RecoverPhraseView extends StatelessWidget {
                   unawaited(
                     showFloatingFlushBar(
                       type: FlushBarType.info,
-                      message: "Copied to clipboard",
+                      message: appL10n.appBackupCopiedToClipboard,
                       iconAsset: Assets.svg.copy,
                       context: context,
                     ),
@@ -88,7 +89,7 @@ class RecoverPhraseView extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                "Recovery Phrase",
+                context.l10n.appBackupRecoveryPhraseTitle,
                 textAlign: TextAlign.center,
                 style: STextStyles.pageTitleH1(context),
               ),

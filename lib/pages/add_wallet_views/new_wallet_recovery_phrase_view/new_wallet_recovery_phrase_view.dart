@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tuple/tuple.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../pages_desktop_specific/desktop_home_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/exit_to_my_stack_button.dart';
@@ -94,7 +95,7 @@ class _NewWalletRecoveryPhraseViewState
     unawaited(
       showFloatingFlushBar(
         type: FlushBarType.info,
-        message: "Copied to clipboard",
+        message: context.l10n.backupCopiedToClipboard,
         iconAsset: Assets.svg.copy,
         context: context,
       ),
@@ -157,7 +158,7 @@ class _NewWalletRecoveryPhraseViewState
                       aspectRatio: 1,
                       child: AppBarIconButton(
                         semanticsLabel:
-                            "Copy Button. Copies The Recovery Phrase To Clipboard.",
+                            context.l10n.addWalletCopyPhraseSemantics,
                         color: Theme.of(context)
                             .extension<StackColors>()!
                             .background,
@@ -223,7 +224,7 @@ class _NewWalletRecoveryPhraseViewState
                     height: isDesktop ? 24 : 4,
                   ),
                   Text(
-                    "Recovery Phrase",
+                    context.l10n.backupRecoveryPhraseTitle,
                     textAlign: TextAlign.center,
                     style: isDesktop
                         ? STextStyles.desktopH2(context)
@@ -248,7 +249,7 @@ class _NewWalletRecoveryPhraseViewState
                           ? const EdgeInsets.all(0)
                           : const EdgeInsets.all(12),
                       child: Text(
-                        "Please write down your recovery phrase in the correct order and save it to keep your funds secure. You will also be asked to verify the words on the next screen.",
+                        context.l10n.addWalletPhraseInstructions,
                         textAlign: TextAlign.center,
                         style: isDesktop
                             ? STextStyles.desktopSubtitleH2(context)
@@ -302,7 +303,7 @@ class _NewWalletRecoveryPhraseViewState
                               width: 10,
                             ),
                             Text(
-                              "Copy to clipboard",
+                              context.l10n.addWalletCopyToClipboard,
                               style: STextStyles.desktopButtonSecondaryEnabled(
                                 context,
                               ),
@@ -341,7 +342,7 @@ class _NewWalletRecoveryPhraseViewState
                           .extension<StackColors>()!
                           .getPrimaryEnabledButtonStyle(context),
                       child: Text(
-                        "I saved my recovery phrase",
+                        context.l10n.addWalletSavedPhrase,
                         style: isDesktop
                             ? STextStyles.desktopButtonEnabled(context)
                             : STextStyles.button(context),
