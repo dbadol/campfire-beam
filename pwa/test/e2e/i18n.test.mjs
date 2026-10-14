@@ -40,8 +40,12 @@ test.after(async () => {
 });
 
 const htmlLang = (page) => page.evaluate(() => document.documentElement.lang);
+// The shipped catalogs: what each language must show.
+const CAT = (l) => JSON.parse(readFileSync(join(PWA, 'src', 'i18n', `${l}.json`), 'utf8'));
+const RU = CAT('ru');
+const JA = CAT('ja');
 
-test('Chrome in Russian, nothing translated yet: never asked, lang="ru", English words; Settings switches at once', { timeout: 20 * 60000 }, async () => {
+test('Chrome in Russian: never asked, lang="ru", the Russian catalog\'s words; Settings switches at once', { timeout: 20 * 60000 }, async () => {
   srv = await startServer({ root: join(tmp, 'dist'), port: PORT });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ru-RU', colorScheme: 'light' });
   const { page, rec } = await recordedPage(ctx, { label: 'i18n-ru' });
@@ -55,9 +59,9 @@ test('Chrome in Russian, nothing translated yet: never asked, lang="ru", English
   await waitScreen(page, 'welcome', 120000);
   assert.deepEqual(await page.evaluate(() => navigator.languages), ['ru-RU'], 'the browser speaks Russian');
   assert.equal(await htmlLang(page), 'ru');
-  assert.equal(await page.textContent(tid('create')), 'Create a new wallet', 'catalogs empty: English');
-  assert.equal(await page.textContent(tid('restore')), 'Restore with 12 words');
-  assert.ok(!(await page.evaluate(() => document.body.innerText)).match(/[А-я]/), 'not a word of Russian anywhere yet');
+  assert.equal(await page.textContent(tid('create')), RU['Create a new wallet'], 'the Russian catalog');
+  assert.equal(await page.textContent(tid('restore')), RU['Restore with 12 words']);
+  assert.ok((await page.evaluate(() => document.body.innerText)).match(/[А-я]/), 'Russian on the first screen');
   // Before any module runs: lang-boot.js already set it.
   await page.addInitScript(() => {
     document.addEventListener('readystatechange', () => {
@@ -79,9 +83,9 @@ test('Chrome in Russian, nothing translated yet: never asked, lang="ru", English
     const row = document.querySelector('[data-testid="lang-row"]');
     return { title: row.parentElement.previousElementSibling.textContent, rowTitle: row.querySelector('.t').textContent, sameCard: row.parentElement === document.querySelector('[data-testid="theme-row"]').parentElement };
   });
-  assert.deepEqual(card, { title: 'Appearance', rowTitle: 'Language', sameCard: true });
+  assert.deepEqual(card, { title: RU.Appearance, rowTitle: RU.Language, sameCard: true });
   assert.equal(await page.inputValue(tid('lang-select')), 'system', 'like this device: nothing was asked or saved');
-  assert.deepEqual(await page.$$eval(`${tid('lang-select')} option`, (o) => o.map((x) => x.textContent)), ['Like this device', 'English', 'Русский', '简体中文', '日本語']);
+  assert.deepEqual(await page.$$eval(`${tid('lang-select')} option`, (o) => o.map((x) => x.textContent)), [RU['Like this device'], 'English', 'Русский', '简体中文', '日本語'], 'each language named in its own script');
   assert.equal(await page.textContent(tid('lang-device')), 'Русский', "the device's language, named under the row");
   assert.equal(await page.getAttribute(tid('lang-device'), 'lang'), 'ru');
   assert.equal(await page.evaluate(() => localStorage.getItem('campfire-lang')), null);
@@ -113,7 +117,7 @@ test('Chrome in Russian, nothing translated yet: never asked, lang="ru", English
   await page.waitForTimeout(700);
   assert.ok(Math.abs((await rowTop()) - before) < 4, `the select stays where it was on screen (${before} -> ${await rowTop()})`);
   assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.dataset.testid), 'lang-select', 'and keeps the focus');
-  assert.equal(await page.textContent(`${tid('lang-row')} .t`), 'Language', 'nothing translated yet: English');
+  assert.equal(await page.textContent(`${tid('lang-row')} .t`), JA.Language, 'Japanese at once');
   assert.equal(await page.$(tid('lang-device')), null, 'a language chosen: no device line');
   assert.ok(catalogs.includes('ja'), 'the Japanese catalog was read once chosen');
   await shot(page, 'i18n-04-settings-japanese-chosen');
@@ -239,6 +243,7 @@ test('pseudo-Russian: every word on these screens comes from the catalog', { tim
   writeFileSync(join(catDir, 'ru.json'), JSON.stringify(pseudoCatalog(keys)));
   for (const l of ['zh-Hans', 'ja']) writeFileSync(join(catDir, `${l}.json`), '{}');
   execFileSync(process.execPath, [join(PWA, 'tools', 'build.mjs'), '--out', join(tmp, 'pseudo'), '--catalogs', catDir, '--quiet'], { cwd: PWA });
+  if (srv) srv.stop(); // the first test's server, if it stopped early
   srv = await startServer({ root: join(tmp, 'pseudo'), port: PORT });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, locale: 'ru-RU' });
   const { page, rec } = await recordedPage(ctx, { label: 'i18n-pseudo' });
@@ -246,11 +251,20 @@ test('pseudo-Russian: every word on these screens comes from the catalog', { tim
   // shown without t(), a sentence glued around a translation). Other Latin words are listed only: on
   // these screens they are chain and dApp data (asset and dApp names), which is never translated.
   const english = englishMatchers(keys);
+  // Data that ends like a key or is a name: an LP token's name ("BEAM/bETH LP", like a ticker; the key
+  // "{amount} LP" would otherwise match the pool rows) and the built-in dApps' names (a dApp's content
+  // is never translated).
+  const dappNames = new Set([...readFileSync(join(PWA, 'src', 'lib', 'dapps', 'catalogue.js'), 'utf8').matchAll(/^\s*name: '([^']+)',/gm)].map((m) => m[1]));
+  const isData = (text) => /\b[A-Za-z0-9]+\/[A-Za-z0-9]+ LP\b/.test(text) || dappNames.has(text.trim());
   const found = [];
   const listed = [];
   const audit = async (name) => {
     for (const text of await wordsOnScreen(page)) {
       if (!leftover(text)) continue;
+      if (isData(text)) {
+        listed.push(`${name}: ${JSON.stringify(text.trim()).slice(0, 140)}`);
+        continue;
+      }
       const rest = residue(text);
       if (english.some((m) => m(rest))) found.push(`${name}: ${JSON.stringify(text.trim()).slice(0, 140)}`);
       else listed.push(`${name}: ${JSON.stringify(text.trim()).slice(0, 140)}`);
