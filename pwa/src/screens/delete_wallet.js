@@ -77,7 +77,8 @@ export default function deleteWallet(app, params = {}) {
   let flightAck = false;
   const flightBox = h('div');
   const update = () => {
-    cta.disabled = input.value.trim().toUpperCase() !== CONFIRM_WORD || flight === null || (flight.length > 0 && !flightAck);
+    // NFKC: ＤＥＬＥＴＥ typed with a Chinese or Japanese keyboard is DELETE.
+    cta.disabled = input.value.normalize('NFKC').trim().toUpperCase() !== CONFIRM_WORD || flight === null || (flight.length > 0 && !flightAck);
   };
   input.addEventListener('input', update);
   const openHere = Boolean(app.dbPass && app.record && app.record.id === target.id);

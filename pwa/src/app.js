@@ -398,6 +398,10 @@ installBack(app);
 // the same place, with the same control focused (its catalog is read by then: lib/i18n.js).
 onLanguageChange(() => {
   if (!app.currentName || app.intrusion) return;
+  // Only Settings, where a language is chosen, is drawn again: a catalog arriving late must never redraw
+  // another screen (redrawing closes every sheet, one mid-send included; release audit 0.2.17). Any
+  // other screen shows the new language from the next one on.
+  if (app.currentName !== 'settings') return;
   const y = window.scrollY;
   const active = document.activeElement;
   const testid = active && active.dataset ? active.dataset.testid : null;

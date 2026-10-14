@@ -2566,7 +2566,7 @@
   "Delete wallet": "删除钱包",
   "Nobody can reset the password. With the original wallet.db file and the password it had, you can delete the wallet from this device and import the file again; your coins come back.": "没有人能重置密码。用原始的 wallet.db 文件及其原来的密码，你可以从本设备删除钱包，然后重新导入该文件；你的币会回来。",
   "Nobody can reset the password. With your 12 words you can delete the wallet from this device and restore it; your coins come back.": "没有人能重置密码。用你的 12 个助记词，你可以从本设备删除钱包，然后恢复它；你的币会回来。",
-  "{lead} It has no 12 words. If you do not have both, stop here: deleting without them loses the money for good.": "{lead}它没有 12 个助记词。如果你没有这两样，请到此为止：没有它们就删除，资金将永久丢失。",
+  "{lead} It has no 12 words. If you do not have both, stop here: deleting without them loses the money for good.": "{lead}它没有 12 个助记词。除非这两样你都有，否则请到此为止：缺少任何一样就删除，资金将永久丢失。",
   "Only the original wallet.db file and its password can bring this wallet back.": "只有原始的 wallet.db 文件及其密码才能找回这个钱包。",
   "{lead} If you do not have them written down, stop here: deleting without them loses the money for good.": "{lead}如果你没有把它们抄写下来，请到此为止：没有它们就删除，资金将永久丢失。",
   "Only your 12 words can bring this wallet back.": "只有你的 12 个助记词才能找回这个钱包。",

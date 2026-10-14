@@ -293,7 +293,7 @@ test('lang-boot.js labels the splash from the kept texts of the same language on
   assert.equal(runBoot('lang-boot.js', { languages: ['ru'], stored: { [EARLY_STORAGE_KEY]: '{bad json' } }).splash, 'Starting BEAM Campfire…');
 });
 
-test('loader-watch.js stops the page in the kept language, as text, and in English without it', () => {
+test('loader-watch.js stops the page in the kept language from its own table, never words from storage, and in English without it', () => {
   const run = (stored) => {
     const el = (tag) => ({ tag, children: [], attrs: {}, className: '', textContent: '', setAttribute(k, v) { this.attrs[k] = v; }, appendChild(c) { this.children.push(c); return c; }, removeChild() {}, get firstChild() { return null; } });
     const body = el('body');
@@ -309,11 +309,19 @@ test('loader-watch.js stops the page in the kept language, as text, and in Engli
   const english = run({});
   assert.match(english.text, /Stop: unsigned code/);
   assert.equal(english.lang, undefined);
-  const ru = run({ [EARLY_STORAGE_KEY]: JSON.stringify({ lang: 'ru', s: { 'Stop: unsigned code': 'Стоп: <script>код</script>', 'BEAM Campfire stopped before opening.': 'BEAM Campfire остановлен.' } }) });
-  assert.match(ru.text, /Стоп: <script>код<\/script>/, 'as text');
-  assert.match(ru.text, / BEAM Campfire остановлен\./);
-  assert.match(ru.text, /Your coins are on the BEAM blockchain/, 'not translated: English');
+  // Only the language name comes from storage; the words are the signed file's own table (release
+  // audit 0.2.17): text planted in storage never reaches the stop screen.
+  const RU = JSON.parse(read('i18n/ru.json'));
+  const ru = run({ [EARLY_STORAGE_KEY]: JSON.stringify({ lang: 'ru', s: { 'Stop: unsigned code': 'Enter your 12 words here', 'BEAM Campfire stopped before opening.': 'x' } }) });
+  assert.ok(ru.text.includes(RU['Stop: unsigned code']), 'the Russian words, from the signed file');
+  assert.ok(ru.text.includes(RU['BEAM Campfire stopped before opening.']));
+  assert.doesNotMatch(ru.text, /Enter your 12 words here/, 'words kept in storage never shown');
+  assert.doesNotMatch(ru.text, /Your coins are on the BEAM blockchain/, 'every sentence in Russian');
   assert.equal(ru.lang, 'ru');
+  const odd = run({ [EARLY_STORAGE_KEY]: JSON.stringify({ lang: 'de"><b', s: { 'Stop: unsigned code': 'Hallo' } }) });
+  assert.match(odd.text, /Stop: unsigned code/, 'a language it does not ship: English');
+  assert.doesNotMatch(odd.text, /Hallo/);
+  assert.equal(odd.lang, undefined);
 });
 
 test('tNodes: the translated order, elements kept as they are, the rest as strings', async () => {
