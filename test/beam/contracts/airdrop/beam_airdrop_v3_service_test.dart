@@ -374,17 +374,29 @@ void main() {
       expect(shader.seen.length, n, reason: 'a checked batch is not re-run');
     });
 
-    test('confirmations from the tip when the core gives none', () async {
-      final b = await created();
-      shader.mine(shader.pending!);
-      txStatus = {'status': 3, 'height': 3677098}; // tip 3677099: 2
-      expect((await v3.verifyBatch(b.localId)).confirmations, 2);
-      txStatus = {'status': 3, 'height': 3677097};
-      expect(
-        (await v3.verifyBatch(b.localId)).state,
-        AirdropV3BatchState.ready,
-      );
-    });
+    test(
+      'confirmations from the tip when the core gives none, counted as '
+      'the core counts them: tip - proof height (release audit 1.3.0)',
+      () async {
+        final b = await created();
+        shader.mine(shader.pending!);
+        txStatus = {'status': 3, 'height': 3677099}; // the tip itself: 0
+        expect((await v3.verifyBatch(b.localId)).confirmations, 0);
+        txStatus = {'status': 3, 'height': 3677098}; // tip 3677099: 1
+        expect((await v3.verifyBatch(b.localId)).confirmations, 1);
+        txStatus = {'status': 3, 'height': 3677097};
+        final w = await v3.verifyBatch(b.localId);
+        expect((w.state, w.confirmations), (AirdropV3BatchState.waiting, 2));
+        txStatus = {'status': 3, 'height': 3677096};
+        expect(
+          (await v3.verifyBatch(b.localId)).state,
+          AirdropV3BatchState.ready,
+        );
+        expect(airdropV3Confirmations(blockHeight: 10, tip: 9), 0);
+        expect(airdropV3Confirmations(blockHeight: 10, tip: 10), 0);
+        expect(airdropV3Confirmations(blockHeight: 10, tip: 13), 3);
+      },
+    );
 
     test(
       'a create the network turned down holds nothing; a squatted batch '
@@ -473,12 +485,53 @@ void main() {
         AirdropV3BatchState.waiting,
       );
       expect((await savedOne()).check, isNull);
-      // Once it shows up, the check passes.
+      // Once it shows up, it still waits its 3 confirmations, counted from
+      // the block that holds it: the fake records created_at 4080000, the
+      // height a contract reads in block 4080001 (release audit 1.3.0).
       shader.mine(shader.pending!);
-      expect(
-        (await v3.verifyBatch(rec.localId)).state,
-        AirdropV3BatchState.ready,
+      final status = Map<String, Object?>.of(
+        (jsonDecode(
+              File('test/beam/fixtures/wallet_status.json').readAsStringSync(),
+            ) as Map<String, Object?>)['result']!
+            as Map<String, Object?>,
       );
+      var tip = 4080001;
+      t.reply(
+        'wallet_status',
+        (Map<String, Object?> _) => {...status, 'current_height': tip},
+      );
+      Future<(AirdropV3BatchState, int?)> verdict() async {
+        final v = await v3.verifyBatch(rec.localId);
+        return (v.state, v.confirmations);
+      }
+
+      expect(await verdict(), (AirdropV3BatchState.waiting, 0));
+      tip = 4080001 + kAirdropV3ConfirmationsBeforeCheck - 1;
+      expect(await verdict(), (
+        AirdropV3BatchState.waiting,
+        kAirdropV3ConfirmationsBeforeCheck - 1,
+      ));
+      expect((await savedOne()).check, isNull, reason: 'nothing saved');
+      tip = 4080001 + kAirdropV3ConfirmationsBeforeCheck;
+      expect((await verdict()).$1, AirdropV3BatchState.ready);
+      expect((await savedOne()).check!.ok, isTrue);
+
+      // The same when the core no longer knows the tx id it was sent with.
+      await store.delete(rec.localId);
+      sendReply = null;
+      final q = await v3.prepareCreateBatch(assetId: 36, values: [g(6)]);
+      await v3.execute(q);
+      shader.mine(shader.pending!);
+      t.reply(
+        'tx_status',
+        const BeamRpcException(-32001, 'Transaction not found'),
+      );
+      tip = 4080001;
+      final lost = await savedOne();
+      expect(lost.txId, isNotNull);
+      final w = await v3.verifyBatch(lost.localId);
+      expect((w.state, w.confirmations), (AirdropV3BatchState.waiting, 0));
+      expect((await savedOne()).check, isNull);
     });
 
     test('an old-contract batch is not checked', () async {
