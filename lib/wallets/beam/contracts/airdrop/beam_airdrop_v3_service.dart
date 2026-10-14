@@ -869,19 +869,7 @@ class BeamAirdropV3Service {
         final mine = await myBatches();
         var row = mine.batches.where((b) => b.id == batchId).firstOrNull;
         if (row == null && mine.truncated) {
-          final b = await viewBatch(batchId);
-          final open = b.vouchers.where((v) => !v.redeemed).toList();
-          row = AirdropV3Batch(
-            id: batchId,
-            assetId: b.assetId,
-            created: b.created,
-            unclaimed: open.length,
-            redeemed: b.vouchers.length - open.length,
-            cancelled: b.created - b.vouchers.length,
-            valueUnclaimed: open.fold(BigInt.zero, (s, v) => s + v.value),
-            gasPerVoucher: b.gasPerVoucher,
-            createdAtHeight: b.createdAtHeight,
-          );
+          row = AirdropV3Batch.fromDetail(await viewBatch(batchId));
         }
         if (row == null) {
           throw const BeamAirdropException(

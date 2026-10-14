@@ -85,6 +85,8 @@
   "airdropBatchesTakenBackMessage": "{amount}がウォレットに戻りました。",
   "airdropBatchesTakenBackTitle": "取り戻しました",
   "airdropBatchesTitle": "作成したエアドロップのバッチ",
+  "airdropBatchesTruncatedMessage": "ネットワークが表示するのは、このウォレットが作成した最初の200件のバッチだけです。新しいバッチは、そのコードがこの端末に保存されていればここに表示されます。別の端末で作成したバッチは、その端末の「作成したバッチ」で確認してください。",
+  "airdropBatchesTruncatedTitle": "最初の200件のバッチだけが表示されています",
   "airdropBatchesUpToDate": "ネットワークと同期済み",
   "airdropBearerClaimMessage": "受け取りの際、確定前にこのコードがネットワークに公開されるため、監視している人が先に受け取ってしまう可能性があります。これはこのエアドロップのコントラクトの仕組みです。コードは少額向けです。",
   "airdropBearerClaimMessageV3": "このコードがネットワークに公開されることはないため、監視している人があなたの受け取りを横取りすることはできません。受け取りが確定するまでは、このコードを持っている他の人が先に受け取ったり、作成した人が取り戻したりする可能性があります。",

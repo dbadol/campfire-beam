@@ -115,6 +115,28 @@ class AirdropV3Batch {
     );
   }
 
+  /// The same counts made from one batch read whole (`view_batch`), for a
+  /// batch `view_my_batches` does not list (it stops at 200). A voucher
+  /// taken back is no longer in the batch.
+  factory AirdropV3Batch.fromDetail(AirdropV3BatchDetail b) {
+    final open = b.vouchers.where((v) => !v.redeemed).toList();
+    final cancelled = b.created - b.vouchers.length;
+    if (cancelled < 0) {
+      throw const FormatException('batch: more vouchers than it created');
+    }
+    return AirdropV3Batch(
+      id: b.id,
+      assetId: b.assetId,
+      created: b.created,
+      unclaimed: open.length,
+      redeemed: b.vouchers.length - open.length,
+      cancelled: cancelled,
+      valueUnclaimed: open.fold(BigInt.zero, (s, v) => s + v.value),
+      gasPerVoucher: b.gasPerVoucher,
+      createdAtHeight: b.createdAtHeight,
+    );
+  }
+
   final BigInt id;
   final int assetId;
 

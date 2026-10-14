@@ -85,6 +85,8 @@
   "airdropBatchesTakenBackMessage": "{amount} 已退回你的钱包。",
   "airdropBatchesTakenBackTitle": "已收回",
   "airdropBatchesTitle": "我的空投批次",
+  "airdropBatchesTruncatedMessage": "网络只列出这个钱包创建的前 200 个批次。较新的批次只有在其领取码保存在本设备上时才会显示在这里；在其他设备上创建的批次，请在那台设备的“我的批次”中查看。",
+  "airdropBatchesTruncatedTitle": "只列出前 200 个批次",
   "airdropBatchesUpToDate": "已与网络同步",
   "airdropBearerClaimMessage": "领取时，这个领取码会在确认之前暴露给网络，因此监视网络的人可能抢先领取。这个空投合约就是这样运作的；领取码本来就用于小额。",
   "airdropBearerClaimMessageV3": "网络永远看不到这个领取码，因此监视网络的人无法抢走你的领取。在领取得到确认之前，其他拿到此领取码的人仍可能抢先领取，创建它的人也仍可以将其收回。",

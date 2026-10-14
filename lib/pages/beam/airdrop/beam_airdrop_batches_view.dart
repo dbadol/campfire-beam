@@ -122,6 +122,9 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
   final _v3Keys = <BigInt, Set<String>>{};
   bool _refreshing = false;
   bool _checkedNetwork = false;
+
+  /// Airdrop v3 listed only this wallet's first 200 batches.
+  bool _v3Truncated = false;
   bool _preparing = false;
   BeamProblem? _problem;
   BeamProblem? _partProblem;
@@ -188,6 +191,7 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
     var chain = const <AirdropBatch>[];
     final hashes = <BigInt, Set<String>>{};
     var v3 = const <AirdropV3Batch>[];
+    var v3Truncated = false;
     final keys = <BigInt, Set<String>>{};
     try {
       chain = await svc.oldBatches();
@@ -201,8 +205,32 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
       chain = const [];
     }
     try {
-      v3 = (await svc.v3Batches()).batches;
+      final list = await svc.v3Batches();
+      v3 = list.batches;
+      v3Truncated = list.truncated;
       final saved = _saved ?? const <AirdropSavedBatch>[];
+      // view_my_batches stops at this wallet's first 200 batches: a newer
+      // one whose codes are saved here is read on its own, so it can still
+      // be followed and taken back.
+      if (list.truncated) {
+        final listed = {for (final b in v3) b.id};
+        final more = <AirdropV3Batch>[];
+        for (final s in saved) {
+          final id = s.batchId;
+          if (!s.isV3 || id == null || !listed.add(id)) continue;
+          final AirdropV3BatchDetail d;
+          try {
+            d = await svc.v3Batch(id);
+          } on BeamAirdropException catch (e) {
+            // Not there: shown from what is saved, as before.
+            if (e.code == AirdropErrorCode.batchNotFound) continue;
+            rethrow;
+          }
+          if (s.creatorKey != null && d.creator != s.creatorKey) continue;
+          more.add(AirdropV3Batch.fromDetail(d));
+        }
+        v3 = [...v3, ...more];
+      }
       final known = {
         for (final s in saved)
           if (s.isV3 && s.batchId != null) s.batchId!,
@@ -242,6 +270,7 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
         ..clear()
         ..addAll(hashes);
       _v3 = v3;
+      _v3Truncated = v3Error == null && v3Truncated;
       _v3Keys
         ..clear()
         ..addAll(keys);
@@ -556,6 +585,15 @@ class _BeamAirdropBatchesViewState extends State<BeamAirdropBatchesView> {
                 message: _partProblem!.message,
                 actionLabel: l10n.commonTryAgain,
                 onAction: _refresh,
+              ),
+            ],
+            if (_v3Truncated) ...[
+              const BeamGap(8),
+              BeamNotice(
+                key: const ValueKey('batches-truncated'),
+                kind: BeamNoticeKind.info,
+                title: l10n.airdropBatchesTruncatedTitle,
+                message: l10n.airdropBatchesTruncatedMessage,
               ),
             ],
             if (_preparing) BeamWorking(l10n.airdropBatchesPreparingTakeBack),

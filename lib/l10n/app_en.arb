@@ -445,6 +445,14 @@
   "@airdropBatchesTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Screen title. (glossary: airdrop, code, batch)"
   },
+  "airdropBatchesTruncatedMessage": "The network lists only the first 200 batches this wallet made. A newer batch shows here when its codes are saved on this device; for one made on another device, open My batches there.",
+  "@airdropBatchesTruncatedMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': message under 'Only the first 200 batches are listed'. A batch made after the first 200 is read one by one when its codes are saved on this device, and can be taken back from here; one made on another device (same wallet) shows on that device's 'My batches' screen. (glossary: batch, code)"
+  },
+  "airdropBatchesTruncatedTitle": "Only the first 200 batches are listed",
+  "@airdropBatchesTruncatedTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Information title when this wallet made more than 200 batches on Airdrop v3: the network's list stops at the first 200. (glossary: batch)"
+  },
   "airdropBatchesUpToDate": "Up to date with the network",
   "@airdropBatchesUpToDate": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Line above the list once every batch was checked on the network. (glossary: sync)"

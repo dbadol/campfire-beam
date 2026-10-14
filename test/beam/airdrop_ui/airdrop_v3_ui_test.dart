@@ -551,6 +551,49 @@ void main() {
       await expectScreen(tester, 'v3_batches_takeback_failed');
     });
 
+    testWidgets('more than 200 batches: the list says the network stops at '
+        '200, and a newer batch whose codes are saved here is read on its '
+        'own and can still be taken back (release audit 1.3.0)', (
+      tester,
+    ) async {
+      init();
+      txState = {'status': 3, 'confirmations': 9};
+      // The first 200 (one stands in for them), then ours, unlisted.
+      final first = shader.addBatch([code(75)], 0, g(10000000));
+      await v3Batch();
+      shader
+        ..truncated = true
+        ..listed = {first};
+      await pumpBeamPage(tester, batches());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('batches-truncated')), findsOneWidget);
+      expect(
+        find.text('Only the first 200 batches are listed'),
+        findsOneWidget,
+      );
+      expect(
+        shader.seen.where((a) => a.contains('action=view_batch')),
+        isNotEmpty,
+      );
+      // Ours, read with view_batch: its counts and its take-back.
+      expect(find.text('1 of 3 claimed · 2 waiting'), findsOneWidget);
+      expect(find.byKey(const ValueKey('batch-cancel-v3-2')), findsOneWidget);
+      await expectScreen(tester, 'v3_batches_truncated');
+
+      await tester.tap(find.byKey(const ValueKey('batch-cancel-v3-2')));
+      await tester.pumpAndSettle();
+      expect(_textOf(tester, 'confirm-returned'), '0.4 bETH + 0.044 BEAM');
+
+      // Not truncated: no notice.
+      await tester.pumpWidget(const SizedBox());
+      shader
+        ..truncated = false
+        ..listed = null;
+      await pumpBeamPage(tester, batches());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('batches-truncated')), findsNothing);
+    });
+
     testWidgets('a v3 batch that was never created can be removed from the '
         'list once its codes are checked; a live one never', (tester) async {
       init();
