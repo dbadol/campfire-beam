@@ -610,11 +610,35 @@ export function createAirdropV3(deps) {
      * A lookup that fails throws; nothing is saved then, and the next call tries again.
      */
     async verifyBatch(localId, { onProgress = () => {} } = {}) {
+      /**
+       * A checked batch's codes as the network has them now: claimed, still claimable, or taken back (a
+       * voucher no longer in the batch). One read each time the codes are shown; a failed read keeps the saved
+       * statuses. Without it a batch read "Ready to share" with every code "Not claimed" forever (audit 0.2.16).
+       */
+      async function liveCodes(vault, rec) {
+        if (!rec.batchId) return rec;
+        let b;
+        try {
+          b = await svc.viewBatch(rec.batchId);
+        } catch {
+          return rec;
+        }
+        const byKey = new Map(b.vouchers.map((v) => [v.key, v]));
+        const codes = rec.codes.map((c) => {
+          const v = byKey.get(c.key);
+          const status = !v ? CODE_STATUS.takenBack : v.redeemed ? CODE_STATUS.claimed : CODE_STATUS.available;
+          return status === c.status ? c : { ...c, status };
+        });
+        if (codes.every((c, i) => c === rec.codes[i])) return rec;
+        const next = { ...rec, codes };
+        await vault.put(next);
+        return next;
+      }
       const vault = await deps.vault();
       const rec = (await vault.all()).find((b) => b.localId === localId);
       if (!rec) throw new AirdropError('unexpected', 'This batch is not among the codes saved on this device.');
       if (rec.contractId !== V3_CID) return { state: 'old', batch: rec };
-      if (rec.check && rec.check.state === CHECK_STATE.ok) return { state: 'ready', batch: rec };
+      if (rec.check && rec.check.state === CHECK_STATE.ok) return { state: 'ready', batch: await liveCodes(vault, rec) };
       if (rec.check && rec.check.state === CHECK_STATE.failed) return { state: 'failed', batch: rec, problem: rec.check.problem };
       if (rec.txStatus === TX_STATUS.failed) return { state: 'notSent', batch: rec, onChain: false };
       let mined = false;
@@ -635,6 +659,13 @@ export function createAirdropV3(deps) {
       const r = await squatCheck({ batch: rec, lookup: (c) => svc.checkVoucher(c), myBatches: () => svc.myBatches(), viewBatch: (id) => svc.viewBatch(id), onProgress });
       // Without its transaction id (a timeout while sending), a batch nowhere to be found may still be on its way.
       if (!r.ok && !mined && !rec.txId && r.problem === 'notFound' && r.index === 0) return { state: 'waiting', batch: rec, confirmations: null };
+      // Found without its transaction id: it still waits the same confirmations, counted from the block that
+      // holds it (a short reorganisation could undo a batch seen in the newest block; release audit 0.2.16).
+      if (r.ok && !mined && !rec.txId && deps.tipHeight) {
+        const [b, tip] = await Promise.all([svc.viewBatch(r.batchId), deps.tipHeight()]);
+        const confirmations = Math.max(0, Number(tip) - (Number(b.createdAtHeight) + 1));
+        if (!(confirmations >= CONFIRMATIONS_BEFORE_CHECK)) return { state: 'waiting', batch: rec, confirmations };
+      }
       const next = {
         ...rec,
         txStatus: r.ok || mined ? TX_STATUS.confirmed : rec.txStatus,

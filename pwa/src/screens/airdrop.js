@@ -65,6 +65,7 @@ export function airdrop(app) {
       return codeVault({ kv: walletStore(app.record), walletId: app.record.id, secret: app.dbPass, imported: Boolean(app.record.imported) });
     },
     txStatus: (txId) => wallet.txStatus(txId),
+    tipHeight: async () => Number(wallet.state.status && wallet.state.status.current_height) || 0,
   });
 }
 

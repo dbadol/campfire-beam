@@ -30,7 +30,7 @@ import { wallet } from '../lib/wallet.js';
 import { evictionRisk } from '../lib/storage.js';
 import { STORAGE_TEXT } from './storage_warning.js';
 
-const STATUS_TEXT = { [CODE_STATUS.available]: 'Not claimed', [CODE_STATUS.claimed]: 'Claimed', [CODE_STATUS.notFound]: 'Not on the network', [CODE_STATUS.unknown]: '' };
+const STATUS_TEXT = { [CODE_STATUS.available]: 'Not claimed', [CODE_STATUS.claimed]: 'Claimed', [CODE_STATUS.notFound]: 'Not on the network', [CODE_STATUS.takenBack]: 'Taken back', [CODE_STATUS.unknown]: '' };
 const WAIT_MS = 10000;
 
 export default function airdropCodes(app, p = {}) {
@@ -132,9 +132,16 @@ export default function airdropCodes(app, p = {}) {
       return;
     }
     if (isV3() && (!v3 || v3.state !== 'ready')) return renderV3NotReady();
-    const all = batch.codes.map((c) => c.code).join('\n');
-    const copyAll = primary(`Copy all ${plural(n(), 'code', 'codes')}`, () => copySecret(all, `${plural(n(), 'code', 'codes')} copied`, { app }), { 'data-testid': 'codes-copy-all' });
-    const ready = isV3() ? notice('success', h('strong', { text: 'Ready to share. ' }), `Every code is on the network in your batch${BigInt(batch.gasPerVoucher || '0') > 0n ? ', with its claim fee paid' : ''}.`) : null;
+    // A v3 batch shows its codes as the network has them now (verifyBatch): only the ones still claimable are
+    // offered for sharing; once none is left, nothing is (release audit 0.2.16).
+    const open = isV3() ? batch.codes.filter((c) => c.status !== CODE_STATUS.claimed && c.status !== CODE_STATUS.takenBack) : batch.codes;
+    const all = open.map((c) => c.code).join('\n');
+    const copyAll = open.length ? primary(`Copy all ${plural(open.length, 'code', 'codes')}`, () => copySecret(all, `${plural(open.length, 'code', 'codes')} copied`, { app }), { 'data-testid': 'codes-copy-all' }) : null;
+    const ready = !isV3()
+      ? null
+      : open.length
+        ? notice('success', h('strong', { text: 'Ready to share. ' }), `${open.length === batch.codes.length ? 'Every code is' : `${plural(open.length, 'code is', 'codes are')} still`} on the network in your batch${BigInt(batch.gasPerVoucher || '0') > 0n ? ', with its claim fee paid' : ''}.`)
+        : notice('info', h('strong', { text: 'Nothing left to share. ' }), 'Every code of this batch was claimed or taken back.');
     if (ready) ready.dataset.testid = 'codes-ready';
     put(
       body,
@@ -151,7 +158,7 @@ export default function airdropCodes(app, p = {}) {
         ? null
         : notice('warn', h('strong', { text: 'These codes are the only key to the locked funds. ' }), `Anyone who has a code can claim it, so send each one only to its person. They are kept only on this device, in this wallet: copy them or save the file somewhere safe.${STORAGE_TEXT.codesNote[evictionRisk(app)] || ''}`),
       // Copying is the job: the button sits above the list, however long it is.
-      h('div', { class: 'btn-row' }, copyAll, typeof navigator.share === 'function' ? secondary('Share', () => navigator.share({ text: all }).catch(() => {}), { 'data-testid': 'codes-share' }) : null),
+      open.length ? h('div', { class: 'btn-row' }, copyAll, typeof navigator.share === 'function' ? secondary('Share', () => navigator.share({ text: all }).catch(() => {}), { 'data-testid': 'codes-share' }) : null) : null,
       h('button', { class: 'btn btn-text link-left', type: 'button', 'data-testid': 'codes-csv', onclick: () => saveCsv(batch) }, icon('download'), 'Save as CSV file'),
       h(
         'div',

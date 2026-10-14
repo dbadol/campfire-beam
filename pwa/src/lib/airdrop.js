@@ -333,7 +333,7 @@ export function mapError(e) {
 // ---------------------------------------------------------------- saved codes
 
 export const TX_STATUS = Object.freeze({ unconfirmed: 'unconfirmed', broadcast: 'broadcast', confirmed: 'confirmed', failed: 'failed' });
-export const CODE_STATUS = Object.freeze({ unknown: 'unknown', available: 'available', claimed: 'claimed', notFound: 'notFound' });
+export const CODE_STATUS = Object.freeze({ unknown: 'unknown', available: 'available', claimed: 'claimed', notFound: 'notFound', takenBack: 'takenBack' });
 
 /** Where a v3 batch's check stands (lib/airdrop_v3.js verifyBatch): passed, or failed and why. */
 export const CHECK_STATE = Object.freeze({ ok: 'ok', failed: 'failed' });

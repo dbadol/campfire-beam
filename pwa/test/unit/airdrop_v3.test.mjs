@@ -409,7 +409,7 @@ const memoryKv = () => {
 };
 
 /** The v3 service over a fake contract, as lib/contracts.js would run it: inspect, then the sheet's request. */
-function service(st, { vault = null, consent = null, sendError = null, beforeSign = null, txStatus = null, lock = null } = {}) {
+function service(st, { vault = null, consent = null, sendError = null, beforeSign = null, txStatus = null, lock = null, tipHeight = null } = {}) {
   const v = vault || codeVault({ kv: memoryKv(), walletId: 'w1', secret: 'ab'.repeat(32) });
   const shaderErr = (o) => {
     if (o && typeof o === 'object' && 'error' in o) throw Object.assign(new Error(String(o.error)), { code: 'shader' });
@@ -445,6 +445,7 @@ function service(st, { vault = null, consent = null, sendError = null, beforeSig
     vault: async () => v,
     txStatus,
     lock,
+    tipHeight,
   });
   return { svc, vault: v, transacted };
 }
@@ -571,7 +572,45 @@ test('verify: waits for 3 confirmations, then checks every code and saves the ve
   assert.ok(saved.codes.every((c) => c.status === CODE_STATUS.available));
   const n = st.seen.length;
   assert.equal((await svc.verifyBatch(batch.localId)).state, 'ready');
-  assert.equal(st.seen.length, n, 'a checked batch is not checked again');
+  assert.deepEqual(st.seen.slice(n).map((a) => a.match(/action=(\w+)/)[1]), ['view_batch'], 'a checked batch is not checked again: one read of where its codes stand');
+});
+
+test('a checked batch shows its codes as the network has them now: claimed, taken back, still claimable (release audit 0.2.16)', async () => {
+  const st = fakeV3();
+  const { svc, vault } = service(st, { txStatus: async () => ({ status: 3, confirmations: CONFIRMATIONS_BEFORE_CHECK }) });
+  const { batch } = await svc.createBatch({ assetId: 36, values: [100000n, 100000n, 100000n], gas: true });
+  st.mine(st.pending);
+  assert.equal((await svc.verifyBatch(batch.localId)).state, 'ready');
+  const [k0, k1] = (await vault.all())[0].codes.map((c) => c.key);
+  st.vouchers.get(k0).redeemed = true;
+  st.vouchers.delete(k1);
+  const r = await svc.verifyBatch(batch.localId);
+  assert.equal(r.state, 'ready');
+  assert.deepEqual(r.batch.codes.map((c) => c.status), [CODE_STATUS.claimed, CODE_STATUS.takenBack, CODE_STATUS.available]);
+  assert.deepEqual((await vault.all())[0].codes.map((c) => c.status), [CODE_STATUS.claimed, CODE_STATUS.takenBack, CODE_STATUS.available], 'saved');
+  // A read that fails keeps what was saved; it never turns a batch into "not ready" or loses its codes.
+  const real = st.answer;
+  st.answer = async (a) => (a.includes('view_batch') ? Promise.reject(Object.assign(new Error('node down'), { code: 'timeout' })) : real(a));
+  const again = await svc.verifyBatch(batch.localId);
+  assert.equal(again.state, 'ready');
+  assert.deepEqual(again.batch.codes.map((c) => c.status), [CODE_STATUS.claimed, CODE_STATUS.takenBack, CODE_STATUS.available]);
+  st.answer = real;
+});
+
+test('a batch found without its transaction id still waits its confirmations, counted from its block (release audit 0.2.16)', async () => {
+  const st = fakeV3();
+  let tip = 4080001; // the fake records created_at 4080000: the kernel's block is 4080001
+  const s = service(st, { sendError: Object.assign(new Error('The wallet did not answer in time.'), { code: 'timeout' }), txStatus: async () => assert.fail('no tx id to ask about'), tipHeight: async () => tip });
+  await assert.rejects(s.svc.createBatch({ assetId: 36, values: [100000n] }));
+  st.mine(st.pending);
+  const rec = (await s.vault.all())[0];
+  assert.equal(rec.txId, null);
+  assert.deepEqual(await stateOf(s.svc.verifyBatch(rec.localId)), { state: 'waiting', confirmations: 0 });
+  tip = 4080001 + CONFIRMATIONS_BEFORE_CHECK - 1;
+  assert.deepEqual(await stateOf(s.svc.verifyBatch(rec.localId)), { state: 'waiting', confirmations: CONFIRMATIONS_BEFORE_CHECK - 1 });
+  assert.equal((await s.vault.all())[0].check, null, 'nothing saved while it waits');
+  tip = 4080001 + CONFIRMATIONS_BEFORE_CHECK;
+  assert.equal((await s.svc.verifyBatch(rec.localId)).state, 'ready');
 });
 
 const stateOf = async (p) => {
