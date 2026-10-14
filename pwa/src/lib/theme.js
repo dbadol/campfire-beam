@@ -89,6 +89,7 @@ export function setTheme(choice, { storage = globalThis.localStorage, doc = glob
   const c = THEMES.includes(choice) ? choice : 'system';
   write(storage, KEY, c, c === 'system');
   write(storage, AUTO_DARK_KEY, '', true);
+  autoDarkOnPage = false;
   applyTheme(c, doc);
   return c;
 }
@@ -109,6 +110,17 @@ const autoDark = (storage) => {
   }
 };
 
+// With storage blocked nothing is kept: the page's own theme, and this flag, stand in for it.
+let autoDarkOnPage = false;
+const readable = (storage) => {
+  try {
+    storage.getItem(KEY);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Settings' Colours row. BEAM is dark by default (owner, 2026-10-14): choosing BEAM while the theme
  * follows the device turns it to Dark, and going back to Campfire red undoes that, unless a theme was
@@ -117,16 +129,19 @@ const autoDark = (storage) => {
  */
 export function pickSkin(choice, { storage = globalThis.localStorage, doc = globalThis.document } = {}) {
   const skin = setSkin(choice, { storage, doc });
-  let theme = readTheme(storage);
+  const kept = readable(storage);
+  let theme = kept ? readTheme(storage) : themeOn(doc);
   if (skin === 'beam' && theme === 'system') {
     theme = 'dark';
     write(storage, KEY, theme, false);
     write(storage, AUTO_DARK_KEY, '1', false);
+    autoDarkOnPage = true;
     applyLook({ theme }, doc);
-  } else if (skin === 'campfire' && theme === 'dark' && autoDark(storage)) {
+  } else if (skin === 'campfire' && theme === 'dark' && (kept ? autoDark(storage) : autoDarkOnPage)) {
     theme = 'system';
     write(storage, KEY, theme, true);
     write(storage, AUTO_DARK_KEY, '', true);
+    autoDarkOnPage = false;
     applyLook({ theme }, doc);
   }
   return { skin, theme };
