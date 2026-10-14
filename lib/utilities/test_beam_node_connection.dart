@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pointycastle/ecc/curves/secp256k1.dart';
 
 import '../app_config.dart';
+import '../l10n/l10n.dart';
 import '../providers/global/prefs_provider.dart';
 import '../services/tor_service.dart';
 
@@ -49,13 +50,12 @@ abstract final class BeamNodeAddress {
   /// Null when [host] is usable, otherwise what is wrong in plain words.
   static String? hostProblem(String host) {
     final h = host.trim();
-    if (h.isEmpty) return 'Enter the node address';
+    if (h.isEmpty) return appL10n.nodeAddressEnterHost;
     if (RegExp(r'^[A-Za-z0-9.\-]+:\d*$').hasMatch(h)) {
-      return 'Put the port number in the Port field';
+      return appL10n.nodeAddressPortInPortField;
     }
     if (h.length > 253 || !_host.hasMatch(h)) {
-      return 'Use a host name like eu-nodes.mainnet.beam.mw or an IP '
-          'address, without http:// or a path';
+      return appL10n.nodeAddressUseHostName;
     }
     return null;
   }
@@ -83,18 +83,15 @@ abstract final class BeamNodeAddress {
 /// One line for the result, never blaming the user.
 String beamNodeTestMessage(BeamNodeTestResult r, String address) =>
     switch (r) {
-      BeamNodeTestResult.beamNode => 'BEAM node found at $address',
+      BeamNodeTestResult.beamNode => appL10n.nodeTestFound(address),
       BeamNodeTestResult.notBeamNode =>
-        "Something answers at $address, but it isn't a BEAM node. "
-            'BEAM nodes usually use port 8100.',
+        appL10n.nodeTestNotBeamNode(address),
       BeamNodeTestResult.noReply =>
-        'Connected to $address, but no BEAM node answered. Try again in a '
-            'moment.',
+        appL10n.nodeTestNoReply(address),
       BeamNodeTestResult.unreachable =>
-        'No BEAM node answered at $address. Check the address and your '
-            'internet connection.',
+        appL10n.nodeTestUnreachable(address),
       BeamNodeTestResult.invalidAddress =>
-        'Enter a host like eu-nodes.mainnet.beam.mw and a port like 8100.',
+        appL10n.nodeTestInvalidAddress,
     };
 
 /// The first 4 bytes of a BEAM node's answer to a handshake: "Bm", protocol

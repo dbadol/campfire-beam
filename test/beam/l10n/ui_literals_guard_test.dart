@@ -34,25 +34,39 @@ const scanned = <String>[
   'lib/l10n',
   'lib/pages/beam/airdrop',
   'lib/pages/beam/buy',
+  'lib/pages/beam/dapps',
   'lib/pages/beam/dex',
   'lib/pages/beam/import',
   'lib/pages/beam/minter',
   'lib/pages/beam/names',
+  'lib/pages/beam/node',
   'lib/pages/beam/settings',
   'lib/pages/beam/split',
+  'lib/pages/bridge',
   'lib/pages_desktop_specific/beam/buy',
   'lib/pages_desktop_specific/beam/dex',
+  'lib/pages_desktop_specific/beam/node',
   'lib/pages_desktop_specific/beam/sidebar',
+  'lib/pages_desktop_specific/bridge',
+  'lib/pages_desktop_specific/my_stack_view/wallet_view/beam_desktop_asset_view.dart',
   'lib/pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/beam_desktop_wallet_summary.dart',
+  'lib/utilities/beam',
   'lib/widgets/beam/airdrop',
+  'lib/widgets/beam/assets',
   'lib/widgets/beam/beam_decimal_input.dart',
+  'lib/widgets/beam/dapps',
   'lib/widgets/beam/dex',
   'lib/widgets/beam/minter',
   'lib/widgets/beam/names',
+  'lib/widgets/beam/node',
   'lib/widgets/beam/quit',
+  'lib/widgets/beam/receive',
+  'lib/widgets/beam/scan',
+  'lib/widgets/beam/send',
   'lib/widgets/beam/sidebar',
   'lib/widgets/beam/split',
   'lib/widgets/beam/stickers',
+  'lib/widgets/beam/tx',
   'lib/widgets/beam/wallet_home',
   'lib/widgets/beam/wbeam_icon.dart',
   'lib/widgets/beam/wiring/beam_features.dart',
@@ -254,7 +268,10 @@ Iterable<String> _dartFiles(String path) sync* {
   }
 }
 
-final _importsL10n = RegExp(r"^import '[./]*l10n/l10n\.dart';", multiLine: true);
+final _importsL10n = RegExp(
+  r"^import '[./]*l10n/l10n\.dart';",
+  multiLine: true,
+);
 
 List<String> _sourceFiles() => {
   for (final path in scanned) ..._dartFiles(path),
@@ -270,11 +287,15 @@ Map<String, Set<String>> _allowList() {
       .readAsLinesSync();
   for (final line in lines) {
     if (line.trim().isEmpty || line.trimLeft().startsWith('#')) continue;
+    // The literal may itself contain ' | ': the file is the first field,
+    // the reason the last, the literal everything between.
     final parts = line.split(' | ');
-    if (parts.length < 3 || parts[2].trim().isEmpty) {
+    if (parts.length < 3 || parts.last.trim().isEmpty) {
       throw FormatException('allow-list line needs file | literal | why', line);
     }
-    out.putIfAbsent(parts[0].trim(), () => {}).add(parts[1]);
+    out
+        .putIfAbsent(parts.first.trim(), () => {})
+        .add(parts.sublist(1, parts.length - 1).join(' | '));
   }
   return out;
 }

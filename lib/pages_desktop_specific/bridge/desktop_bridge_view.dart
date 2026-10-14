@@ -19,6 +19,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../pages/bridge/bridge_crossings_view.dart';
 import '../../pages/bridge/bridge_deps.dart';
 import '../../pages/bridge/bridge_move_view.dart';
@@ -85,15 +86,14 @@ class _DesktopBridgeViewState extends State<DesktopBridgeView> {
             children: [
               Expanded(
                 child: Text(
-                  'Move coins between your own BEAM and Ethereum wallets, '
-                  "through BEAM's official bridge",
+                  context.l10n.bridgeIntroDesktop,
                   style: STextStyles.desktopTextExtraExtraSmall(context),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  controller == null ? '' : 'Your crossings',
+                  controller == null ? '' : context.l10n.bridgeYourCrossings,
                   style: STextStyles.desktopTextExtraExtraSmall(context),
                 ),
               ),
@@ -151,7 +151,10 @@ class _DesktopBridgeViewState extends State<DesktopBridgeView> {
         isCompactHeight: true,
         leading: Padding(
           padding: const EdgeInsets.only(left: 24),
-          child: Text('Bridge', style: STextStyles.desktopH3(context)),
+          child: Text(
+            context.l10n.bridgeTitle,
+            style: STextStyles.desktopH3(context),
+          ),
         ),
       ),
       body: body,

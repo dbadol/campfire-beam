@@ -9,8 +9,10 @@
 
 // The words of the scan sheet (beam_scan.dart): what the code is, why
 // nothing was opened, and what to do instead. Plain sentences: no "EIP-681",
-// no "chain id", nothing that blames the person who scanned.
+// no "chain id", nothing that blames the person who scanned. The text is in
+// lib/l10n/app_en.arb (scan* keys), in the language the app speaks.
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/beam/scan_route.dart';
 
 /// The sheet's title, its explanation and its buttons' labels.
@@ -52,117 +54,109 @@ BeamScanSheetText beamScanSheetText(
   String Function(String walletId)? walletName,
   bool ethereumInApp = true,
 }) {
-  final coins = ethereumInApp ? 'BEAM and Ethereum' : 'BEAM';
-  final askFor = ethereumInApp ? 'a BEAM or Ethereum' : 'a BEAM';
+  final l = appL10n;
   switch (stopped.reason) {
     case ScanStop.empty:
-      return const BeamScanSheetText(
-        title: 'Nothing in this code',
-        message:
-            'The QR code had no text in it. Try scanning it again, a little '
-            'closer.',
+      return BeamScanSheetText(
+        title: l.scanEmptyTitle,
+        message: l.scanEmptyMessage,
       );
     case ScanStop.unknown:
       return BeamScanSheetText(
-        title: 'Not a payment Campfire can open',
-        message:
-            "This isn't a BEAM address, a BEAM name, "
-            "${ethereumInApp ? 'an Ethereum address ' : ''}or an airdrop "
-            'code, so nothing was opened. Ask for $askFor address or a '
-            'payment QR code instead.',
-        copy: 'Copy text',
+        title: l.scanUnknownTitle,
+        message: ethereumInApp
+            ? l.scanUnknownMessageEthereum
+            : l.scanUnknownMessage,
+        copy: l.scanCopyText,
       );
     case ScanStop.link:
-      return const BeamScanSheetText(
-        title: 'A web link',
-        message:
-            'Campfire never opens links from QR codes: a link can lead to a '
-            'fake wallet page that asks for your recovery phrase. Nothing '
-            'was opened. To pay someone, ask for their BEAM address.',
+      return BeamScanSheetText(
+        title: l.scanLinkTitle,
+        message: l.scanLinkMessage,
       );
     case ScanStop.coin:
       final scheme = _scheme.firstMatch(stopped.text)?.group(1);
-      final starts = scheme == null
-          ? 'It is for another coin or app'
-          : 'It starts with "${scheme.toLowerCase()}:"';
       return BeamScanSheetText(
-        title: 'A payment for another coin',
-        message:
-            '$starts, and Campfire pays in $coins only, so nothing was '
-            'opened. Ask for $askFor address instead.',
-        copy: 'Copy text',
+        title: l.scanCoinTitle,
+        message: switch ((scheme?.toLowerCase(), ethereumInApp)) {
+          (null, true) => l.scanCoinMessageEthereum,
+          (null, false) => l.scanCoinMessage,
+          (final String s, true) => l.scanCoinSchemeMessageEthereum(s),
+          (final String s, false) => l.scanCoinSchemeMessage(s),
+        },
+        copy: l.scanCopyText,
       );
     case ScanStop.chain:
       final chain = _chain.firstMatch(stopped.text)?.group(1);
       return BeamScanSheetText(
-        title: 'A payment on another network',
-        message:
-            'This asks for a payment on '
-            '${chain == null ? 'another network' : 'network $chain'}, not '
-            "on Ethereum. Campfire's Ethereum wallet pays on Ethereum only, "
-            'so nothing was opened. Ask for an address on Ethereum itself '
-            'instead.',
-        copy: 'Copy text',
+        title: l.scanChainTitle,
+        message: chain == null
+            ? l.scanChainMessage
+            : l.scanChainMessageId(chain),
+        copy: l.scanCopyText,
       );
     case ScanStop.token:
-      final what = tokenSymbol ?? 'a token';
       final to = stopped.to;
+      final short = to == null ? null : beamScanShort(to);
       return BeamScanSheetText(
-        title: 'A token payment on Ethereum',
-        message:
-            'This asks for $what, not ETH'
-            '${to == null ? '' : ', to ${beamScanShort(to)}'}. Open '
-            '${tokenSymbol ?? 'that token'} in your Ethereum wallet and send '
-            'it from there. Nothing was opened.',
-        copy: to == null ? null : 'Copy address',
+        title: l.scanTokenTitle,
+        message: joinSentences([
+          switch ((tokenSymbol, short)) {
+            (final String t, final String s) => l.scanTokenAsksTo(t, s),
+            (final String t, null) => l.scanTokenAsks(t),
+            (null, final String s) => l.scanTokenAsksUnknownTo(s),
+            (null, null) => l.scanTokenAsksUnknown,
+          },
+          tokenSymbol == null
+              ? l.scanTokenOpenUnknown
+              : l.scanTokenOpen(tokenSymbol),
+          l.scanNothingOpened,
+        ], l),
+        copy: to == null ? null : l.scanCopyAddress,
       );
     case ScanStop.noEthereumWallet:
-      return const BeamScanSheetText(
-        title: 'An Ethereum address',
-        message:
-            'To pay it, add an Ethereum wallet to Campfire, then scan the '
-            'code again.',
-        action: 'Add an Ethereum wallet',
-        copy: 'Copy address',
+      return BeamScanSheetText(
+        title: l.scanEthereumAddressTitle,
+        message: l.scanNoEthWalletMessage,
+        action: l.scanAddEthereumWallet,
+        copy: l.scanCopyAddress,
       );
     case ScanStop.ethereumNotInApp:
-      return const BeamScanSheetText(
-        title: 'An Ethereum address',
-        message:
-            'This version of Campfire pays in BEAM only, so nothing was '
-            'opened. Ask for a BEAM address instead.',
-        copy: 'Copy address',
+      return BeamScanSheetText(
+        title: l.scanEthereumAddressTitle,
+        message: l.scanEthNotInAppMessage,
+        copy: l.scanCopyAddress,
       );
     case ScanStop.ethereumInBeamSend:
       final onward = stopped.onward;
       final String? action;
-      final String next;
+      final String? next;
       if (onward is ScanToEthereumSend) {
         final name = walletName?.call(onward.walletId);
-        action = name == null ? 'Pay from Ethereum' : 'Pay from $name';
-        next = ' Pay it from your Ethereum wallet instead.';
+        action = name == null
+            ? l.scanPayFromEthereum
+            : l.scanPayFromWallet(name);
+        next = l.scanPayFromYourEthWallet;
       } else if (onward is ScanChooseEthereumWallet) {
-        action = 'Pay from an Ethereum wallet';
-        next = ' Pay it from one of your Ethereum wallets instead.';
+        action = l.scanPayFromAnEthWallet;
+        next = l.scanPayFromOneOfEthWallets;
       } else if (stopped.canAddEthereumWallet && ethereumInApp) {
-        action = 'Add an Ethereum wallet';
-        next = ' To pay it, add an Ethereum wallet to Campfire.';
+        action = l.scanAddEthereumWallet;
+        next = l.scanAddEthWalletToPay;
       } else {
         action = null;
-        next = '';
+        next = null;
       }
       return BeamScanSheetText(
-        title: 'An Ethereum address',
-        message: "BEAM can't be sent to an Ethereum address.$next",
+        title: l.scanEthereumAddressTitle,
+        message: joinSentences([l.scanEthInBeamSendMessage, next], l),
         action: action,
       );
     case ScanStop.codeInBeamSend:
-      return const BeamScanSheetText(
-        title: 'An airdrop code',
-        message:
-            "This code holds coins for you to claim. It isn't an address to "
-            'pay.',
-        action: 'See what it holds',
+      return BeamScanSheetText(
+        title: l.scanCodeTitle,
+        message: l.scanCodeMessage,
+        action: l.scanSeeWhatItHolds,
       );
   }
 }

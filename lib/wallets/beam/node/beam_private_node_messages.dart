@@ -15,6 +15,7 @@
 /// doing instead and, where the user can help, names the next step.
 library;
 
+import '../../../l10n/l10n.dart';
 import '../sync/beam_sync_messages.dart';
 import '../sync/beam_sync_state.dart' show beamMainnetHf6Height;
 import 'beam_node_disk.dart';
@@ -38,12 +39,9 @@ enum BeamPrivateNodeAction {
 }
 
 abstract final class BeamPrivateNodeMessages {
-  static const _publicNow = 'Using a public node';
-  static const _private =
-      'Offline and max-privacy payments need your private node.';
-  static const _autoSwitch =
-      'You can use the wallet as normal. It switches over by itself when '
-      "your private node is ready.";
+  static String get _publicNodes => appL10n.nodeWalletUsesPublicNodes;
+  static String get _private => appL10n.nodePrivateNeededForOfflinePayments;
+  static String get _autoSwitch => appL10n.nodePrivateAutoSwitch;
 
   /// The action the UI should offer for [s].
   static BeamPrivateNodeAction actionFor(BeamPrivateNodeStatus s) =>
@@ -70,10 +68,10 @@ abstract final class BeamPrivateNodeMessages {
 
   static String? actionLabel(BeamPrivateNodeAction a) => switch (a) {
     BeamPrivateNodeAction.none => null,
-    BeamPrivateNodeAction.retry => 'Try again',
-    BeamPrivateNodeAction.checkAgain => 'Check again',
-    BeamPrivateNodeAction.turnOn => 'Turn on private node',
-    BeamPrivateNodeAction.start => 'Start private node',
+    BeamPrivateNodeAction.retry => appL10n.commonTryAgain,
+    BeamPrivateNodeAction.checkAgain => appL10n.nodeActionCheckAgain,
+    BeamPrivateNodeAction.turnOn => appL10n.nodeActionTurnOnPrivateNode,
+    BeamPrivateNodeAction.start => appL10n.nodeActionStartPrivateNode,
   };
 
   static BeamSyncMessage describe(BeamPrivateNodeStatus s) {
@@ -83,121 +81,109 @@ abstract final class BeamPrivateNodeMessages {
     }
     return BeamSyncMessage(
       title: m.title,
-      detail: '${m.detail == null ? '' : '${m.detail} '}$_waitsForPayment',
+      detail: joinSentences([m.detail, _waitsForPayment]),
       actionLabel: m.actionLabel,
     );
   }
 
-  static const _waitsForPayment =
-      'The switch waits until your payment is finished.';
+  static String get _waitsForPayment =>
+      appL10n.nodePrivateSwitchWaitsForPayment;
 
   static BeamSyncMessage _describe(BeamPrivateNodeStatus s) {
+    final l = appL10n;
     final label = actionLabel(actionFor(s));
     switch (s.phase) {
       case BeamPrivateNodePhase.off:
         return BeamSyncMessage(
-          title: 'Private node is off',
-          detail: 'The wallet uses public nodes. $_private',
+          title: l.nodePrivateOffTitle,
+          detail: joinSentences([_publicNodes, _private]),
           actionLabel: label,
         );
       case BeamPrivateNodePhase.idle:
-        return const BeamSyncMessage(
-          title: 'Your private node has not started yet',
-        );
+        return BeamSyncMessage(title: l.nodePrivateNotStartedTitle);
       case BeamPrivateNodePhase.preparing:
-        return const BeamSyncMessage(
-          title: 'Setting up your private node',
-          detail: 'Your wallet keeps working while it starts.',
+        return BeamSyncMessage(
+          title: l.nodePrivateSettingUpTitle,
+          detail: l.nodePrivateKeepsWorkingWhileStarting,
         );
       case BeamPrivateNodePhase.downloading when s.finishingPercent != null:
         return BeamSyncMessage(
-          title:
-              '$_publicNow — your private node is finishing setup '
-              '(${s.finishingPercent}%)',
-          detail: 'This last step takes 5–10 minutes. $_autoSwitch',
+          title: l.nodePrivatePublicNowFinishingSetup(s.finishingPercent!),
+          detail: joinSentences([l.nodeLastStepTakes, _autoSwitch]),
         );
       case BeamPrivateNodePhase.downloading:
         final pct = s.percent;
         return BeamSyncMessage(
           title: pct == null
-              ? '$_publicNow — your private node is downloading'
-              : '$_publicNow — your private node is downloading ($pct%)',
+              ? l.nodePrivatePublicNowDownloading
+              : l.nodePrivatePublicNowDownloadingPercent(pct),
           detail: _autoSwitch,
         );
       case BeamPrivateNodePhase.catchingUp:
         final finishing = s.finishingPercent;
         if (finishing != null) {
           return BeamSyncMessage(
-            title:
-                '$_publicNow — your private node is finishing setup '
-                '($finishing%)',
-            detail: 'This last step takes 5–10 minutes. $_autoSwitch',
+            title: l.nodePrivatePublicNowFinishingSetup(finishing),
+            detail: joinSentences([l.nodeLastStepTakes, _autoSwitch]),
           );
         }
         return BeamSyncMessage(
-          title: '$_publicNow — your private node is catching up',
-          detail: '${_behind(s)}$_autoSwitch',
+          title: l.nodePrivatePublicNowCatchingUp,
+          detail: joinSentences([_behind(s), _autoSwitch]),
         );
       case BeamPrivateNodePhase.cannotVerify:
         return BeamSyncMessage(
-          title: '$_publicNow — your private node looks ready',
-          detail:
-              "The wallet switches only after a second source confirms "
-              "your node is up to date, and it couldn't reach one. It "
-              'checks again by itself.',
+          title: l.nodePrivatePublicNowLooksReady,
+          detail: l.nodePrivateCannotVerifyDetail,
           actionLabel: label,
         );
       case BeamPrivateNodePhase.stuck:
         if (s.issue == BeamPrivateNodeIssue.belowHardFork) {
           final at = s.nodeHeight;
+          final fork = BeamSyncMessages.number(beamMainnetHf6Height);
           return BeamSyncMessage(
-            title:
-                'Your private node is stuck on an old version of the BEAM '
-                'network',
-            detail:
-                'BEAM upgraded at block '
-                '${BeamSyncMessages.number(beamMainnetHf6Height)}'
-                '${at == null ? '' : ' and your node stopped at block '
-                          '${BeamSyncMessages.number(at)}'}. '
-                'The wallet stays on a public node.',
+            title: l.nodePrivateStuckOldVersionTitle,
+            detail: joinSentences([
+              at == null
+                  ? l.syncUpgradedAtBlock(fork)
+                  : l.nodePrivateUpgradedYourNodeStoppedAt(
+                      fork,
+                      BeamSyncMessages.number(at),
+                    ),
+              l.nodePrivateStaysOnPublicNode,
+            ]),
             actionLabel: label,
           );
         }
         return BeamSyncMessage(
-          title: 'Your private node stopped receiving new blocks',
-          detail: '${_behind(s)}The wallet stays on a public node.',
+          title: l.nodePrivateStoppedReceivingBlocksTitle,
+          detail: joinSentences([_behind(s), l.nodePrivateStaysOnPublicNode]),
           actionLabel: label,
         );
       case BeamPrivateNodePhase.switching:
         return s.waitingForWallet
-            ? const BeamSyncMessage(
-                title: 'Your private node is ready',
-                detail:
-                    'The wallet switches over as soon as your payment is '
-                    'finished.',
+            ? BeamSyncMessage(
+                title: l.nodePrivateReadyTitle,
+                detail: l.nodePrivateSwitchesAfterPayment,
               )
-            : const BeamSyncMessage(
-                title: 'Switching to your private node',
-                detail: 'This takes a few seconds.',
+            : BeamSyncMessage(
+                title: l.nodePrivateSwitchingTitle,
+                detail: l.nodePrivateTakesFewSeconds,
               );
       case BeamPrivateNodePhase.active:
         return s.privateReceiveAvailable
-            ? const BeamSyncMessage(
-                title: 'Switched to your private node',
-                detail: 'Offline and max-privacy payments can now reach you.',
+            ? BeamSyncMessage(
+                title: l.nodePrivateSwitchedTitle,
+                detail: l.nodePrivateOfflinePaymentsCanReachYou,
               )
-            : const BeamSyncMessage(
-                title: 'Reconnecting to your private node',
-                detail:
-                    'Offline and max-privacy payments are paused until it '
-                    'answers.',
+            : BeamSyncMessage(
+                title: l.nodePrivateReconnectingTitle,
+                detail: l.nodePrivateOfflinePaymentsPaused,
               );
       case BeamPrivateNodePhase.ownNodeUnconfirmed:
         return BeamSyncMessage(
-          title: "Couldn't confirm your private node — back on a public node",
-          detail:
-              "Your node didn't recognise this wallet, so offline and "
-              'max-privacy payments stay off.',
+          title: l.nodePrivateUnconfirmedTitle,
+          detail: l.nodePrivateUnconfirmedDetail,
           actionLabel: label,
         );
       case BeamPrivateNodePhase.failed:
@@ -213,40 +199,34 @@ abstract final class BeamPrivateNodeMessages {
       case BeamPrivateNodePhase.stopped:
         if (s.issue == BeamPrivateNodeIssue.stoppedByUser) {
           return BeamSyncMessage(
-            title: 'Your private node is stopped',
-            detail:
-                'The wallet uses a public node. Your private node starts '
-                'again when you press start or reopen the wallet.',
+            title: l.nodePrivateStoppedByUserTitle,
+            detail: l.nodePrivateStoppedByUserDetail,
             actionLabel: label,
           );
         }
         return BeamSyncMessage(
-          title: 'Your private node stopped — back on a public node',
-          detail: 'Your wallet keeps working. $_private',
+          title: l.nodePrivateStoppedTitle,
+          detail: joinSentences([l.nodePrivateWalletKeepsWorking, _private]),
           actionLabel: label,
         );
       case BeamPrivateNodePhase.fellBehind:
         if (s.issue == BeamPrivateNodeIssue.notServingWallet) {
-          return const BeamSyncMessage(
-            title: "Your private node isn't ready yet — back on a public node",
-            detail:
-                'It did not answer the wallet in time, so you can keep '
-                'sending on a public node. The wallet tries your node again '
-                'in a few minutes.',
+          return BeamSyncMessage(
+            title: l.nodePrivateNotReadyTitle,
+            detail: l.nodePrivateNotReadyDetail,
           );
         }
         return BeamSyncMessage(
-          title: 'Your private node fell behind — back on a public node',
-          detail:
-              '${_behind(s)}The wallet switches back once your node '
-              'catches up.',
+          title: l.nodePrivateFellBehindTitle,
+          detail: joinSentences([
+            _behind(s),
+            l.nodePrivateSwitchesBackWhenCaughtUp,
+          ]),
         );
       case BeamPrivateNodePhase.walletClosed:
         return BeamSyncMessage(
-          title: "Couldn't reopen your wallet",
-          detail:
-              'No BEAM node answered. Check your internet connection, then '
-              'try again.',
+          title: l.nodePrivateReopenFailedTitle,
+          detail: l.nodePrivateReopenFailedDetail,
           actionLabel: label,
         );
     }
@@ -255,19 +235,17 @@ abstract final class BeamPrivateNodeMessages {
   /// Not enough room: say how much is needed, how much there is, and that
   /// the wallet keeps working. Never asks the user to guess a number.
   static BeamSyncMessage _disk(BeamPrivateNodeStatus s, String? label) {
+    final l = appL10n;
     final d = s.disk;
     if (s.issue == BeamPrivateNodeIssue.diskFull) {
-      final free = d == null
-          ? ''
-          : ' Only ${formatBeamDiskSize(d.space.freeBytes)} is free.';
       return BeamSyncMessage(
-        title:
-            'Your private node stopped: this computer is almost out of '
-            'space',
-        detail:
-            'It was stopped before the disk filled up.$free Free up some '
-            'space, then try again. Back on a public node — your wallet '
-            'keeps working.',
+        title: l.nodeDiskFullTitle,
+        detail: joinSentences([
+          l.nodeDiskStoppedBeforeFull,
+          if (d != null)
+            l.nodeDiskOnlyFree(formatBeamDiskSize(d.space.freeBytes)),
+          l.nodeDiskFreeUpBackOnPublic,
+        ]),
         actionLabel: label,
       );
     }
@@ -275,22 +253,20 @@ abstract final class BeamPrivateNodeMessages {
       const policy = BeamNodeDiskPolicy();
       return BeamSyncMessage(
         title: _setupTitle(policy.setupPeakBytes, policy.nodeBytes),
-        detail:
-            'Free up some space, then try again. Your wallet keeps working '
-            'on a public node.',
+        detail: l.nodeDiskFreeUpKeepsWorking,
         actionLabel: label,
       );
     }
     final title = d.freshNode
         ? _setupTitle(d.setupPeakBytes, d.nodeBytes)
-        : "There isn't enough free space for your private node";
+        : l.nodeDiskNotEnoughTitle;
     return BeamSyncMessage(
       title: title,
-      detail:
-          'This computer has ${formatBeamDiskSize(d.space.freeBytes)} free, '
-          'and Campfire leaves ${formatBeamDiskSize(d.reserveBytes)} for '
-          'your other apps. Free up ${formatBeamDiskSize(d.shortfallBytes)}, '
-          'then try again. Your wallet keeps working on a public node.',
+      detail: l.nodeDiskNotEnoughDetail(
+        formatBeamDiskSize(d.space.freeBytes),
+        formatBeamDiskSize(d.reserveBytes),
+        formatBeamDiskSize(d.shortfallBytes),
+      ),
       actionLabel: label,
     );
   }
@@ -298,42 +274,36 @@ abstract final class BeamPrivateNodeMessages {
   /// "Your private node needs about 12 GB free while it sets up (it
   /// shrinks to about 8 GB)".
   static String _setupTitle(int peak, int settled) =>
-      'Your private node needs about ${formatBeamDiskSize(peak)} free while '
-      'it sets up (it shrinks to about ${formatBeamDiskSize(settled)})';
+      appL10n.nodeDiskSetupTitle(
+        formatBeamDiskSize(peak),
+        formatBeamDiskSize(settled),
+      );
 
   static String _failedTitle(BeamPrivateNodeIssue? issue) => switch (issue) {
-    BeamPrivateNodeIssue.keyRejected =>
-      "Your private node couldn't use this wallet's key — staying on a "
-          'public node',
-    BeamPrivateNodeIssue.nodeInUse =>
-      'Your private node is already running in another copy of the app',
+    BeamPrivateNodeIssue.keyRejected => appL10n.nodeFailedKeyRejectedTitle,
+    BeamPrivateNodeIssue.nodeInUse => appL10n.nodeFailedInUseTitle,
     BeamPrivateNodeIssue.servingOtherWallet =>
-      'Your private node is serving another of your wallets',
-    BeamPrivateNodeIssue.binaryProblem =>
-      "Your private node didn't pass a safety check — staying on a public "
-          'node',
-    _ => "Couldn't start your private node — staying on a public node",
+      appL10n.nodeFailedServingOtherWalletTitle,
+    BeamPrivateNodeIssue.binaryProblem => appL10n.nodeFailedSafetyCheckTitle,
+    _ => appL10n.nodeFailedStartTitle,
   };
 
   static String _failedDetail(BeamPrivateNodeIssue? issue) => switch (issue) {
-    BeamPrivateNodeIssue.keyRejected =>
-      'It was stopped rather than run without the key. Offline and '
-          'max-privacy payments stay off.',
-    BeamPrivateNodeIssue.nodeInUse => 'Close the other copy, then try again.',
+    BeamPrivateNodeIssue.keyRejected => appL10n.nodeFailedKeyRejectedDetail,
+    BeamPrivateNodeIssue.nodeInUse => appL10n.nodeFailedInUseDetail,
     BeamPrivateNodeIssue.servingOtherWallet =>
-      'One private node serves one wallet at a time. This wallet uses a '
-          'public node meanwhile and moves to your node by itself when that '
-          'wallet closes.',
-    BeamPrivateNodeIssue.binaryProblem =>
-      'Its program file is not the one this app was built with, so it was '
-          'not run. Reinstall the app, then try again.',
-    _ => 'Your wallet keeps working. $_private',
+      appL10n.nodeFailedServingOtherWalletDetail,
+    BeamPrivateNodeIssue.binaryProblem => appL10n.nodeFailedSafetyCheckDetail,
+    _ => joinSentences([appL10n.nodePrivateWalletKeepsWorking, _private]),
   };
 
-  static String _behind(BeamPrivateNodeStatus s) {
+  /// "Behind by 42 blocks — about 42 minutes.", or null when not behind.
+  static String? _behind(BeamPrivateNodeStatus s) {
     final behind = s.blocksBehind;
-    if (behind == null || behind <= 0) return '';
-    return '${BeamSyncMessages.behindBy(behind, const Duration(seconds: 60))}'
-        '. ';
+    if (behind == null || behind <= 0) return null;
+    return appL10n.syncBehindBySentence(
+      BeamSyncMessages.blockCount(behind),
+      BeamSyncMessages.approxDuration(const Duration(seconds: 60) * behind),
+    );
   }
 }

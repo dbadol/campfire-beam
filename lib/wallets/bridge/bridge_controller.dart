@@ -34,6 +34,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import '../../l10n/l10n.dart';
 import '../../utilities/logger.dart';
 
 import 'bridge_crossing.dart';
@@ -207,10 +208,8 @@ class BridgeController extends ChangeNotifier {
       return blocked(
         BridgeBlock(
           BridgeBlockCode.network,
-          "Couldn't check that ${route.ethSymbol} can be moved right now",
-          'Campfire asks Ethereum before every crossing whether '
-              '${route.ethSymbol} is paused. Your Ethereum node did not '
-              'answer. Nothing was sent; try again in a minute.',
+          appL10n.bridgeBlockFreezeCheckTitle(route.ethSymbol),
+          appL10n.bridgeBlockFreezeCheckDetail(route.ethSymbol),
         ),
       );
     }
@@ -218,7 +217,7 @@ class BridgeController extends ChangeNotifier {
       return blocked(
         BridgeBlock(
           BridgeBlockCode.frozen,
-          '${route.name} cannot be moved right now',
+          appL10n.bridgeBlockFrozenTitle(route.name),
           freezes.map((f) => f.reason).join('\n'),
         ),
         f: freezes,
@@ -261,12 +260,10 @@ class BridgeController extends ChangeNotifier {
     );
   }
 
-  static const _noPrice = BridgeBlock(
+  static BridgeBlock get _noPrice => BridgeBlock(
     BridgeBlockCode.noPrice,
-    'Prices are unavailable right now',
-    'The bridge fee follows the price of the coin and of Ethereum gas, '
-        'and Campfire could not read them. Nothing was sent; try again '
-        'in a minute.',
+    appL10n.bridgeBlockNoPriceTitle,
+    appL10n.bridgeBlockNoPriceDetail,
   );
 
   /// What [route] going [direction] can draw on.
@@ -321,11 +318,10 @@ class BridgeController extends ChangeNotifier {
         amount,
         cond,
         bal,
-        block: const BridgeBlock(
+        block: BridgeBlock(
           BridgeBlockCode.network,
-          "Couldn't read your balances",
-          'One of your wallets did not answer. Nothing was sent; try again '
-              'in a minute.',
+          appL10n.bridgeBlockBalancesTitle,
+          appL10n.bridgeBlockBalancesDetail,
         ),
       );
     }
@@ -381,48 +377,38 @@ class BridgeController extends ChangeNotifier {
     final amount = floorToGrid(raw, route.beamGrid);
     final fee = cond.fee;
     final sym = route.beamSymbol;
+    final l = appL10n;
     final warnings = <BridgeWarning>[
       if (fee != null &&
           amount > fee &&
           _share(fee, amount) > kBridgeFeeWarnShare)
         BridgeWarning(
           BridgeWarningCode.highFee,
-          'The bridge fee is ${_percent(_share(fee, amount))} of what you '
-              'move',
-          'It pays for the bridge operator\'s Ethereum transaction, which '
-              'costs the same for any amount. Moving more at once costs '
-              'less per coin.',
+          l.bridgeWarnHighFeeTitle(_percent(_share(fee, amount))),
+          l.bridgeWarnHighFeeDetail,
         ),
     ];
     BridgeBlock? block = cond.block;
     if (block == null && amount <= BigInt.zero) {
-      block = BridgeBlock(
-        BridgeBlockCode.noAmount,
-        'Enter how much $sym to move.',
-      );
+      block = BridgeBlock(BridgeBlockCode.noAmount, l.bridgeEnterAmount(sym));
     }
     if (block == null && amount <= fee!) {
       block = BridgeBlock(
         BridgeBlockCode.belowFee,
-        'The bridge fee is more than the amount',
-        'The bridge fee is ${_coin(fee, 8)} $sym right now. Move more '
-            'than that.',
+        l.bridgeBlockBelowFeeTitle,
+        l.bridgeBlockBelowFeeDetail('${_coin(fee, 8)} $sym'),
       );
     }
     final max = route.maxGroth;
     if (block == null && max != null && (amount > max || fee! > max)) {
       block = BridgeBlock(
         BridgeBlockCode.aboveMax,
-        'At most ${_coin(max, 8)} $sym per move',
-        'The bridge refuses anything larger for good, and the $sym would '
-            'stay locked. Split it into several moves.',
+        l.bridgeBlockAboveMaxTitle('${_coin(max, 8)} $sym'),
+        l.bridgeBlockAboveMaxDetail(sym),
       );
     }
     if (block == null && amount + fee! >= _u63) {
-      block = const BridgeBlock(
-        BridgeBlockCode.aboveMax,
-        'That amount is too large to move',
-      );
+      block = BridgeBlock(BridgeBlockCode.aboveMax, l.bridgeBlockTooLargeTitle);
     }
     if (block == null) {
       final f = fee!;
@@ -431,24 +417,29 @@ class BridgeController extends ChangeNotifier {
         if (need > bal.source) {
           block = BridgeBlock(
             BridgeBlockCode.notEnough,
-            'Not enough BEAM',
-            'With the fees this needs ${_coin(need, 8)} BEAM. Your wallet '
-                'has ${_coin(bal.source, 8)} BEAM.',
+            l.bridgeBlockNotEnoughTitle('BEAM'),
+            l.bridgeBlockNotEnoughWithFees(
+              '${_coin(need, 8)} BEAM',
+              '${_coin(bal.source, 8)} BEAM',
+            ),
           );
         }
       } else if (amount + f > bal.source) {
         block = BridgeBlock(
           BridgeBlockCode.notEnough,
-          'Not enough $sym',
-          'With the bridge fee this needs ${_coin(amount + f, 8)} $sym. '
-              'Your wallet has ${_coin(bal.source, 8)} $sym.',
+          l.bridgeBlockNotEnoughTitle(sym),
+          l.bridgeBlockNotEnoughWithBridgeFee(
+            '${_coin(amount + f, 8)} $sym',
+            '${_coin(bal.source, 8)} $sym',
+          ),
         );
       } else if (kBridgeSendFeeGroth > bal.beam) {
         block = BridgeBlock(
           BridgeBlockCode.noBeamForFee,
-          'Your BEAM wallet needs ${_coin(kBridgeSendFeeGroth, 8)} BEAM for '
-              'the network fee',
-          'It has ${_coin(bal.beam, 8)} BEAM. Receive a little BEAM first.',
+          l.bridgeBlockNoBeamForFeeTitle(
+            '${_coin(kBridgeSendFeeGroth, 8)} BEAM',
+          ),
+          l.bridgeBlockNoBeamForFeeDetail('${_coin(bal.beam, 8)} BEAM'),
         );
       }
     }
@@ -474,27 +465,29 @@ class BridgeController extends ChangeNotifier {
     final sym = route.ethSymbol;
     final dec = route.ethDecimals;
     final receives = route.ethToGroth(value);
+    final l = appL10n;
     BridgeBlock? block = cond.block;
     if (block == null && value <= BigInt.zero) {
-      block = BridgeBlock(
-        BridgeBlockCode.noAmount,
-        'Enter how much $sym to move.',
-      );
+      block = BridgeBlock(BridgeBlockCode.noAmount, l.bridgeEnterAmount(sym));
     }
     if (block == null && receives <= BigInt.zero) {
       block = BridgeBlock(
         BridgeBlockCode.badAmount,
-        'Too small to arrive on BEAM',
-        'BEAM counts ${route.beamSymbol} in 8 decimals. Move at least '
-            '${_coin(route.ethGrid, dec)} $sym.',
+        l.bridgeBlockTooSmallTitle,
+        l.bridgeBlockTooSmallDetail(
+          route.beamSymbol,
+          '${_coin(route.ethGrid, dec)} $sym',
+        ),
       );
     }
     if (block == null && value + fee! > bal.source) {
       block = BridgeBlock(
         BridgeBlockCode.notEnough,
-        'Not enough $sym',
-        'With the bridge fee this needs ${_coin(value + fee, dec)} $sym. '
-            'Your wallet has ${_coin(bal.source, dec)} $sym.',
+        l.bridgeBlockNotEnoughTitle(sym),
+        l.bridgeBlockNotEnoughWithBridgeFee(
+          '${_coin(value + fee, dec)} $sym',
+          '${_coin(bal.source, dec)} $sym',
+        ),
       );
     }
     EthPipeLockPlan? plan;
@@ -513,28 +506,27 @@ class BridgeController extends ChangeNotifier {
         block = switch (e.code) {
           BridgeErrorCode.badAmount => BridgeBlock(
             BridgeBlockCode.badAmount,
-            "This amount can't be moved",
+            l.bridgeBlockAmountRefusedTitle,
             e.message,
           ),
           BridgeErrorCode.network => BridgeBlock(
             BridgeBlockCode.network,
-            "Couldn't price the Ethereum network fee",
+            l.bridgeBlockEthFeeTitle,
             e.message,
           ),
           // A key or an answer Campfire does not trust: refuse, say so.
           _ => BridgeBlock(
             BridgeBlockCode.network,
-            "Couldn't check the bridge from these wallets",
-            '${e.message} Nothing was sent.',
+            l.bridgeBlockCheckFailedTitle,
+            joinSentences([e.message, l.bridgeNothingWasSentSentence]),
           ),
         };
       } catch (e) {
         Logging.instance.w('Bridge: pricing the lock failed: $e');
-        block = const BridgeBlock(
+        block = BridgeBlock(
           BridgeBlockCode.network,
-          "Couldn't price the Ethereum network fee",
-          'Your Ethereum node or your BEAM wallet did not answer. Nothing '
-              'was sent; try again in a minute.',
+          l.bridgeBlockEthFeeTitle,
+          l.bridgeBlockEthFeeNoAnswer,
         );
       }
     }
@@ -542,28 +534,24 @@ class BridgeController extends ChangeNotifier {
       final gas = plan.maxGasCost;
       final need = gas + (route.isNativeEth ? value + fee! : BigInt.zero);
       if (need > bal.eth!) {
+        final have = '${_coin(bal.eth!, 18)} ETH';
         block = BridgeBlock(
           BridgeBlockCode.noEthForGas,
           route.isNativeEth
-              ? 'Not enough ETH'
-              : 'Not enough ETH for the Ethereum network fee',
+              ? l.bridgeBlockNotEnoughTitle('ETH')
+              : l.bridgeBlockNoEthForGasTitle,
           route.isNativeEth
-              ? 'With the fees this needs up to ${_coin(need, 18)} ETH. '
-                    'Your wallet has ${_coin(bal.eth!, 18)} ETH.'
-              : 'It can cost up to ${_coin(gas, 18)} ETH. Your Ethereum '
-                    'wallet has ${_coin(bal.eth!, 18)} ETH.',
+              ? l.bridgeBlockNotEnoughEthDetail('${_coin(need, 18)} ETH', have)
+              : l.bridgeBlockNoEthForGasDetail('${_coin(gas, 18)} ETH', have),
         );
       }
     }
     if (block == null && bal.beam < kBridgeClaimFeeGroth) {
+      final claimFee = '${_coin(kBridgeClaimFeeGroth, 8)} BEAM';
       block = BridgeBlock(
         BridgeBlockCode.noClaimFee,
-        'Your BEAM wallet needs ${_coin(kBridgeClaimFeeGroth, 8)} BEAM to '
-            'collect it',
-        'Coins moved to BEAM are collected with a BEAM transaction, and its '
-            'network fee is ${_coin(kBridgeClaimFeeGroth, 8)} BEAM. Your BEAM '
-            'wallet has ${_coin(bal.beam, 8)} BEAM. Receive a little BEAM '
-            'first, then move.',
+        l.bridgeBlockNoClaimFeeTitle(claimFee),
+        l.bridgeBlockNoClaimFeeDetail(claimFee, '${_coin(bal.beam, 8)} BEAM'),
       );
     }
     return _quoteOf(
@@ -633,10 +621,9 @@ class BridgeController extends ChangeNotifier {
           p.amount != q.amount ||
           p.relayerFee != fee ||
           p.ethReceiver?.toLowerCase() != eth.owner.toLowerCase()) {
-        throw const BridgeException(
+        throw BridgeException(
           BridgeErrorCode.unexpectedTransaction,
-          'The BEAM wallet built a transaction that is not the one asked '
-          'for. Nothing was sent.',
+          appL10n.bridgeErrBeamTxMismatch,
         );
       }
       return BridgePrepared(quote: q, send: p, at: clock.now());
@@ -644,10 +631,9 @@ class BridgeController extends ChangeNotifier {
     final key = await beam.receiveKey(route);
     _keys[route.id] = key;
     if (q.receiveKey != null && !_sameBytes(key, q.receiveKey!)) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'Your BEAM wallet gave a different key than a moment ago. Nothing '
-        'was sent.',
+        appL10n.bridgeErrKeyChanged,
       );
     }
     final plan = await eth.planLock(
@@ -661,10 +647,9 @@ class BridgeController extends ChangeNotifier {
         plan.fee != fee ||
         !_sameBytes(plan.receiverKey, key) ||
         plan.steps.isEmpty) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'The Ethereum transactions are not the ones asked for. Nothing was '
-        'sent.',
+        appL10n.bridgeErrEthTxMismatch,
       );
     }
     final ethBal = await eth.ethBalance();
@@ -673,9 +658,10 @@ class BridgeController extends ChangeNotifier {
     if (need > ethBal) {
       throw BridgeException(
         BridgeErrorCode.badAmount,
-        'The Ethereum network fee went up: this now needs up to '
-        '${_coin(need, 18)} ETH and your wallet has ${_coin(ethBal, 18)} '
-        'ETH. Nothing was sent.',
+        appL10n.bridgeErrGasWentUp(
+          '${_coin(need, 18)} ETH',
+          '${_coin(ethBal, 18)} ETH',
+        ),
       );
     }
     return BridgePrepared(
@@ -709,9 +695,9 @@ class BridgeController extends ChangeNotifier {
     if (q.toEthereum) {
       final send = p.send!;
       if (send.sent) {
-        throw const BridgeException(
+        throw BridgeException(
           BridgeErrorCode.alreadySent,
-          'This crossing was already sent.',
+          appL10n.bridgeErrCrossingAlreadySent,
         );
       }
       // Read before sending: the send's message is above it.
@@ -802,9 +788,7 @@ class BridgeController extends ChangeNotifier {
           // Not written, so not sent.
           c = c.copyWith(
             state: BridgeCrossingState.lockFailed,
-            lastError:
-                'Campfire could not write to this device\'s storage, so it '
-                'did not send your ${c.route.ethSymbol}. Nothing was moved.',
+            lastError: appL10n.bridgeErrStorageWrite(c.route.ethSymbol),
             finishedAt: clock.now(),
           );
           _records[c.id] = c;
@@ -824,9 +808,10 @@ class BridgeController extends ChangeNotifier {
               )
             : c.copyWith(
                 state: BridgeCrossingState.lockFailed,
-                lastError:
-                    'Letting the bridge take ${c.route.ethSymbol} did not go '
-                    'through, so nothing was moved. (${_plain(e)})',
+                lastError: appL10n.bridgeErrApproveNotThrough(
+                  c.route.ethSymbol,
+                  _plain(e),
+                ),
                 updatedAt: clock.now(),
                 finishedAt: clock.now(),
               );
@@ -860,11 +845,8 @@ class BridgeController extends ChangeNotifier {
         c = c.copyWith(
           state: BridgeCrossingState.lockFailed,
           lastError: ok == false
-              ? 'Letting the bridge take ${c.route.ethSymbol} failed on '
-                    'Ethereum, so nothing was moved. Only its network fee '
-                    'was spent.'
-              : 'Letting the bridge take ${c.route.ethSymbol} was not '
-                    'confirmed within 30 minutes, so nothing was moved.',
+              ? appL10n.bridgeErrApproveFailed(c.route.ethSymbol)
+              : appL10n.bridgeErrApproveTimeout(c.route.ethSymbol),
           updatedAt: clock.now(),
           finishedAt: clock.now(),
         );
@@ -883,18 +865,19 @@ class BridgeController extends ChangeNotifier {
 
   Future<BeamPipePrepared> _prepareClaim(BridgeCrossing? c) async {
     if (c == null || c.state != BridgeCrossingState.delivered) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.badAmount,
-        'There is nothing to collect for this crossing right now.',
+        appL10n.bridgeErrNothingToCollect,
       );
     }
     final have = await beam.available(0);
     if (have < kBridgeClaimFeeGroth) {
       throw BridgeException(
         BridgeErrorCode.badAmount,
-        'Your BEAM wallet needs ${_coin(kBridgeClaimFeeGroth, 8)} BEAM for '
-        'the network fee of collecting it, and has ${_coin(have, 8)} BEAM. '
-        'Receive a little BEAM first.',
+        appL10n.bridgeErrNoBeamToCollect(
+          '${_coin(kBridgeClaimFeeGroth, 8)} BEAM',
+          '${_coin(have, 8)} BEAM',
+        ),
       );
     }
     final BeamPipePrepared p;
@@ -917,28 +900,24 @@ class BridgeController extends ChangeNotifier {
       await _saveQuietly(
         c.copyWith(
           state: BridgeCrossingState.claimed,
-          lastError: ours
-              ? null
-              : 'Collected outside this screen (on another device with '
-                    'the same wallet, perhaps).',
+          lastError: ours ? null : appL10n.bridgeErrCollectedElsewhere,
           clearError: ours,
           updatedAt: clock.now(),
           finishedAt: clock.now(),
         ),
       );
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.alreadySent,
-        'It was already collected: it is in your BEAM wallet.',
+        appL10n.bridgeErrAlreadyCollected,
       );
     }
     if (p.route != c.route ||
         p.call != BeamPipeCall.receive ||
         p.msgId != c.msgId ||
         p.amount != c.receives) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'The BEAM wallet built a claim that is not the one asked for. '
-        'Nothing was sent.',
+        appL10n.bridgeErrClaimMismatch,
       );
     }
     return p;
@@ -952,9 +931,9 @@ class BridgeController extends ChangeNotifier {
   Future<BridgeCrossing> _claim(BridgeCrossing from, BeamPipePrepared p) async {
     var c = from;
     if (c.state != BridgeCrossingState.delivered || p.sent) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.alreadySent,
-        'This claim was already sent.',
+        appL10n.bridgeErrClaimAlreadySent,
       );
     }
     c = c.copyWith(
@@ -1008,23 +987,20 @@ class BridgeController extends ChangeNotifier {
         // The lock is only sent after this record says "locking".
         return c.copyWith(
           state: BridgeCrossingState.lockFailed,
-          lastError:
-              'Campfire was closed before your ${c.route.ethSymbol} was '
-              'sent, so nothing was moved. Start again: the permission you '
-              'gave is kept, so it is one step this time.',
+          lastError: appL10n.bridgeErrClosedBeforeSend(c.route.ethSymbol),
           updatedAt: now,
           finishedAt: now,
         );
       case BridgeCrossingState.sending:
         return c.copyWith(
           state: BridgeCrossingState.unknown,
-          lastError: 'Campfire was closed while sending.',
+          lastError: appL10n.bridgeErrClosedWhileSending,
           updatedAt: now,
         );
       case BridgeCrossingState.locking when c.lockHash == null:
         return c.copyWith(
           state: BridgeCrossingState.unknown,
-          lastError: 'Campfire was closed while sending.',
+          lastError: appL10n.bridgeErrClosedWhileSending,
           updatedAt: now,
         );
       default:
@@ -1106,7 +1082,7 @@ class BridgeController extends ChangeNotifier {
             return (
               c.copyWith(
                 state: BridgeCrossingState.failed,
-                lastError: status.reason ?? 'The BEAM transaction failed.',
+                lastError: status.reason ?? appL10n.bridgeErrBeamTxFailed,
                 updatedAt: clock.now(),
                 finishedAt: clock.now(),
               ),
@@ -1258,9 +1234,7 @@ class BridgeController extends ChangeNotifier {
           return (
             c.copyWith(
               state: BridgeCrossingState.unknown,
-              lastError:
-                  'The lock on Ethereum does not say what Campfire sent. '
-                  'Campfire will not collect anything for it.',
+              lastError: appL10n.bridgeErrLockMismatch,
               autoClaim: false,
               updatedAt: clock.now(),
             ),
@@ -1272,9 +1246,7 @@ class BridgeController extends ChangeNotifier {
           return (
             c.copyWith(
               state: BridgeCrossingState.lockFailed,
-              lastError:
-                  'Ethereum refused the lock, so nothing was locked. Only '
-                  'its network fee was spent.',
+              lastError: appL10n.bridgeErrLockRefused,
               height: lock.blockNumber,
               updatedAt: clock.now(),
               finishedAt: clock.now(),
@@ -1297,9 +1269,7 @@ class BridgeController extends ChangeNotifier {
             c.copyWith(
               state: BridgeCrossingState.unknown,
               height: lock.blockNumber,
-              lastError:
-                  'Ethereum names a bridge message another crossing already '
-                  'has. Campfire will not collect anything for this one.',
+              lastError: appL10n.bridgeErrMessageTaken,
               autoClaim: false,
               updatedAt: clock.now(),
             ),
@@ -1356,10 +1326,9 @@ class BridgeController extends ChangeNotifier {
           return (
             c.copyWith(
               state: BridgeCrossingState.unknown,
-              lastError:
-                  'It arrived on BEAM with a different amount '
-                  '(${_coin(m.amount, 8)} ${route.beamSymbol}). Campfire '
-                  'will not collect it by itself.',
+              lastError: appL10n.bridgeErrOtherAmount(
+                '${_coin(m.amount, 8)} ${route.beamSymbol}',
+              ),
               autoClaim: false,
               updatedAt: clock.now(),
             ),
@@ -1384,9 +1353,7 @@ class BridgeController extends ChangeNotifier {
           return (
             c.copyWith(
               state: BridgeCrossingState.claimed,
-              lastError:
-                  'Collected outside this screen (on another device with '
-                  'the same wallet, perhaps).',
+              lastError: appL10n.bridgeErrCollectedElsewhere,
               updatedAt: clock.now(),
               finishedAt: clock.now(),
             ),
@@ -1413,7 +1380,7 @@ class BridgeController extends ChangeNotifier {
               );
             case BeamPipeTxState.failed:
               return (
-                _claimDidNotGo(c, s.reason ?? 'The claim failed on BEAM.'),
+                _claimDidNotGo(c, s.reason ?? appL10n.bridgeErrClaimFailed),
                 polling.toBeam,
               );
           }
@@ -1434,7 +1401,7 @@ class BridgeController extends ChangeNotifier {
         final since = c.claimStartedAt ?? c.updatedAt;
         if (clock.now().difference(since) >= BridgeTiming.claimWait) {
           return (
-            _claimDidNotGo(c, 'The claim did not reach BEAM.'),
+            _claimDidNotGo(c, appL10n.bridgeErrClaimNotReached),
             polling.toBeam,
           );
         }
@@ -1446,9 +1413,7 @@ class BridgeController extends ChangeNotifier {
 
   BridgeCrossing _claimDidNotGo(BridgeCrossing c, String why) => c.copyWith(
     state: BridgeCrossingState.delivered,
-    lastError:
-        '$why Nothing was lost: it is still waiting for you to '
-        'collect it.',
+    lastError: joinSentences([why, appL10n.bridgeErrNothingLost]),
     // Only the user starts it again.
     autoClaim: false,
     updatedAt: clock.now(),

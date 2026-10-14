@@ -590,14 +590,18 @@ abstract final class BeamHomeText {
 
   /// First sentence as the title, the rest as the detail.
   static (String, String?) _split(String message) {
-    final i = message.indexOf('. ');
-    if (i < 0) {
-      final t = message.endsWith('.')
+    // The first sentence is the title: it ends at ". " (English, Russian)
+    // or at "。" (Chinese, Japanese, which put no space after it).
+    final dot = message.indexOf('. ');
+    final cjk = message.indexOf('。');
+    final i = dot < 0 ? cjk : (cjk < 0 || dot < cjk ? dot : cjk);
+    if (i < 0 || i + (i == dot ? 2 : 1) >= message.length) {
+      final t = message.endsWith('.') || message.endsWith('。')
           ? message.substring(0, message.length - 1)
           : message;
       return (t, null);
     }
-    return (message.substring(0, i), message.substring(i + 2));
+    return (message.substring(0, i), message.substring(i + (i == dot ? 2 : 1)));
   }
 
   static BeamHomeAction _action(BeamSyncAction a) => switch (a) {

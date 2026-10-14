@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../pages/token_view/beam_asset_receive_view.dart';
 import '../../../pages/token_view/sub_widgets/beam_asset_icon.dart';
@@ -58,11 +59,12 @@ class BeamDesktopAssetView extends ConsumerWidget {
     final assetWallet = ref.watch(pCurrentBeamAssetWallet);
     if (assetWallet == null) return const SizedBox.shrink();
     final asset = assetWallet.asset;
+    final l10n = context.l10n;
     final tag = asset.isPoolShare
-        ? 'POOL SHARE'
+        ? l10n.assetsTagPoolShare
         : asset.verified
         ? null
-        : 'UNVERIFIED ${asset.idLabel}';
+        : l10n.assetsTagUnverified(asset.idLabel);
 
     return DesktopScaffold(
       appBar: DesktopAppBar(
@@ -136,7 +138,7 @@ class BeamDesktopAssetView extends ConsumerWidget {
                 SizedBox(
                   width: sendReceiveColumnWidth,
                   child: Text(
-                    "My wallet",
+                    l10n.assetsMyWallet,
                     style: STextStyles.desktopTextExtraSmall(context)
                         .copyWith(color: colors.textFieldActiveSearchIconLeft),
                   ),
@@ -144,7 +146,7 @@ class BeamDesktopAssetView extends ConsumerWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    "Recent transactions",
+                    l10n.assetsRecentTransactions,
                     style: STextStyles.desktopTextExtraSmall(context)
                         .copyWith(color: colors.textFieldActiveSearchIconLeft),
                   ),
@@ -164,7 +166,7 @@ class BeamDesktopAssetView extends ConsumerWidget {
                         RoundedWhiteContainer(
                           padding: EdgeInsets.zero,
                           child: CustomTabView(
-                            titles: const ["Send", "Receive"],
+                            titles: [l10n.assetsSend, l10n.assetsReceive],
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(20),
@@ -234,8 +236,7 @@ class _DesktopSummary extends ConsumerWidget {
         BeamAssetText.poolLine(asset) ??
         (asset.verified
             ? null
-            : 'Unverified asset ${asset.idLabel}. Anyone can create an asset '
-                  'with any name; check the number with the sender.');
+            : context.l10n.assetsUnverifiedNote(asset.idLabel));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +255,7 @@ class _DesktopSummary extends ConsumerWidget {
         Text(
           [
             value.fiat == null ? value.beam : '${value.beam} · ${value.fiat}',
-            if (pending > BigInt.zero) '$pendingText on the way',
+            if (pending > BigInt.zero) context.l10n.assetsOnTheWay(pendingText),
           ].join('   '),
           key: const Key('beamAssetValue'),
           style: STextStyles.desktopTextExtraSmall(context)

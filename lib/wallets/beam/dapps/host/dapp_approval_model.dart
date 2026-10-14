@@ -10,6 +10,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:meta/meta.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../utilities/amount/amount.dart';
 import '../../assets/beam_asset_catalog.dart';
 import '../../models/beam_asset_info.dart';
@@ -107,12 +108,13 @@ class DappCallLine {
   /// "Beam DEX", "New contract", or "Contract 729fe098…ef9cbf".
   String get contractLabel {
     final id = contractId;
-    if (id == null) return 'New contract';
-    return contractName ?? 'Contract ${dappShortHex(id)}';
+    if (id == null) return appL10n.dappsCallNewContract;
+    return contractName ?? appL10n.dappsCallContract(dappShortHex(id));
   }
 
   /// "Call 2 · Beam DEX · method 7".
-  String get title => 'Call $number · $contractLabel · method $method';
+  String get title =>
+      appL10n.dappsCallTitle('$number', contractLabel, '$method');
 
   bool get movesFunds => pays.isNotEmpty || receives.isNotEmpty;
 }
@@ -312,38 +314,35 @@ class DappApprovalModel {
   /// "http://127.0.0.1:40000 · version 1.0.0".
   String get originLine {
     final v = request.dapp.version;
-    return v == null ? origin : '$origin · version $v';
+    return v == null ? origin : appL10n.dappsOriginVersion(origin, v);
   }
 
   /// The primary button: what happens when it is pressed.
   String get cta => switch (kind) {
-    DappApprovalKind.swap => 'Approve swap',
-    DappApprovalKind.payment => 'Approve payment',
-    DappApprovalKind.contractPayment => 'Approve payment',
-    DappApprovalKind.withdrawal => 'Approve withdrawal',
+    DappApprovalKind.swap => appL10n.dappsCtaSwap,
+    DappApprovalKind.payment => appL10n.dappsCtaPayment,
+    DappApprovalKind.contractPayment => appL10n.dappsCtaPayment,
+    DappApprovalKind.withdrawal => appL10n.dappsCtaWithdrawal,
     DappApprovalKind.contractCall =>
-      calls.length > 1 ? 'Approve contract calls' : 'Approve contract call',
-    DappApprovalKind.signMessage => 'Sign message',
-    DappApprovalKind.feeOnly => 'Approve request',
+      calls.length > 1
+          ? appL10n.dappsCtaContractCalls
+          : appL10n.dappsCtaContractCall,
+    DappApprovalKind.signMessage => appL10n.dappsCtaSign,
+    DappApprovalKind.feeOnly => appL10n.dappsCtaRequest,
   };
 
   /// One sentence under the dApp's name.
   String get summary => switch (kind) {
-    DappApprovalKind.swap => 'Asks you to approve a swap.',
-    DappApprovalKind.payment => 'Asks you to approve a payment.',
-    DappApprovalKind.contractPayment =>
-      'Asks you to approve a payment to a contract.',
-    DappApprovalKind.withdrawal =>
-      'Asks you to approve funds coming to your wallet.',
+    DappApprovalKind.swap => appL10n.dappsSummarySwap,
+    DappApprovalKind.payment => appL10n.dappsSummaryPayment,
+    DappApprovalKind.contractPayment => appL10n.dappsSummaryContractPayment,
+    DappApprovalKind.withdrawal => appL10n.dappsSummaryWithdrawal,
     DappApprovalKind.contractCall =>
       calls.length > 1
-          ? 'Asks you to approve ${calls.length} contract calls. Check what '
-                'each one moves.'
-          : "Asks you to approve a contract call signed with your wallet's "
-                'key.',
-    DappApprovalKind.signMessage =>
-      'Asks you to sign a message with a key from this wallet.',
-    DappApprovalKind.feeOnly => 'Asks you to approve a contract call.',
+          ? appL10n.dappsSummaryContractCalls(calls.length)
+          : appL10n.dappsSummarySignedCall,
+    DappApprovalKind.signMessage => appL10n.dappsSummarySign,
+    DappApprovalKind.feeOnly => appL10n.dappsSummaryFeeOnly,
   };
 
   /// The dApp's own words (`confirm_comment`, the shader's comment, or the
@@ -385,11 +384,11 @@ class DappApprovalModel {
     final s = request.send;
     if (s == null) return null;
     return switch (s.addressType) {
-      'regular' || 'regular_new' => 'Regular address',
-      'offline' => 'Offline address',
-      'max_privacy' => 'Max privacy address',
-      'public_offline' => 'Public offline address',
-      _ => 'Address type not recognised',
+      'regular' || 'regular_new' => appL10n.dappsAddressRegular,
+      'offline' => appL10n.dappsAddressOffline,
+      'max_privacy' => appL10n.dappsAddressMaxPrivacy,
+      'public_offline' => appL10n.dappsAddressPublicOffline,
+      _ => appL10n.dappsAddressUnknown,
     };
   }
 
@@ -398,9 +397,9 @@ class DappApprovalModel {
   List<String> get signingWarnings => [
     for (final c in calls)
       if (c.signs)
-        '${calls.length > 1 ? 'Call ${c.number}' : 'This call'} signs with '
-            "your wallet's key for ${c.contractLabel}. It can change or move "
-            'what you hold in that contract.',
+        calls.length > 1
+            ? appL10n.dappsSigningWarningCall('${c.number}', c.contractLabel)
+            : appL10n.dappsSigningWarningThis(c.contractLabel),
   ];
 
   /// Set when funds one call takes out of a contract are paid into another
@@ -417,25 +416,28 @@ class DappApprovalModel {
       }
     }
     if (calls.length < 2 || inn.intersection(out).isEmpty) return null;
-    return 'Funds one call takes out of a contract are paid into another '
-        'contract by a different call. Check where they end up.';
+    return appL10n.dappsPassThroughWarning;
   }
 
   /// Why each look-alike asset is not what its name says.
   List<String> get lookalikeWarnings => [
     for (final a in lookalikes)
-      '"${a.symbol}" here is asset ${a.idLabel}, not the verified '
-          '${BeamAssetCatalog.verified[a.impersonates]!.symbol} '
-          '(#${a.impersonates}). Anyone can create an asset with any name.',
+      appL10n.dappsLookalikeWarning(
+        a.symbol,
+        a.idLabel,
+        BeamAssetCatalog.verified[a.impersonates]!.symbol,
+        '${a.impersonates}',
+      ),
   ];
 
   /// "Not enough BEAM: this needs 0.111 BEAM and the wallet has 0.05 BEAM."
   List<String> get shortfallWarnings => [
     for (final s in shortfall)
-      'Not enough ${s.unit}: this needs '
-          '${_need(s.asset.assetId)} ${s.unit} and the wallet has '
-          '${dappFormatAmount(available?[s.asset.assetId] ?? BigInt.zero)} '
-          '${s.unit} available.',
+      appL10n.dappsShortfall(
+        s.unit,
+        _need(s.asset.assetId),
+        dappFormatAmount(available?[s.asset.assetId] ?? BigInt.zero),
+      ),
   ];
 
   String _need(int assetId) =>
@@ -499,32 +501,26 @@ class DappRebuildView {
 
   /// Whose code would build the new version.
   String get appCodeLabel =>
-      verified ? "BEAM's DEX (verified app code)" : 'Unverified app code';
+      verified ? appL10n.dappsAppCodeVerified : appL10n.dappsAppCodeUnverified;
 
   /// The stored app code's fingerprint, "8b4a0616…12c3fa".
   String get appCodeFingerprint => dappShortHex(terms.appCodeSha256);
 
   /// The heading of the worst-case box.
   String get title => verified
-      ? 'If the price moves before it lands'
-      : '$dappName may change this after you approve';
+      ? appL10n.dappsRebuildTitleVerified
+      : appL10n.dappsRebuildTitleUnverified(dappName);
 
   /// What happens, before the worst-case amounts.
   String get explanation => verified
-      ? "If it misses the next block, BEAM's DEX (verified app code) redoes "
-            'it at the new price, for up to ${DappRebuildTerms.windowBlocks} '
-            'blocks (about 5 minutes), and your wallet signs that without '
-            'asking again. The network fee stays the same. At worst:'
-      : "If it misses the next block, $dappName's own app code builds it "
-            'again, for up to ${DappRebuildTerms.windowBlocks} blocks (about 5 '
-            'minutes), and your wallet signs that without asking again. '
-            "Campfire can't check that code: the dApp may change the amounts "
-            'after you approve, call other contracts and pay a higher network '
-            'fee. Your wallet still stops it at:';
+      ? appL10n.dappsRebuildExplainVerified(DappRebuildTerms.windowBlocks)
+      : appL10n.dappsRebuildExplainUnverified(
+          DappRebuildTerms.windowBlocks,
+          dappName,
+        );
 
   /// The tick the user must give for unverified code.
-  String get acknowledgement =>
-      'I understand $dappName may change the amounts after I approve';
+  String get acknowledgement => appL10n.dappsRebuildAcknowledge(dappName);
 }
 
 /// [groth] of BEAM in [fiat]'s currency, rounded down, as Campfire writes
@@ -540,6 +536,6 @@ String? dappFiatText(BigInt groth, BeamFiatPrice fiat) {
       .floor(scale: 2)
       .toAmount(fractionDigits: 2)
       .fiatString(locale: fiat.locale);
-  if (value < cent) return 'under ${money(cent)} $code';
+  if (value < cent) return appL10n.dappsFiatUnder('${money(cent)} $code');
   return '≈ ${money(value)} $code';
 }

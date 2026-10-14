@@ -38,6 +38,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
 import '../../wallets/bridge/bridge_controller.dart';
@@ -287,9 +288,7 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error =
-            "Couldn't get the transaction ready: one of your wallets did "
-            'not answer. Nothing was sent.';
+        _error = context.l10n.bridgePrepareNoAnswer;
       });
       return;
     }
@@ -327,22 +326,19 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
 
   // ------------------------------------------------------------------ state
 
-  _Cta _cta() {
-    if (_busy) return _off('Getting the transaction ready…');
+  _Cta _cta(AppLocalizations l10n) {
+    if (_busy) return _off(l10n.bridgePreparing);
     if (_controller == null) return _off(null);
     if (_toEth && !(deps.beamCanSpend?.value ?? true)) {
-      return _off(
-        'Your BEAM wallet is catching up with the network. Moving works '
-        'once it is up to date.',
-      );
+      return _off(l10n.bridgeBeamCatchingUp);
     }
     if (_input.error != null) return _off(_input.error);
     final amount = _input.value;
     if (amount == null || amount == BigInt.zero) {
-      return _off('Enter how much $_srcSym to move.');
+      return _off(l10n.bridgeEnterAmount(_srcSym));
     }
     final q = _quote;
-    if (_quoting || q == null) return _off('Working out the fees…');
+    if (_quoting || q == null) return _off(l10n.bridgeWorkingOutFees);
     final block = q.block;
     if (block != null) return _off(block.title);
     return (onPressed: _review, reason: null);
@@ -350,11 +346,15 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
 
   static _Cta _off(String? reason) => (onPressed: null, reason: reason);
 
-  String get _ctaLabel {
+  String _ctaLabel(AppLocalizations l10n) {
     final amount = _input.value;
-    final where = _toEth ? 'Ethereum' : 'BEAM';
-    if (amount == null || amount <= BigInt.zero) return 'Move to $where';
-    return 'Move ${BridgeFormat.coin(amount, _srcDec, _srcSym)} to $where';
+    if (amount == null || amount <= BigInt.zero) {
+      return _toEth ? l10n.bridgeMoveToEthereum : l10n.bridgeMoveToBeam;
+    }
+    final coin = BridgeFormat.coin(amount, _srcDec, _srcSym);
+    return _toEth
+        ? l10n.bridgeMoveAmountToEthereum(coin)
+        : l10n.bridgeMoveAmountToBeam(coin);
   }
 
   // ------------------------------------------------------------------ build
@@ -365,11 +365,12 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
     if (missing != null) {
       return _page(context, missing.$1, missing.$2, fill: false);
     }
-    final cta = _cta();
+    final l10n = context.l10n;
+    final cta = _cta(l10n);
     final bottom = DexPrimaryAction(
       deps: deps,
       buttonKey: const Key('bridge-cta'),
-      label: _ctaLabel,
+      label: _ctaLabel(l10n),
       reason: cta.reason,
       onPressed: cta.onPressed,
     );
@@ -404,7 +405,7 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
     final open = _controller?.crossings.where((c) => c.isOpen).length ?? 0;
     return DexPage(
       deps: deps,
-      title: 'Bridge',
+      title: context.l10n.bridgeTitle,
       body: body,
       bottom: bottom,
       actions: [
@@ -414,7 +415,9 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
             child: Center(
               child: CustomTextButton(
                 key: const Key('bridge-history'),
-                text: open == 0 ? 'History' : 'History ($open)',
+                text: open == 0
+                    ? context.l10n.bridgeHistory
+                    : context.l10n.bridgeHistoryCount('$open'),
                 onTap: () => unawaited(_openHistory()),
               ),
             ),
@@ -429,7 +432,8 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
     final noBeam = deps.beamWallets.isEmpty;
     if (!noEth && !noBeam) return null;
     final add = noBeam ? deps.onAddBeamWallet : deps.onAddEthereumWallet;
-    final label = noBeam ? 'Add a BEAM wallet' : 'Add an Ethereum wallet';
+    final l10n = context.l10n;
+    final label = noBeam ? l10n.bridgeAddBeamWallet : l10n.bridgeAddEthWallet;
     return (
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -442,12 +446,12 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
           DexNotice(
             key: const Key('bridge-no-wallet'),
             sticker: BeamMoments.trading,
-            title: '$label to use the bridge',
-            detail:
-                'The bridge moves coins between your own BEAM wallet and '
-                'your own Ethereum wallet, so you need one of each. '
-                '${noBeam ? 'A BEAM wallet' : 'An Ethereum wallet'} takes a '
-                'minute to add; then come back here.',
+            title: noBeam
+                ? l10n.bridgeAddBeamWalletToUse
+                : l10n.bridgeAddEthWalletToUse,
+            detail: noBeam
+                ? l10n.bridgeNeedBothWalletsBeam
+                : l10n.bridgeNeedBothWalletsEth,
           ),
         ],
       ),
@@ -455,7 +459,7 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
         deps: deps,
         buttonKey: const Key('bridge-add-wallet'),
         label: label,
-        reason: add == null ? 'Add it from My Campfire.' : null,
+        reason: add == null ? l10n.bridgeAddFromMyCampfire : null,
         onPressed: add,
       ),
     );
@@ -464,8 +468,7 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
   Widget _intro(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     return Text(
-      "Move coins between your own BEAM and Ethereum wallets, through "
-      "BEAM's official bridge.",
+      context.l10n.bridgeIntro,
       style: STextStyles.label(context).copyWith(color: colors.textSubtitle1),
     );
   }
@@ -477,24 +480,29 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
     final bal = _bal;
     final limits = bridgeLimitsText(_route, _direction, _cond);
     final open = c?.crossings.where((x) => x.isOpen).toList() ?? const [];
+    final l10n = context.l10n;
     final from = BridgeWalletCard(
       key: const Key('bridge-from'),
-      label: 'From',
-      chain: _toEth ? 'BEAM' : 'Ethereum',
+      title: _toEth
+          ? l10n.bridgeFromYourBeamWallet
+          : l10n.bridgeFromYourEthWallet,
+      noWallet: _toEth ? l10n.bridgeNoBeamWallet : l10n.bridgeNoEthWallet,
       wallet: _toEth ? deps.beamWallet : deps.ethWallet,
       onTap: _pickerFor(beam: _toEth),
       trailing: Text(
         bal == null
-            ? 'Balance …'
-            : 'Balance ${BridgeFormat.coinShort(bal.source, _srcDec, _srcSym)}',
+            ? l10n.bridgeBalanceLoading
+            : l10n.bridgeBalance(
+                BridgeFormat.coinShort(bal.source, _srcDec, _srcSym),
+              ),
         key: const Key('bridge-balance'),
         style: STextStyles.label(context),
       ),
     );
     final to = BridgeWalletCard(
       key: const Key('bridge-to'),
-      label: 'To',
-      chain: _toEth ? 'Ethereum' : 'BEAM',
+      title: _toEth ? l10n.bridgeToYourEthWallet : l10n.bridgeToYourBeamWallet,
+      noWallet: _toEth ? l10n.bridgeNoEthWallet : l10n.bridgeNoBeamWallet,
       wallet: _toEth ? deps.ethWallet : deps.beamWallet,
       onTap: _pickerFor(beam: !_toEth),
       note: _receives(context, q),
@@ -523,11 +531,9 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
             key: const Key('bridge-unavailable'),
             kind: DexNoticeKind.error,
             sticker: BeamMoments.somethingWentWrong,
-            title: "Couldn't open the bridge for these wallets",
-            detail:
-                'One of your wallets did not start. This is not something '
-                'you did, and nothing was sent.',
-            actionLabel: 'Try again',
+            title: l10n.bridgeOpenFailedTitle,
+            detail: l10n.bridgeOpenFailedDetail,
+            actionLabel: l10n.commonTryAgain,
             onAction: () {
               setState(() => _controllerError = null);
               unawaited(_loadController());
@@ -541,14 +547,14 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
           children: [
             Expanded(
               child: Text(
-                'Amount',
+                l10n.bridgeAmountLabel,
                 style: STextStyles.itemSubtitle(context)
                     .copyWith(color: colors.textDark3),
               ),
             ),
             CustomTextButton(
               key: const Key('bridge-max'),
-              text: 'Max',
+              text: l10n.bridgeMax,
               onTap: () => unawaited(_useMax()),
             ),
           ],
@@ -602,7 +608,9 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
       final id = await showBridgeWalletPicker(
         context,
         deps: deps,
-        title: beam ? 'Your BEAM wallet' : 'Your Ethereum wallet',
+        title: beam
+            ? context.l10n.bridgeYourBeamWallet
+            : context.l10n.bridgeYourEthWallet,
         options: options,
         selected: beam ? deps.beamWalletId : deps.ethWalletId,
       );
@@ -629,7 +637,7 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'You receive',
+                context.l10n.bridgeYouReceive,
                 style: STextStyles.label(context)
                     .copyWith(color: colors.textSubtitle1),
               ),
@@ -676,27 +684,36 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
     if (fee == null) return null;
     final bridge = BridgeFormat.coinShort(fee, _srcDec, _srcSym);
     final beamFee = BridgeFormat.coin(q.beamNetworkFee, 8, 'BEAM');
+    final l10n = context.l10n;
     if (_toEth) {
-      return 'Plus $bridge bridge fee and $beamFee network fee. '
-          '${BridgeFormat.about(BridgeTiming.toEthereum)}.';
+      return l10n.bridgeCostsToEthereum(
+        bridge,
+        beamFee,
+        BridgeFormat.about(BridgeTiming.toEthereum),
+      );
     }
     final gas = q.plan?.maxGasCost;
-    final eth = gas == null
-        ? ''
-        : ', up to ${BridgeFormat.coinShort(gas, 18, 'ETH')} network fee';
-    return 'Plus $bridge bridge fee$eth, and $beamFee to collect it. '
-        '${BridgeFormat.about(BridgeTiming.toBeam)}.';
+    final time = BridgeFormat.about(BridgeTiming.toBeam);
+    return gas == null
+        ? l10n.bridgeCostsToBeam(bridge, beamFee, time)
+        : l10n.bridgeCostsToBeamWithGas(
+            bridge,
+            BridgeFormat.coinShort(gas, 18, 'ETH'),
+            beamFee,
+            time,
+          );
   }
 
   List<Widget> _notices(BuildContext context, BridgeQuote? q) {
     final out = <Widget>[];
     void add(Widget w) => out.addAll([w, const SizedBox(height: 12)]);
+    final l10n = context.l10n;
     if (_error != null) {
       add(
         DexNotice(
           key: const Key('bridge-error'),
           kind: DexNoticeKind.warning,
-          title: 'Nothing was sent',
+          title: l10n.bridgeNothingSent,
           detail: _error,
         ),
       );
@@ -705,9 +722,9 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
     if (block != null && block.code != BridgeBlockCode.noAmount) {
       final (label, action) = switch (block.code) {
         BridgeBlockCode.noClaimFee ||
-        BridgeBlockCode.noBeamForFee => ('Get BEAM', deps.onGetBeam),
+        BridgeBlockCode.noBeamForFee => (l10n.bridgeGetBeam, deps.onGetBeam),
         BridgeBlockCode.network || BridgeBlockCode.noPrice => (
-          'Try again',
+          l10n.commonTryAgain,
           () => unawaited(_refresh(force: true)),
         ),
         _ => (null, null),
@@ -742,14 +759,15 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
     final fee = q?.fee ?? _cond?.fee;
     final prices = q?.prices ?? _cond?.prices;
     final plan = q?.plan;
+    final l10n = context.l10n;
     return DexCard(
       child: Column(
         children: [
           DexDetailRow(
-            label: 'Bridge fee, paid to the bridge operator',
+            label: l10n.bridgeFeeOperatorLabel,
             valueKey: const Key('bridge-fee'),
             value: fee == null
-                ? (_cond == null ? '…' : 'Unknown')
+                ? (_cond == null ? '…' : l10n.bridgeFeeUnknown)
                 : BridgeFormat.coinShort(fee, _srcDec, _srcSym),
             note: fee == null
                 ? null
@@ -757,8 +775,8 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
           ),
           DexDetailRow(
             label: _toEth
-                ? 'BEAM network fee'
-                : 'BEAM network fee, when you collect it',
+                ? l10n.bridgeBeamNetworkFeeLabel
+                : l10n.bridgeBeamNetworkFeeCollectLabel,
             valueKey: const Key('bridge-beam-fee'),
             value: BridgeFormat.coin(
               _toEth ? kBridgeSendFeeGroth : kBridgeClaimFeeGroth,
@@ -774,26 +792,29 @@ class _BridgeMoveViewState extends State<BridgeMoveView> {
           ),
           if (!_toEth)
             DexDetailRow(
-              label: 'Ethereum network fee',
+              label: l10n.bridgeEthNetworkFeeLabel,
               valueKey: const Key('bridge-eth-fee'),
               value: plan == null
-                  ? 'Priced once you type an amount'
-                  : 'up to '
-                        '${BridgeFormat.coinShort(plan.maxGasCost, 18, 'ETH')}',
+                  ? l10n.bridgePricedOnceTyped
+                  : l10n.bridgeUpToAmount(
+                      BridgeFormat.coinShort(plan.maxGasCost, 18, 'ETH'),
+                    ),
               note: plan == null
                   ? null
                   : BridgeFormat.usd(prices, 'ethereum', plan.maxGasCost, 18),
             ),
           DexDetailRow(
-            label: 'Arrives',
+            label: l10n.bridgeArrivesLabel,
             valueKey: const Key('bridge-time'),
             value: _toEth
                 ? BridgeFormat.about(BridgeTiming.toEthereum)
-                : '${BridgeFormat.about(BridgeTiming.toBeam)}, then you '
-                      'collect it',
+                : l10n.bridgeTimeThenCollect(
+                    BridgeFormat.about(BridgeTiming.toBeam),
+                  ),
             note: _toEth
-                ? '${BridgeFormat.upTo(BridgeTiming.toEthereumSlowest(_route))}'
-                      ' when Ethereum is busy'
+                ? l10n.bridgeTimeWhenBusy(
+                    BridgeFormat.upTo(BridgeTiming.toEthereumSlowest(_route)),
+                  )
                 : null,
           ),
         ],

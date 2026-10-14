@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/dapps/dapp_bridge_js.dart';
 import '../../../wallets/beam/dapps/host/dapp_host_session.dart';
 
@@ -21,8 +22,7 @@ import '../../../wallets/beam/dapps/host/dapp_host_session.dart';
 bool dappWebviewAvailable() => WebViewPlatform.instance != null;
 
 /// Where dApps open, for every "not on this computer" message.
-const String dappWindowPlatformsSentence =
-    "Campfire opens dApps on macOS, Android and iOS.";
+String get dappWindowPlatformsSentence => appL10n.dappsWindowPlatforms;
 
 /// What the dApp page needs of the window a dApp is shown in.
 abstract interface class DappWebview {

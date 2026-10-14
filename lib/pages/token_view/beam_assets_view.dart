@@ -31,6 +31,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/l10n.dart';
 import '../../providers/db/main_db_provider.dart';
 import '../../providers/global/locale_provider.dart';
 import '../../themes/stack_colors.dart';
@@ -171,8 +172,7 @@ class _BeamAssetsViewState extends ConsumerState<BeamAssetsView> {
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
               child: Text(
-                'Tap an asset to hide it from this list or show it again. '
-                'Hidden assets stay in your wallet.',
+                context.l10n.assetsManageHint,
                 style: STextStyles.itemSubtitle(context),
               ),
             )
@@ -196,9 +196,7 @@ class _BeamAssetsViewState extends ConsumerState<BeamAssetsView> {
                     child: Center(
                       child: CustomTextButton(
                         key: const Key('beamAssetsShowHidden'),
-                        text: hiddenCount == 1
-                            ? 'Show 1 hidden asset'
-                            : 'Show $hiddenCount hidden assets',
+                        text: context.l10n.assetsShowHidden(hiddenCount),
                         onTap: () => setState(() => _managing = true),
                       ),
                     ),
@@ -242,7 +240,9 @@ class _BeamAssetsViewState extends ConsumerState<BeamAssetsView> {
             backgroundColor: colors.background,
             leading: const AppBarBackButton(),
             title: Text(
-              _managing ? 'Show or hide assets' : 'My assets',
+              _managing
+                  ? context.l10n.assetsManageTitle
+                  : context.l10n.assetsMyAssets,
               style: STextStyles.navBarTitle(context),
             ),
             actions: [
@@ -275,7 +275,9 @@ class _BeamAssetsViewState extends ConsumerState<BeamAssetsView> {
                 alignment: Alignment.centerRight,
                 child: CustomTextButton(
                   key: const Key('beamAssetsManageButton'),
-                  text: _managing ? 'Done' : 'Show or hide assets',
+                  text: _managing
+                      ? context.l10n.commonDone
+                      : context.l10n.assetsManageTitle,
                   onTap: () => setState(() => _managing = !_managing),
                 ),
               ),
@@ -300,19 +302,17 @@ class _Total extends ConsumerWidget {
     final locale = ref.watch(
       localeServiceChangeNotifierProvider.select((s) => s.locale),
     );
+    final l10n = context.l10n;
     final String value;
     final String note;
     if (!portfolio.marketKnown) {
       value = '—';
-      note = 'Prices load once the wallet is connected.';
+      note = l10n.assetsPricesLoad;
     } else {
       value = BeamAssetText.beamEstimate(portfolio.valueGroth, locale: locale);
       note = portfolio.unpriced == 0
-          ? 'Estimated from DEX prices.'
-          : 'Estimated from DEX prices. ${portfolio.unpriced} '
-                '${portfolio.unpriced == 1 ? 'asset has' : 'assets have'} no '
-                'price and ${portfolio.unpriced == 1 ? 'is' : 'are'} not '
-                'counted.';
+          ? l10n.assetsEstimated
+          : l10n.assetsEstimatedUnpriced(portfolio.unpriced);
     }
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
@@ -323,7 +323,7 @@ class _Total extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Your assets are worth',
+              l10n.assetsWorth,
               style: STextStyles.w500_12(context)
                   .copyWith(color: colors.tokenSummaryTextSecondary),
             ),
@@ -371,18 +371,16 @@ class _Empty extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 scan == null
-                    ? 'No assets yet'
-                    : 'Still looking for your assets',
+                    ? context.l10n.assetsEmptyTitle
+                    : context.l10n.assetsEmptyScanningTitle,
                 style: STextStyles.pageTitleH2(context),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 scan == null
-                    ? 'Assets like FOMO or BeamX arrive at your BEAM address. '
-                          'Share it to receive them; they appear here.'
-                    : 'Your assets appear here as your coins are found. You '
-                          'can receive meanwhile.',
+                    ? context.l10n.assetsEmptyDetail
+                    : context.l10n.assetsEmptyScanningDetail,
                 key: const Key('beamAssetsEmptyDetail'),
                 style: STextStyles.itemSubtitle(context),
                 textAlign: TextAlign.center,
@@ -390,7 +388,7 @@ class _Empty extends StatelessWidget {
               const SizedBox(height: 24),
               PrimaryButton(
                 key: const Key('beamAssetsReceive'),
-                label: 'Receive assets',
+                label: context.l10n.assetsReceiveAssets,
                 width: BeamAssetLayout.isDesktop(context) ? 240 : null,
                 onPressed: onReceive,
               ),

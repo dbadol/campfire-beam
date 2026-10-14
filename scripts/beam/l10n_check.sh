@@ -31,6 +31,7 @@ trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT
 
 rsync -a --delete \
   --exclude '/l10n/generated/' --exclude '/app_config.g.dart' --exclude '/wl_gen/generated/' \
+  --exclude '/external_api_keys.dart' \
   "$REPO/lib/" "$WORK/lib/"
 rsync -a --delete --exclude 'failures/' "$REPO/test/" "$WORK/test/"
 cp "$REPO/l10n.yaml" "$WORK/l10n.yaml"

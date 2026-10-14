@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/dapps/dapp_bridge_js.dart';
 
@@ -115,7 +116,7 @@ class DappOpening extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "Opening $name…",
+                context.l10n.dappsOpening(name),
                 style: STextStyles.smallMed12(context)
                     .copyWith(color: text.withValues(alpha: 0.8)),
               ),

@@ -29,6 +29,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/desktop_auth_send.dart';
@@ -84,7 +85,7 @@ Future<bool?> showBeamAssetConfirm({
                 Padding(
                   padding: const EdgeInsets.only(left: 32),
                   child: Text(
-                    'Confirm payment',
+                    context.l10n.assetsConfirmTitle,
                     style: STextStyles.desktopH3(context),
                   ),
                 ),
@@ -148,14 +149,14 @@ Future<bool> campfireAuthorizeBeamAssetSend(BuildContext context) async {
     unlocked = await Navigator.push<bool>(
       context,
       RouteGenerator.getRoute<bool>(
-        builder: (_) => const LockscreenView(
+        builder: (_) => LockscreenView(
           showBackButton: true,
           popOnSuccess: true,
           routeOnSuccessArguments: true,
           routeOnSuccess: "",
-          biometricsCancelButtonString: "CANCEL",
-          biometricsLocalizedReason: "Authenticate to send transaction",
-          biometricsAuthenticationTitle: "Confirm Transaction",
+          biometricsCancelButtonString: context.l10n.beamAuthCancel,
+          biometricsLocalizedReason: context.l10n.assetsAuthReason,
+          biometricsAuthenticationTitle: context.l10n.assetsAuthTitle,
         ),
         settings: const RouteSettings(name: "/beamAssetSendLockscreen"),
       ),
@@ -166,8 +167,8 @@ Future<bool> campfireAuthorizeBeamAssetSend(BuildContext context) async {
       showFloatingFlushBar(
         type: FlushBarType.warning,
         message: BeamAssetLayout.isDesktop(context)
-            ? "Invalid passphrase"
-            : "Invalid PIN",
+            ? context.l10n.beamAuthInvalidPassphrase
+            : context.l10n.beamAuthInvalidPin,
         context: context,
       ),
     );
@@ -226,7 +227,7 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
       final ({TxData? tx, Object? error})? outcome = await showLoading(
         context: context,
         rootNavigator: BeamAssetLayout.isDesktop(context),
-        message: 'Sending $amountText',
+        message: context.l10n.assetsSending(amountText),
         whileFuture: () async {
           try {
             return (
@@ -248,10 +249,10 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
           builder: (_) => StackOkDialog(
             title: unknown
                 ? BeamAssetText.sendUnknownTitle
-                : 'Payment not sent',
+                : context.l10n.assetsNotSentTitle,
             message: unknown
                 ? BeamAssetText.sendUnknown
-                : '${outcome?.error ?? 'Something went wrong. Try again.'}',
+                : '${outcome?.error ?? context.l10n.assetsSomethingWrong}',
             // Unknown: OK closes only this dialog; the screen then leaves
             // for the history itself, with its result.
             desktopPopRootNavigator:
@@ -266,7 +267,7 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.success,
-          message: 'Sent $amountText',
+          message: context.l10n.assetsSentToast(amountText),
           context: context,
         ),
       );
@@ -297,12 +298,16 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
         ? null
         : BeamSendMode.forType(type);
     final warning = BeamAssetText.impersonation(_asset);
+    final l10n = context.l10n;
     final assetLine = _asset.isPoolShare
         ? '${_asset.name} ${_asset.idLabel}'
         : _asset.verified
-        ? '${_asset.name == _asset.symbol ? _asset.name : '${_asset.name} '
-                    '(${_asset.symbol})'} · verified'
-        : '${_asset.name} ${_asset.idLabel} · unverified';
+        ? l10n.assetsLineVerified(
+            _asset.name == _asset.symbol
+                ? _asset.name
+                : '${_asset.name} (${_asset.symbol})',
+          )
+        : l10n.assetsLineUnverified(_asset.name, _asset.idLabel);
 
     final labelStyle = isDesktop
         ? STextStyles.desktopTextExtraExtraSmall(context)
@@ -333,7 +338,7 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         row(
-          'You send',
+          l10n.assetsYouSend,
           Row(
             children: [
               BeamAssetIcon(asset: _asset, size: 28),
@@ -353,7 +358,7 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
           ),
         ),
         row(
-          'Asset',
+          l10n.assetsAssetLabel,
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -369,7 +374,7 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
           ),
         ),
         row(
-          'To',
+          l10n.assetsToLabel,
           SelectableText(
             recipient.address,
             key: const Key('beamAssetConfirmAddress'),
@@ -377,15 +382,20 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
           ),
         ),
         row(
-          'Network fee',
+          l10n.beamNetworkFee,
           Text(
-            '${BeamAssetText.beam(fee.raw, locale: locale)}, paid in BEAM',
+            l10n.assetsFeePaidInBeam(
+              BeamAssetText.beam(fee.raw, locale: locale),
+            ),
             key: const Key('beamAssetConfirmFee'),
             style: valueStyle,
           ),
         ),
         if (mode != null)
-          row('How it arrives', Text(mode.explanation, style: valueStyle)),
+          row(
+            l10n.assetsHowItArrives,
+            Text(mode.explanation, style: valueStyle),
+          ),
         SizedBox(height: isDesktop ? 20 : 8),
         if (_outcomeUnknown) ...[
           Text(
@@ -396,14 +406,14 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
           SizedBox(height: isDesktop ? 20 : 8),
           PrimaryButton(
             key: const Key('beamAssetConfirmHistory'),
-            label: 'Check history',
+            label: l10n.assetsCheckHistory,
             buttonHeight: isDesktop ? ButtonHeight.l : null,
             onPressed: _toHistory,
           ),
         ] else
           PrimaryButton(
             key: const Key('beamAssetConfirmSend'),
-            label: 'Send $amountText',
+            label: l10n.assetsSendCta(amountText),
             buttonHeight: isDesktop ? ButtonHeight.l : null,
             enabled: !_sending,
             onPressed: _sending ? null : () => _send(amountText),
@@ -420,7 +430,7 @@ class _BeamAssetConfirmViewState extends ConsumerState<BeamAssetConfirmView> {
           backgroundColor: colors.background,
           leading: const AppBarBackButton(),
           title: Text(
-            'Confirm payment',
+            l10n.assetsConfirmTitle,
             style: STextStyles.navBarTitle(context),
           ),
         ),

@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../address/beam_address_format.dart';
 import '../models/beam_address.dart';
 import '../sync/beam_sync_messages.dart';
@@ -44,9 +45,7 @@ class BeamSendMode {
       minimumFee: _regularFee,
       offlineFlag: false,
       receiverMustBeOnline: true,
-      explanation:
-          "The receiver's wallet has to come online to accept it; until "
-          'then it shows as waiting.',
+      explanation: appL10n.sendModeRegular,
     ),
     // An offline address would otherwise be paid as a regular online
     // payment to its SBBS part; `offline: true` makes it the non-interactive
@@ -56,27 +55,21 @@ class BeamSendMode {
       minimumFee: _pushFee,
       offlineFlag: true,
       receiverMustBeOnline: false,
-      explanation:
-          'Arrives even while the receiver\'s wallet is closed. Costs a '
-          'higher network fee (0.011 BEAM).',
+      explanation: appL10n.sendModeOffline,
     ),
     BeamAddressType.maxPrivacy => BeamSendMode._(
       type,
       minimumFee: _pushFee,
       offlineFlag: false,
       receiverMustBeOnline: false,
-      explanation:
-          'Hidden among many other payments; the receiver can spend it '
-          'after a while. Costs a higher network fee (0.011 BEAM).',
+      explanation: appL10n.sendModeMaxPrivacy,
     ),
     BeamAddressType.publicOffline => BeamSendMode._(
       type,
       minimumFee: _pushFee,
       offlineFlag: false,
       receiverMustBeOnline: false,
-      explanation:
-          'A reusable donation address: arrives while the receiver is '
-          'offline. Costs a higher network fee (0.011 BEAM).',
+      explanation: appL10n.sendModePublic,
     ),
     BeamAddressType.unknown => throw ArgumentError.value(type, 'type'),
   };
@@ -97,18 +90,16 @@ class BeamSendMode {
 }
 
 abstract final class BeamSendRules {
-  static const _notAddress =
-      "That isn't a BEAM address. Copy it again from the person you're "
-      'paying.';
+  static String get _notAddress => appL10n.sendNotBeamAddress;
 
   /// Returns the address type, or throws when it is not a BEAM address.
   /// Every BEAM address type can be paid; [BeamSendMode] says how.
   static BeamAddressType checkAddress(String address) {
     final trimmed = address.trim();
     if (trimmed.isEmpty) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.invalidAddress,
-        'Enter the address you want to pay.',
+        appL10n.sendEnterAddress,
       );
     }
     final type = BeamAddressFormat.typeOf(trimmed) ?? BeamAddressType.unknown;
@@ -119,10 +110,7 @@ abstract final class BeamSendRules {
   /// Throws unless [type] (as the core classified the address) can be paid.
   static void checkAddressType(BeamAddressType type) {
     if (type == BeamAddressType.unknown) {
-      throw const BeamWalletException(
-        BeamWalletProblem.invalidAddress,
-        _notAddress,
-      );
+      throw BeamWalletException(BeamWalletProblem.invalidAddress, _notAddress);
     }
   }
 
@@ -132,7 +120,9 @@ abstract final class BeamSendRules {
     final m = BeamSyncMessages.describe(assessment);
     throw BeamWalletException(
       BeamWalletProblem.notSynced,
-      m.detail == null ? m.title : '${m.title}. ${m.detail}',
+      m.detail == null
+          ? m.title
+          : appL10n.sendSyncTitleAndDetail(m.title, m.detail!),
     );
   }
 
@@ -146,9 +136,9 @@ abstract final class BeamSendRules {
     int fractionDigits = 8,
   }) {
     if (amount <= BigInt.zero) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.invalidAmount,
-        'Enter an amount above zero.',
+        appL10n.sendAmountAboveZero,
       );
     }
     var send = amount;
@@ -156,16 +146,18 @@ abstract final class BeamSendRules {
     if (send + fee > available) {
       throw BeamWalletException(
         BeamWalletProblem.insufficientFunds,
-        'Not enough BEAM. Sending ${formatBeam(send, fractionDigits)} plus '
-        'the ${formatBeam(fee, fractionDigits)} fee needs '
-        '${formatBeam(send + fee, fractionDigits)}, and '
-        '${formatBeam(available, fractionDigits)} is available.',
+        appL10n.sendRulesNotEnoughBeam(
+          formatBeam(send, fractionDigits),
+          formatBeam(fee, fractionDigits),
+          formatBeam(send + fee, fractionDigits),
+          formatBeam(available, fractionDigits),
+        ),
       );
     }
     if (!(send + fee).isValidInt) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.invalidAmount,
-        'That amount is too large.',
+        appL10n.sendAmountTooLarge,
       );
     }
     return send;

@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/util.dart';
@@ -108,7 +109,10 @@ class BeamNodeStatusChip extends StatelessWidget {
          label: view.chipLabel,
          tone: view.chipTone,
          onTap: onTap,
-         semanticLabel: '${view.chipLabel}. ${view.syncTitle}',
+         semanticLabel: appL10n.nodeChipScreenReaderLabel(
+           view.chipLabel,
+           view.syncTitle,
+         ),
        );
 
   final String label;

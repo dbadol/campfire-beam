@@ -47,6 +47,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
@@ -124,6 +125,10 @@ class DappBrowserView extends ConsumerStatefulWidget {
   ConsumerState<DappBrowserView> createState() => _DappBrowserViewState();
 }
 
+/// Why the dApp is not shown: its page failed to load, or it could not be
+/// started.
+enum _Failure { didntLoad, couldntStart }
+
 class _PendingBanner {
   _PendingBanner(this.model, {this.autoOpenAfter});
 
@@ -136,7 +141,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
   DappHostSession? _session;
   DappWebview? _glue;
   bool _loading = true;
-  String? _failure;
+  _Failure? _failure;
   final _taps = DappTapTracker();
   _PendingBanner? _banner;
   bool _disposed = false;
@@ -256,7 +261,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
           if (mounted) {
             setState(() {
               _loading = false;
-              _failure = "$_name didn't load.";
+              _failure = _Failure.didntLoad;
             });
           }
         },
@@ -267,7 +272,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _failure = "Campfire couldn't start $_name.";
+          _failure = _Failure.couldntStart;
         });
       }
     }
@@ -425,27 +430,30 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
         return;
       }
       _lastRefusalNotice = now;
+      final detail = activity.detail;
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.warning,
-          message:
-              "${activity.dapp.name}: ${activity.detail ?? "Campfire "
-                      "refused a request. Nothing was sent."}",
+          message: detail == null
+              ? context.l10n.dappsRefusedNoticeGeneric(activity.dapp.name)
+              : context.l10n.dappsRefusedNotice(activity.dapp.name, detail),
           context: context,
         ),
       );
       return;
     }
-    final what = switch (activity.kind) {
-      DappActivityKind.signedMessage =>
-        "signed a message with a key from this wallet",
-      DappActivityKind.sentMessage => "sent a message from this wallet",
-      DappActivityKind.refused => "had a request refused",
-    };
+    final l10n = context.l10n;
+    final name = activity.dapp.name;
     unawaited(
       showFloatingFlushBar(
         type: FlushBarType.info,
-        message: "${activity.dapp.name} $what",
+        message: switch (activity.kind) {
+          DappActivityKind.signedMessage => l10n.dappsActivitySignedMessage(
+            name,
+          ),
+          DappActivityKind.sentMessage => l10n.dappsActivitySentMessage(name),
+          DappActivityKind.refused => l10n.dappsActivityRefused(name),
+        },
         context: context,
       ),
     );
@@ -487,8 +495,8 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
         showFloatingFlushBar(
           type: FlushBarType.success,
           message: model.isSignMessage
-              ? "Approved. Campfire signed the message."
-              : "Approved. Campfire is sending it to the network.",
+              ? context.l10n.dappsApprovedSigned
+              : context.l10n.dappsApprovedSending,
           context: context,
         ),
       );
@@ -498,12 +506,11 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
 
   Future<void> _offerExternal(Uri uri) async {
     if (!mounted) return;
+    final l10n = context.l10n;
     final ok = await _confirm(
-      title: "Open this link in your browser?",
-      message:
-          "$_name wants to open ${uri.host}. It opens in your browser, "
-          "outside Campfire.\n\n$uri",
-      confirm: "Open in browser",
+      title: l10n.dappsExternalLinkTitle,
+      message: "${l10n.dappsExternalLinkMessage(_name, uri.host)}\n\n$uri",
+      confirm: l10n.dappsExternalLinkConfirm,
     );
     if (ok != true) return;
     try {
@@ -513,7 +520,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.warning,
-            message: "Campfire couldn't open your browser.",
+            message: context.l10n.dappsExternalLinkFailed,
             context: context,
           ),
         );
@@ -549,7 +556,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
                   children: [
                     Expanded(
                       child: SecondaryButton(
-                        label: "Cancel",
+                        label: context.l10n.commonCancel,
                         buttonHeight: ButtonHeight.l,
                         onPressed: () => Navigator.of(context).pop(false),
                       ),
@@ -580,7 +587,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
           style: colors.getSecondaryEnabledButtonStyle(context),
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(
-            "Cancel",
+            context.l10n.commonCancel,
             style: STextStyles.button(context)
                 .copyWith(color: colors.accentColorDark),
           ),
@@ -709,12 +716,15 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
       return Padding(
         padding: EdgeInsets.all(desktop ? 24 : 16),
         child: _Message(
-          title: failure,
-          body:
-              "Nothing was sent and nothing was changed. Try again; if it "
-              "keeps happening, remove $_name and install it again.",
+          title: switch (failure) {
+            _Failure.didntLoad => context.l10n.dappsBrowserDidntLoad(_name),
+            _Failure.couldntStart => context.l10n.dappsBrowserCouldntStart(
+              _name,
+            ),
+          },
+          body: context.l10n.dappsBrowserFailureBody(_name),
           action: PrimaryButton(
-            label: "Try again",
+            label: context.l10n.commonTryAgain,
             buttonHeight: desktop ? ButtonHeight.l : null,
             height: desktop ? null : 46,
             onPressed: () => unawaited(_restart()),
@@ -780,38 +790,23 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
 /// what is happening, what it means for the dApp, and what happens next.
 abstract final class DappWalletWaitText {
   static String title(DappWalletWait wait, String name) => switch (wait.kind) {
-    DappWalletWaitKind.connecting =>
-      "Your wallet is still connecting — $name may not load until "
-          "it's connected.",
-    DappWalletWaitKind.catchingUp =>
-      "Your wallet is catching up — $name may not load until it's done.",
-    DappWalletWaitKind.unreachable =>
-      "Your wallet can't reach the network — $name can't load until it "
-          "does.",
-    DappWalletWaitKind.stuck =>
-      "Your wallet has stopped updating — $name may show old numbers.",
+    DappWalletWaitKind.connecting => appL10n.dappsWalletWaitConnecting(name),
+    DappWalletWaitKind.catchingUp => appL10n.dappsWalletWaitCatchingUp(name),
+    DappWalletWaitKind.unreachable => appL10n.dappsWalletWaitUnreachable(name),
+    DappWalletWaitKind.stuck => appL10n.dappsWalletWaitStuck(name),
   };
 
   static String next(DappWalletWait wait) => switch (wait.kind) {
-    DappWalletWaitKind.connecting =>
-      'This goes away by itself, usually within a few seconds.',
-    DappWalletWaitKind.catchingUp => switch (wait.timeLeft) {
-      final left? =>
-        '${_capitalized(BeamSyncMessages.approxDuration(left))} left. '
-            "This goes away by itself when it's done.",
-      null => "This goes away by itself when it's done.",
-    },
-    DappWalletWaitKind.unreachable =>
-      'It keeps trying on its own, and this goes away once it connects.',
-    DappWalletWaitKind.stuck =>
-      "Your wallet's page says why and what to do. This goes away once it "
-          'updates again.',
+    DappWalletWaitKind.connecting => appL10n.dappsWalletWaitConnectingNext,
+    DappWalletWaitKind.catchingUp => joinSentences([
+      if (wait.timeLeft case final left?) BeamSyncMessages.timeLeft(left),
+      appL10n.dappsWalletWaitCatchingUpNext,
+    ]),
+    DappWalletWaitKind.unreachable => appL10n.dappsWalletWaitUnreachableNext,
+    DappWalletWaitKind.stuck => appL10n.dappsWalletWaitStuckNext,
   };
 
-  static const retry = 'Try again';
-
-  static String _capitalized(String s) =>
-      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+  static String get retry => appL10n.commonTryAgain;
 }
 
 /// The line above a dApp while the wallet core cannot serve it
@@ -928,7 +923,7 @@ class _WalletBusyLineState extends State<_WalletBusyLine> {
   Widget build(BuildContext context) {
     if (!_shown) return const SizedBox(height: 2);
     return Semantics(
-      label: '${widget.name} is waiting for your wallet',
+      label: context.l10n.dappsWaitingForWallet(widget.name),
       child: const SizedBox(
         key: Key('dappWalletBusy'),
         height: 2,
@@ -946,6 +941,7 @@ class _Unavailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -953,14 +949,14 @@ class _Unavailable extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.all(desktop ? 24 : 16),
           child: _Message(
-            title: "$name can't open on this computer yet",
-            body:
-                "$dappWindowPlatformsSentence On Linux and Windows the dApp "
-                "window isn't available yet. $name stays installed for when "
-                "it is, and your funds are not affected.",
+            title: l10n.dappsUnavailableTitle(name),
+            body: joinSentences([
+              dappWindowPlatformsSentence,
+              l10n.dappsUnavailableBody(name),
+            ], l10n),
             action: PrimaryButton(
               key: const Key("dappUnavailableBack"),
-              label: "Back to dApps",
+              label: l10n.dappsBackToDapps,
               buttonHeight: desktop ? ButtonHeight.l : null,
               height: desktop ? null : 46,
               onPressed: () => Navigator.of(context).maybePop(),

@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../desktop/primary_button.dart';
@@ -80,14 +81,14 @@ class _DappApprovalBannerState extends State<DappApprovalBanner> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${widget.dappName} asks for your approval",
+                        context.l10n.dappsBannerAsks(widget.dappName),
                         style: STextStyles.w600_14(context)
                             .copyWith(color: colors.textDark),
                       ),
                       if (delay != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          "Opening the review…",
+                          context.l10n.dappsBannerOpening,
                           style: STextStyles.w500_12(context)
                               .copyWith(color: colors.textSubtitle1),
                         ),
@@ -98,7 +99,7 @@ class _DappApprovalBannerState extends State<DappApprovalBanner> {
                 const SizedBox(width: 8),
                 SecondaryButton(
                   key: DappApprovalBanner.rejectKey,
-                  label: "Reject",
+                  label: context.l10n.dappsReject,
                   width: 80,
                   buttonHeight: desktop ? ButtonHeight.s : ButtonHeight.l,
                   onPressed: () => _answer(false),
@@ -106,7 +107,7 @@ class _DappApprovalBannerState extends State<DappApprovalBanner> {
                 const SizedBox(width: 8),
                 PrimaryButton(
                   key: DappApprovalBanner.reviewKey,
-                  label: "Review",
+                  label: context.l10n.dappsBannerReview,
                   width: 84,
                   buttonHeight: desktop ? ButtonHeight.s : ButtonHeight.l,
                   onPressed: () => _answer(true),

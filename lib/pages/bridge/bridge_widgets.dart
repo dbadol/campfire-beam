@@ -18,6 +18,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
 import '../../wallets/beam/assets/beam_asset_catalog.dart';
@@ -104,8 +105,8 @@ String bridgeShortAddress(String a) => UniFormat.short(a);
 class BridgeWalletCard extends StatelessWidget {
   const BridgeWalletCard({
     super.key,
-    required this.label,
-    required this.chain,
+    required this.title,
+    required this.noWallet,
     required this.wallet,
     this.trailing,
     this.note,
@@ -113,11 +114,11 @@ class BridgeWalletCard extends StatelessWidget {
     this.chainIcon,
   });
 
-  /// "From", "To".
-  final String label;
+  /// Which side and chain: "From · your BEAM wallet".
+  final String title;
 
-  /// "BEAM", "Ethereum".
-  final String chain;
+  /// In place of the wallet's name when there is none: "No BEAM wallet".
+  final String noWallet;
   final BridgeWalletOption? wallet;
   final Widget? chainIcon;
 
@@ -142,7 +143,7 @@ class BridgeWalletCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '$label · your $chain wallet',
+                title,
                 style: STextStyles.label(context)
                     .copyWith(color: colors.textSubtitle1),
               ),
@@ -163,7 +164,7 @@ class BridgeWalletCard extends StatelessWidget {
                 child: Text.rich(
                   TextSpan(
                     children: [
-                      TextSpan(text: w?.name ?? 'No $chain wallet'),
+                      TextSpan(text: w?.name ?? noWallet),
                       if (address != null)
                         TextSpan(
                           text: '  ${bridgeShortAddress(address)}',
@@ -265,74 +266,66 @@ class BridgeWords {
     );
     final err = c.lastError;
     String withError(String s) => err == null ? s : '$s\n$err';
+    final l = appL10n;
     switch (c.state) {
       case BridgeCrossingState.quoted:
       case BridgeCrossingState.sending:
         return BridgeWords(
-          'Sending $out to Ethereum',
-          'Handing it to your BEAM wallet…',
-          'Sending',
+          l.bridgeWordsSendingTitle(out),
+          l.bridgeWordsSendingDetail,
+          l.bridgeShortSending,
           BridgeMood.progress,
         );
       case BridgeCrossingState.sent:
-        return const BridgeWords(
-          'Sent: waiting for the BEAM network',
-          'It goes into the next BEAM blocks, usually within a minute or '
-              'two.',
-          'Sending',
+        return BridgeWords(
+          l.bridgeWordsSentTitle,
+          l.bridgeWordsSentDetail,
+          l.bridgeShortSending,
           BridgeMood.progress,
         );
       case BridgeCrossingState.confirmed:
         if (blocksLeft == null) {
-          return const BridgeWords(
-            'On its way to Ethereum',
-            'The bridge pays your Ethereum wallet 61 BEAM blocks after '
-                'it was sent, about an hour.',
-            'On its way',
+          return BridgeWords(
+            l.bridgeWordsToEthereumTitle,
+            l.bridgeWordsToEthereumDetail,
+            l.bridgeShortOnItsWay,
             BridgeMood.progress,
           );
         }
         if (blocksLeft > 0) {
           return BridgeWords(
-            'On its way: $blocksLeft BEAM '
-                '${blocksLeft == 1 ? 'block' : 'blocks'} to go',
-            'The bridge pays your Ethereum wallet after 61 BEAM blocks '
-                '(about one a minute). Nothing needs doing; you can close '
-                'Campfire.',
-            '$blocksLeft ${blocksLeft == 1 ? 'block' : 'blocks'} to go',
+            l.bridgeWordsBlocksToGoTitle(blocksLeft),
+            l.bridgeWordsBlocksToGoDetail,
+            l.bridgeShortBlocksToGo(blocksLeft),
             BridgeMood.progress,
           );
         }
-        return const BridgeWords(
-          'Due now: the bridge is paying it',
-          'It usually lands in your Ethereum wallet within minutes of the '
-              '61st block.',
-          'Due now',
+        return BridgeWords(
+          l.bridgeWordsDueTitle,
+          l.bridgeWordsDueDetail,
+          l.bridgeShortDue,
           BridgeMood.progress,
         );
       case BridgeCrossingState.waitingForGas:
-        return const BridgeWords(
-          'Waiting for Ethereum gas to come down',
-          'Ethereum costs more right now than the bridge fee you paid. The '
-              'bridge retries about every 30 minutes and pays as soon as '
-              'gas comes down to it. Your coins are safe; nothing needs '
-              'doing.',
-          'Waiting for gas',
+        return BridgeWords(
+          l.bridgeWordsGasTitle,
+          l.bridgeWordsGasDetail,
+          l.bridgeShortWaitingForGas,
           // Nothing for the user to do: told calmly, not as an alarm.
           BridgeMood.progress,
         );
       case BridgeCrossingState.paid:
         return BridgeWords(
-          '$arrives arrived in your Ethereum wallet',
+          l.bridgeWordsPaidTitle(arrives),
           null,
-          'Arrived',
+          l.bridgeShortArrived,
           BridgeMood.success,
         );
       case BridgeCrossingState.failed:
         return BridgeWords(
-          'The BEAM transaction failed',
-          withError('Nothing left your wallet.'),
-          'Failed',
+          l.bridgeWordsFailedTitle,
+          withError(l.bridgeWordsFailedDetail),
+          l.bridgeShortFailed,
           BridgeMood.error,
         );
       case BridgeCrossingState.approving:
@@ -342,90 +335,78 @@ class BridgeWords {
           r.ethSymbol,
         );
         return BridgeWords(
-          'Letting the bridge take your ${r.ethSymbol}',
-          'First an Ethereum transaction allows the bridge to take exactly '
-              '$take, then it is sent. Keep Campfire open for a minute.',
-          'Starting',
+          l.bridgeWordsApprovingTitle(r.ethSymbol),
+          l.bridgeWordsApprovingDetail(take),
+          l.bridgeShortStarting,
           BridgeMood.progress,
         );
       case BridgeCrossingState.locking:
         return BridgeWords(
-          'Sending $out to the bridge',
-          'Waiting for Ethereum, usually under a minute.',
-          'Sending',
+          l.bridgeWordsLockingTitle(out),
+          l.bridgeWordsLockingDetail,
+          l.bridgeShortSending,
           BridgeMood.progress,
         );
       case BridgeCrossingState.locked:
-        return const BridgeWords(
-          'On its way to BEAM',
-          'The bridge brings it to BEAM, usually within 2 minutes.',
-          'On its way',
+        return BridgeWords(
+          l.bridgeWordsToBeamTitle,
+          l.bridgeWordsToBeamDetail,
+          l.bridgeShortOnItsWay,
           BridgeMood.progress,
         );
       case BridgeCrossingState.notDeliveredYet:
         final since = c.lockedAt;
         final when = since == null || now == null
-            ? 'over 30 minutes ago'
+            ? l.bridgeAgoOver30Minutes
             : BridgeFormat.ago(since, now);
         return BridgeWords(
-          'Taking longer than usual',
-          'Sent to the bridge $when. '
-              'The bridge is sometimes slow when it is busy; Campfire keeps '
-              'looking. If you use this wallet on another device too, it '
-              'may have been collected there.',
-          'Taking longer',
+          l.bridgeWordsSlowTitle,
+          l.bridgeWordsSlowDetail(when),
+          l.bridgeShortSlow,
           BridgeMood.warning,
         );
       case BridgeCrossingState.delivered:
         final auto = c.autoClaim && err == null;
         return BridgeWords(
-          auto
-              ? 'Arrived on BEAM: collecting it'
-              : 'Arrived on BEAM: '
-                    'collect it',
+          auto ? l.bridgeWordsCollectingTitle : l.bridgeWordsCollectTitle,
           withError(
-            'Collecting it is a BEAM transaction with a '
-            '${BridgeFormat.coin(c.beamNetworkFee, 8, 'BEAM')} network '
-            'fee.',
+            l.bridgeWordsCollectDetail(
+              BridgeFormat.coin(c.beamNetworkFee, 8, 'BEAM'),
+            ),
           ),
-          auto ? 'Collecting' : 'Collect',
+          auto ? l.bridgeShortCollecting : l.bridgeShortCollect,
           err == null ? BridgeMood.progress : BridgeMood.warning,
         );
       case BridgeCrossingState.claiming:
         return BridgeWords(
-          'Collecting $arrives',
-          'Waiting for the BEAM network, usually a minute or two.',
-          'Collecting',
+          l.bridgeWordsClaimingTitle(arrives),
+          l.bridgeWordsClaimingDetail,
+          l.bridgeShortCollecting,
           BridgeMood.progress,
         );
       case BridgeCrossingState.claimed:
         return BridgeWords(
-          '$arrives is in your BEAM wallet',
+          l.bridgeWordsClaimedTitle(arrives),
           err,
-          'Arrived',
+          l.bridgeShortArrived,
           BridgeMood.success,
         );
       case BridgeCrossingState.lockFailed:
         return BridgeWords(
-          'Nothing was moved',
-          err ?? 'The bridge did not take your ${r.ethSymbol}.',
-          'Not sent',
+          l.bridgeWordsLockFailedTitle,
+          err ?? l.bridgeWordsLockFailedDetail(r.ethSymbol),
+          l.bridgeShortNotSent,
           BridgeMood.error,
         );
       case BridgeCrossingState.unknown:
         return BridgeWords(
-          "Campfire can't tell yet whether it was sent",
+          l.bridgeWordsUnknownTitle,
           withError(
             c.toEthereum
-                ? 'Your BEAM wallet did not confirm sending it. Check its '
-                      'history before trying again: Campfire keeps looking '
-                      'for it and shows it here when it finds it.'
-                : 'Ethereum did not confirm the transaction. Check your '
-                      'Ethereum wallet before trying again: Campfire keeps '
-                      'looking for it on BEAM and shows it here when it '
-                      'arrives.',
+                ? l.bridgeWordsUnknownToEthereumDetail
+                : l.bridgeWordsUnknownToBeamDetail,
           ),
-          'Checking',
+          l.bridgeShortChecking,
           BridgeMood.warning,
         );
     }
@@ -439,7 +420,7 @@ class BridgeWords {
   final BridgeMood mood;
 
   /// It waits for the user (Collect), not for a chain.
-  bool get needsYou => short == 'Collect';
+  bool get needsYou => short == appL10n.bridgeShortCollect;
 
   /// The colour of [short] in a list: Campfire's red when it waits for
   /// the user, green when done; waiting text stays dark (the theme's
@@ -497,12 +478,13 @@ List<BridgeStep> bridgeSteps(
   const failed = BridgeStepStatus.failed;
   final s = c.state;
   final at = BridgeFormat.ago(c.createdAt, now);
+  final l = appL10n;
   if (c.toEthereum) {
     final mined = c.msgId != null;
     final due = mined && (blocksLeft ?? 1) == 0;
     final paid = s == BridgeCrossingState.paid;
     return [
-      BridgeStep('Sent from your BEAM wallet', switch (s) {
+      BridgeStep(l.bridgeStepSentFromBeam, switch (s) {
         BridgeCrossingState.failed => failed,
         BridgeCrossingState.sending ||
         BridgeCrossingState.unknown when !mined => active,
@@ -510,8 +492,10 @@ List<BridgeStep> bridgeSteps(
       }, at),
       BridgeStep(
         mined
-            ? 'In BEAM block ${UniFormat.exact(BigInt.from(c.height!), 0)}'
-            : 'In a BEAM block',
+            ? l.bridgeStepInBeamBlock(
+                UniFormat.exact(BigInt.from(c.height!), 0),
+              )
+            : l.bridgeStepInABeamBlock,
         mined
             ? done
             : s == BridgeCrossingState.sent
@@ -519,24 +503,26 @@ List<BridgeStep> bridgeSteps(
             : waiting,
       ),
       BridgeStep(
-        '61 BEAM blocks',
+        l.bridgeStep61Blocks,
         paid || due || s == BridgeCrossingState.waitingForGas
             ? done
             : mined
             ? active
             : waiting,
         mined && !due && !paid && blocksLeft != null
-            ? '$blocksLeft to go'
+            ? l.bridgeStepBlocksToGo(blocksLeft)
             : null,
       ),
       BridgeStep(
-        'Paid to your Ethereum wallet',
+        l.bridgeStepPaidToEth,
         paid
             ? done
             : due || s == BridgeCrossingState.waitingForGas
             ? active
             : waiting,
-        s == BridgeCrossingState.waitingForGas ? 'Waiting for gas' : null,
+        s == BridgeCrossingState.waitingForGas
+            ? l.bridgeShortWaitingForGas
+            : null,
       ),
     ];
   }
@@ -548,7 +534,7 @@ List<BridgeStep> bridgeSteps(
   }.contains(s);
   return [
     BridgeStep(
-      'Sent to the bridge on Ethereum',
+      l.bridgeStepSentToBridge,
       s == BridgeCrossingState.lockFailed
           ? failed
           : locked || onBeam
@@ -557,7 +543,7 @@ List<BridgeStep> bridgeSteps(
       at,
     ),
     BridgeStep(
-      'Brought to BEAM by the bridge',
+      l.bridgeStepBroughtToBeam,
       onBeam
           ? done
           : locked
@@ -565,7 +551,7 @@ List<BridgeStep> bridgeSteps(
           : waiting,
     ),
     BridgeStep(
-      'Collected in your BEAM wallet',
+      l.bridgeStepCollected,
       s == BridgeCrossingState.claimed
           ? done
           : onBeam
@@ -654,19 +640,20 @@ String? bridgeLimitsText(
   final fee = cond?.fee;
   final sym = r.sourceSymbol(d);
   final dec = r.sourceDecimals(d);
+  final l = appL10n;
   if (d == BridgeDirection.toEthereum) {
-    final parts = [
-      if (fee != null)
-        'More than the bridge fee '
-            '(now ${BridgeFormat.coinShort(fee, dec, sym)})',
-      if (r.maxGroth != null)
-        'at most ${BridgeFormat.coinShort(r.maxGroth!, dec, sym)} per move',
-    ];
-    if (parts.isEmpty) return null;
-    final s = parts.join(', ');
-    return '${s[0].toUpperCase()}${s.substring(1)}.';
+    final feeText = fee == null ? null : BridgeFormat.coinShort(fee, dec, sym);
+    final maxText = r.maxGroth == null
+        ? null
+        : BridgeFormat.coinShort(r.maxGroth!, dec, sym);
+    return switch ((feeText, maxText)) {
+      (final f?, final m?) => l.bridgeLimitsFeeAndMax(f, m),
+      (final f?, null) => l.bridgeLimitsFee(f),
+      (null, final m?) => l.bridgeLimitsMax(m),
+      (null, null) => null,
+    };
   }
-  return 'Collecting it on BEAM costs '
-      '${BridgeFormat.coin(kBridgeClaimFeeGroth, 8, 'BEAM')} from your BEAM '
-      'wallet.';
+  return l.bridgeLimitsToBeam(
+    BridgeFormat.coin(kBridgeClaimFeeGroth, 8, 'BEAM'),
+  );
 }

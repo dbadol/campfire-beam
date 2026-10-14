@@ -154,3 +154,185 @@ lib/wallets/wallet/impl/beam_wallet.dart | split coins | node-switch hold reason
 lib/wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart | asset send | node-switch hold reason, an internal tag, never shown
 lib/wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart | confirm asset send | node-switch hold reason, an internal tag, never shown
 lib/wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart | already exists | matched in the BEAM core's error text (tx id already known)
+lib/pages/bridge/bridge_crossing_view.dart | bridge-crossing-lock | widget key name passed to _link, not shown
+lib/pages/bridge/bridge_crossing_view.dart | bridge-crossing-address | widget key name passed to _link, not shown
+lib/pages/bridge/bridge_wiring.dart | ${…}${…}bridge_crossings.json | file name
+lib/widgets/beam/send/beam_send_backend.dart | name payment | node-switch hold reason, an internal tag, never shown
+lib/widgets/beam/send/beam_send_model.dart | name payment | node-switch hold reason, an internal tag, never shown
+lib/widgets/beam/receive/beam_receive_text.dart | active transaction | matched against the BEAM core's error text
+lib/widgets/beam/receive/beam_receive_text.dart | in use | matched against the BEAM core's error text
+lib/utilities/beam/scan_recognize.dart | ^[1-9A-HJ-NP-Za-km-z]{40,1024}$ | regex (base58 address shape)
+lib/utilities/beam/scan_route.dart | ScanStopped($reason, $text, onward: $onward, canAddEthereumWallet: $canAddEthereumWallet, token: $token, to: $to) | debug toString
+lib/wallets/beam/host/secret_file.dart | chmod not found in /bin or /usr/bin | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | Could not set mode $mode on ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | ${…} has mode ${…}, expected ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | Directory is accessible to other users (mode ${…}): $path | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | Scratch directory already exists: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/contracts/bridge/pipe_output.dart | msg with current id is absent | matched against the pipe shader's own error text
+lib/wallets/beam/contracts/bridge/pipe_output.dart | remote_msg receiver | contract action + field name, goes into a placeholder
+lib/wallets/beam/host/process_host.dart | Not a usable node address: $node | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Removed $removed secret file(s) left by an earlier run | log line
+lib/wallets/beam/host/process_host.dart | wallet-api- | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | beam-common.cfg | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | wallet-api.cfg | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | beam-wallet.cfg | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | Removing unexpected $name from the run directory | log line
+lib/wallets/beam/host/process_host.dart | wallet.db | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | No wallet.db in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet.db already exists in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet successfully created | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Creating the wallet failed | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Created wallet.db in ${…} | log line
+lib/wallets/beam/host/process_host.dart | This build's BEAM core cannot connect through Tor; with Tor on it does not connect at all | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api could not bind a free port in 3 attempts | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api port was taken by another process; retrying | log line
+lib/wallets/beam/host/process_host.dart | Wallet summary | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | This file did not open as a BEAM wallet | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Imported a wallet.db into ${…} | log line
+lib/wallets/beam/host/process_host.dart | The wallet file is no longer there | matched by beam_wallet_file_import.dart (contains 'no longer'), which shows BeamImportMessages.gone instead
+lib/wallets/beam/host/process_host.dart | This file is too small to be a BEAM wallet | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Another program is using this wallet file | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Phones run no private node; the owner key is not read on Android | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Owner Viewer key:\s*(\S+) | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Exporting the owner key failed | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Rescan needs your own node holding the owner key. Without one the wallet would download every block since genesis. | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Current state is | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Rescan failed | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Reading config from | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | beam-wallet $command did not finish in ${…} s | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Please check your password | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | File is not a database | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | The wallet password is wrong | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | already initialized | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Please initialize your wallet first | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Invalid seed phrase | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | provide a valid seed phrase | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | unable to resolve | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | The node address could not be resolved | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api-${…}-$port.log | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | Starting wallet-api for ${…} on $route, port $port${…} | log line
+lib/wallets/beam/host/process_host.dart | ACL file successfully loaded | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Start server on | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | cannot start server | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Wallet not found | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | unable to resolve node address | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | wallet-api speaks API $apiVersion, expected $kBeamApiVersion | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api is up on port $port (pid ${…}) | log line
+lib/wallets/beam/host/process_host.dart | wallet-api did not start listening within ${…} s: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api found no wallet.db | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api could not resolve the node address $node | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api exited with code $exitCode: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api exited unexpectedly (code $code) | log line
+lib/wallets/beam/host/process_host.dart | owner viewer key | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | [line withheld] | placeholder written into the log in place of a withheld line
+lib/wallets/beam/host/process_host.dart | (no output) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Could not start $name: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | .wallet.lock | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | This wallet is already open | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Another process is using this wallet | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | PID eq $target | Windows tasklist/PowerShell command text (data)
+lib/wallets/beam/host/in_process_host.dart | wallet.db | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | Removed $removed secret file(s) left by an earlier run | log line
+lib/wallets/beam/host/in_process_host.dart | The BEAM core is not part of this app build | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Rules signature: $rules | BEAM program output matched in data
+lib/wallets/beam/host/in_process_host.dart | The BEAM core does not report mainnet rules with HF6 ($kBeamHf6RulesFork) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | BEAM core ${…} (in-process) | log line
+lib/wallets/beam/host/in_process_host.dart | This wallet is already open or busy | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | No wallet.db in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | beam-common.cfg | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | wallet-api.cfg | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | beam-wallet.cfg | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | Removing unexpected $name from the run directory | log line
+lib/wallets/beam/host/in_process_host.dart | wallet.db already exists in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | The password does not open this wallet file | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | This file did not open as a BEAM wallet (core result $rc) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Imported a wallet.db into ${…} | log line
+lib/wallets/beam/host/in_process_host.dart | Creating the wallet failed (core result $rc) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Creating the wallet failed: no wallet.db afterwards | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Created wallet.db in ${…} | log line
+lib/wallets/beam/host/in_process_host.dart | This build's BEAM core cannot connect through Tor; with Tor on it does not connect at all | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api could not bind a free port in 3 attempts | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api port was taken by another process; retrying | log line
+lib/wallets/beam/host/in_process_host.dart | Phones run no private node; the owner key is not read there | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | The wallet password is wrong | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Reading the owner key failed (core result ${…}) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Rescan needs your own node holding the owner key, which this device does not run | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Another BEAM wallet is open; this device runs one at a time | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | A BEAM core from an earlier session is still running; stopping it | log line
+lib/wallets/beam/host/in_process_host.dart | The BEAM core from an earlier session did not stop | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Starting wallet-api (in-process) for ${…} on $route, port $port${…} | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api did not start listening within ${…} s | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api speaks API $apiVersion, expected $kBeamApiVersion | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api is up on port $port (${…} ms) | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api of a failed start has not stopped within ${…} s; it keeps the wallet until it does | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api of a failed start has stopped | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api of a failed start still has this wallet open | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api did not stop within ${…} s; it keeps the wallet until it does | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api did not start listening in time ($node) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api found no wallet.db | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api could not resolve the node address $node | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api stopped during start-up (exit $code) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api stopped unexpectedly (exit $code) | log line
+lib/wallets/beam/contracts/bridge/beam_pipe_service.dart | bridge call checked here | Expando debug name
+lib/wallets/beam/contracts/bridge/beam_pipe_service.dart | bridge call sent | Expando debug name
+lib/wallets/beam/dapps/dapp_session.dart | Unknown transaction ID. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Provided address doesn't exist. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Failed to export payment proof, transaction does not exist. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | dApp session closed | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The wallet did not answer in time; the outcome is unknown | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The wallet connection was lost; the outcome is unknown | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Invalid receiver address or token. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Failed to initiate the operation. The minimum fee is $minFee GROTH. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Invalid sender address. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Campfire cannot show this contract call: ${…} | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | contract fee below the core minimum | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The request changed after it was approved | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Send the app shader with the first contract call | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The wallet is still catching up with the network, so it cannot read contracts yet. Nothing was run; try again once it has caught up. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/tx/beam_tx_actions.dart | address is expired | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | timed out | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | inputs missing | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | failed to register | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | not enough inputs | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | fee is too small | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | fee is too large | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | fee is too big | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | not signed by the receiver | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | transaction parameters | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | no voucher | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | cannot get vouchers | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | disabled in the receiver wallet | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | aborted by the user | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | send wallet logs | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | not valid | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | key keeper | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | invalid state | matched in the BEAM core's failure_reason text
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | your BEAM names | reservedUse(): English description for logs and tests; screens use the dappsRefused…ReservedKey select messages
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | your airdrops | reservedUse(): English description for logs and tests; screens use the dappsRefused…ReservedKey select messages
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | the airdrop contract | reservedUse(): English description for logs and tests; screens use the dappsRefused…ReservedKey select messages
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | Beam DEX | brand name of BEAM's DEX contract
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | the file could not be read | DappInstallException.message for logs and support; the screen shows dappInstallErrorText
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | package is $length bytes | DappInstallException.message for logs and support; the screen shows dappInstallErrorText
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | the file uses the guid of the bundled ${…} | DappInstallException.message for logs and support; the screen shows dappInstallErrorText
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Liquidity Accumulator for BEAM / BEAMX | BEAM / NPH pair on Beam DEX | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Decentralized anonymous naming for the BEAM wallet | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Mint confidential assets with provably limited supply | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Confidential Bridges app | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Confidential Beam to Ethereum bridge | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Governance, staking and voting | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Voting on Beam community proposals | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | AMM based decentralized exchange for Confidential Assets | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Buy and sell confidential NFTs | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc $method timed out after ${…} ms | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | wallet-api did not answer $method | TimeoutException text for the log; screens map TimeoutException to their own message
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: ignored a line that is not JSON (${…} chars) | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: ignored a line that is not a JSON object | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: ignored a message with an unknown id type | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | malformed error object | stands in for the BEAM core's own error text (BeamRpcException.message), shown as given like the core's
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc ${…} error ${…} in $ms ms | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc ${…} ok in $ms ms | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: connection lost${…} | log line
+lib/wallets/ethereum/bridge/eth_pipe_service.dart | bridge tx sent | Expando debug name
+lib/wallets/ethereum/bridge/eth_pipe_service.dart | allowance(address,address) | ABI function signature
+lib/wallets/ethereum/bridge/eth_pipe_service.dart | address,uint256 | ABI type list
+lib/wallets/ethereum/bridge/eth_pipe_calls.dart | approve(address,uint256) | ABI function signature

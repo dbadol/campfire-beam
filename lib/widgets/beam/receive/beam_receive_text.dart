@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:intl/intl.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/models/beam_address.dart';
 import '../../../wallets/beam/rpc/beam_connection_exception.dart';
 import '../../../wallets/beam/rpc/beam_transport.dart';
@@ -20,77 +21,67 @@ import 'beam_private_receive.dart';
 ///
 /// Plain language only: never "SBBS", "voucher",
 /// "Lelantus", "shielded" or "token". Each address type is described by
-/// what it does for the person being paid.
+/// what it does for the person being paid. The text is in
+/// lib/l10n/app_en.arb (receive* keys), in the language the app speaks.
 abstract final class BeamReceiveText {
   // ------------------------------------------------------------ receive
 
-  static const yourAddress = 'Your BEAM address';
-  static const regularExplainer =
-      "The sender's wallet and yours must both be online to finish the "
-      'payment.';
-  static const copy = 'Copy address';
-  static const copied = 'Address copied';
-  static const share = 'Share';
-  static const newAddress = 'New address';
-  static const newAddressReady = 'New address ready. Your old one still works.';
-  static const allAddresses = 'See all your addresses';
+  static String get yourAddress => appL10n.receiveYourAddress;
+  static String get regularExplainer => appL10n.receiveRegularExplainer;
+  static String get copy => appL10n.receiveCopyAddress;
+  static String get copied => appL10n.receiveAddressCopied;
+  static String get share => appL10n.receiveShare;
+  static String get newAddress => appL10n.receiveNewAddress;
+  static String get newAddressReady => appL10n.receiveNewAddressReady;
+  static String get allAddresses => appL10n.receiveAllAddresses;
 
-  static const gettingAddress = 'Getting your address…';
-  static const gettingAddressSlow =
-      'Connecting to the BEAM network. This usually takes a few seconds.';
-  static const cantGetAddress = "Can't get your address right now";
-  static const tryAgain = 'Try again';
-  static const offlineWarning =
-      'Campfire is not connected right now. A payment to this address '
-      'finishes once it reconnects.';
+  static String get gettingAddress => appL10n.receiveGettingAddress;
+  static String get gettingAddressSlow => appL10n.receiveGettingAddressSlow;
+  static String get cantGetAddress => appL10n.receiveCantGetAddress;
+  static String get tryAgain => appL10n.commonTryAgain;
+  static String get offlineWarning => appL10n.receiveOfflineWarning;
 
   // --------------------------------------------------------------- name
 
-  static const yourName = 'Your name';
-  static const nameExplainer =
-      'People can pay this name instead of an address.';
-  static const nameCopied = 'Name copied';
+  /// "Your name:", the label before a name the wallet owns.
+  static String get yourName => appL10n.receiveYourNameLabel;
+  static String get nameExplainer => appL10n.receiveNameExplainer;
+  static String get nameCopied => appL10n.receiveNameCopied;
 
   // ---------------------------------------------------- more ways to receive
 
-  static const moreWays = 'More ways to receive';
-  static const moreWaysHint =
-      'Get paid while your wallet is closed, or more '
-      'privately';
-  static const needsPrivateNode = 'These need your private node';
-  static const openNodeSettings = 'Open Node settings';
-  static const making = 'Making your address…';
+  static String get moreWays => appL10n.receiveMoreWays;
+  static String get moreWaysHint => appL10n.receiveMoreWaysHint;
+  static String get needsPrivateNode => appL10n.receiveNeedsPrivateNode;
+  static String get openNodeSettings => appL10n.receiveOpenNodeSettings;
+  static String get making => appL10n.receiveMaking;
 
   /// Title of an address type, as a person would say it.
   static String typeTitle(BeamAddressType type) => switch (type) {
-    BeamAddressType.regular => 'Regular address',
-    BeamAddressType.regularNew => 'Regular address (with payment proof)',
-    BeamAddressType.offline => 'Offline address',
-    BeamAddressType.maxPrivacy => 'Max privacy address',
-    BeamAddressType.publicOffline => 'Public address',
-    BeamAddressType.unknown => 'Other address',
+    BeamAddressType.regular => appL10n.receiveTypeTitleRegular,
+    BeamAddressType.regularNew => appL10n.receiveTypeTitleRegularProof,
+    BeamAddressType.offline => appL10n.receiveTypeTitleOffline,
+    BeamAddressType.maxPrivacy => appL10n.receiveTypeTitleMaxPrivacy,
+    BeamAddressType.publicOffline => appL10n.receiveTypeTitlePublic,
+    BeamAddressType.unknown => appL10n.receiveTypeTitleOther,
   };
 
   /// Short label for lists.
   static String typeLabel(BeamAddressType type) => switch (type) {
-    BeamAddressType.regular => 'Regular',
-    BeamAddressType.regularNew => 'Regular, with proof',
-    BeamAddressType.offline => 'Offline',
-    BeamAddressType.maxPrivacy => 'Max privacy',
-    BeamAddressType.publicOffline => 'Public',
-    BeamAddressType.unknown => 'Other',
+    BeamAddressType.regular => appL10n.receiveTypeLabelRegular,
+    BeamAddressType.regularNew => appL10n.receiveTypeLabelRegularProof,
+    BeamAddressType.offline => appL10n.receiveTypeLabelOffline,
+    BeamAddressType.maxPrivacy => appL10n.receiveTypeLabelMaxPrivacy,
+    BeamAddressType.publicOffline => appL10n.receiveTypeLabelPublic,
+    BeamAddressType.unknown => appL10n.receiveTypeLabelOther,
   };
 
   /// What the address does for the person being paid.
   static String typeExplainer(BeamAddressType type) => switch (type) {
     BeamAddressType.regular || BeamAddressType.regularNew => regularExplainer,
-    BeamAddressType.offline =>
-      'Works while your wallet is closed. Good for one payment.',
-    BeamAddressType.maxPrivacy =>
-      'Hides the payment among many others; takes longer. Use it once.',
-    BeamAddressType.publicOffline =>
-      'Safe to post publicly. Payments arrive even while your wallet is '
-          'closed.',
+    BeamAddressType.offline => appL10n.receiveTypeExplainerOffline,
+    BeamAddressType.maxPrivacy => appL10n.receiveTypeExplainerMaxPrivacy,
+    BeamAddressType.publicOffline => appL10n.receiveTypeExplainerPublic,
     BeamAddressType.unknown => '',
   };
 
@@ -100,98 +91,81 @@ abstract final class BeamReceiveText {
   ) => switch (gate.block) {
     null => (reason: '', showNodeSettings: false),
     BeamPrivateReceiveBlock.connecting => (
-      reason:
-          'Campfire is still connecting to the BEAM network. These options '
-          'unlock in a few seconds if your private node is on.',
+      reason: appL10n.receivePrivateConnecting,
       showNodeSettings: false,
     ),
     BeamPrivateReceiveBlock.notOnThisDevice => (
-      reason:
-          "They need Campfire's private node, which runs on computers. Use "
-          'your regular address above.',
+      reason: appL10n.receivePrivateNotOnThisDevice,
       showNodeSettings: false,
     ),
     BeamPrivateReceiveBlock.nodeOff => (
-      reason:
-          'Turn on your private node in Node settings — it takes about 2 '
-          'hours the first time.',
+      reason: appL10n.receivePrivateNodeOff,
       showNodeSettings: true,
     ),
     BeamPrivateReceiveBlock.nodeStarting => (
-      reason:
-          'Your private node is starting. These unlock when it has '
-          "downloaded BEAM's history — about 2 hours the first time.",
+      reason: appL10n.receivePrivateNodeStarting,
       showNodeSettings: true,
     ),
     BeamPrivateReceiveBlock.nodeDownloading => (
-      reason:
-          "Your private node is downloading BEAM's history"
-          '${gate.percent == null ? '' : ' (${gate.percent}% done)'}. '
-          'These unlock when it finishes.',
+      reason: switch (gate.percent) {
+        null => appL10n.receivePrivateNodeDownloading,
+        final percent => appL10n.receivePrivateNodeDownloadingPercent(percent),
+      },
       showNodeSettings: true,
     ),
     BeamPrivateReceiveBlock.nodeCatchingUp => (
-      reason:
-          'Your private node is almost ready: it is catching up on the '
-          'newest blocks.',
+      reason: appL10n.receivePrivateNodeCatchingUp,
       showNodeSettings: true,
     ),
     BeamPrivateReceiveBlock.nodeSwitching => (
-      reason: 'Moving your wallet to your private node. This takes a moment.',
+      reason: appL10n.receivePrivateNodeSwitching,
       showNodeSettings: false,
     ),
     BeamPrivateReceiveBlock.nodeConfirming => (
-      reason:
-          "Waiting for your private node to confirm it holds this wallet's "
-          'key.',
+      reason: appL10n.receivePrivateNodeConfirming,
       showNodeSettings: true,
     ),
     BeamPrivateReceiveBlock.nodeProblem => (
-      reason:
-          "Your private node isn't running right now, so Campfire is using a "
-          'public node. Open Node settings to see why.',
+      reason: appL10n.receivePrivateNodeProblem,
       showNodeSettings: true,
     ),
     BeamPrivateReceiveBlock.nodeServingOtherWallet => (
-      reason:
-          'Your private node is serving another of your wallets. These '
-          'unlock here when that wallet closes.',
+      reason: appL10n.receivePrivateNodeServingOther,
       showNodeSettings: true,
     ),
   };
 
   // ------------------------------------------------------- address list
 
-  static const active = 'Active';
-  static String expiredCount(int n) => 'Expired ($n)';
-  static const noLabel = 'No label';
-  static const onReceive = 'Shown on Receive';
-  static const editLabel = 'Edit label';
-  static const delete = 'Delete';
-  static const cancel = 'Cancel';
-  static const saveLabel = 'Save label';
-  static const labelHint = 'e.g. From Alex';
-  static const labelSaved = 'Label saved';
-  static const deleteTitle = 'Delete this address?';
-  static const deleteMessage =
-      "Payments sent to it after this won't reach your wallet. Your balance "
-      'and past payments stay as they are.';
-  static const deleted = 'Address deleted';
-  static const noAddresses = 'No addresses yet';
-  static const noAddressesHint =
-      'Make one now and share it with whoever is paying you.';
-  static const getMyAddress = 'Get my address';
-  static const cantShowAddresses = "Can't show your addresses yet";
+  static String get active => appL10n.receiveActive;
+  static String expiredCount(int n) => appL10n.receiveExpiredCount(n);
+  static String get noLabel => appL10n.receiveNoLabel;
+  static String get onReceive => appL10n.receiveShownOnReceive;
+  static String get editLabel => appL10n.receiveEditLabel;
+  static String get delete => appL10n.receiveDelete;
+  static String get cancel => appL10n.commonCancel;
+  static String get saveLabel => appL10n.receiveSaveLabel;
+  static String get labelHint => appL10n.receiveLabelHint;
+  static String get labelSaved => appL10n.receiveLabelSaved;
+  static String get deleteTitle => appL10n.receiveDeleteTitle;
+  static String get deleteMessage => appL10n.receiveDeleteMessage;
+  static String get deleted => appL10n.receiveDeleted;
+  static String get noAddresses => appL10n.receiveNoAddresses;
+  static String get noAddressesHint => appL10n.receiveNoAddressesHint;
+  static String get getMyAddress => appL10n.receiveGetMyAddress;
+  static String get cantShowAddresses => appL10n.receiveCantShowAddresses;
 
   static final DateFormat _date = DateFormat('d MMM y');
 
   /// "Created 22 Jun 2024 · Never expires" and the like.
   static String lifetime(BeamAddress a) {
-    final created = 'Created ${_date.format(a.createdAt.toLocal())}';
+    final created = _date.format(a.createdAt.toLocal());
     final ends = a.expiresAt;
-    if (ends == null) return '$created · Never expires';
+    if (ends == null) return appL10n.receiveLifetimeNeverExpires(created);
     final when = _date.format(ends.toLocal());
-    return a.expired ? '$created · Expired $when' : '$created · Expires $when';
+    return a.expired
+        ? appL10n.receiveLifetimeExpired(created, when)
+        : appL10n.receiveLifetimeExpires(created, when);
   }
 
   /// First and last characters, for lists where the full address is one
@@ -207,25 +181,15 @@ abstract final class BeamReceiveText {
   /// What went wrong, in words that never blame the person, with the fix.
   static String error(Object e) {
     if (e is BeamRpcException) {
-      if (e.code == -32005) {
-        return "Your wallet isn't on your private node right now, so this "
-            "address type can't be made. Use your regular address, or try "
-            'again once Node settings shows the private node is on.';
-      }
+      if (e.code == -32005) return appL10n.receiveErrorNotOnPrivateNode;
       final m = e.message.toLowerCase();
       if (m.contains('active transaction') || m.contains('in use')) {
-        return 'A payment to this address is still in progress. Try again '
-            'when it finishes.';
+        return appL10n.receiveErrorInProgress;
       }
-      return 'The wallet could not do that just now. Try again in a moment.';
+      return appL10n.receiveErrorCouldNotDo;
     }
-    if (e is BeamConnectionException) {
-      return 'Campfire is still connecting to the BEAM network. Try again in '
-          'a few seconds.';
-    }
-    if (e is TimeoutException) {
-      return 'The BEAM network is slow to answer. Try again in a moment.';
-    }
-    return 'Something went wrong on our side. Try again in a moment.';
+    if (e is BeamConnectionException) return appL10n.receiveErrorConnecting;
+    if (e is TimeoutException) return appL10n.receiveErrorSlow;
+    return appL10n.receiveErrorOurSide;
   }
 }

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/amount/amount_formatter.dart';
@@ -102,16 +103,13 @@ Future<void> openBeamExplorer(
 }) async {
   final uri = backend.explorerUri(kernelId);
   if (!backend.skipExplorerWarning()) {
+    final l10n = context.l10n;
     final go = await showBeamConfirm(
       context,
-      title: 'Attention',
-      message:
-          'You are about to view this transaction in a block explorer. '
-          'The explorer may log your IP address and link it to the '
-          'transaction. Only proceed if you trust '
-          '${uri.scheme}://${uri.host}.',
-      confirm: 'Continue',
-      keep: 'Cancel',
+      title: l10n.txExplorerWarningTitle,
+      message: l10n.txExplorerWarning('${uri.scheme}://${uri.host}'),
+      confirm: l10n.commonContinue,
+      keep: l10n.commonCancel,
       isDesktop: isDesktop,
     );
     if (!go) return;
@@ -125,25 +123,26 @@ Future<void> openBeamExplorer(
   if (!opened && context.mounted) {
     await showBeamNotice(
       context,
-      title: 'Could not open the block explorer',
-      message: 'Copy this link into a browser instead: $uri',
+      title: context.l10n.txExplorerOpenFailedTitle,
+      message: context.l10n.txExplorerOpenFailed('$uri'),
       isDesktop: isDesktop,
     );
   }
 }
 
-/// Copies [text] and says so, the way Campfire's copy buttons do.
+/// Copies [text] and says so, the way Campfire's copy buttons do: with
+/// [message], or "Copied to clipboard" when it is null.
 Future<void> copyWithToast(
   BuildContext context,
   String text, {
-  String message = 'Copied to clipboard',
+  String? message,
 }) async {
   await Clipboard.setData(ClipboardData(text: text));
   if (context.mounted) {
     unawaited(
       showFloatingFlushBar(
         type: FlushBarType.info,
-        message: message,
+        message: message ?? context.l10n.txCopiedToClipboard,
         context: context,
       ),
     );
@@ -190,18 +189,17 @@ class BeamProofExportDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDesktop = ref.watch(pBeamTxIsDesktop);
     final backend = ref.watch(pBeamTxBackend(walletId));
+    final l10n = context.l10n;
     return _ProofFrame(
       isDesktop: isDesktop,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Payment proof', style: STextStyles.pageTitleH2(context)),
+          Text(l10n.txPaymentProof, style: STextStyles.pageTitleH2(context)),
           const SizedBox(height: 8),
           Text(
-            'Send this to the receiver, or to anyone who needs to see that '
-            'you paid. It shows the amount, both addresses and the '
-            'transaction ID — nothing else.',
+            l10n.txProofExportExplain,
             style: STextStyles.smallMed14(context),
           ),
           const SizedBox(height: 16),
@@ -219,9 +217,9 @@ class BeamProofExportDialog extends ConsumerWidget {
           const SizedBox(height: 20),
           PrimaryButton(
             key: const Key('beamProofCopy'),
-            label: 'Copy proof',
+            label: l10n.txProofCopy,
             onPressed: () async {
-              await copyWithToast(context, proof, message: 'Proof copied');
+              await copyWithToast(context, proof, message: l10n.txProofCopied);
             },
           ),
           const SizedBox(height: 12),
@@ -230,14 +228,14 @@ class BeamProofExportDialog extends ConsumerWidget {
               if (!isDesktop)
                 Expanded(
                   child: SecondaryButton(
-                    label: 'Share',
+                    label: l10n.txShare,
                     onPressed: () => backend.share(proof),
                   ),
                 ),
               if (!isDesktop) const SizedBox(width: 12),
               Expanded(
                 child: SecondaryButton(
-                  label: 'Done',
+                  label: l10n.commonDone,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -317,20 +315,17 @@ class _BeamProofCheckDialogState extends ConsumerState<BeamProofCheckDialog> {
     final isDesktop = ref.watch(pBeamTxIsDesktop);
     final colors = Theme.of(context).extension<StackColors>()!;
     final verdict = _verdict;
+    final l10n = context.l10n;
     return _ProofFrame(
       isDesktop: isDesktop,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Check a payment proof',
-            style: STextStyles.pageTitleH2(context),
-          ),
+          Text(l10n.txProofCheckTitle, style: STextStyles.pageTitleH2(context)),
           const SizedBox(height: 8),
           Text(
-            'Paste the proof the sender gave you. Campfire checks it '
-            'against the BEAM network.',
+            l10n.txProofCheckExplain,
             style: STextStyles.smallMed14(context),
           ),
           const SizedBox(height: 16),
@@ -348,7 +343,7 @@ class _BeamProofCheckDialogState extends ConsumerState<BeamProofCheckDialog> {
                 _problem = null;
               }),
               decoration: standardInputDecoration(
-                'Payment proof',
+                l10n.txPaymentProof,
                 _focus,
                 context,
               ).copyWith(filled: true),
@@ -375,13 +370,13 @@ class _BeamProofCheckDialogState extends ConsumerState<BeamProofCheckDialog> {
           const SizedBox(height: 20),
           PrimaryButton(
             key: const Key('beamProofCheck'),
-            label: _checking ? 'Checking…' : 'Check proof',
+            label: _checking ? l10n.txProofChecking : l10n.txProofCheckButton,
             enabled: !_checking && _controller.text.trim().isNotEmpty,
             onPressed: _check,
           ),
           const SizedBox(height: 12),
           SecondaryButton(
-            label: 'Close',
+            label: l10n.commonClose,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

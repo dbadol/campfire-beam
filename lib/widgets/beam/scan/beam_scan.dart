@@ -46,6 +46,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tuple/tuple.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
 import '../../../models/send_view_auto_fill_data.dart';
 import '../../../notifications/show_flush_bar.dart';
@@ -250,7 +251,7 @@ Future<void> _openEthereumSend(
   await showLoading(
     whileFuture: wallet.init(),
     context: context,
-    message: 'Opening ${wallet.info.name}',
+    message: context.l10n.scanOpeningWallet(wallet.info.name),
     rootNavigator: desktop,
   );
   if (!context.mounted) return;
@@ -282,8 +283,10 @@ Future<void> _openEthereumSend(
               Padding(
                 padding: const EdgeInsets.only(left: 32),
                 child: Text(
-                  'Send ${wallet.cryptoCurrency.ticker} from '
-                  '${wallet.info.name}',
+                  context.l10n.scanSendFromWallet(
+                    wallet.cryptoCurrency.ticker,
+                    wallet.info.name,
+                  ),
                   style: STextStyles.desktopH3(context),
                 ),
               ),
@@ -310,14 +313,14 @@ Future<ScanEthWallet?> _chooseEthereumWallet(
   ScanEthWallet? chosen;
   await showBeamFeatureMenu(
     context,
-    title: 'Pay from which Ethereum wallet?',
+    title: context.l10n.scanChooseEthWalletTitle,
     options: [
       for (final w in wallets)
         BeamFeatureMenuOption(
           key: Key('beamScanEthWallet_${w.id}'),
           icon: Assets.svg.walletDesktop,
           title: w.name,
-          detail: 'Its Send opens with the address filled in',
+          detail: context.l10n.scanChooseEthWalletDetail,
           onSelected: (_) => chosen = w,
         ),
     ],
@@ -411,7 +414,7 @@ class BeamScanSheet extends StatelessWidget {
     unawaited(
       showFloatingFlushBar(
         type: FlushBarType.info,
-        message: 'Copied',
+        message: context.l10n.commonCopied,
         iconAsset: Assets.svg.copy,
         context: context,
       ),
@@ -440,7 +443,7 @@ class BeamScanSheet extends StatelessWidget {
     final copy = text.copy;
     final close = SecondaryButton(
       key: const Key('beamScanSheetClose'),
-      label: 'Close',
+      label: context.l10n.commonClose,
       buttonHeight: height,
       onPressed: () => Navigator.of(context).pop(),
     );
@@ -502,7 +505,7 @@ class BeamScanSheet extends StatelessWidget {
           if (action == null)
             PrimaryButton(
               key: const Key('beamScanSheetClose'),
-              label: 'Close',
+              label: context.l10n.commonClose,
               buttonHeight: height,
               onPressed: () => Navigator.of(context).pop(),
             )
@@ -538,7 +541,7 @@ class BeamHomeScanButton extends ConsumerWidget {
     final c = Theme.of(context).extension<StackColors>()!;
     return AppBarIconButton(
       key: const Key('beamHomeScanButton'),
-      semanticsLabel: 'Scan a QR code. Opens the camera.',
+      semanticsLabel: context.l10n.scanButtonLabel,
       size: 36,
       shadows: const [],
       color: c.background,
@@ -596,7 +599,7 @@ class BeamDesktopScanButton extends ConsumerWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              'Scan QR code',
+              context.l10n.scanQrCode,
               style: STextStyles.desktopMenuItemSelected(context),
             ),
           ],

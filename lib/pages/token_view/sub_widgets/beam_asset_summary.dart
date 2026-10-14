@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../providers/global/locale_provider.dart';
 import '../../../providers/global/prefs_provider.dart';
@@ -45,13 +46,13 @@ class BeamAssetValue {
     );
     final market = ref.watch(pBeamAssetMarket(walletId)).asData?.value;
     if (market == null) {
-      return const BeamAssetValue(BeamAssetText.priceLoading, null);
+      return BeamAssetValue(BeamAssetText.priceLoading, null);
     }
     final balance = ref.watch(
       pBeamAssetBalance((walletId: walletId, assetId: asset.assetId)),
     );
     final value = market.pricer.valueInGroth(asset.assetId, balance.total.raw);
-    if (value == null) return const BeamAssetValue(BeamAssetText.noPrice, null);
+    if (value == null) return BeamAssetValue(BeamAssetText.noPrice, null);
     Decimal? price;
     if (ref.watch(prefsChangeNotifierProvider.select((s) => s.externalCalls))) {
       price = ref.watch(
@@ -127,8 +128,7 @@ class BeamAssetSummary extends ConsumerWidget {
         BeamAssetText.poolLine(asset) ??
         (asset.verified
             ? null
-            : 'Unverified asset ${asset.idLabel}. Anyone can create an asset '
-                  'with any name; check the number with the sender.');
+            : context.l10n.assetsUnverifiedNote(asset.idLabel));
     final warning = BeamAssetText.impersonation(asset);
 
     return RoundedContainer(
@@ -182,7 +182,7 @@ class BeamAssetSummary extends ConsumerWidget {
           ),
           if (pending.raw > BigInt.zero) ...[
             const SizedBox(height: 4),
-            Text('$pendingText on the way', style: secondary),
+            Text(context.l10n.assetsOnTheWay(pendingText), style: secondary),
           ],
           if (note != null) ...[
             const SizedBox(height: 8),
@@ -203,14 +203,14 @@ class BeamAssetSummary extends ConsumerWidget {
             children: [
               TokenOptionsButton(
                 onPressed: onReceive,
-                subLabel: "Receive",
+                subLabel: context.l10n.assetsReceive,
                 iconAssetPathSVG: Assets.svg.arrowDownLeft,
               ),
               const SizedBox(width: 16),
               TokenOptionsButton(
                 key: const Key('beamAssetSendButton'),
                 onPressed: onSend,
-                subLabel: "Send",
+                subLabel: context.l10n.assetsSend,
                 iconAssetPathSVG: Assets.svg.arrowUpRight,
               ),
               if (onBridge != null) ...[
@@ -218,7 +218,7 @@ class BeamAssetSummary extends ConsumerWidget {
                 TokenOptionsButton(
                   key: const Key('beamAssetBridgeButton'),
                   onPressed: onBridge!,
-                  subLabel: "Bridge",
+                  subLabel: context.l10n.assetsBridge,
                   iconAssetPathSVG: Assets.svg.arrowsTwoWay,
                 ),
               ],

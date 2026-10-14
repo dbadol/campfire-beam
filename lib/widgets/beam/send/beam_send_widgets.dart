@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/constants.dart';
@@ -199,8 +200,8 @@ class BeamAssetBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<StackColors>()!;
     final text = asset.verified
-        ? (asset.assetId == 0 ? '' : 'Verified')
-        : 'Not verified · ${asset.idLabel}';
+        ? (asset.assetId == 0 ? '' : context.l10n.sendAssetVerified)
+        : context.l10n.beamAssetNotVerified(asset.idLabel);
     if (text.isEmpty) return const SizedBox.shrink();
     return Text(
       text,
@@ -219,8 +220,11 @@ String? beamImpersonationWarning(BeamAssetDisplay asset) {
   if (copied == null) return null;
   final real = BeamAssetCatalog.verified[copied];
   if (real == null) return null;
-  return 'Not the verified ${real.symbol} (#${real.id}). Anyone can create '
-      'an asset with any name; this one is ${asset.idLabel}.';
+  return appL10n.sendAssetImpersonation(
+    real.symbol,
+    '${real.id}',
+    asset.idLabel,
+  );
 }
 
 /// A grey placeholder bar for content that is loading.

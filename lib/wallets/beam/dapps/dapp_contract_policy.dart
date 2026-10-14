@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../contracts/common/invoke_data.dart';
 import 'dapp_wallet_keys.dart';
 
@@ -60,10 +61,9 @@ abstract final class DappContractPolicy {
   static void check(BeamInvokeData data) {
     final privilege = data.appPrivilege;
     if (privilege != null && privilege != 0) {
-      throw const DappContractRefused(
+      throw DappContractRefused(
         DappContractRefusal.privileged,
-        'Campfire refused this request: it asks the wallet to run the '
-        "dApp's own code with extra privileges. Nothing was sent.",
+        appL10n.dappsRefusedPrivileged,
       );
     }
     for (final e in data.entries) {
@@ -71,20 +71,16 @@ abstract final class DappContractPolicy {
       if (cid != null && DappWalletKeys.forbiddenContracts.contains(cid)) {
         throw DappContractRefused(
           DappContractRefusal.forbiddenContract,
-          'Campfire refused this request: it calls '
-          '${dappContractName(cid)}, which holds your names and the '
-          'payments sent to them. Use Names in Campfire for that. Nothing '
-          'was sent.',
+          appL10n.dappsRefusedForbiddenContract('${dappContractName(cid)}'),
           contractId: cid,
         );
       }
       for (final k in e.signatureKeyHashes) {
-        final use = DappWalletKeys.reservedUse(k);
+        final use = DappWalletKeys.reservedKind(k);
         if (use != null) {
           throw DappContractRefused(
             DappContractRefusal.reservedKey,
-            'Campfire refused this request: it signs with the key that '
-            'controls $use. Nothing was sent.',
+            appL10n.dappsRefusedReservedKey(use),
             contractId: cid,
           );
         }

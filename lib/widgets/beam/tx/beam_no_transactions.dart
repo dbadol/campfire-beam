@@ -27,6 +27,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/receive_view/receive_view.dart';
 import '../../../pages/wallet_view/wallet_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/desktop_receive.dart';
@@ -77,31 +78,31 @@ class BeamNoTransactions extends ConsumerWidget {
     return height.ceilToDouble();
   }
 
-  /// What a restore leaves out of the list.
-  static const _noPastPayments =
-      "Payments from before the restore aren't listed: BEAM keeps no history "
-      'on the chain.';
-
   /// The title: a restore scan still running ([scan]), a restored wallet
   /// that holds something ([restoredWithFunds]), or simply nothing yet.
   static String title(BeamCoinScan? scan, {bool restoredWithFunds = false}) {
-    if (scan != null) return 'Still looking for your coins';
-    if (restoredWithFunds) return 'No payments since the restore';
-    return 'No transactions yet';
+    if (scan != null) return appL10n.txEmptyScanningTitle;
+    if (restoredWithFunds) return appL10n.txEmptyRestoredTitle;
+    return appL10n.txEmptyTitle;
   }
 
-  /// The line under the title.
+  /// The line under the title. What a restore leaves out of the list is
+  /// [AppLocalizations.txNoPastPayments].
   static String detail(BeamCoinScan? scan, {bool restoredWithFunds = false}) {
+    final l = appL10n;
     if (scan != null) {
       final p = scan.percent;
-      return 'They show in your balance as they are found'
-          '${p == null ? '' : ' ($p%)'}. $_noPastPayments';
+      return joinSentences([
+        p == null
+            ? l.txEmptyScanningDetail
+            : l.txEmptyScanningDetailPercent('$p'),
+        l.txNoPastPayments,
+      ]);
     }
     if (restoredWithFunds) {
-      return '$_noPastPayments Your balance is complete, and new payments '
-          'appear here.';
+      return joinSentences([l.txNoPastPayments, l.txEmptyRestoredDetail]);
     }
-    return 'Payments you send and receive will show up here.';
+    return l.txEmptyDetail;
   }
 
   Future<void> _receive(BuildContext context, bool isDesktop) async {
@@ -121,7 +122,7 @@ class BeamNoTransactions extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 32),
                     child: Text(
-                      'Receive BEAM',
+                      context.l10n.txReceiveBeam,
                       style: STextStyles.desktopH3(context),
                     ),
                   ),
@@ -217,7 +218,7 @@ class BeamNoTransactions extends ConsumerWidget {
                       key: const Key('beamNoTxReceive'),
                       width: isDesktop ? 220 : null,
                       buttonHeight: ButtonHeight.xl,
-                      label: 'Receive BEAM',
+                      label: context.l10n.txReceiveBeam,
                       onPressed: () => _receive(context, isDesktop),
                     ),
                   ),

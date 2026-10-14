@@ -11,6 +11,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart' as crypto;
 
+import '../../../l10n/l10n.dart';
 import '../contracts/airdrop/airdrop_constants.dart';
 import '../contracts/bans/bans_constants.dart';
 import '../contracts/burn/blackhole_constants.dart';
@@ -42,12 +43,15 @@ const String kDaoVaultCid =
 /// its key the same way from `key_material` (`v7_0_api_handle.cpp:231-236`).
 abstract final class DappWalletKeys {
   /// The `m_vSig` hash of key id [id].
-  static String keyHash(List<int> id) => crypto.sha256
-      .convert([...ascii.encode('bvm.m.key'), 0, ...id])
-      .toString();
+  static String keyHash(List<int> id) => crypto.sha256.convert([
+    ...ascii.encode('bvm.m.key'),
+    0,
+    ...id,
+  ]).toString();
 
-  /// Key hashes no dApp may sign with, and what each key holds, in the
-  /// words of the refusal.
+  /// Key hashes no dApp may sign with, and what each key holds: the case
+  /// the refusals (`dappsRefusedReservedKey`, `dappsRefusedSignReservedKey`)
+  /// select on, `names`, `airdrops` or `airdropContract`.
   ///
   /// * BANS `MyKeyID(cid)` (`bvm/Shaders/bans/app.cpp:239-245`): owns the
   ///   user's names and the name payments waiting in the Anon-Vault.
@@ -56,18 +60,32 @@ abstract final class DappWalletKeys {
   ///   the recorded `create_batch` raw_data (a test checks it).
   /// * Airdrop `OwnerAccountID{0xAD, 42}`: the airdrop contract's owner.
   static final Map<String, String> reserved = Map.unmodifiable({
-    keyHash(_hex(kBansCid)): 'your BEAM names',
-    keyHash([..._hex(kAirdropContractId), 0]): 'your airdrops',
-    keyHash(const [0xAD, 42]): 'the airdrop contract',
+    keyHash(_hex(kBansCid)): 'names',
+    keyHash([..._hex(kAirdropContractId), 0]): 'airdrops',
+    keyHash(const [0xAD, 42]): 'airdropContract',
   });
 
-  /// What the reserved key [keyHashHex] holds, or null when it is not one.
-  static String? reservedUse(String keyHashHex) =>
+  /// What the reserved key [keyHashHex] holds ([reserved]), or null when it
+  /// is not one.
+  static String? reservedKind(String keyHashHex) =>
       reserved[keyHashHex.toLowerCase()];
 
-  /// What the reserved key derived from [keyMaterial] holds, or null.
-  static String? reservedUseOfMaterial(List<int> keyMaterial) =>
+  /// What the reserved key derived from [keyMaterial] holds ([reserved]),
+  /// or null.
+  static String? reservedKindOfMaterial(List<int> keyMaterial) =>
       reserved[keyHash(keyMaterial)];
+
+  /// What the reserved key [keyHashHex] holds, in English words for logs
+  /// and tests ("your airdrops"), or null when it is not one. Screens use
+  /// the refusal messages, which select on [reservedKind].
+  static String? reservedUse(String keyHashHex) =>
+      _inWords[reservedKind(keyHashHex)];
+
+  static const _inWords = {
+    'names': 'your BEAM names',
+    'airdrops': 'your airdrops',
+    'airdropContract': 'the airdrop contract',
+  };
 
   /// Contracts no dApp may call: they move the user's names and the name
   /// payments waiting for them, with the user's own key. Campfire's Names
@@ -82,14 +100,14 @@ abstract final class DappWalletKeys {
 
 /// Names for the contracts Campfire knows, so the approval sheet can say
 /// "Beam DEX" instead of a bare id. Anything else is "Unknown contract".
-const Map<String, String> dappKnownContracts = {
+Map<String, String> get dappKnownContracts => {
   kDexContractId: 'Beam DEX',
-  kBansCid: 'BEAM names (BANS)',
-  kVaultAnonCid: 'BANS name payments vault',
-  kDaoVaultCid: 'BeamX DAO vault',
-  kAirdropContractId: 'Campfire airdrops',
-  kMinterContractId: 'Asset minter',
-  kBlackHoleContractId: 'Black hole (burns assets)',
+  kBansCid: appL10n.dappsContractBans,
+  kVaultAnonCid: appL10n.dappsContractBansVault,
+  kDaoVaultCid: appL10n.dappsContractDaoVault,
+  kAirdropContractId: appL10n.dappsContractAirdrops,
+  kMinterContractId: appL10n.dappsContractMinter,
+  kBlackHoleContractId: appL10n.dappsContractBlackHole,
 };
 
 /// The name of contract [cid], or null when Campfire does not know it.

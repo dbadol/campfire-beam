@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../utilities/amount/amount_input_formatter.dart';
@@ -230,19 +231,17 @@ class BeamSendFormState extends State<BeamSendForm> {
                 key: const Key('beamSendSyncNotice'),
                 kind: BeamNoticeKind.warning,
                 title: _m.syncMessage!.title,
-                message:
-                    _m.syncMessage!.detail ??
-                    "Sending is paused until it's done.",
+                message: _m.syncMessage!.detail ?? context.l10n.sendSyncPaused,
               ),
               const SizedBox(height: 16),
             ],
-            BeamFieldLabel('Send to', desktop: _desktop),
+            BeamFieldLabel(context.l10n.sendToLabel, desktop: _desktop),
             SizedBox(height: _desktop ? 10 : 8),
             _recipientField(context),
             ..._recipientBelow(context),
             if (_m.assetChoices.length > 1 || _m.assetId != 0) ...[
               SizedBox(height: _desktop ? 20 : 12),
-              BeamFieldLabel('Asset', desktop: _desktop),
+              BeamFieldLabel(context.l10n.sendAssetLabel, desktop: _desktop),
               SizedBox(height: _desktop ? 10 : 8),
               _assetSelector(context),
               ..._assetBelow(context),
@@ -251,10 +250,10 @@ class BeamSendFormState extends State<BeamSendForm> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                BeamFieldLabel('Amount', desktop: _desktop),
+                BeamFieldLabel(context.l10n.sendAmountLabel, desktop: _desktop),
                 CustomTextButton(
                   key: const Key('beamSendAllButton'),
-                  text: 'Send all ${BeamSendFormat.symbol(_m.asset)}',
+                  text: context.l10n.sendAll(BeamSendFormat.symbol(_m.asset)),
                   onTap: _useMax,
                 ),
               ],
@@ -263,11 +262,14 @@ class BeamSendFormState extends State<BeamSendForm> {
             _amountField(context),
             ..._amountBelow(context),
             SizedBox(height: _desktop ? 20 : 12),
-            BeamFieldLabel('Network fee', desktop: _desktop),
+            BeamFieldLabel(context.l10n.beamNetworkFee, desktop: _desktop),
             SizedBox(height: _desktop ? 10 : 8),
             _feeBox(context),
             SizedBox(height: _desktop ? 20 : 12),
-            BeamFieldLabel('Comment (optional)', desktop: _desktop),
+            BeamFieldLabel(
+              context.l10n.sendCommentOptionalLabel,
+              desktop: _desktop,
+            ),
             SizedBox(height: _desktop ? 10 : 8),
             _commentField(context),
             const SizedBox(height: 4),
@@ -303,14 +305,14 @@ class BeamSendFormState extends State<BeamSendForm> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.walletName ?? 'BEAM wallet',
+                  widget.walletName ?? context.l10n.sendWalletFallbackName,
                   style: STextStyles.titleBold12(context)
                       .copyWith(fontSize: 14),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
                 Text(
-                  'Available balance',
+                  context.l10n.sendAvailableBalance,
                   style: STextStyles.label(context).copyWith(fontSize: 10),
                 ),
               ],
@@ -364,7 +366,7 @@ class BeamSendFormState extends State<BeamSendForm> {
         },
         decoration:
             beamInputDecoration(
-              'Enter BEAM address or name',
+              context.l10n.sendRecipientHint,
               _toFocus,
               context,
               desktop: _desktop,
@@ -381,8 +383,7 @@ class BeamSendFormState extends State<BeamSendForm> {
                       if (!empty)
                         TextFieldIconButton(
                           key: const Key('beamSendClearRecipient'),
-                          semanticsLabel:
-                              'Clear Button. Clears The Address Field Input.',
+                          semanticsLabel: context.l10n.sendClearButtonLabel,
                           onTap: () {
                             _to.clear();
                             _m.setRecipient('');
@@ -393,25 +394,20 @@ class BeamSendFormState extends State<BeamSendForm> {
                       else
                         TextFieldIconButton(
                           key: const Key('beamSendPasteRecipient'),
-                          semanticsLabel:
-                              'Paste Button. Pastes From Clipboard To Address '
-                              'Field Input.',
+                          semanticsLabel: context.l10n.sendPasteButtonLabel,
                           onTap: _paste,
                           child: const ClipboardIcon(),
                         ),
                       if (empty && widget.onAddressBook != null)
                         TextFieldIconButton(
                           semanticsLabel:
-                              'Address Book Button. Opens Address Book For '
-                              'Address Field.',
+                              context.l10n.sendAddressBookButtonLabel,
                           onTap: () => _pick(widget.onAddressBook!),
                           child: const AddressBookIcon(),
                         ),
                       if (empty && widget.onScanQr != null)
                         TextFieldIconButton(
-                          semanticsLabel:
-                              'Scan QR Button. Opens Camera For Scanning QR '
-                              'Code.',
+                          semanticsLabel: context.l10n.sendScanButtonLabel,
                           onTap: () => _pick(widget.onScanQr!),
                           child: const QrCodeIcon(),
                         ),
@@ -554,7 +550,7 @@ class BeamSendFormState extends State<BeamSendForm> {
                   Padding(
                     padding: const EdgeInsets.only(left: 32),
                     child: Text(
-                      'Choose what to send',
+                      context.l10n.sendChooseAsset,
                       style: STextStyles.desktopH3(context),
                     ),
                   ),
@@ -657,7 +653,7 @@ class BeamSendFormState extends State<BeamSendForm> {
                 ? null
                 : CustomTextButton(
                     key: const Key('beamSendSplitLink'),
-                    text: 'Split coins for next time',
+                    text: context.l10n.sendSplitForNextTime,
                     onTap: () => split(waiting),
                   ),
           ),
@@ -679,7 +675,7 @@ class BeamSendFormState extends State<BeamSendForm> {
           Padding(
             padding: const EdgeInsets.only(left: 12),
             child: Text(
-              'The network fee comes out of this amount.',
+              context.l10n.sendFeeFromAmount,
               style: STextStyles.label(context),
             ),
           ),
@@ -716,14 +712,14 @@ class BeamSendFormState extends State<BeamSendForm> {
         children: [
           Expanded(
             child: Text(
-              _m.feeIsMinimum ? 'At least $fee' : fee,
+              _m.feeIsMinimum ? context.l10n.sendFeeAtLeast(fee) : fee,
               style: STextStyles.itemSubtitle12(context),
             ),
           ),
           Text(
             _m.feeIsMinimum
-                ? 'Exact fee on the next screen'
-                : 'Set by the network',
+                ? context.l10n.sendFeeExactNext
+                : context.l10n.sendFeeSetByNetwork,
             style: STextStyles.label(context),
           ),
         ],
@@ -750,7 +746,7 @@ class BeamSendFormState extends State<BeamSendForm> {
         },
         decoration:
             beamInputDecoration(
-              'Type something…',
+              context.l10n.sendCommentHint,
               _commentFocus,
               context,
               desktop: _desktop,

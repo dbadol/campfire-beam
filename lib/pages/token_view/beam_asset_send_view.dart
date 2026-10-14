@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
 import '../../wallets/isar/providers/beam/current_beam_asset_wallet_provider.dart';
@@ -39,7 +40,7 @@ class BeamAssetSendView extends ConsumerWidget {
           backgroundColor: colors.background,
           leading: const AppBarBackButton(),
           title: Text(
-            'Send ${assetWallet.tokenSymbol}',
+            context.l10n.assetsSendTitle(assetWallet.tokenSymbol),
             style: STextStyles.navBarTitle(context),
           ),
         ),

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../providers/db/main_db_provider.dart';
 import '../../../themes/stack_colors.dart';
@@ -80,8 +81,7 @@ class _State extends ConsumerState<BeamAssetTransactionsList> {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'No ${widget.assetWallet.tokenSymbol} payments yet. What you send '
-          'or receive shows here.',
+          context.l10n.assetsNoTransactions(widget.assetWallet.tokenSymbol),
           key: const Key('beamAssetNoTransactions'),
           textAlign: TextAlign.center,
           style: STextStyles.itemSubtitle(context),

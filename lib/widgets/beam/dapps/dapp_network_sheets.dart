@@ -24,6 +24,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/constants.dart';
 import '../../../utilities/text_styles.dart';
@@ -35,56 +36,54 @@ import '../../desktop/primary_button.dart';
 import '../../desktop/secondary_button.dart';
 import '../../rounded_container.dart';
 
-/// What the network prompt and the More sheet say.
+/// What the network prompt and the More sheet say (lib/l10n, dapps*
+/// keys).
 abstract final class DappNetworkText {
   static String askTitle(String name, String host) =>
-      'Let $name connect to $host?';
+      appL10n.dappsReachTitle(name, host);
 
   static String askLead(String name, String host) =>
-      '$host will see your IP address and everything $name asks it.';
+      appL10n.dappsReachLead(host, name);
 
-  static String askDetail(String name) =>
-      'Allow it only if you trust $name and that server: BEAM Campfire '
-      'checked neither. $name could also tell the server what it can read '
-      'from your wallet without asking, such as your balance. You can take '
-      'this back in More (⋯) at any time.';
+  static String askDetail(String name) => appL10n.dappsReachDetail(name);
 
   /// Only while Tor is on: the dApp window does not use it.
-  static const torNote =
-      "Tor is on, but dApps connect without it: that is your real IP "
-      "address.";
+  static String get torNote => appL10n.dappsReachTorNote;
 
-  static const allow = 'Allow';
-  static const notNow = 'Not now';
+  static String get allow => appL10n.dappsReachAllow;
+  static String get notNow => appL10n.dappsReachNotNow;
 
   static String allowed(String name, String host) =>
-      '$name can now reach $host. Reloading it…';
+      appL10n.dappsReachAllowed(name, host);
 
   static String allowFailed(String name, String host) =>
-      "BEAM Campfire couldn't save that. $name still can't reach $host; it "
-      'will ask again next time.';
+      appL10n.dappsReachAllowFailed(name, host);
 
-  static const more = 'More';
-  static const serversTitle = 'Servers it can reach';
-  static const serverSubtitle = 'Sees your IP address and what it is asked';
-  static const removeAccess = 'Remove access';
-  static const reload = 'Reload';
+  static String get more => appL10n.dappsServersMore;
+  static String get serversTitle => appL10n.dappsServersTitle;
+  static String get serverSubtitle => appL10n.dappsServerSubtitle;
+  static String get removeAccess => appL10n.dappsServerRemoveAccess;
+  static String get reload => appL10n.dappsServersReload;
 
-  static String none(String name) =>
-      'None. When $name tries to reach a server, BEAM Campfire asks you '
-      'first.';
+  static String none(String name) => appL10n.dappsServersNone(name);
 
-  static String meta({String? version, String? publisher}) =>
-      '${version == null ? 'No version' : 'Version $version'} · '
-      '${publisher == null ? 'unknown publisher' : 'by $publisher'} · '
-      'installed from a file, not checked by BEAM Campfire.';
+  static String meta({String? version, String? publisher}) {
+    final l = appL10n;
+    if (version == null) {
+      return publisher == null
+          ? l.dappsServersMetaNoVersionUnknownPublisher
+          : l.dappsServersMetaNoVersionBy(publisher);
+    }
+    return publisher == null
+        ? l.dappsServersMetaVersionUnknownPublisher(version)
+        : l.dappsServersMetaVersionBy(version, publisher);
+  }
 
   static String revoked(String name, String host) =>
-      '$name can no longer reach $host. Reloading it…';
+      appL10n.dappsServersRevoked(name, host);
 
   static String revokeFailed(String name) =>
-      "BEAM Campfire couldn't change what $name may reach. Nothing was "
-      'changed. Try again.';
+      appL10n.dappsServersRevokeFailed(name);
 }
 
 /// Asks whether the dApp [name] may connect to [origin]. True for Allow;
@@ -178,7 +177,7 @@ class DappReachPrompt extends StatelessWidget {
       ),
       if (torOn) ...[
         const SizedBox(height: 12),
-        const _Note(text: DappNetworkText.torNote),
+        _Note(text: DappNetworkText.torNote),
       ],
     ];
     final title = Text(

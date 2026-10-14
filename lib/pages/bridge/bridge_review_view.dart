@@ -33,6 +33,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
 import '../../wallets/bridge/bridge_controller.dart';
@@ -81,19 +82,26 @@ class BridgeReviewView extends StatefulWidget {
   State<BridgeReviewView> createState() => _BridgeReviewViewState();
 }
 
-/// Why a coin of [r] could be stopped on Ethereum; null when it cannot.
-String? bridgeFreezeNote(BridgeRoute r) => switch (r.id) {
-  'beam' =>
-    'WBEAM can be paused by its issuer. If that happens while your coins '
-        'are crossing, the bridge cannot pay WBEAM out until it is lifted.',
-  'usdt' =>
-    "Tether can freeze the bridge's USDT. If that happens while your coins "
-        'are crossing, the bridge cannot pay USDT out until it is lifted.',
-  'wbtc' =>
-    'WBTC can be paused by its issuer. If that happens while your coins '
-        'are crossing, the bridge cannot pay WBTC out until it is lifted.',
-  _ => null,
-};
+/// Why a coin of [r] could be stopped on Ethereum, as a notice's title
+/// and text; null when it cannot.
+({String title, String detail})? bridgeFreezeNote(BridgeRoute r) {
+  final l = appL10n;
+  return switch (r.id) {
+    'beam' => (
+      title: l.bridgeFreezeWbeamTitle,
+      detail: l.bridgeFreezeDetail('WBEAM'),
+    ),
+    'usdt' => (
+      title: l.bridgeFreezeUsdtTitle,
+      detail: l.bridgeFreezeDetail('USDT'),
+    ),
+    'wbtc' => (
+      title: l.bridgeFreezeWbtcTitle,
+      detail: l.bridgeFreezeDetail('WBTC'),
+    ),
+    _ => null,
+  };
+}
 
 class _BridgeReviewViewState extends State<BridgeReviewView> {
   _Phase _phase = _Phase.review;
@@ -111,9 +119,12 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
   String get _dstSym => r.destinationSymbol(q.direction);
   BigInt get _fee => q.fee!;
 
-  String get _cta =>
-      'Move ${BridgeFormat.coin(q.amount, _srcDec, _srcSym)} to '
-      '${_toEth ? 'Ethereum' : 'BEAM'}';
+  String _cta(AppLocalizations l10n) {
+    final coin = BridgeFormat.coin(q.amount, _srcDec, _srcSym);
+    return _toEth
+        ? l10n.bridgeMoveAmountToEthereum(coin)
+        : l10n.bridgeMoveAmountToBeam(coin);
+  }
 
   Future<void> _confirm() async {
     if (_phase != _Phase.review) return;
@@ -122,15 +133,18 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
       _phase = _Phase.sending;
       _error = null;
     });
-    final ok = await deps.authenticate(context, reason: 'Authenticate to move');
+    final ok = await deps.authenticate(
+      context,
+      reason: context.l10n.bridgeAuthMoveReason,
+    );
     if (!mounted) return;
     if (ok != true) {
       setState(() {
         _phase = _Phase.review;
         _error = ok == false
             ? (deps.desktop
-                  ? 'Wrong password. Nothing was sent.'
-                  : 'Wrong PIN. Nothing was sent.')
+                  ? context.l10n.bridgeWrongPasswordNothingSent
+                  : context.l10n.bridgeWrongPinNothingSent)
             : null;
       });
       return;
@@ -138,9 +152,7 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
     if (_toEth && !(deps.beamCanSpend?.value ?? true)) {
       setState(() {
         _phase = _Phase.review;
-        _error =
-            'Your BEAM wallet fell behind the network. Nothing was sent. '
-            'Try again once it is up to date.';
+        _error = context.l10n.bridgeBeamFellBehind;
       });
       return;
     }
@@ -154,9 +166,7 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
       if (!mounted) return;
       setState(() {
         _phase = _Phase.review;
-        _error =
-            'This was priced more than 15 minutes ago and the fees may have '
-            'changed. Nothing was sent: go back for fresh numbers.';
+        _error = context.l10n.bridgeReviewExpired;
       });
     } on BridgeException catch (e) {
       if (!mounted) return;
@@ -168,9 +178,7 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
       if (!mounted) return;
       setState(() {
         _phase = _Phase.review;
-        _error =
-            "Couldn't start: one of your wallets did not answer. Nothing "
-            'was sent.';
+        _error = context.l10n.bridgeStartNoAnswer;
       });
     }
   }
@@ -178,11 +186,12 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
   @override
   Widget build(BuildContext context) {
     final busy = _phase == _Phase.sending;
+    final l10n = context.l10n;
     return PopScope<String>(
       canPop: !busy,
       child: DexPage(
         deps: deps,
-        title: 'Confirm move',
+        title: l10n.bridgeReviewTitle,
         onClose: busy ? () {} : () => Navigator.of(context).pop(),
         body: _body(context),
         bottom: Column(
@@ -202,8 +211,8 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
             DexPrimaryAction(
               deps: deps,
               buttonKey: const Key('bridge-review-cta'),
-              label: _cta,
-              reason: busy ? 'Sending…' : null,
+              label: _cta(l10n),
+              reason: busy ? l10n.bridgeSending : null,
               onPressed: busy ? null : _confirm,
             ),
           ],
@@ -219,6 +228,7 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
         .copyWith(color: colors.textConfirmTotalAmount);
     final valueStyle = STextStyles.itemSubtitle12(context)
         .copyWith(color: colors.textConfirmTotalAmount);
+    final l10n = context.l10n;
     final String text;
     if (_toEth) {
       text = r.isBeam
@@ -228,9 +238,13 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
     } else {
       final gas = p.ethNetworkFee ?? BigInt.zero;
       text = r.isNativeEth
-          ? 'up to ${BridgeFormat.coin(q.amount + _fee + gas, 18, 'ETH')}'
-          : '${BridgeFormat.coin(q.amount + _fee, _srcDec, _srcSym)} + '
-                'up to ${BridgeFormat.coinShort(gas, 18, 'ETH')}';
+          ? l10n.bridgeUpToAmount(
+              BridgeFormat.coin(q.amount + _fee + gas, 18, 'ETH'),
+            )
+          : l10n.bridgeAmountPlusUpTo(
+              BridgeFormat.coin(q.amount + _fee, _srcDec, _srcSym),
+              BridgeFormat.coinShort(gas, 18, 'ETH'),
+            );
     }
     return RoundedContainer(
       color: colors.snackBarBackSuccess,
@@ -239,10 +253,7 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _toEth
-                ? 'Leaving your\nBEAM wallet'
-                : 'Leaving your\n'
-                      'Ethereum wallet',
+            _toEth ? l10n.bridgeLeavingBeamWallet : l10n.bridgeLeavingEthWallet,
             style: style,
           ),
           const SizedBox(width: 12),
@@ -266,9 +277,8 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
     final note = bridgeFreezeNote(r);
     final steps = p.plan?.steps ?? const <UniTxRequest>[];
     final approvals = steps.length - 1;
-    final firstStep = approvals > 1
-        ? 'Reset the old permission, then allow'
-        : 'First allow';
+    final l10n = context.l10n;
+    final take = BridgeFormat.coin(q.amount + _fee, _srcDec, _srcSym);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -285,8 +295,8 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
                   children: [
                     Text(
                       _toEth
-                          ? 'Arrives in your Ethereum wallet'
-                          : 'Arrives in your BEAM wallet',
+                          ? l10n.bridgeArrivesInEthWallet
+                          : l10n.bridgeArrivesInBeamWallet,
                       style: STextStyles.label(context)
                           .copyWith(color: colors.snackBarTextInfo),
                     ),
@@ -299,11 +309,13 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
                     ),
                     Text(
                       _toEth
-                          ? '${BridgeFormat.about(BridgeTiming.toEthereum)}; '
-                                '${BridgeFormat.upTo(_slowest)} when Ethereum '
-                                'is busy'
-                          : '${BridgeFormat.about(BridgeTiming.toBeam)}, '
-                                'then you collect it',
+                          ? l10n.bridgeTimeOrWhenBusy(
+                              BridgeFormat.about(BridgeTiming.toEthereum),
+                              BridgeFormat.upTo(_slowest),
+                            )
+                          : l10n.bridgeTimeThenCollect(
+                              BridgeFormat.about(BridgeTiming.toBeam),
+                            ),
                       key: const Key('bridge-review-time'),
                       style: STextStyles.label(context)
                           .copyWith(color: colors.snackBarTextInfo),
@@ -319,7 +331,7 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
           child: Column(
             children: [
               DexDetailRow(
-                label: 'You move',
+                label: l10n.bridgeYouMoveLabel,
                 valueKey: const Key('bridge-review-amount'),
                 value: BridgeFormat.coin(q.amount, _srcDec, _srcSym),
                 note: BridgeFormat.usd(
@@ -331,8 +343,8 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
               ),
               DexDetailRow(
                 label: _toEth
-                    ? 'Bridge fee'
-                    : 'Bridge fee, paid to the bridge operator',
+                    ? l10n.bridgeFeeLabel
+                    : l10n.bridgeFeeOperatorLabel,
                 valueKey: const Key('bridge-review-fee'),
                 value: BridgeFormat.coin(_fee, _srcDec, _srcSym),
                 note: BridgeFormat.usd(prices, r.coingeckoId, _fee, _srcDec),
@@ -349,8 +361,8 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
                 ),
               DexDetailRow(
                 label: _toEth
-                    ? 'BEAM network fee'
-                    : 'BEAM network fee, when you collect it',
+                    ? l10n.bridgeBeamNetworkFeeLabel
+                    : l10n.bridgeBeamNetworkFeeCollectLabel,
                 valueKey: const Key('bridge-review-beam-fee'),
                 value: BridgeFormat.coin(p.beamNetworkFee, 8, 'BEAM'),
                 note: BridgeFormat.usd(prices, 'beam', p.beamNetworkFee, 8),
@@ -358,13 +370,12 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
               if (!_toEth)
                 DexDetailRow(
                   label: approvals > 0
-                      ? 'Ethereum network fee, for '
-                            '${approvals + 1} transactions'
-                      : 'Ethereum network fee',
+                      ? l10n.bridgeEthNetworkFeeForCount(approvals + 1)
+                      : l10n.bridgeEthNetworkFeeLabel,
                   valueKey: const Key('bridge-review-eth-fee'),
-                  value:
-                      'up to '
-                      '${BridgeFormat.coinShort(p.ethNetworkFee!, 18, 'ETH')}',
+                  value: l10n.bridgeUpToAmount(
+                    BridgeFormat.coinShort(p.ethNetworkFee!, 18, 'ETH'),
+                  ),
                   note: BridgeFormat.usd(
                     prices,
                     'ethereum',
@@ -374,17 +385,19 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
                 ),
               DexDetailRow(
                 address: true,
-                label: _toEth ? 'To' : 'From',
-                value: 'Your Ethereum wallet ${bridgeShortAddress(ethAddress)}',
+                label: _toEth ? l10n.bridgeRowTo : l10n.bridgeRowFrom,
+                value: l10n.bridgeYourEthWalletAddress(
+                  bridgeShortAddress(ethAddress),
+                ),
               ),
               DexDetailRow(
                 address: true,
-                label: 'Through',
-                value: _toEth
-                    ? "BEAM's official bridge, contract "
-                          '${_shortId(r.beamPipeCid)}'
-                    : "BEAM's official bridge, contract "
-                          '${bridgeShortAddress(r.ethPipe)}',
+                label: l10n.bridgeThroughLabel,
+                value: l10n.bridgeOfficialContract(
+                  _toEth
+                      ? _shortId(r.beamPipeCid)
+                      : bridgeShortAddress(r.ethPipe),
+                ),
               ),
             ],
           ),
@@ -393,35 +406,25 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
           const SizedBox(height: 12),
           DexNotice(
             key: const Key('bridge-review-approval'),
-            title:
-                'You sign ${approvals + 1} Ethereum transactions, one after '
-                'the other',
-            detail:
-                '$firstStep '
-                'the bridge to take exactly '
-                '${BridgeFormat.coin(q.amount + _fee, _srcDec, _srcSym)}, '
-                'then send it. '
-                '${approvals == 1 ? 'Both are' : 'All ${approvals + 1} are'} '
-                'signed with this one confirmation.',
+            title: l10n.bridgeReviewSignCount(approvals + 1),
+            detail: approvals > 1
+                ? l10n.bridgeReviewSignResetAllowThenSend(take, approvals + 1)
+                : l10n.bridgeReviewSignAllowThenSend(take),
           ),
         ],
         const SizedBox(height: 12),
-        const DexNotice(
-          key: Key('bridge-review-public'),
-          title:
-              'Bridging is public on both chains: the amount and your '
-              'Ethereum address are visible',
-          detail:
-              "BEAM's privacy does not cover a crossing. Anyone can link "
-              'it to your Ethereum address.',
+        DexNotice(
+          key: const Key('bridge-review-public'),
+          title: l10n.bridgePublicTitle,
+          detail: l10n.bridgePublicDetail,
         ),
         if (note != null) ...[
           const SizedBox(height: 12),
           DexNotice(
             key: const Key('bridge-review-freeze'),
             kind: DexNoticeKind.warning,
-            title: note.substring(0, note.indexOf('.') + 1),
-            detail: note.substring(note.indexOf('.') + 2),
+            title: note.title,
+            detail: note.detail,
           ),
         ],
         for (final w in q.warnings) ...[
@@ -449,14 +452,14 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
                   ? (v) => setState(() => _autoClaim = v ?? false)
                   : null,
               title: Text(
-                'Collect it automatically when it arrives',
+                l10n.bridgeAutoCollectTitle,
                 style: STextStyles.smallMed14(context)
                     .copyWith(color: colors.textDark),
               ),
               subtitle: Text(
-                'Uses ${BridgeFormat.coin(kBridgeClaimFeeGroth, 8, 'BEAM')} '
-                'from your BEAM wallet without asking again, while Campfire '
-                'is open. Otherwise you collect it with one tap.',
+                l10n.bridgeAutoCollectDetail(
+                  BridgeFormat.coin(kBridgeClaimFeeGroth, 8, 'BEAM'),
+                ),
                 style: STextStyles.label(context)
                     .copyWith(color: colors.textSubtitle1),
               ),
@@ -474,11 +477,10 @@ class _BridgeReviewViewState extends State<BridgeReviewView> {
     final now = q.feeNow;
     if (!_toEth || now == null) return null;
     final room = ((kBridgeFeeMargin - 1) * 100).round();
-    return "The bridge's price now is "
-        '${BridgeFormat.coinShort(now, _srcDec, _srcSym)}. The rest, up to '
-        '$room% more, covers Ethereum gas rising before the bridge pays you '
-        'about an hour from now. Whatever it does not need goes to the '
-        'bridge operator.';
+    return context.l10n.bridgeFeeWhy(
+      BridgeFormat.coinShort(now, _srcDec, _srcSym),
+      '$room',
+    );
   }
 
   static String _shortId(String hex) =>

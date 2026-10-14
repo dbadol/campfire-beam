@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../models/beam_address.dart';
 import '../models/beam_call_results.dart';
 import '../models/beam_transaction.dart';
@@ -38,18 +39,17 @@ abstract final class BeamTxActions {
   /// payment seems stuck; the text says so.
   static String statusLine(BeamTransaction tx) {
     final incoming = tx.income ?? false;
+    final l = appL10n;
     return switch (tx.status) {
       BeamTxStatus.pending || BeamTxStatus.inProgress when _interactive(tx) =>
-        incoming
-            ? 'Waiting for the sender to finish'
-            : 'Waiting for the receiver\'s wallet to come online',
-      BeamTxStatus.pending || BeamTxStatus.inProgress => 'In progress',
-      BeamTxStatus.registering => 'Sending to the network',
-      BeamTxStatus.confirming => 'Waiting for confirmation',
-      BeamTxStatus.completed => incoming ? 'Received' : 'Sent',
-      BeamTxStatus.canceled => 'Cancelled',
+        incoming ? l.txStatusWaitingForSender : l.txStatusWaitingForReceiver,
+      BeamTxStatus.pending || BeamTxStatus.inProgress => l.txStatusInProgress,
+      BeamTxStatus.registering => l.txStatusRegistering,
+      BeamTxStatus.confirming => l.txStatusConfirming,
+      BeamTxStatus.completed => incoming ? l.txStatusReceived : l.txStatusSent,
+      BeamTxStatus.canceled => l.txStatusCancelled,
       BeamTxStatus.failed => _failure(tx),
-      BeamTxStatus.unknown => 'Unknown status',
+      BeamTxStatus.unknown => l.txStatusUnknown,
     };
   }
 
@@ -62,11 +62,14 @@ abstract final class BeamTxActions {
   /// What a failed transaction's status line says when the core's message
   /// is not one [failureSentence] knows. The core's own words stay behind
   /// "Copy technical details"; they are not written for people.
-  static const notCompleted = 'Not completed. Nothing was sent.';
+  static String get notCompleted => appL10n.txStatusNotCompleted;
+
+  /// The status line of a failed transaction the core gave no reason for.
+  static String get failed => appL10n.txStatusFailed;
 
   static String _failure(BeamTransaction tx) {
     final r = (tx.failureReason ?? '').trim();
-    if (r.isEmpty) return 'Failed';
+    if (r.isEmpty) return failed;
     return failureSentence(r, interactive: _interactive(tx)) ?? notCompleted;
   }
 
@@ -79,55 +82,35 @@ abstract final class BeamTxActions {
   static String? failureSentence(String? reason, {required bool interactive}) {
     final r = (reason ?? '').trim().toLowerCase();
     if (r.isEmpty) return null;
-    const nothing = 'Nothing was sent.';
+    final l = appL10n;
     // Order matters: "Address is expired" must not read as a timeout.
-    if (r.contains('address is expired')) {
-      return 'Not sent: the receiving address has expired. $nothing '
-          'Ask for a new address.';
-    }
+    if (r.contains('address is expired')) return l.txFailAddressExpired;
     if (r.contains('timed out') || r.contains('expired')) {
-      return interactive
-          ? 'Expired: the other wallet did not respond in time. $nothing'
-          : 'Expired: it was not added to a block in time. $nothing';
+      return interactive ? l.txFailExpiredOtherWallet : l.txFailExpiredNoBlock;
     }
     if (r.contains('inputs missing') || r.contains('spent')) {
-      return 'Failed: the coins were already spent elsewhere. $nothing';
+      return l.txFailCoinsSpent;
     }
-    if (r.contains('failed to register')) {
-      return 'Not accepted by the network. $nothing';
-    }
-    if (r.contains('not enough inputs')) {
-      return 'Not sent: not enough coins were free to pay it. $nothing';
-    }
-    if (r.contains('fee is too small')) {
-      return 'Not sent: the network fee was too low. $nothing';
-    }
+    if (r.contains('failed to register')) return l.txFailNotAccepted;
+    if (r.contains('not enough inputs')) return l.txFailNotEnoughCoins;
+    if (r.contains('fee is too small')) return l.txFailFeeTooLow;
     if (r.contains('fee is too large') || r.contains('fee is too big')) {
-      return 'Not sent: the fee would have been too large. $nothing';
+      return l.txFailFeeTooLarge;
     }
-    if (r.contains('not signed by the receiver')) {
-      return 'Not sent: the receiver did not sign the payment. $nothing';
-    }
-    if (r.contains('transaction parameters')) {
-      return 'The other wallet could not be reached. $nothing';
-    }
+    if (r.contains('not signed by the receiver')) return l.txFailNotSigned;
+    if (r.contains('transaction parameters')) return l.txFailUnreachable;
     if (r.contains('no voucher') || r.contains('cannot get vouchers')) {
-      return "Not sent: the receiver's offline address has no one-time "
-          'keys left. Ask them to open their wallet or send a new '
-          'address. $nothing';
+      return l.txFailNoVouchers;
     }
-    if (r.contains('disabled in the receiver wallet')) {
-      return "Not sent: the receiver's wallet does not accept tokens. "
-          '$nothing';
-    }
-    if (r.contains('aborted by the user')) return 'Cancelled';
-    if (r.contains('cancel')) return 'Cancelled by the other side. $nothing';
+    if (r.contains('disabled in the receiver wallet')) return l.txFailNoTokens;
+    if (r.contains('aborted by the user')) return l.txStatusCancelled;
+    if (r.contains('cancel')) return l.txFailCancelledByOther;
     if (r.contains('send wallet logs') ||
         r.contains('not valid') ||
         r.contains('kernel') ||
         r.contains('key keeper') ||
         r.contains('invalid state')) {
-      return 'The wallet could not complete it. $nothing';
+      return l.txFailWalletCouldNotComplete;
     }
     return null;
   }
@@ -144,17 +127,16 @@ class BeamProofVerdict {
     required String Function(BigInt amount, int assetId) describeAmount,
   }) {
     if (!info.isValid) {
-      return const BeamProofVerdict._(
-        false,
-        'This proof is not valid. It does not show that the payment '
-        'happened.',
-      );
+      return BeamProofVerdict._(false, appL10n.txProofInvalid);
     }
     return BeamProofVerdict._(
       true,
-      'Valid: ${describeAmount(info.amount, info.assetId)} was paid from '
-      '${_short(info.sender)} to ${_short(info.receiver)} '
-      '(transaction ID ${_short(info.kernel)}).',
+      appL10n.txProofValid(
+        describeAmount(info.amount, info.assetId),
+        _short(info.sender),
+        _short(info.receiver),
+        _short(info.kernel),
+      ),
     );
   }
 

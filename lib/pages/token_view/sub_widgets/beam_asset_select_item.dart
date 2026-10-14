@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../providers/global/locale_provider.dart';
 import '../../../themes/stack_colors.dart';
@@ -173,7 +174,9 @@ class BeamAssetSelectItem extends ConsumerWidget {
               if (managing) ...[
                 const SizedBox(width: 12),
                 Semantics(
-                  label: holding.hidden ? 'Hidden' : 'Shown',
+                  label: holding.hidden
+                      ? context.l10n.assetsHidden
+                      : context.l10n.assetsShown,
                   child: SvgPicture.asset(
                     holding.hidden ? Assets.svg.eyeSlash : Assets.svg.eye,
                     width: 20,

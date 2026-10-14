@@ -28,6 +28,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
@@ -115,7 +116,7 @@ class BeamAssetView extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  "Transactions",
+                  context.l10n.assetsTransactions,
                   style: STextStyles.itemSubtitle(context)
                       .copyWith(color: colors.textDark3),
                 ),

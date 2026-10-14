@@ -9,6 +9,7 @@
 
 import 'dart:async';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
@@ -180,8 +181,8 @@ class BeamSendReview {
 
   /// The confirmation button's label.
   String get sendLabel => isName
-      ? 'Send to $destination'
-      : 'Send ${BeamSendFormat.amount(amount, asset)}';
+      ? appL10n.sendToNameCta(destination)
+      : appL10n.sendAmountCta(BeamSendFormat.amount(amount, asset));
 
   /// Sends the payment and returns its transaction id. Called by the
   /// confirmation screen after the PIN / password gate.
@@ -191,10 +192,9 @@ class BeamSendReview {
   /// turns false and the user is sent to their history instead.
   Future<String> send() async {
     if (_sent) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.sendOutcomeUnknown,
-        'This payment was already handed to the wallet. Check your '
-        'transaction history before sending again.',
+        appL10n.sendAlreadyHandedOver,
       );
     }
     beamCheckCanSpend(backend);

@@ -32,6 +32,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../providers/global/wallets_provider.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
@@ -54,11 +55,13 @@ class BeamWalletNodeSyncPanel extends ConsumerStatefulWidget {
   const BeamWalletNodeSyncPanel({
     super.key,
     required this.walletId,
-    this.header = BeamNodePanelText.title,
+    this.header,
   });
 
   final String walletId;
-  final String header;
+
+  /// The section header; "Node & sync" when null.
+  final String? header;
 
   @override
   ConsumerState<BeamWalletNodeSyncPanel> createState() =>
@@ -94,14 +97,12 @@ class _BeamWalletNodeSyncPanelState
 /// section header with "Resync", the wallet's honest sync card, and the
 /// private node card with its switch.
 class BeamNodeSyncPanel extends StatefulWidget {
-  const BeamNodeSyncPanel({
-    super.key,
-    required this.source,
-    this.header = BeamNodePanelText.title,
-  });
+  const BeamNodeSyncPanel({super.key, required this.source, this.header});
 
   final BeamNodePanelSource source;
-  final String header;
+
+  /// The section header; "Node & sync" when null.
+  final String? header;
 
   @override
   State<BeamNodeSyncPanel> createState() => _BeamNodeSyncPanelState();
@@ -151,14 +152,14 @@ class _BeamNodeSyncPanelState extends State<BeamNodeSyncPanel> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              widget.header,
+              widget.header ?? context.l10n.nodePanelTitle,
               style: desktop
                   ? STextStyles.desktopTextExtraExtraSmall(context)
                   : STextStyles.smallMed12(context),
             ),
             CustomTextButton(
               key: const Key('beamNodeResync'),
-              text: 'Resync',
+              text: context.l10n.nodePanelResync,
               onTap: () => unawaited(widget.source.refresh()),
             ),
           ],
@@ -173,8 +174,7 @@ class _BeamNodeSyncPanelState extends State<BeamNodeSyncPanel> {
         _PrivateNodeCard(
           view: view,
           snapshot: _snapshot,
-          onToggle: (on) =>
-              unawaited(widget.source.setPrivateNodeEnabled(on)),
+          onToggle: (on) => unawaited(widget.source.setPrivateNodeEnabled(on)),
           onAction: (a) => unawaited(widget.source.perform(a)),
         ),
       ],
@@ -214,9 +214,9 @@ TextStyle _bodyStyle(BuildContext context) => BeamNodeLayout.isDesktop(context)
     ? STextStyles.desktopTextExtraExtraSmall(context)
     : STextStyles.itemSubtitle(context);
 
-TextStyle _strongBodyStyle(BuildContext context) => _bodyStyle(
-  context,
-).copyWith(color: Theme.of(context).extension<StackColors>()!.textDark);
+TextStyle _strongBodyStyle(BuildContext context) =>
+    _bodyStyle(context)
+        .copyWith(color: Theme.of(context).extension<StackColors>()!.textDark);
 
 class _SyncCard extends StatelessWidget {
   const _SyncCard({
@@ -327,7 +327,7 @@ class _PrivateNodeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Your own private node',
+                    context.l10n.nodePanelYourOwnPrivateNode,
                     style: _titleStyle(context, BeamNodeTone.neutral),
                   ),
                   const SizedBox(height: 4),
@@ -345,8 +345,7 @@ class _PrivateNodeCard extends StatelessWidget {
 
     final p = snapshot.privateNode;
     final showStatus =
-        view.toggleValue ||
-        (p != null && p.phase != BeamPrivateNodePhase.off);
+        view.toggleValue || (p != null && p.phase != BeamPrivateNodePhase.off);
     final moment = view.moment;
     final primary = view.primaryAction;
     final busy = snapshot.busy;
@@ -441,7 +440,7 @@ class _PrivateNodeCard extends StatelessWidget {
             if (view.diskLine != null) ...[
               const SizedBox(height: 8),
               Text(
-                'Disk space: ${view.diskLine!}',
+                context.l10n.nodePanelDiskSpace(view.diskLine!),
                 key: const Key('beamPrivateNodeDisk'),
                 style: view.diskShort
                     ? _strongBodyStyle(context).copyWith(

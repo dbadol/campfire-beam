@@ -15,6 +15,7 @@
 /// "fast sync", "RPC", "wallet-api" or "beam-node".
 library;
 
+import '../../../l10n/l10n.dart';
 import '../host/beam_host.dart';
 import '../sync/beam_sync_messages.dart';
 import '../sync/beam_sync_state.dart';
@@ -233,45 +234,37 @@ class BeamNodePanelView {
 }
 
 abstract final class BeamNodePanelText {
-  static const String title = 'Node & sync';
+  static String get title => appL10n.nodePanelTitle;
 
-  static const String toggleLabel = 'Use my own private node';
+  static String get toggleLabel => appL10n.nodePanelToggleLabel;
 
   /// What the private node gives, in one sentence.
-  static const String toggleExplainer =
-      "Sees offline and max-privacy payments, and doesn't depend on someone "
-      "else's node.";
+  static String get toggleExplainer => appL10n.nodePanelToggleExplainer;
 
   /// What happens when it fails.
-  static const String fallbackNote =
-      'If it ever stops: back on a public node — your wallet keeps working.';
+  static String get fallbackNote => appL10n.nodePanelFallbackNote;
 
-  static const String notOnThisDevice =
-      'This device uses public nodes. A private node runs on the desktop '
-      'app.';
+  static String get notOnThisDevice => appL10n.nodePanelNotOnThisDevice;
 
   /// Why the private node is off while Tor is on.
-  static const String offForTor =
-      "Tor is on, and this version's private node can't connect through Tor. "
-      'With Tor on nothing connects outside it, so the node stays off and '
-      'your internet address stays hidden. It runs again when Tor is off.';
+  static String get offForTor => appL10n.nodePanelOffForTor;
 
   /// Added to the private node's state while it runs with Tor on.
-  static const String runsThroughTor =
-      'Its connections to other BEAM nodes go through Tor.';
+  static String get runsThroughTor => appL10n.nodePanelRunsThroughTor;
 
   static String actionLabel(BeamNodePanelAction a) => switch (a) {
-    BeamNodePanelAction.retry => 'Try again',
-    BeamNodePanelAction.checkAgain => 'Check again',
-    BeamNodePanelAction.start => 'Start private node',
-    BeamNodePanelAction.restart => 'Restart',
-    BeamNodePanelAction.stop => 'Stop',
-    BeamNodePanelAction.usePublicNode => 'Use a public node',
+    BeamNodePanelAction.retry => appL10n.commonTryAgain,
+    BeamNodePanelAction.checkAgain => appL10n.nodeActionCheckAgain,
+    BeamNodePanelAction.start => appL10n.nodeActionStartPrivateNode,
+    BeamNodePanelAction.restart => appL10n.nodeActionRestart,
+    BeamNodePanelAction.stop => appL10n.nodeActionStop,
+    BeamNodePanelAction.usePublicNode => appL10n.syncActionUsePublicNode,
   };
 }
 
 abstract final class BeamNodePanelModel {
   static BeamNodePanelView describe(BeamNodePanelSnapshot s) {
+    final l = appL10n;
     final a = s.assessment;
     final onPrivate =
         (s.node?.isOwned ?? false) || a.node == BeamNodeKind.privateNode;
@@ -286,12 +279,14 @@ abstract final class BeamNodePanelModel {
         s.privateNode?.issue != BeamPrivateNodeIssue.diskFull;
     return BeamNodePanelView(
       nodeTitle: s.node == null
-          ? (problem == null ? 'Connecting…' : 'Not connected')
+          ? (problem == null ? l.nodePanelConnecting : l.nodePanelNotConnected)
           : onPrivate
-          ? 'Your private node'
-          : 'Public node',
+          ? l.nodePanelYourPrivateNode
+          : l.nodePanelPublicNode,
       nodeAddress: onPrivate ? null : s.node?.toString(),
-      syncTitle: problem == null ? syncMessage.title : "Can't start the wallet",
+      syncTitle: problem == null
+          ? syncMessage.title
+          : l.nodePanelCantStartWallet,
       syncDetail: problem ?? syncMessage.detail,
       syncTone: problem != null ? BeamNodeTone.problem : _syncTone(a),
       heightLine: _height(a),
@@ -330,11 +325,11 @@ abstract final class BeamNodePanelModel {
     final h = a.walletHeight;
     if (h == null) return null;
     final n = a.networkHeight;
-    final at = 'Block ${BeamSyncMessages.number(h)}';
+    final at = BeamSyncMessages.number(h);
     if (a is! BeamSynced && n != null && n > h) {
-      return '$at of ${BeamSyncMessages.number(n)}';
+      return appL10n.nodePanelBlockHeightOf(at, BeamSyncMessages.number(n));
     }
-    return at;
+    return appL10n.nodePanelBlockHeight(at);
   }
 
   /// Bytes still to free before a new private node can set up; 0 when it
@@ -353,59 +348,70 @@ abstract final class BeamNodePanelModel {
     final short = _diskShortfall(s);
     if (short > 0) {
       // Said before the node tries, not after it fails.
-      return 'Not enough space. Free about ${formatBeamDiskSize(short)} more '
-          'to use your private node '
-          '(${formatBeamDiskSize(d.space.freeBytes)} free now). Your wallet '
-          'keeps working on a public node meanwhile.';
+      return appL10n.nodePanelDiskNotEnough(
+        formatBeamDiskSize(short),
+        formatBeamDiskSize(d.space.freeBytes),
+      );
     }
-    final free = '${formatBeamDiskSize(d.space.freeBytes)} free';
+    final free = formatBeamDiskSize(d.space.freeBytes);
     final used = formatBeamDiskSize(d.space.nodeBytes);
-    if (!d.freshNode) return 'Uses $used · $free';
+    if (!d.freshNode) return appL10n.nodePanelDiskUses(used, free);
     if (d.space.nodeBytes < 100 * 1024 * 1024) {
-      return '${_setupNeeds(d.setupPeakBytes, d.nodeBytes)} · $free';
+      return appL10n.nodePanelDiskNeedsWithFree(
+        formatBeamDiskSize(d.setupPeakBytes),
+        formatBeamDiskSize(d.nodeBytes),
+        free,
+      );
     }
-    return 'Uses $used so far (up to '
-        '${formatBeamDiskSize(d.setupPeakBytes)} while it sets up) · $free';
+    return appL10n.nodePanelDiskUsesSoFar(
+      used,
+      formatBeamDiskSize(d.setupPeakBytes),
+      free,
+    );
   }
 
   static String _setupNeeds(int peak, int settled) =>
-      'Needs about ${formatBeamDiskSize(peak)} while it sets up, then about '
-      '${formatBeamDiskSize(settled)}';
+      appL10n.nodePanelDiskNeeds(
+        formatBeamDiskSize(peak),
+        formatBeamDiskSize(settled),
+      );
 
   static String _chipLabel(BeamNodePanelSnapshot s, bool onPrivate) {
-    if (s.coreProblem != null) return 'Not connected';
+    final l = appL10n;
+    if (s.coreProblem != null) return l.nodeChipNotConnected;
     final a = s.assessment;
     switch (a) {
       case BeamSyncConnecting():
-        return 'Connecting';
+        return l.nodeChipConnecting;
       case BeamSyncNotConnected():
-        return 'Not connected';
+        return l.nodeChipNotConnected;
       case BeamSyncStalled():
-        return 'Not up to date';
+        return l.nodeChipNotUpToDate;
       case BeamSyncCatchingUp():
-        return 'Catching up';
+        return l.nodeChipCatchingUp;
       case BeamSynced():
-        if (onPrivate) return 'Private node';
+        if (onPrivate) return l.nodeChipPrivateNode;
         final p = s.privateNode;
         final f = p?.finishingPercent;
-        if (f != null) return 'Public node · private $f%';
+        if (f != null) return l.nodeChipPublicPrivatePercent(f);
         if (p?.phase == BeamPrivateNodePhase.downloading) {
           final pct = p!.percent;
           return pct == null
-              ? 'Public node · private downloading'
-              : 'Public node · private $pct%';
+              ? l.nodeChipPublicPrivateDownloading
+              : l.nodeChipPublicPrivatePercent(pct);
         }
         if (p?.phase == BeamPrivateNodePhase.catchingUp) {
-          return 'Public node · private catching up';
+          return l.nodeChipPublicPrivateCatchingUp;
         }
-        return 'Public node';
+        return l.nodeChipPublicNode;
     }
   }
 
   static _Private _private(BeamNodePanelSnapshot s) {
+    final l = appL10n;
     if (!s.privateNodeSupported) {
-      return const _Private(
-        title: 'Not available on this device',
+      return _Private(
+        title: l.nodePanelNotAvailable,
         detail: BeamNodePanelText.notOnThisDevice,
         tone: BeamNodeTone.neutral,
       );
@@ -414,14 +420,14 @@ abstract final class BeamNodePanelModel {
     if (!s.privateNodeEnabled &&
         (st == null || st.phase == BeamPrivateNodePhase.off)) {
       return s.torEnabled
-          ? const _Private(
-              title: 'Off while Tor is on',
+          ? _Private(
+              title: l.nodePanelOffWhileTor,
               detail: BeamNodePanelText.offForTor,
               tone: BeamNodeTone.neutral,
             )
-          : const _Private(
-              title: 'Off',
-              detail: 'The wallet uses public nodes.',
+          : _Private(
+              title: l.nodePanelOff,
+              detail: l.nodeWalletUsesPublicNodes,
               tone: BeamNodeTone.neutral,
             );
     }
@@ -430,9 +436,7 @@ abstract final class BeamNodePanelModel {
     // Running (or about to) with Tor on: only ever through Tor.
     final detail = state.detail;
     return state.withDetail(
-      detail == null
-          ? BeamNodePanelText.runsThroughTor
-          : '$detail ${BeamNodePanelText.runsThroughTor}',
+      joinSentences([detail, BeamNodePanelText.runsThroughTor]),
     );
   }
 
@@ -440,13 +444,13 @@ abstract final class BeamNodePanelModel {
     BeamNodePanelSnapshot s,
     BeamPrivateNodeStatus? st,
   ) {
+    final l = appL10n;
     if (st == null || st.phase == BeamPrivateNodePhase.idle) {
       return _Private(
-        title: 'Starting soon',
+        title: l.nodePanelStartingSoon,
         detail: s.assessment.canSpend
-            ? 'Your private node starts in a minute. The wallet works as '
-                  'normal meanwhile.'
-            : 'Your private node starts once your wallet is up to date.',
+            ? l.nodePanelStartsInAMinute
+            : l.nodePanelStartsWhenUpToDate,
         tone: BeamNodeTone.neutral,
       );
     }
@@ -455,16 +459,14 @@ abstract final class BeamNodePanelModel {
       BeamNodePanelAction.restart,
       BeamNodePanelAction.stop,
     ];
-    const publicUntilReady =
-        'The wallet uses a public node until your private node is ready, '
-        'then switches by itself.';
+    final publicUntilReady = l.nodePanelPublicUntilReady;
     final finishing = st.finishingPercent;
     if (finishing != null &&
         (st.phase == BeamPrivateNodePhase.downloading ||
             st.phase == BeamPrivateNodePhase.catchingUp)) {
       return _Private(
-        title: 'Finishing setup ($finishing%)',
-        detail: 'This last step takes 5–10 minutes. $publicUntilReady',
+        title: l.nodePanelFinishingSetup(finishing),
+        detail: joinSentences([l.nodeLastStepTakes, publicUntilReady]),
         progress: finishing.clamp(0, 100) / 100,
         tone: BeamNodeTone.busy,
         secondary: running,
@@ -474,25 +476,25 @@ abstract final class BeamNodePanelModel {
     switch (st.phase) {
       case BeamPrivateNodePhase.off:
         // Turned on in the panel, not applied yet.
-        return const _Private(
-          title: 'Starting soon',
-          detail: 'Your private node starts in a moment.',
+        return _Private(
+          title: l.nodePanelStartingSoon,
+          detail: l.nodePanelStartsInAMoment,
           tone: BeamNodeTone.neutral,
         );
       case BeamPrivateNodePhase.idle:
       case BeamPrivateNodePhase.preparing:
         return _Private(
-          title: 'Setting up',
+          title: l.nodePanelSettingUp,
           detail: message.detail,
           tone: BeamNodeTone.busy,
         );
       case BeamPrivateNodePhase.downloading:
         final pct = st.percent;
         return _Private(
-          title: pct == null ? 'Downloading' : 'Downloading $pct%',
-          detail:
-              'The first download takes 1–2 hours; later starts take '
-              'minutes. $publicUntilReady',
+          title: pct == null
+              ? l.nodePanelDownloading
+              : l.nodePanelDownloadingPercent(pct),
+          detail: joinSentences([l.nodePanelFirstDownload, publicUntilReady]),
           progress: pct == null ? null : (pct.clamp(0, 100) / 100),
           tone: BeamNodeTone.busy,
           secondary: running,
@@ -502,8 +504,8 @@ abstract final class BeamNodePanelModel {
         final behind = st.blocksBehind;
         return _Private(
           title: behind != null && behind > 0
-              ? 'Catching up ${_blocks(behind)}'
-              : 'Catching up',
+              ? l.nodePanelCatchingUpBlocks(BeamSyncMessages.blockCount(behind))
+              : l.nodePanelCatchingUp,
           detail: publicUntilReady,
           tone: BeamNodeTone.busy,
           secondary: running,
@@ -512,15 +514,15 @@ abstract final class BeamNodePanelModel {
       case BeamPrivateNodePhase.switching:
         return _Private(
           title: st.waitingForWallet
-              ? 'Ready — switching after your payment'
-              : 'Ready — switching',
+              ? l.nodePanelReadySwitchingAfterPayment
+              : l.nodePanelReadySwitching,
           detail: message.detail,
           tone: BeamNodeTone.busy,
         );
       case BeamPrivateNodePhase.active:
         return st.privateReceiveAvailable
             ? _Private(
-                title: 'Your private node is in use',
+                title: l.nodePanelInUse,
                 detail: message.detail,
                 tone: BeamNodeTone.good,
                 secondary: running,
@@ -585,9 +587,6 @@ abstract final class BeamNodePanelModel {
         BeamPrivateNodeAction.checkAgain => BeamNodePanelAction.checkAgain,
         BeamPrivateNodeAction.start => BeamNodePanelAction.start,
       };
-
-  static String _blocks(int n) =>
-      n == 1 ? '1 block' : '${BeamSyncMessages.number(n)} blocks';
 }
 
 class _Private {

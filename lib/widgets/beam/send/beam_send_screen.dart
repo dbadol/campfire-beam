@@ -34,6 +34,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/contact_entry.dart';
 import '../../../models/send_view_auto_fill_data.dart';
 import '../../../pages/address_book_views/address_book_view.dart';
@@ -163,7 +164,7 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 32),
                   child: Text(
-                    'Address book',
+                    context.l10n.sendAddressBookTitle,
                     style: STextStyles.desktopH3(context),
                   ),
                 ),
@@ -438,7 +439,7 @@ class BeamSendPageState extends State<BeamSendPage> {
 
   Future<void> _showNotPrepared(Object e, bool desktop) {
     final message = BeamSendModel.describeError(e);
-    const title = 'Nothing was sent';
+    final title = context.l10n.sendNothingSent;
     if (desktop) {
       return showDialog<void>(
         context: context,
@@ -460,7 +461,7 @@ class BeamSendPageState extends State<BeamSendPage> {
                 ),
                 const SizedBox(height: 32),
                 PrimaryButton(
-                  label: 'Back to the payment',
+                  label: context.l10n.sendBackToPayment,
                   buttonHeight: ButtonHeight.l,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
@@ -480,7 +481,7 @@ class BeamSendPageState extends State<BeamSendPage> {
               .extension<StackColors>()!
               .getPrimaryEnabledButtonStyle(context),
           child: Text(
-            'Back to the payment',
+            context.l10n.sendBackToPayment,
             style: STextStyles.button(context),
           ),
           onPressed: () => Navigator.of(context).pop(),
@@ -516,8 +517,10 @@ class BeamSendPageState extends State<BeamSendPage> {
         // next screen still asks before anything leaves.
         final amount = model.amount;
         final label = enabled && amount != null && amount > BigInt.zero
-            ? 'Send ${BeamSendFormat.amount(amount, model.asset)}'
-            : 'Send';
+            ? context.l10n.sendAmountCta(
+                BeamSendFormat.amount(amount, model.asset),
+              )
+            : context.l10n.sendCta;
         if (desktop) {
           return PrimaryButton(
             key: const Key('beamSendReviewButton'),
@@ -561,7 +564,7 @@ class BeamSendPageState extends State<BeamSendPage> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            'Send ${widget.coin.ticker}',
+            context.l10n.sendTitle(widget.coin.ticker),
             style: STextStyles.navBarTitle(context),
           ),
         ),

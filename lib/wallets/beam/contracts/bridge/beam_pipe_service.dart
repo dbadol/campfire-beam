@@ -13,6 +13,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
 
+import '../../../../l10n/l10n.dart';
 import '../../../bridge/bridge_routes.dart';
 import '../../../bridge/bridge_sides.dart';
 import '../../api/beam_api.dart';
@@ -148,9 +149,10 @@ class BeamPipeService implements BeamPipeSide {
     );
     final (raw, data) = await _build(r, args);
     final e = data.entries.single;
+    final l = appL10n;
     _expect(
       e.method == r.sendMethod,
-      'contract method ${e.method}, expected ${r.sendMethod} (send)',
+      l.bridgeBeamCheckSendMethod('${e.method}', '${r.sendMethod}'),
     );
     // `SendFunds { Eth::Address m_Receiver; Amount m_Amount;
     // Amount m_RelayerFee; }`, packed, little-endian: 36 bytes.
@@ -160,20 +162,23 @@ class BeamPipeService implements BeamPipeSide {
         ...BeamArgsWriter.le(amount, 8),
         ...BeamArgsWriter.le(fee, 8),
       ]),
-      'send carries other arguments than receiver, amount and fee',
+      l.bridgeBeamCheckSendArgs,
     );
     _expect(
       e.signatureCount == 0,
-      'send asks for ${e.signatureCount} signatures, expected none',
+      l.bridgeBeamCheckSendSignatures(e.signatureCount),
     );
     _expect(
       _sameFunds(e.spend, {r.beamAssetId: amount + fee}),
-      'send moves ${e.spend}, expected ${amount + fee} of asset '
-      '${r.beamAssetId}',
+      l.bridgeBeamCheckSendFunds(
+        '${e.spend}',
+        '${amount + fee}',
+        '${r.beamAssetId}',
+      ),
     );
     _expect(
       data.fee == kBridgeSendFeeGroth,
-      'send costs ${data.fee} groth, expected $kBridgeSendFeeGroth',
+      l.bridgeBeamCheckSendFee('${data.fee}', '$kBridgeSendFeeGroth'),
     );
     return _checkedCall(
       BeamPipePrepared(
@@ -198,36 +203,40 @@ class BeamPipeService implements BeamPipeSide {
     if (amount <= BigInt.zero || amount > _maxAmount) {
       throw BridgeException(
         BridgeErrorCode.badAmount,
-        'a claim of $amount groth is not possible',
+        appL10n.bridgeBeamClaimImpossible('$amount'),
       );
     }
     final args = PipeArgs.receive(cid: r.beamPipeCid, msgId: msgId);
     final (raw, data) = await _build(r, args);
     final e = data.entries.single;
+    final l = appL10n;
     _expect(
       e.method == r.receiveMethod,
-      'contract method ${e.method}, expected ${r.receiveMethod} (receive)',
+      l.bridgeBeamCheckReceiveMethod('${e.method}', '${r.receiveMethod}'),
     );
     // `ReceiveFunds { uint64_t m_MsgId; }`.
     _expect(
       _sameBytes(e.args, BeamArgsWriter.le(msgId, 8)),
-      'receive carries other arguments than message $msgId',
+      l.bridgeBeamCheckReceiveArgs('$msgId'),
     );
     // The claim must be signed with the key `get_pk` gave the sender, and
     // with nothing else: the key whose id is the pipe's cid.
     _expect(
       e.signatureCount == 1 &&
           e.signatureKeyHashes.single == pipeKeyHash(r.beamPipeCid),
-      'receive is not signed with this pipe\'s receive key alone',
+      l.bridgeBeamCheckReceiveSignature,
     );
     _expect(
       _sameFunds(e.spend, {r.beamAssetId: -amount}),
-      'receive moves ${e.spend}, expected to receive $amount of asset '
-      '${r.beamAssetId}',
+      l.bridgeBeamCheckReceiveFunds(
+        '${e.spend}',
+        '$amount',
+        '${r.beamAssetId}',
+      ),
     );
     _expect(
       data.fee == kBridgeClaimFeeGroth,
-      'receive costs ${data.fee} groth, expected $kBridgeClaimFeeGroth',
+      l.bridgeBeamCheckReceiveFee('${data.fee}', '$kBridgeClaimFeeGroth'),
     );
     return _checkedCall(
       BeamPipePrepared(
@@ -253,15 +262,15 @@ class BeamPipeService implements BeamPipeSide {
   @override
   Future<String> execute(BeamPipePrepared prepared) async {
     if (_checked[prepared] != true) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'this transaction was not built and checked by this wallet',
+        appL10n.bridgeBeamNotChecked,
       );
     }
     if (prepared.sent || _sent[prepared] == true) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.alreadySent,
-        'this transaction was already sent',
+        appL10n.bridgeBeamAlreadySent,
       );
     }
     _sent[prepared] = true;
@@ -288,7 +297,9 @@ class BeamPipeService implements BeamPipeSide {
       BeamTxStatus.failed => BeamPipeTxStatus.failed(
         tx.failureReason ?? tx.statusString,
       ),
-      BeamTxStatus.canceled => const BeamPipeTxStatus.failed('canceled'),
+      BeamTxStatus.canceled => BeamPipeTxStatus.failed(
+        appL10n.bridgeBeamTxCanceled,
+      ),
       _ => const BeamPipeTxStatus.pending(),
     };
   }
@@ -353,16 +364,17 @@ class BeamPipeService implements BeamPipeSide {
   static void _checkSendAmounts(BridgeRoute r, BigInt amount, BigInt fee) {
     Never refuse(String why) =>
         throw BridgeException(BridgeErrorCode.badAmount, why);
-    if (amount <= BigInt.zero) refuse('nothing to move');
+    final l = appL10n;
+    if (amount <= BigInt.zero) refuse(l.bridgeBeamNothingToMove);
     // A zero fee is never relayed: the coins would stay locked on BEAM.
-    if (fee <= BigInt.zero) refuse('the bridge fee must be above zero');
-    if (amount + fee > _maxAmount) refuse('the amount is too large');
+    if (fee <= BigInt.zero) refuse(l.bridgeBeamFeeAboveZero);
+    if (amount + fee > _maxAmount) refuse(l.bridgeBeamAmountTooLarge);
     final max = r.maxGroth;
     if (max != null && (amount > max || fee > max)) {
-      refuse('at most ${r.maxCoins} ${r.beamSymbol} per crossing');
+      refuse(l.bridgeBeamAtMost('${r.maxCoins}', r.beamSymbol));
     }
     if (amount % r.beamGrid != BigInt.zero || fee % r.beamGrid != BigInt.zero) {
-      refuse('${r.beamSymbol} moves in steps of ${r.beamGrid} groth');
+      refuse(l.bridgeBeamGrid(r.beamSymbol, '${r.beamGrid}'));
     }
   }
 
@@ -394,9 +406,9 @@ class BeamPipeService implements BeamPipeSide {
   Future<String> _view(BridgeRoute r, String args) async {
     final res = await _invoke(r, args);
     if (res.rawData != null || res.txId != null) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'a read-only pipe call produced a transaction',
+        appL10n.bridgeBeamViewMadeTx,
       );
     }
     return res.output;
@@ -406,10 +418,11 @@ class BeamPipeService implements BeamPipeSide {
   /// call, to [r]'s pipe, built from exactly the request, at privilege 0.
   Future<(List<int>, BeamInvokeData)> _build(BridgeRoute r, String args) async {
     final res = await _invoke(r, args);
+    final l = appL10n;
     if (res.txId != null) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'the core started a transaction while only building one',
+        l.bridgeBeamCoreStartedTx,
       );
     }
     if (res.output.trim().isNotEmpty) {
@@ -418,7 +431,7 @@ class BeamPipeService implements BeamPipeSide {
       } on BeamShaderException catch (e) {
         throw BridgeException(
           BridgeErrorCode.badPipe,
-          'the pipe said "${e.message}"',
+          l.bridgeBeamPipeSaid(e.message),
         );
       } on FormatException catch (e) {
         throw BridgeException(BridgeErrorCode.badPipe, e.message);
@@ -426,9 +439,9 @@ class BeamPipeService implements BeamPipeSide {
     }
     final raw = res.rawData;
     if (raw == null || raw.isEmpty) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'the pipe built no transaction',
+        l.bridgeBeamNoTx,
       );
     }
     final BeamInvokeData data;
@@ -437,14 +450,14 @@ class BeamPipeService implements BeamPipeSide {
     } on FormatException catch (e) {
       throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'cannot read the built transaction: ${e.message}',
+        l.bridgeBeamUnreadableTx(e.message),
       );
     }
-    _expect(data.entries.length == 1, 'expected one contract call');
+    _expect(data.entries.length == 1, l.bridgeBeamOneCall);
     final cid = data.entries.single.contractId;
     _expect(
       cid == r.beamPipeCid,
-      'the call targets $cid, not the ${r.beamSymbol} pipe',
+      l.bridgeBeamWrongTarget('$cid', r.beamSymbol),
     );
     final stored = data.appArgs;
     if (stored != null) {
@@ -455,13 +468,10 @@ class BeamPipeService implements BeamPipeSide {
       _expect(
         stored.length == asked.length &&
             asked.entries.every((a) => stored[a.key] == a.value),
-        'the stored shader args differ from the request',
+        l.bridgeBeamArgsDiffer,
       );
     }
-    _expect(
-      (data.appPrivilege ?? 0) == 0,
-      'the stored shader would run with wallet keys',
-    );
+    _expect((data.appPrivilege ?? 0) == 0, l.bridgeBeamPrivileged);
     return (raw, data);
   }
 
@@ -474,21 +484,21 @@ class BeamPipeService implements BeamPipeSide {
     } on PinnedShaderException catch (e) {
       throw BridgeException(BridgeErrorCode.badPipe, e.message);
     } on TimeoutException {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.network,
-        'the BEAM wallet did not answer in time',
+        appL10n.bridgeBeamNoAnswer,
       );
     } on BeamConnectionException catch (e) {
       throw BridgeException(BridgeErrorCode.network, e.message);
     } on BeamRpcException catch (e) {
       throw BridgeException(
         BridgeErrorCode.network,
-        'the BEAM wallet refused: ${e.message} (${e.code})',
+        appL10n.bridgeBeamRefused(e.message, '${e.code}'),
       );
     } on FormatException catch (e) {
       throw BridgeException(
         BridgeErrorCode.network,
-        'the BEAM wallet answered oddly: ${e.message}',
+        appL10n.bridgeBeamOddAnswer(e.message),
       );
     }
   }

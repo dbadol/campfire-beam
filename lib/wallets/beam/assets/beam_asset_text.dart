@@ -9,6 +9,7 @@
 
 import 'package:decimal/decimal.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../utilities/amount/amount_unit.dart';
@@ -86,11 +87,8 @@ abstract final class BeamAssetText {
 
   /// After a send whose outcome is unknown (the connection dropped and the
   /// wallet could not be asked afterwards).
-  static const String sendUnknownTitle = 'Not sure it was sent';
-  static const String sendUnknown =
-      "We couldn't confirm it went out: the connection to the wallet "
-      "dropped while sending. Check this asset's history before sending "
-      'again. Nothing more will be sent from this screen.';
+  static String get sendUnknownTitle => appL10n.assetsSendUnknownTitle;
+  static String get sendUnknown => appL10n.assetsSendUnknown;
 
   /// "0.001 BEAM", trailing zeros dropped.
   static String beam(BigInt groth, {required String locale}) =>
@@ -156,7 +154,7 @@ abstract final class BeamAssetText {
   /// its pool would pay for the whole holding, not a price anyone vouches
   /// for (`BeamAssetPricer.isSaleValue`).
   static String saleEstimate(BigInt groth, {required String locale}) =>
-      '${beamEstimate(groth, locale: locale)} if sold now';
+      appL10n.assetsIfSoldNow(beamEstimate(groth, locale: locale));
 
   /// [beamEstimate], or [saleEstimate] when [sale].
   static String valueEstimate(
@@ -181,10 +179,9 @@ abstract final class BeamAssetText {
         ' $currency';
   }
 
-  static const String noPrice = 'No price';
-  static const String priceLoading = 'Price not loaded yet';
-  static const String estimateNote =
-      'Estimated from DEX prices. Assets without a DEX price are not counted.';
+  static String get noPrice => appL10n.assetsNoPrice;
+  static String get priceLoading => appL10n.assetsPriceLoading;
+  static String get estimateNote => appL10n.assetsEstimateNote;
 
   /// The warning under an asset that copies a verified one.
   static String? impersonation(BeamAssetContract asset) {
@@ -192,15 +189,14 @@ abstract final class BeamAssetText {
     if (copied == null) return null;
     final real = BeamAssetCatalog.verified[copied];
     final what = real?.symbol ?? '#$copied';
-    return 'Not the verified $what (#$copied). Anyone can create an asset '
-        'with any name.';
+    return appL10n.assetsImpersonation(what, '$copied');
   }
 
   /// Short label next to an unverified asset's name.
   static String badge(BeamAssetContract asset) {
-    if (asset.isPoolShare) return 'Pool share';
+    if (asset.isPoolShare) return appL10n.assetsPoolShare;
     if (asset.verified) return '';
-    return 'Unverified ${asset.idLabel}';
+    return appL10n.assetsUnverifiedBadge(asset.idLabel);
   }
 
   /// "BEAM/FOMO" for the liquidity token "BEAM/FOMO LP": the pool it is a
@@ -215,7 +211,7 @@ abstract final class BeamAssetText {
     final kind = asset.poolKind;
     if (!asset.isPoolShare || kind == null) return null;
     try {
-      return '${BeamPoolKind.fromWire(kind).feePercent} fee';
+      return appL10n.assetsPoolFee(BeamPoolKind.fromWire(kind).feePercent);
     } on FormatException {
       return null;
     }
@@ -226,7 +222,9 @@ abstract final class BeamAssetText {
     final pair = poolPair(asset);
     if (pair == null) return null;
     final fee = poolFee(asset);
-    return 'Your share of the $pair pool${fee == null ? '' : ' ($fee)'}';
+    return fee == null
+        ? appL10n.assetsPoolLine(pair)
+        : appL10n.assetsPoolLineWithFee(pair, fee);
   }
 
   /// "Pool share · 1% fee": what a liquidity token is, under its name in a
@@ -234,7 +232,9 @@ abstract final class BeamAssetText {
   static String? poolSubtitle(BeamAssetContract asset) {
     if (!asset.isPoolShare) return null;
     final fee = poolFee(asset);
-    return fee == null ? 'Pool share' : 'Pool share · $fee';
+    return fee == null
+        ? appL10n.assetsPoolShare
+        : appL10n.assetsPoolSubtitleWithFee(fee);
   }
 
   /// "2,728.25 LP": a liquidity token's amount where its name ("BEAM/FOMO
@@ -251,7 +251,7 @@ abstract final class BeamAssetText {
 
   /// The fee sentence on the send form.
   static String feeLine(BigInt fee, {required String locale}) =>
-      'Network fee: ${beam(fee, locale: locale)}, paid in BEAM';
+      appL10n.assetsFeeLine(beam(fee, locale: locale));
 
   /// Shown when the wallet cannot pay the fee in BEAM.
   static String needBeamForFee(
@@ -259,13 +259,15 @@ abstract final class BeamAssetText {
     BigInt fee,
     BigInt beamAvailable, {
     required String locale,
-  }) =>
-      'Sending $symbol costs a ${beam(fee, locale: locale)} network fee, paid '
-      'in BEAM. This wallet has ${beam(beamAvailable, locale: locale)} '
-      'available. Add at least ${beam(fee - beamAvailable, locale: locale)} '
-      'first.';
+  }) => appL10n.assetsNeedBeamForFee(
+    symbol,
+    beam(fee, locale: locale),
+    beam(beamAvailable, locale: locale),
+    beam(fee - beamAvailable, locale: locale),
+  );
 
-  /// Receive explanation.
-  static String receiveLine(String symbol) =>
-      '$symbol arrives at your BEAM address, the same one you use for BEAM.';
+  /// Receive explanation, for [symbol] or (null) for every asset.
+  static String receiveLine(String? symbol) => symbol == null
+      ? appL10n.assetsReceiveLineAll
+      : appL10n.assetsReceiveLine(symbol);
 }

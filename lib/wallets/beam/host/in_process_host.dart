@@ -13,6 +13,7 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
+import '../../../l10n/l10n.dart';
 import '../net/beam_node_route.dart';
 import '../rpc/beam_transport.dart';
 import '../rpc/tcp_line_transport.dart';
@@ -375,9 +376,9 @@ class InProcessHost implements BeamHost, BeamWalletFileImporter {
             'wallet.db already exists in the wallet directory',
           );
         case BeamCoreWalletResult.invalidPhrase:
-          throw const BeamHostException(
+          throw BeamHostException(
             BeamHostError.invalidInput,
-            'The BEAM core rejected the seed phrase',
+            appL10n.nodeHostCoreSeedRejected,
           );
         default:
           throw BeamHostException(
