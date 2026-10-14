@@ -59,7 +59,7 @@ bool _icons = false;
 Future<void> _golden(String name) =>
     expectLater(find.byKey(goldenKey), matchesGoldenFile('goldens/$name.png'));
 
-const _deposit = 'bc1qfake0deposit0address0000000000000000000';
+const _deposit = kFakeDeposit;
 
 class _Rig {
   _Rig({this.desktop = false, this.tor = false}) {
@@ -496,6 +496,50 @@ void main() {
     await tester.tap(_k('open'));
     await _flush(tester);
     expect(find.text('Your buys (1 in progress)'), findsOneWidget);
+    await finish(tester);
+  });
+
+  testWidgets("phone: D-10 — a deposit address that is not the coin's "
+      'chain is never shown: the words say why, nothing is kept', (
+    tester,
+  ) async {
+    final rig = _Rig();
+    rig.server.depositAddress = '0x1111111111111111111111111111111111111111';
+    await _openForm(tester, rig);
+    await tester.enterText(_k('buy-refund'), kFakeBtcRefund);
+    await _type(tester, 'buy-amount', '0.0123');
+    await tester.tap(_k('buy-cta'));
+    await _flush(tester);
+    expect(
+      find.text(
+        "buybeam.my's deposit address isn't a Bitcoin address, so it isn't "
+        'shown.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'BTC sent to it would be lost. Nothing to pay, and nothing was sent. '
+        'This is not something you did. Try again in a moment.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('0x1111111111111111111111111111111111111111'),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('buy-qr')), findsNothing);
+    expect(find.text('Send 0.0123 BTC'), findsNothing);
+    expect(rig.store.writes, isEmpty);
+    expect(rig.controller.orders(), isEmpty);
+    await _golden('phone_buy_wrong_deposit');
+    // "Try again" asks again; this time buybeam.my gives a Bitcoin address.
+    rig.server.depositAddress = _deposit;
+    await tester.ensureVisible(find.text('Try again'));
+    await tester.tap(find.text('Try again'));
+    await _flush(tester);
+    expect(find.text('Send 0.0123 BTC'), findsOneWidget);
+    expect(find.text(_deposit), findsOneWidget);
     await finish(tester);
   });
 

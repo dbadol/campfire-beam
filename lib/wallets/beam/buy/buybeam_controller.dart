@@ -319,6 +319,7 @@ class BuyBeamController extends ChangeNotifier {
       try {
         answer = await client.order(
           assetId: asset.assetId,
+          blockchain: asset.blockchain,
           amount: amount,
           beamAddress: beamAddress,
           refundAddress: refundAddress,

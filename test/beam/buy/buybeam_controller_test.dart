@@ -233,6 +233,27 @@ void main() {
       expect(r.controller.orders(), isEmpty);
       expect(r.server.count('/order'), 1); // not "unreachable": no retry
     });
+
+    test("D-10: an order whose deposit address is another chain's is "
+        'refused and never kept', () async {
+      final store = MemoryBuyBeamStore();
+      final r = _Rig(store: store);
+      r.server.depositAddress = '0x1111111111111111111111111111111111111111';
+      await expectLater(
+        r.place(),
+        throwsA(
+          isA<BuyBeamError>().having(
+            (e) => e.code,
+            'code',
+            BuyBeamErrorCode.wrongDepositAddress,
+          ),
+        ),
+      );
+      expect(store.writes, isEmpty, reason: 'nothing to pay was saved');
+      expect(r.controller.orders(beamWalletId: 'w1'), isEmpty);
+      // buybeam.my answered: not asked again.
+      expect(r.server.count('/order'), 1);
+    });
   });
 
   group('following a buy', () {

@@ -31,6 +31,10 @@ const kFakeBeamAddress2 =
 const kFakeBtcRefund = 'bc1qfake0refund0address0for0tests0only00000';
 const kFakeEthRefund = '0x1111111111111111111111111111111111111111';
 
+/// A Bitcoin address buybeam.my could give to be paid (a real bech32 one:
+/// the client refuses a deposit address that is not of the coin's chain).
+const kFakeDeposit = 'bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx2s';
+
 const kBtcId = 'coin:btc';
 const kEthId = 'coin:eth';
 const kUsdtTronId = 'coin:tron-usdt';
@@ -119,7 +123,7 @@ Map<String, Object?> quoteJson({
 });
 
 Map<String, Object?> orderJson({
-  String deposit = 'bc1qfake0deposit0address0000000000000000000',
+  String deposit = kFakeDeposit,
   String assetId = kBtcId,
   String beamWallet = kFakeBeamAddress,
   String? raw = '1230000',
@@ -146,7 +150,7 @@ Map<String, Object?> orderJson({
 
 Map<String, Object?> statusJson(
   String state, {
-  String deposit = 'bc1qfake0deposit0address0000000000000000000',
+  String deposit = kFakeDeposit,
   bool? terminal,
   num? pollAfter = 15,
   String? txId,
@@ -199,7 +203,7 @@ class FakeBuyBeamServer {
   /// Waits for this before answering /quote (latest-wins tests).
   Completer<void>? holdQuotes;
 
-  String depositAddress = 'bc1qfake0deposit0address0000000000000000000';
+  String depositAddress = kFakeDeposit;
   String state = 'awaiting_deposit';
   String? txId;
 

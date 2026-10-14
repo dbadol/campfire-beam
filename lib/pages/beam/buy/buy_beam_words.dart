@@ -247,6 +247,14 @@ abstract final class BuyBeamWords {
           fix: BuyFix.tryAgain,
           fixLabel: l.commonTryAgain,
         );
+      case BuyBeamErrorCode.wrongDepositAddress:
+        return BuyProblem(
+          title: l.buyProblemWrongDeposit(coin.chainName),
+          detail: l.buyProblemWrongDepositDetail(sym),
+          fix: BuyFix.tryAgain,
+          fixLabel: l.commonTryAgain,
+          serious: true,
+        );
       case BuyBeamErrorCode.unexpectedAnswer:
         return BuyProblem(
           title: l.buyProblemUnexpected,

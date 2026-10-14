@@ -916,6 +916,8 @@
   "buyProblemUnexpectedDetail": "Это не ваша ошибка. Попробуйте чуть позже.",
   "buyProblemUnknown": "buybeam.my не смог провести эту покупку",
   "buyProblemUnknownDetail": "Ничего не отправлено. Попробуйте снова или выберите другую монету.",
+  "buyProblemWrongDeposit": "Адрес для депозита от buybeam.my — не адрес сети {chain}, поэтому он не показан.",
+  "buyProblemWrongDepositDetail": "{symbol}, отправленные на него, были бы потеряны. Платить нечего, и ничего не отправлено. Это не ваша ошибка. Попробуйте чуть позже.",
   "buyRefundAddressFormat": "Адреса в сети {chain} начинаются с 0x и содержат 42 символа.",
   "buyRefundHint": "Адрес",
   "buyRefundHintCoin": "Вставьте ваш адрес {symbol}",
