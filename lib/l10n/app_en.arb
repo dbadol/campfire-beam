@@ -528,7 +528,7 @@
   },
   "airdropClaimCheckCode": "Check code",
   "@airdropClaimCheckCode": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Main button once enough characters are typed: looks the code up (nothing is sent). (glossary: code)"
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Main button when 8 or more characters are typed but not a complete 16-character code: looks the code up when tapped (a complete code is looked up by itself; nothing is sent). (glossary: code)"
   },
   "airdropClaimCheckCodeAgain": "Check the code again",
   "@airdropClaimCheckCodeAgain": {
@@ -601,6 +601,22 @@
   "airdropClaimNoBeamNeededTitle": "No BEAM needed",
   "@airdropClaimNoBeamNeededTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code'. Title of a notice once the code was found, when whoever made the code paid its claim's network fee ahead: the claim needs no BEAM in this wallet. Keep 'BEAM' as written. (glossary: network fee, claim, code)"
+  },
+  "airdropClaimOldContractGo": "Claim anyway",
+  "@airdropClaimOldContractGo": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code', the stop before claiming a code of the old airdrop contract: the other button, in a warning colour. Goes on to the PIN and the claim, which shows the code to the network. (glossary: claim, code)"
+  },
+  "airdropClaimOldContractKeep": "Don't claim",
+  "@airdropClaimOldContractKeep": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code', the stop before claiming a code of the old airdrop contract: the main (safe, default) button. Closes the stop; nothing is claimed or sent. (glossary: claim)"
+  },
+  "airdropClaimOldContractMessage": "Claiming it shows the code to the network, so someone watching could claim it first. Codes made since 13 October 2026 never need this. If your code is new, stop here and ask whoever gave it to you.",
+  "@airdropClaimOldContractMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code'. Message of the stop under 'This code is from the old airdrop contract'. Every code made since 13 October 2026 is on Airdrop v3, whose claims never show the code; a node that lies could make a new code look like an old one, so a person with a new code must not go on. 'Whoever gave it to you' = the person who sent the code. (glossary: code, claim, network)"
+  },
+  "airdropClaimOldContractTitle": "This code is from the old airdrop contract",
+  "@airdropClaimOldContractTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code'. Title of the stop that appears before every claim of a code found on the old airdrop contract (codes made before Airdrop v3, 13 October 2026). Claiming there shows the code itself to the network. 'Contract' = the program on the BEAM network that holds the airdrop. (glossary: airdrop, code, claim)"
   },
   "airdropClaimPaidByCode": "Paid by the code",
   "@airdropClaimPaidByCode": {

@@ -158,6 +158,11 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('claim-cta')));
       await tester.pumpAndSettle();
+      // A v3 claim never shows the code: no stop before the PIN.
+      expect(
+        find.byKey(const ValueKey('claim-old-contract-stop')),
+        findsNothing,
+      );
       expect(t.callsTo('process_invoke_data'), hasLength(1));
       expect(auth.reasons, ['Claim 5 bETH']);
       expect(_textOf(tester, 'claim-done'), 'Claim sent');
