@@ -50,6 +50,14 @@ export function reconnectView({ switching, emptyHops = 0, connectFailed = false,
   return { reconnecting: Boolean(switching) && !gaveUp, connectFailed: connectFailed || gaveUp };
 }
 
+/**
+ * A sync title inside a sentence ("Swaps are paused: …"): lower case, except a word that is a name
+ * written in capitals (BEAM's nodes, not "beam's nodes"), without its closing dots.
+ */
+export function syncReason(title) {
+  return String(title || '').replace(/[.…]+$/, '').replace(/[A-Za-z][\w']*/g, (w) => (/^[A-Z]{2,}/.test(w) ? w : w.toLowerCase()));
+}
+
 export function assessSync({ status, nodeConnected, everConnected = nodeConnected, connectFailed = false, explorer, now, progress = null, importing = false, reconnecting = false, ownNode = null, online = true }) {
   const height = status ? Number(status.current_height) || 0 : 0;
   const tipTs = status ? Number(status.current_state_timestamp) || 0 : 0;

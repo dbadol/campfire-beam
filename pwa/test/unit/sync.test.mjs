@@ -157,3 +157,12 @@ test('release audit 0.2.15: offline is said at once, before own node, and wordin
   const pool = assessSync({ status: null, nodeConnected: false, everConnected: false, connectFailed: true, explorer: null, now });
   assert.match(pool.detail, /^BEAM's public nodes aren't letting this browser in right now\./);
 });
+
+test('a sync title inside a sentence keeps BEAM in capitals', async () => {
+  const { syncReason } = await import('../../src/lib/sync.js');
+  assert.equal(syncReason("BEAM's nodes aren't answering"), "BEAM's nodes aren't answering");
+  assert.equal(syncReason("You're offline"), "you're offline");
+  assert.equal(syncReason('Reconnecting to another node…'), 'reconnecting to another node');
+  assert.equal(syncReason("Can't reach the BEAM network"), "can't reach the BEAM network");
+  assert.equal(syncReason('Catching up: 1,234 blocks behind.'), 'catching up: 1,234 blocks behind');
+});
