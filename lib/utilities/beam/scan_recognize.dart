@@ -243,6 +243,25 @@ ScanRecognition recognizeScan(String? raw) {
   return _beamOf(s);
 }
 
+/// Whether [raw] is a `beam:` link (by its scheme, in any case), whatever
+/// it points to: a payment request, which BEAM Send takes as a new payment.
+bool scanIsBeamLink(String? raw) {
+  final scheme = _scheme.firstMatch(scanFirstLine(raw));
+  return scheme != null && scheme.group(1)!.toLowerCase() == 'beam';
+}
+
+/// The amount a `beam:` link asks for, exactly as written in it (`amount`,
+/// or else `tx_amount`), or null when [raw] is no `beam:` link or asks for
+/// none. [recognizeScan] keeps a link's amount only when it is a valid one
+/// and the link is to an address; this tells an amount it refused
+/// ("1,000") from no amount at all.
+String? scanBeamLinkAmountText(String? raw) {
+  final scheme = _scheme.firstMatch(scanFirstLine(raw));
+  if (scheme == null || scheme.group(1)!.toLowerCase() != 'beam') return null;
+  final q = _FormQuery(_beamLink.firstMatch(scheme.group(2)!)!.group(2) ?? '');
+  return q.get('amount') ?? q.get('tx_amount');
+}
+
 /// The text a scan is read from: trimmed, and only its first line (a code
 /// may carry a label on the next one).
 String scanFirstLine(String? raw) {

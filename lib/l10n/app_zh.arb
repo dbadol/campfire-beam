@@ -2360,6 +2360,7 @@
   "sendForeignOther": "这是另一种币或应用的链接，不是 BEAM 地址。",
   "sendForeignWebLink": "这是网页链接，不是 BEAM 地址。Campfire 不会打开链接。",
   "sendFundsReturning": "{amount} 在一笔尚未完成的转账中；大约一分钟后会回来。请到时再试。",
+  "sendLinkAmountUnread": "这个链接中的金额 Campfire 无法读取，因此没有填入金额。请输入要发送的金额。",
   "sendModeMaxPrivacy": "隐藏在许多其他转账之中；收款方需要等一段时间后才能使用。网络手续费较高（0.011 BEAM）。",
   "sendModeOffline": "即使收款方的钱包已关闭也能到账。网络手续费较高（0.011 BEAM）。",
   "sendModePublic": "可重复使用的捐赠地址：收款方离线时也能到账。网络手续费较高（0.011 BEAM）。",

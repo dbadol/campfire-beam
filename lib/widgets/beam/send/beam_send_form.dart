@@ -92,6 +92,16 @@ class BeamSendFormState extends State<BeamSendForm> {
   BeamSendModel get _m => widget.model;
   bool get _desktop => widget.desktop;
 
+  /// The recipient the amount in the field came with (a `beam:` link's
+  /// address, or the recipient this Send opened with), or null when the
+  /// amount is the person's own (or empty). Such an amount is that
+  /// recipient's request, in BEAM: see [_applyText] for what clears it.
+  String? _linkAmountFor;
+
+  /// The last `beam:` link asked for an amount that could not be read:
+  /// said under the amount until one is typed or the recipient changes.
+  bool _linkAmountUnread = false;
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +117,7 @@ class BeamSendFormState extends State<BeamSendForm> {
     }
     if (_to.text.isNotEmpty) _m.setRecipient(_to.text);
     if (_amount.text.isNotEmpty) _m.setAmountText(_amount.text);
+    if (widget.initialAmount != null) _linkAmountFor = _to.text;
   }
 
   @override
@@ -125,7 +136,8 @@ class BeamSendFormState extends State<BeamSendForm> {
     if (mounted) setState(() {});
   }
 
-  /// Empties every field (after a payment went out).
+  /// Empties every field (after a payment went out), and puts the asset
+  /// back to BEAM.
   void clear() {
     _to.clear();
     _amount.clear();
@@ -134,24 +146,56 @@ class BeamSendFormState extends State<BeamSendForm> {
     _m.setAmountText('');
     _m.comment = '';
     _m.setAsset(0);
+    _linkAmountFor = null;
+    _linkAmountUnread = false;
     setState(() {});
   }
 
-  void _setRecipient(String text, {String? amount}) {
+  /// Puts [text] in the recipient field and, when given, [amount] (BEAM,
+  /// "1.5", as a link carries it) in the amount field. Returns whether
+  /// [amount] was read (false when none was given).
+  bool _setRecipient(String text, {String? amount}) {
     _to.text = text;
     _to.selection = TextSelection.collapsed(offset: text.length);
     _m.setRecipient(text);
-    if (amount != null) {
-      final parsed = Amount.tryParseCanonicalAmount(
-        amount,
-        fractionDigits: BeamSendFormat.decimals,
-        truncateOverprecision: true,
-      );
-      if (parsed != null) {
-        _amount.text = BeamSendFormat.editable(parsed.raw);
-        _m.setAmountText(_amount.text);
-      }
-    }
+    _recipientChanged(text);
+    if (amount == null) return false;
+    final parsed = Amount.tryParseCanonicalAmount(
+      amount,
+      fractionDigits: BeamSendFormat.decimals,
+      truncateOverprecision: true,
+    );
+    if (parsed == null || parsed.raw <= BigInt.zero) return false;
+    _amount.text = BeamSendFormat.editable(parsed.raw);
+    _m.setAmountText(_amount.text);
+    _linkAmountFor = text;
+    return true;
+  }
+
+  /// The recipient field now holds [text] (put in, typed, or cleared): an
+  /// amount that came with another recipient goes, and so does the note
+  /// about the last link's amount.
+  void _recipientChanged(String text) {
+    if (_linkAmountFor != null && text != _linkAmountFor) _dropLinkAmount();
+    _linkAmountUnread = false;
+  }
+
+  /// Empties an amount that came with a link: it was that link's request,
+  /// in BEAM, and never goes to another recipient or another asset.
+  void _dropLinkAmount() {
+    if (_linkAmountFor == null) return;
+    _linkAmountFor = null;
+    _amount.clear();
+    _m.setAmountText('');
+  }
+
+  /// The amount is the person's own now (typed, or "Send all").
+  void _amountIsOwn() {
+    if (_linkAmountFor == null && !_linkAmountUnread) return;
+    setState(() {
+      _linkAmountFor = null;
+      _linkAmountUnread = false;
+    });
   }
 
   /// Puts [recipient] (and [amount] in BEAM, "1.5") into the form, as a
@@ -165,20 +209,48 @@ class BeamSendFormState extends State<BeamSendForm> {
     setState(() {});
   }
 
-  /// Pasted or scanned text, read by the same rules as the home's Scan
-  /// (scan_recognize.dart): a `beam:` payment link fills address and
-  /// amount, "alice.beam" the name. Anything else goes in as it is, so the
-  /// field says what it is (an Ethereum address, a bare name, a typo).
+  /// Pasted, scanned or picked text (the field's paste, Scan and address
+  /// book), read by the same rules as the home's Scan (scan_recognize.dart):
+  /// a `beam:` payment link fills address and amount, "alice.beam" the
+  /// name. Anything else goes in as it is, so the field says what it is
+  /// (an Ethereum address, a bare name, a typo).
+  ///
+  /// What else it changes (release audit 1.3.0):
+  ///
+  ///  * A `beam:` link is a payment request, so it starts a new payment:
+  ///    the form is cleared first, the asset goes back to BEAM (a link's
+  ///    amount is BEAM: kept on bETH, "amount=0.5" read as 0.5 bETH, about
+  ///    126,000 BEAM), the comment is emptied, and the amount is the link's
+  ///    or none, never one typed earlier for someone else. A link whose
+  ///    amount could not be read ("1,000", too many decimals, a name's link)
+  ///    says so under the amount instead of leaving it silently empty.
+  ///  * A plain address or name says only who gets the payment. The asset,
+  ///    the comment and an amount the person typed stay: they chose them,
+  ///    and they are on screen right under the field (paste, Scan and the
+  ///    address book are offered only while the field is empty). An amount
+  ///    that came with a link is that link's request, for that link's
+  ///    address, so it is emptied ([_dropLinkAmount]) as soon as the
+  ///    recipient field holds anything else (put in, typed or cleared), and
+  ///    when another asset is chosen.
+  ///
+  /// The home's Scan (desktop, [fill]) clears the draft for any code: the
+  /// Send tab was not on screen while scanning, so nothing in it was seen.
   void _applyText(String raw) {
     final r = recognizeScan(raw);
+    final link = scanIsBeamLink(raw);
+    if (link) clear();
+    var read = false;
     switch (r.kind) {
       case ScanKind.beam:
-        _setRecipient(r.address!, amount: r.amount);
+        read = _setRecipient(r.address!, amount: r.amount);
       case ScanKind.name:
         _setRecipient('${r.name}.beam');
       default:
         _setRecipient(_beamLinkPath(raw) ?? scanFirstLine(raw));
     }
+    final asked = link ? scanBeamLinkAmountText(raw)?.trim() : null;
+    _linkAmountUnread = !read && asked != null && asked.isNotEmpty;
+    setState(() {});
   }
 
   /// The address part of a `beam:` link the rules did not take as an
@@ -213,6 +285,7 @@ class BeamSendFormState extends State<BeamSendForm> {
     final text = _m.useMax();
     _amount.text = text;
     _amount.selection = TextSelection.collapsed(offset: text.length);
+    _amountIsOwn();
   }
 
   @override
@@ -364,6 +437,7 @@ class BeamSendFormState extends State<BeamSendForm> {
         style: _fieldStyle(context),
         onChanged: (v) {
           _m.setRecipient(v);
+          _recipientChanged(v);
           setState(() {});
         },
         decoration:
@@ -389,6 +463,7 @@ class BeamSendFormState extends State<BeamSendForm> {
                           onTap: () {
                             _to.clear();
                             _m.setRecipient('');
+                            _recipientChanged('');
                             setState(() {});
                           },
                           child: const XIcon(),
@@ -575,10 +650,13 @@ class BeamSendFormState extends State<BeamSendForm> {
       );
     }
     if (picked == null || !mounted) return;
+    // A link's amount is BEAM: it never becomes an amount of another asset.
+    if (picked != _m.assetId) _dropLinkAmount();
     _m.setAsset(picked);
     if (_amount.text.isNotEmpty) {
       _m.setAmountText(_amount.text);
     }
+    setState(() {});
   }
 
   // --------------------------------------------------------------- amount
@@ -607,7 +685,10 @@ class BeamSendFormState extends State<BeamSendForm> {
           locale: kAppAmountLocale,
         ),
       ],
-      onChanged: _m.setAmountText,
+      onChanged: (v) {
+        _m.setAmountText(v);
+        _amountIsOwn();
+      },
       decoration: InputDecoration(
         contentPadding: _desktop
             ? const EdgeInsets.only(top: 22, right: 12, bottom: 22)
@@ -634,6 +715,17 @@ class BeamSendFormState extends State<BeamSendForm> {
 
   List<Widget> _amountBelow(BuildContext context) {
     final out = <Widget>[];
+    if (_linkAmountUnread) {
+      out
+        ..add(const SizedBox(height: 8))
+        ..add(
+          BeamNotice(
+            key: const Key('beamSendLinkAmountUnread'),
+            kind: BeamNoticeKind.warning,
+            message: context.l10n.sendLinkAmountUnread,
+          ),
+        );
+    }
     final issue = _m.amountIssue;
     final waiting = issue?.waitingAssetId;
     final split = widget.onSplitCoins;

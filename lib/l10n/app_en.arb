@@ -13320,6 +13320,10 @@
       }
     }
   },
+  "sendLinkAmountUnread": "This link asks for an amount Campfire couldn't read, so none was filled in. Type the amount to send.",
+  "@sendLinkAmountUnread": {
+    "description": "BEAM Send screen (wallet → Send; glossary: send): pays BEAM or a BEAM asset (token) to a BEAM address or to a BEAM name (like alice.beam). Send form: warning under the amount after a BEAM payment link (a 'beam:' link, scanned, pasted or picked) whose amount could not be read, e.g. written with a comma ('1,000': a thousand or one?) or with too many decimals. The address was filled in; the amount field is left empty for the person to type."
+  },
   "sendModeMaxPrivacy": "Hidden among many other payments; the receiver can spend it after a while. Costs a higher network fee (0.011 BEAM).",
   "@sendModeMaxPrivacy": {
     "description": "BEAM Send screen (wallet → Send; glossary: send): pays BEAM or a BEAM asset (token) to a BEAM address or to a BEAM name (like alice.beam). How a payment to a max-privacy address arrives, shown under the recipient field and on the confirm screen (glossary: max privacy address). Keep '0.011 BEAM' as written."
