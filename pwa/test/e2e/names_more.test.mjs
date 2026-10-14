@@ -550,6 +550,9 @@ test('money waiting for my names: the Home line; a claim of nothing is the shade
 });
 
 test('nothing was sent; nothing left waiting; only this origin and the node', async () => {
+  // The last test's declined claim ends its contract call a moment after its sheet closes: give the engine up
+  // to 10 s to finish it, so "nothing left waiting" is the settled state, not a race with the previous test.
+  await page.waitForFunction(() => window.__campfire.contracts().inflight === 0, null, { timeout: 10000 }).catch(() => {});
   const truth = await page.evaluate(async () => {
     const { wallet } = await import('./lib/wallet.js');
     const txs = await wallet.session.call('tx_list', { count: 100, skip: 0 });
