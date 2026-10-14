@@ -24,7 +24,7 @@ import '../../../pages/receive_view/receive_view.dart';
 import '../../../pages_desktop_specific/beam/node/desktop_beam_node_sync_dialog.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/assets/beam_asset_directory.dart';
-import '../../../wallets/beam/contracts/airdrop/beam_airdrop_service.dart';
+import '../../../wallets/beam/contracts/airdrop/beam_airdrops.dart';
 import '../../../wallets/beam/contracts/airdrop/secure_voucher_code_store.dart';
 import '../../../wallets/beam/contracts/burn/beam_burn_service.dart';
 import '../../../wallets/beam/contracts/dex/beam_ratio.dart';
@@ -272,8 +272,9 @@ class BeamWalletWiring {
     qrReader: const BeamScopedQrReader(),
   );
 
-  /// Airdrops, with the secure voucher store attached.
-  BeamAirdropService get airdrop => services.airdrop;
+  /// Airdrops, with the secure voucher store attached: new codes on
+  /// Airdrop v3, old codes where they are.
+  BeamAirdrops get airdrops => services.airdrops;
 
   BeamMinterService get minter => services.minter;
 

@@ -41,13 +41,30 @@ BeamProblem? beamTransportProblem(Object error) => switch (error) {
 
 /// What a voucher code is, said where codes are made and claimed.
 ///
-/// The live Airdrop contract redeems with the code itself (the preimage of
+/// The old Airdrop contract redeems with the code itself (the preimage of
 /// the hash it stores), so a claim carries the code in a transaction that
 /// the network sees before it is in a block. Anyone watching could take the
 /// code and claim the voucher first. Campfire cannot change that contract;
-/// it says so, so codes are used for amounts where that risk is acceptable.
+/// it says so where its codes are claimed ([claimMessage]).
+///
+/// Airdrop v3, where every new code is made, signs a claim with a key made
+/// from the code, so the code never reaches the network and a copied claim
+/// pays only its claimer. The code itself still works like cash, and its
+/// maker can take it back until a claim is confirmed ([createMessageV3],
+/// [claimMessageV3]; the web wallet's `BEARER_TEXT_V3`, word for word).
 abstract final class AirdropBearerText {
   static const createTitle = 'Codes work like cash';
+
+  static const createMessageV3 =
+      'Anyone who has a code can claim it, so give each code only to its '
+      'person. Claiming never shows the code to the network, so nobody '
+      'watching can take it. Codes nobody has claimed can be taken back.';
+
+  static const claimMessageV3 =
+      'The network never sees this code, so nobody watching can take your '
+      'claim. Until the claim is confirmed, anyone else who has the code '
+      'could still claim it first, and whoever made it could still take it '
+      'back.';
 
   static const createMessage =
       'Anyone who has a code can claim it. Claiming also shows the code to '
@@ -125,6 +142,35 @@ BeamProblem airdropProblem(Object error) {
       "The airdrop contract didn't answer",
       'The wallet may be on the wrong network. Check the node in Settings.',
     ),
+    AirdropErrorCode.paused => const BeamProblem(
+      'New codes are paused for now',
+      'The airdrop contract is not taking new batches at the moment. Claims '
+          'and take-backs still work. Try again later.',
+    ),
+    AirdropErrorCode.changed => const BeamProblem(
+      'Some codes were just claimed',
+      'Nothing was sent. The batch has been read again: take back what is '
+          'left.',
+    ),
+    AirdropErrorCode.notBatchCreator => const BeamProblem(
+      'Another wallet made this batch',
+      'Only the wallet that made a batch can take it back. Nothing was sent.',
+    ),
     _ => BeamProblem('The airdrop refused this', error.message),
   };
 }
+
+/// Why a new batch's codes failed the check before sharing, in plain words
+/// (the screen adds what to do next).
+String airdropCheckProblemText(AirdropCheckProblem? p) => switch (p) {
+  AirdropCheckProblem.notFound => 'A code is not on the network.',
+  AirdropCheckProblem.otherKey =>
+    'A code points somewhere other than where this wallet put it.',
+  AirdropCheckProblem.otherValue =>
+    'A code holds a different amount than this batch locked.',
+  AirdropCheckProblem.otherBatch =>
+    'A code belongs to a batch other than the one this wallet made.',
+  AirdropCheckProblem.notMine =>
+    'The codes belong to a batch another wallet made.',
+  null => 'A code did not check out.',
+};

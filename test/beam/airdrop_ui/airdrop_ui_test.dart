@@ -7,12 +7,15 @@
  *
  */
 
-// The airdrop screens over the real BeamAirdropService, on a FakeTransport
-// whose invoke_contract is answered like the pinned Airdrop app shader
-// (test/beam/contracts/airdrop/airdrop_fixtures.dart, built on the
-// recorded mainnet answers) and whose wallet_status is the recorded
-// fixture. Every code here comes from a seeded Random in a fake contract:
-// none of them unlocks anything on mainnet.
+// The airdrop screens over the real services of both airdrop contracts
+// (BeamAirdrops), on a FakeTransport whose invoke_contract is answered like
+// the pinned app shaders: the old contract's
+// (test/beam/contracts/airdrop/airdrop_fixtures.dart, built on the recorded
+// mainnet answers) and Airdrop v3's (airdrop_v3_fixtures.dart), and whose
+// wallet_status is the recorded fixture. Codes of the old contract are
+// still claimed and taken back there; every new batch is made on v3. Every
+// code here comes from a seeded Random in a fake contract: none of them
+// unlocks anything on mainnet.
 
 import 'dart:convert';
 import 'dart:io';
@@ -35,6 +38,7 @@ import 'package:stackwallet/widgets/desktop/primary_button.dart';
 import 'package:stackwallet/widgets/flag_secure_scope.dart';
 
 import '../contracts/airdrop/airdrop_fixtures.dart';
+import '../contracts/airdrop/airdrop_v3_fixtures.dart';
 import '../contracts/airdrop/memory_code_store.dart';
 import 'beam_ui_harness.dart';
 
@@ -60,10 +64,13 @@ bool _enabled(WidgetTester tester, String key) =>
 void main() {
   const g = BigInt.from;
   late FakeAirdropShader shader;
+  late FakeAirdropV3Shader v3Shader;
   late FakeTransport t;
   late List<String> log;
   late _RecordingStore store;
-  late BeamAirdropService service;
+  late BeamAirdrops service;
+  // What tx_status says about any transaction.
+  late Map<String, Object?> txState;
   late ValueNotifier<BeamSyncAssessment> sync;
   late FakeAuth auth;
   final names = BeamAssetNames();
@@ -82,10 +89,12 @@ void main() {
   // test's fake clock.
   void init() {
     log = [];
+    txState = {'status': 3, 'confirmations': 5};
     shader = FakeAirdropShader();
+    v3Shader = FakeAirdropV3Shader();
     store = _RecordingStore(log);
     t = FakeTransport({
-      'invoke_contract': (Map<String, Object?> p) => shader(p),
+      'invoke_contract': airdropRouter(shader, v3Shader),
       'process_invoke_data': (Map<String, Object?> p) {
         log.add('sent');
         return {'txid': 'cd' * 16};
@@ -95,18 +104,31 @@ void main() {
       ),
       'tx_status': (Map<String, Object?> p) => {
         'txId': p['txId'],
-        'status': 3,
-        'status_string': 'completed',
+        'status_string': 'x',
         'tx_type': 12,
         'create_time': 1790000000,
+        ...txState,
       },
     });
-    service = BeamAirdropService(
-      BeamApi(t),
-      airdropAppShader(MemoryShaderSource()),
-      store: store,
-      random: Random(11),
-      clock: () => DateTime.utc(2026, 10, 6, 12),
+    final lock = AirdropFlowLock();
+    final shaders = MemoryShaderSource();
+    service = BeamAirdrops(
+      old: BeamAirdropService(
+        BeamApi(t),
+        airdropAppShader(shaders),
+        store: store,
+        lock: lock,
+        random: Random(11),
+        clock: () => DateTime.utc(2026, 10, 6, 12),
+      ),
+      v3: BeamAirdropV3Service(
+        BeamApi(t),
+        airdropV3AppShader(shaders),
+        store: store,
+        lock: lock,
+        random: Random(11),
+        clock: () => DateTime.utc(2026, 10, 6, 12),
+      ),
     );
     sync = ValueNotifier(synced());
     auth = FakeAuth();
@@ -151,8 +173,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(t.callsTo('process_invoke_data'), hasLength(1));
       expect(auth.reasons, ['Claim 0.5 BEAM']);
-      expect(find.byKey(const ValueKey('claim-done')), findsOneWidget);
+      // Sent, not "received": that waits for the network.
+      expect(_textOf(tester, 'claim-done'), 'Claim sent');
       expect(service.isBusy, isFalse);
+      // An old contract's code: found there after Airdrop v3 said no.
+      expect(
+        v3Shader.seen.where((a) => a.contains('action=check_voucher')),
+        isNotEmpty,
+      );
+      expect(
+        shader.seen.where((a) => a.contains('action=redeem')),
+        hasLength(1),
+      );
       await expectScreen(tester, 'claim_done');
     });
 
@@ -249,8 +281,11 @@ void main() {
   });
 
   group('create a batch', () {
-    testWidgets('the summary adds up, a double tap builds one batch, and the '
-        'codes are saved and read back before the broadcast', (tester) async {
+    testWidgets('on Airdrop v3: the summary adds up with the claim fees paid '
+        'ahead, a double tap builds one batch, the codes are saved and read '
+        'back before the broadcast, and shown once they are checked', (
+      tester,
+    ) async {
       init();
       await pumpBeamPage(
         tester,
@@ -276,24 +311,36 @@ void main() {
       await tester.pumpAndSettle();
       expect(_textOf(tester, 'create-locked'), '1 BEAM');
       expect(_textOf(tester, 'create-fee'), '0.01 BEAM');
+      // "Pay the claim fee for each code" is on by default: 10 × 0.022.
+      expect(_textOf(tester, 'create-gas'), '0.22 BEAM');
+      // 0.001 + 10 groth × (115,000 + 30,000 × 10).
+      expect(_textOf(tester, 'create-network-fee'), '0.0425 BEAM');
+      expect(_textOf(tester, 'create-total'), '1.2725 BEAM');
       expect(find.text('Create 10 codes'), findsOneWidget);
       await expectScreen(tester, 'create_form');
 
       // Two taps in the same frame: one batch.
+      txState = {'status': 1};
       await tester.tap(find.byKey(const ValueKey('create-cta')));
       await tester.tap(find.byKey(const ValueKey('create-cta')));
       await tester.pumpAndSettle();
       expect(
-        shader.seen.where((a) => a.contains('action=create_batch')),
+        v3Shader.seen.where((a) => a.contains('action=create_batch')),
         hasLength(1),
+      );
+      expect(
+        shader.seen.where((a) => a.contains('action=create_batch')),
+        isEmpty,
+        reason: 'new batches go to Airdrop v3 only',
       );
       expect(log, isEmpty); // nothing saved or sent by preparing
 
       // The confirmation, read back from raw_data.
       expect(_textOf(tester, 'confirm-locked'), '1 BEAM');
       expect(_textOf(tester, 'confirm-creation-fee'), '0.01 BEAM');
-      expect(_textOf(tester, 'confirm-network-fee'), '0.121 BEAM');
-      expect(_textOf(tester, 'confirm-total'), '1.131 BEAM');
+      expect(_textOf(tester, 'confirm-gas'), '0.22 BEAM');
+      expect(_textOf(tester, 'confirm-network-fee'), '0.0425 BEAM');
+      expect(_textOf(tester, 'confirm-total'), '1.2725 BEAM');
       await expectScreen(tester, 'create_confirm');
 
       await tester.tap(find.byKey(const ValueKey('airdrop-confirm-cta')));
@@ -303,12 +350,24 @@ void main() {
       expect(t.callsTo('process_invoke_data'), hasLength(1));
       // Written, read back, then sent; then the tx id is recorded.
       expect(log.take(4), ['put unconfirmed', 'all', 'sent', 'put broadcast']);
-      final saved = (await store.all()).single;
+      var saved = (await store.all()).single;
       expect(saved.count, 10);
       expect(saved.txId, 'cd' * 16);
+      expect(saved.isV3, isTrue);
 
-      // The codes screen shows exactly the saved codes.
+      // Not mined yet: the codes are not shown until they are checked.
       expect(find.text('Your airdrop codes'), findsOneWidget);
+      expect(find.byKey(const ValueKey('codes-steps')), findsOneWidget);
+      expect(find.byKey(const ValueKey('code-0')), findsNothing);
+
+      // Mined, 5 confirmations: the next look checks every code.
+      v3Shader.mine(v3Shader.pending!);
+      txState = {'status': 3, 'confirmations': 5};
+      await tester.pump(BeamAirdropCodesView.checkEvery);
+      await tester.pumpAndSettle();
+      saved = (await store.all()).single;
+      expect(saved.check!.ok, isTrue);
+      expect(find.byKey(const ValueKey('codes-ready')), findsOneWidget);
       expect(find.byKey(const ValueKey('codes-key-warning')), findsOneWidget);
       for (var i = 0; i < 3; i++) {
         final shown = tester

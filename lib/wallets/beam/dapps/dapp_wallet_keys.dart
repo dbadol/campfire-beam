@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
 
 import '../contracts/airdrop/airdrop_constants.dart';
+import '../contracts/airdrop/airdrop_v3_constants.dart';
 import '../contracts/bans/bans_constants.dart';
 import '../contracts/burn/blackhole_constants.dart';
 import '../contracts/dex/dex_constants.dart';
@@ -42,9 +43,11 @@ const String kDaoVaultCid =
 /// its key the same way from `key_material` (`v7_0_api_handle.cpp:231-236`).
 abstract final class DappWalletKeys {
   /// The `m_vSig` hash of key id [id].
-  static String keyHash(List<int> id) => crypto.sha256
-      .convert([...ascii.encode('bvm.m.key'), 0, ...id])
-      .toString();
+  static String keyHash(List<int> id) => crypto.sha256.convert([
+    ...ascii.encode('bvm.m.key'),
+    0,
+    ...id,
+  ]).toString();
 
   /// Key hashes no dApp may sign with, and what each key holds, in the
   /// words of the refusal.
@@ -54,10 +57,14 @@ abstract final class DappWalletKeys {
   /// * Airdrop `MyAccountID{cid, 0}` (`contracts/airdrop/app.cpp`): creates
   ///   and cancels the user's voucher batches. The hash appears verbatim in
   ///   the recorded `create_batch` raw_data (a test checks it).
-  /// * Airdrop `OwnerAccountID{0xAD, 42}`: the airdrop contract's owner.
+  /// * Airdrop v3 `CreatorID{cid, 0}` (`contracts/v3/app.cpp`): creates and
+  ///   takes back the user's v3 batches, with their prepaid claim fees.
+  /// * Airdrop `OwnerAccountID{0xAD, 42}`: the owner of both airdrop
+  ///   contracts (v3 keeps the same key id).
   static final Map<String, String> reserved = Map.unmodifiable({
     keyHash(_hex(kBansCid)): 'your BEAM names',
     keyHash([..._hex(kAirdropContractId), 0]): 'your airdrops',
+    keyHash([..._hex(kAirdropV3ContractId), 0]): 'your airdrops',
     keyHash(const [0xAD, 42]): 'the airdrop contract',
   });
 
@@ -88,6 +95,7 @@ const Map<String, String> dappKnownContracts = {
   kVaultAnonCid: 'BANS name payments vault',
   kDaoVaultCid: 'BeamX DAO vault',
   kAirdropContractId: 'Campfire airdrops',
+  kAirdropV3ContractId: 'Campfire airdrops',
   kMinterContractId: 'Asset minter',
   kBlackHoleContractId: 'Black hole (burns assets)',
 };
