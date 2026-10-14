@@ -19,8 +19,23 @@ function dartConst(dart, name) {
 }
 
 test("the web wallet's words are the app's, word for word", () => {
-  const dart = repo('lib/widgets/beam/airdrop/airdrop_text.dart');
-  for (const k of ['createTitle', 'createMessage', 'claimMessage']) assert.equal(BEARER_TEXT[k], dartConst(dart, k), k);
+  // The app keeps them in its English catalogue (lib/l10n/app_en.arb) since its translations, as Dart
+  // constants before: whichever this tree has.
+  let arb = {};
+  try {
+    arb = JSON.parse(repo('lib/l10n/app_en.arb'));
+  } catch {
+    /* an app tree before its catalogue */
+  }
+  if (arb.airdropBearerClaimMessage) {
+    assert.equal(BEARER_TEXT.claimMessage, arb.airdropBearerClaimMessage, 'claimMessage');
+    assert.equal(BEARER_TEXT_V3.createTitle, arb.airdropBearerCreateTitle, 'v3 createTitle');
+    assert.equal(BEARER_TEXT_V3.createMessage, arb.airdropBearerCreateMessageV3, 'v3 createMessage');
+    assert.equal(BEARER_TEXT_V3.claimMessage, arb.airdropBearerClaimMessageV3, 'v3 claimMessage');
+  } else {
+    const dart = repo('lib/widgets/beam/airdrop/airdrop_text.dart');
+    for (const k of ['createTitle', 'createMessage', 'claimMessage']) assert.equal(BEARER_TEXT[k], dartConst(dart, k), k);
+  }
   assert.match(BEARER_TEXT.claimMessage, /^Claiming shows this code to the network before it is confirmed, so someone watching could claim it first\./);
 });
 
