@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { THEMES, THEME_WORDS, SKINS, SKIN_WORDS, BARS, readTheme, readSkin, applyTheme, applyLook, setTheme, setSkin } from '../../src/lib/theme.js';
+import { THEMES, THEME_WORDS, SKINS, SKIN_WORDS, BARS, readTheme, readSkin, applyTheme, applyLook, setTheme, setSkin, pickSkin } from '../../src/lib/theme.js';
 
 const src = (p) => readFileSync(new URL(`../../src/${p}`, import.meta.url), 'utf8');
 
@@ -140,6 +140,40 @@ test('colours applied with the theme: the attribute, and the browser bar in that
   // Each bar colour is its palette's colour at the top of the page (Campfire's is its background).
   for (const k of SKINS) for (const m of ['light', 'dark']) assert.equal(BARS[k][m], PALETTES[`${k} ${m}`]['bg-top'], `${k} ${m}`);
   for (const m of ['light', 'dark']) assert.equal(PALETTES[`campfire ${m}`]['bg-top'], PALETTES[`campfire ${m}`].bg, `campfire ${m}: no band`);
+});
+
+test('BEAM is dark by default: picking it turns a device-following theme to Dark, and Campfire red undoes that', () => {
+  // Following the device: BEAM comes dark, and the Theme row is told so.
+  let st = memoryStorage();
+  let d = fakeDoc();
+  assert.deepEqual(pickSkin('beam', { storage: st, doc: d }), { skin: 'beam', theme: 'dark' });
+  assert.equal(st.m.get('campfire-theme'), 'dark', 'kept: the next start opens dark before the first paint');
+  assert.equal(d.documentElement.dataset.theme, 'dark');
+  assert.equal(d.documentElement.dataset.skin, 'beam');
+  assert.equal(d.light.attrs.content, '#04325a', "the bar in BEAM's dark colour");
+  // Back to Campfire red: the device's own light or dark again, nothing left saved.
+  assert.deepEqual(pickSkin('campfire', { storage: st, doc: d }), { skin: 'campfire', theme: 'system' });
+  assert.equal(st.m.size, 0);
+  assert.equal('theme' in d.documentElement.dataset, false);
+  // A theme picked after BEAM came dark is the person's own: Campfire red keeps it.
+  pickSkin('beam', { storage: st, doc: d });
+  setTheme('dark', { storage: st, doc: d });
+  assert.deepEqual(pickSkin('campfire', { storage: st, doc: d }), { skin: 'campfire', theme: 'dark' });
+  // Light picked on purpose: BEAM stays light.
+  st = memoryStorage({ 'campfire-theme': 'light' });
+  d = fakeDoc();
+  applyTheme('light', d); // as theme-boot.js puts it on before the first paint
+  assert.deepEqual(pickSkin('beam', { storage: st, doc: d }), { skin: 'beam', theme: 'light' });
+  assert.equal(d.documentElement.dataset.theme, 'light');
+  assert.deepEqual(pickSkin('campfire', { storage: st, doc: d }), { skin: 'campfire', theme: 'light' });
+  // Dark picked on purpose, then BEAM and back: still dark.
+  st = memoryStorage({ 'campfire-theme': 'dark' });
+  pickSkin('beam', { storage: st, doc: fakeDoc() });
+  assert.equal(pickSkin('campfire', { storage: st, doc: fakeDoc() }).theme, 'dark');
+  // Storage blocked: dark on this page anyway.
+  d = fakeDoc();
+  assert.deepEqual(pickSkin('beam', { storage: blocked, doc: d }), { skin: 'beam', theme: 'dark' });
+  assert.equal(d.documentElement.dataset.theme, 'dark');
 });
 
 test('before the first paint: theme-boot.js sets the colours and the bar from the same key, the same values', () => {

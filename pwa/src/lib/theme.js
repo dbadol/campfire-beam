@@ -17,6 +17,9 @@ export const SKINS = Object.freeze(['campfire', 'beam']);
 export const SKIN_WORDS = Object.freeze({ campfire: tk('Campfire red'), beam: 'BEAM' });
 const KEY = 'campfire-theme';
 const SKIN_KEY = 'campfire-skin';
+// Set when choosing BEAM's colours turned the theme to Dark by itself (pickSkin), so going back to
+// Campfire red can undo it; any theme the person picks themselves clears it.
+const AUTO_DARK_KEY = 'campfire-theme-auto';
 // The browser's bar colour: css/app.css --bg-top for each palette, the colour at the top of the page
 // (Campfire's is its --bg; index.html carries Campfire's two, theme-boot.js the BEAM ones).
 export const BARS = Object.freeze({
@@ -85,6 +88,7 @@ export function applyTheme(choice, doc = globalThis.document) {
 export function setTheme(choice, { storage = globalThis.localStorage, doc = globalThis.document } = {}) {
   const c = THEMES.includes(choice) ? choice : 'system';
   write(storage, KEY, c, c === 'system');
+  write(storage, AUTO_DARK_KEY, '', true);
   applyTheme(c, doc);
   return c;
 }
@@ -95,4 +99,35 @@ export function setSkin(choice, { storage = globalThis.localStorage, doc = globa
   write(storage, SKIN_KEY, c, c === 'campfire');
   applyLook({ skin: c }, doc);
   return c;
+}
+
+const autoDark = (storage) => {
+  try {
+    return storage.getItem(AUTO_DARK_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Settings' Colours row. BEAM is dark by default (owner, 2026-10-14): choosing BEAM while the theme
+ * follows the device turns it to Dark, and going back to Campfire red undoes that, unless a theme was
+ * picked since. A theme picked on purpose (Light or Dark) is never changed. Returns both, so the Theme
+ * row can show what is on.
+ */
+export function pickSkin(choice, { storage = globalThis.localStorage, doc = globalThis.document } = {}) {
+  const skin = setSkin(choice, { storage, doc });
+  let theme = readTheme(storage);
+  if (skin === 'beam' && theme === 'system') {
+    theme = 'dark';
+    write(storage, KEY, theme, false);
+    write(storage, AUTO_DARK_KEY, '1', false);
+    applyLook({ theme }, doc);
+  } else if (skin === 'campfire' && theme === 'dark' && autoDark(storage)) {
+    theme = 'system';
+    write(storage, KEY, theme, true);
+    write(storage, AUTO_DARK_KEY, '', true);
+    applyLook({ theme }, doc);
+  }
+  return { skin, theme };
 }

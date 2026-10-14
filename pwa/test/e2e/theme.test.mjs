@@ -117,15 +117,22 @@ test('Settings -> Colours: BEAM at once, light and dark; from the first paint af
   await page.locator(tid('skin-row')).scrollIntoViewIfNeeded();
   assert.equal(await page.inputValue(tid('skin-select')), 'campfire', 'Campfire red by default');
   assert.deepEqual(await page.$$eval(`${tid('skin-select')} option`, (o) => o.map((x) => x.textContent)), ['Campfire red', 'BEAM']);
+  // BEAM is dark by default (owner, 2026-10-14), on a device in light mode too, and the Theme row says so.
   await page.selectOption(tid('skin-select'), 'beam');
-  assert.equal(await bg(), BEAM_LIGHT_BG, 'at once');
-  assert.equal(await page.evaluate(() => localStorage.getItem('campfire-skin')), 'beam');
+  assert.equal(await bg(), BEAM_DARK_BG, 'at once, and dark');
+  assert.equal(await page.inputValue(tid('theme-select')), 'dark', 'the Theme row follows');
+  assert.deepEqual(await page.evaluate(() => [localStorage.getItem('campfire-skin'), localStorage.getItem('campfire-theme')]), ['beam', 'dark']);
+  assert.deepEqual(await bars(), ['#04325a', '#04325a']);
+  await shot(page, 'theme-04-settings-beam-dark');
+  // Light on purpose: BEAM's light palette.
+  await page.selectOption(tid('theme-select'), 'light');
+  assert.equal(await bg(), BEAM_LIGHT_BG, 'BEAM, light');
+  assert.deepEqual(await bars(), ['#e0ebf4', '#e0ebf4']);
+  await shot(page, 'theme-05-settings-beam-light');
+  // Like this device: BEAM follows the device (light here) from now on.
+  await page.selectOption(tid('theme-select'), 'system');
+  assert.equal(await bg(), BEAM_LIGHT_BG);
   assert.deepEqual(await bars(), ['#e0ebf4', '#04325a']);
-  await shot(page, 'theme-04-settings-beam-light');
-  await page.emulateMedia({ colorScheme: 'dark' });
-  assert.equal(await bg(), BEAM_DARK_BG, 'BEAM, dark');
-  await shot(page, 'theme-05-settings-beam-dark');
-  await page.emulateMedia({ colorScheme: 'light' });
   // The logo is Campfire's in either colours.
   assert.equal(await page.evaluate(() => fetch('img/logo.svg').then((r) => r.ok)), true);
 

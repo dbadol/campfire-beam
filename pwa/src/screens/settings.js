@@ -17,7 +17,7 @@
  *   - "Can several payments go at once? Will I hear when money arrives?" -> Coins (Split coins) and Payment
  *     notifications, in the Payments group; under it, that notices come only while the app is open.
  *   - "Can it look like BEAM?" -> Appearance: Theme (light or dark) and Colours (Campfire red, the
- *     default, or BEAM's own colours; issue #80).
+ *     default, or BEAM's own colours; issue #80). BEAM comes dark unless Light was picked on purpose.
  *   - "It is not in my language" / "I want it in English" -> Appearance: Language, like this device by
  *     default (never asked), or English, Русский, 简体中文, 日本語, each named in its own script.
  *   - "My balance is wrong / coins are missing" -> Rescan, for every wallet (restored, new or
@@ -36,7 +36,7 @@ import { runUpdateCheck, openOtherAddress } from '../lib/update_ui.js';
 import { tokenSettings } from './token_ui.js';
 import { listWallets, nameOf } from '../lib/wallets.js';
 import { notificationsRow } from './notifications.js';
-import { THEMES, THEME_WORDS, SKINS, SKIN_WORDS, readTheme, setTheme, readSkin, setSkin } from '../lib/theme.js';
+import { THEMES, THEME_WORDS, SKINS, SKIN_WORDS, readTheme, setTheme, readSkin, pickSkin } from '../lib/theme.js';
 import { t, LANGUAGES, LANGUAGE_NAMES, readLanguageChoice, setLanguage, deviceLanguage, navigatorLanguages } from '../lib/i18n.js';
 
 export default function settings(app) {
@@ -55,9 +55,12 @@ export default function settings(app) {
   themeSel.value = readTheme();
   themeSel.addEventListener('change', () => setTheme(themeSel.value));
   // Campfire red (the default) or BEAM's colours (issue #80). It changes at once; the logo stays.
+  // BEAM comes dark unless a theme was picked on purpose (lib/theme.js pickSkin): the Theme row follows.
   const skinSel = h('select', { class: 'inline', 'aria-label': t('Colours'), 'data-testid': 'skin-select' }, ...SKINS.map((k) => h('option', { value: k, text: t(SKIN_WORDS[k]) })));
   skinSel.value = readSkin();
-  skinSel.addEventListener('change', () => setSkin(skinSel.value));
+  skinSel.addEventListener('change', () => {
+    themeSel.value = pickSkin(skinSel.value).theme;
+  });
   // The language: like this device (the default, never asked on the first open), or one of them, each
   // named in its own script so a person who cannot read the current one still finds theirs. It changes
   // at once: lib/i18n.js reads that catalog and app.js draws this screen again. The 12 words stay
