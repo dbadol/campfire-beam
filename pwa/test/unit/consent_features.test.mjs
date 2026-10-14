@@ -53,3 +53,10 @@ test('airdrop v3: claim fees paid ahead are named on the button, and a prepaid c
   // Three assets out or something paid on a claim: the plain words.
   assert.equal(approveLabel(req({ action: 'airdropClaim', assetId: 36 }, [], [{ assetId: 0, amount: 1n }, { assetId: 36, amount: 1n }, { assetId: 7, amount: 1n }], fee), unit), 'Approve and get 0.00000001 BEAM + 0.00000001 Asset #36 + 0.00000001 Asset #7');
 });
+
+test('the approve sheet title never calls a function that does not exist (nameTitle, found 2026-10-14)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../src/screens/consent.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /\bnameTitle\(/, 'a native request with an intent outside TITLES would have thrown');
+  assert.match(src, /return 'Approve this request';\n\}/, 'the generic title stays the fallback');
+});

@@ -163,7 +163,6 @@ function title(req, bridge) {
   if (req.kind === 'send') return 'Approve this payment';
   if (req.intent && req.intent.action === 'swap') return 'Confirm your swap';
   if (req.intent && TITLES[req.intent.action]) return TITLES[req.intent.action];
-  if (req.native && nameTitle(req.intent)) return nameTitle(req.intent);
   return 'Approve this request';
 }
 
