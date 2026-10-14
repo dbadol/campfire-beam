@@ -44,7 +44,6 @@ Future<ScriptedBackend> _open(
       coin: Beam(CryptoCurrencyNetwork.main),
       walletId: 'beam-test-wallet',
       walletName: 'My BEAM',
-      locale: 'en_US',
       clipboard: clipboard ?? FakeClipboard(),
       minimumBuildTime: Duration.zero,
       routeOnSuccessName: '/',

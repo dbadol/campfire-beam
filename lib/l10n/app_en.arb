@@ -4707,20 +4707,11 @@
   },
   "buyArrivedDetail": "{amount} is in {wallet}.",
   "@buyArrivedDetail": {
-    "description": "Buy BEAM (paying with a coin from another network, e.g. Bitcoin, through the exchange service buybeam.my, which sends BEAM to this wallet; glossary: buy BEAM). Keep 'buybeam.my' (the service's name), 'BEAM' and 'Campfire' as written. One buy's screen (where to pay, then the buy's progress): message under 'Your BEAM has arrived'. {amount} is the amount, e.g. '≈ 166,888.69 BEAM'; {wallet} the wallet's name, e.g. 'Savings'.",
+    "description": "Buy BEAM (paying with a coin from another network, e.g. Bitcoin, through the exchange service buybeam.my, which sends BEAM to this wallet; glossary: buy BEAM). Keep 'buybeam.my' (the service's name), 'BEAM' and 'Campfire' as written. One buy's screen (where to pay, then the buy's progress): message under 'Your BEAM has arrived'. {amount} is the BEAM the wallet received, every digit, e.g. '166,888.69123456 BEAM'; {wallet} the wallet's name, e.g. 'Savings'.",
     "placeholders": {
       "amount": {
         "type": "String"
       },
-      "wallet": {
-        "type": "String"
-      }
-    }
-  },
-  "buyArrivedDetailNoAmount": "Your BEAM is in {wallet}.",
-  "@buyArrivedDetailNoAmount": {
-    "description": "Buy BEAM (paying with a coin from another network, e.g. Bitcoin, through the exchange service buybeam.my, which sends BEAM to this wallet; glossary: buy BEAM). Keep 'buybeam.my' (the service's name), 'BEAM' and 'Campfire' as written. One buy's screen (where to pay, then the buy's progress): message under 'Your BEAM has arrived' when the amount is not known. {wallet} is the wallet's name, e.g. 'Savings'.",
-    "placeholders": {
       "wallet": {
         "type": "String"
       }
@@ -5274,6 +5265,24 @@
   "buyProblemUnknownDetail": "Nothing was sent. Try again, or pick another coin.",
   "@buyProblemUnknownDetail": {
     "description": "Buy BEAM (paying with a coin from another network, e.g. Bitcoin, through the exchange service buybeam.my, which sends BEAM to this wallet; glossary: buy BEAM). Keep 'buybeam.my' (the service's name), 'BEAM' and 'Campfire' as written. The form, notice when buybeam.my refuses the buy: message under 'buybeam.my couldn't do this buy'."
+  },
+  "buyProblemWrongDeposit": "buybeam.my's deposit address isn't a {chain} address, so it isn't shown.",
+  "@buyProblemWrongDeposit": {
+    "description": "Buy BEAM (paying with a coin from another network, e.g. Bitcoin, through the exchange service buybeam.my, which sends BEAM to this wallet; glossary: buy BEAM). Keep 'buybeam.my' (the service's name), 'BEAM' and 'Campfire' as written. The form, notice when buybeam.my refuses the buy: title when the deposit address buybeam.my sent is not an address of the coin's own network (another network's address, a typo, a payment link), so the app did not show it. {chain} is the network of the coin paid with, e.g. 'Bitcoin' (glossary: deposit address, address).",
+    "placeholders": {
+      "chain": {
+        "type": "String"
+      }
+    }
+  },
+  "buyProblemWrongDepositDetail": "{symbol} sent to it would be lost. Nothing to pay, and nothing was sent. This is not something you did. Try again in a moment.",
+  "@buyProblemWrongDepositDetail": {
+    "description": "Buy BEAM (paying with a coin from another network, e.g. Bitcoin, through the exchange service buybeam.my, which sends BEAM to this wallet; glossary: buy BEAM). Keep 'buybeam.my' (the service's name), 'BEAM' and 'Campfire' as written. The form, notice when buybeam.my refuses the buy: message under 'buybeam.my's deposit address isn't a … address'. {symbol} is the ticker of the coin paid with, e.g. 'BTC'.",
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
   },
   "buyRefundAddressFormat": "{chain} addresses start with 0x and have 42 characters.",
   "@buyRefundAddressFormat": {

@@ -10,6 +10,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:meta/meta.dart';
 
+import '../../../../l10n/amount_text.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../utilities/amount/amount.dart';
 import '../../assets/beam_asset_catalog.dart';
@@ -452,26 +453,11 @@ String dappShortHex(String hex, {int head = 8, int tail = 6}) =>
 
 /// [amount] smallest units of an asset with [decimals] decimals, with
 /// thousands separators and no trailing zeros: 10000000 → "0.1",
-/// 100000000000 → "1,000". Every BEAM asset has 8 decimals
-/// (`BeamAssetInfo.decimalsFor`), so nothing is ever rounded: what is
-/// shown is what moves.
-String dappFormatAmount(BigInt amount, {int decimals = 8}) {
-  final negative = amount.isNegative;
-  final v = amount.abs();
-  final base = BigInt.from(10).pow(decimals);
-  final whole = (v ~/ base).toString();
-  final frac = (v % base)
-      .toString()
-      .padLeft(decimals, '0')
-      .replaceFirst(RegExp(r'0+$'), '');
-  final grouped = StringBuffer();
-  for (var i = 0; i < whole.length; i++) {
-    if (i > 0 && (whole.length - i) % 3 == 0) grouped.write(',');
-    grouped.write(whole[i]);
-  }
-  final text = frac.isEmpty ? '$grouped' : '$grouped.$frac';
-  return negative ? '-$text' : text;
-}
+/// 100000000000 → "1,000" ("1 000" in Russian; "." decimals in every
+/// language). Every BEAM asset has 8 decimals (`BeamAssetInfo.decimalsFor`),
+/// so nothing is ever rounded: what is shown is what moves.
+String dappFormatAmount(BigInt amount, {int decimals = 8}) =>
+    formatAmountUnits(amount, decimals: decimals);
 
 /// The worst the core may sign after approval, for a request it can
 /// rebuild ([DappRebuildTerms]), in the words the sheet uses.

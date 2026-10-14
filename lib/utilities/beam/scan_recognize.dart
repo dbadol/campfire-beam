@@ -301,14 +301,18 @@ ScanRecognition _ethereumLink(String rest) {
 }
 
 // ------------------------------------------------------------- amounts
-// The web wallet's lib/amount.js parseAmount and formatAmount (no grouping).
+// The web wallet's lib/amount.js parseAmount and formatAmount (no grouping),
+// except that a comma is refused: "amount=1,000" may mean a thousand (a
+// thousands separator) or one (a decimal comma), a thousandfold apart, so a
+// link's amount takes only a dot, as the DEX and Buy amounts do. The link's
+// address still fills the form; the amount is left for the person to type.
 
-/// Groth from what a person typed, or null where parseAmount throws.
+/// Groth from what a person typed, or null where parseAmount throws (and
+/// for any comma).
 BigInt? _parseGroth(String input) {
-  var s = input.replaceAll(_space, '');
-  if (s.isEmpty || s.startsWith('-')) return null;
-  if ('.'.allMatches(s).length + ','.allMatches(s).length > 1) return null;
-  s = s.replaceFirst(',', '.');
+  final s = input.replaceAll(_space, '');
+  if (s.isEmpty || s.startsWith('-') || s.contains(',')) return null;
+  if ('.'.allMatches(s).length > 1) return null;
   if (!RegExp(r'^\d*\.?\d*$').hasMatch(s) || !RegExp(r'\d').hasMatch(s)) {
     return null;
   }

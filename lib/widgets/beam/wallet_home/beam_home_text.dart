@@ -17,6 +17,7 @@
 /// user from sending says so.
 library;
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/bans/bans_inbox_monitor.dart';
@@ -246,14 +247,7 @@ abstract final class BeamHomeText {
     return ids.map((id) => withUnit(id, totals[id]!)).join(' + ');
   }
 
-  static String _group(String digits) {
-    final out = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) out.write(',');
-      out.write(digits[i]);
-    }
-    return out.toString();
-  }
+  static String _group(String digits) => groupThousands(digits);
 
   // ------------------------------------------------------------ balance
 

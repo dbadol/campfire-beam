@@ -34,6 +34,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import '../../l10n/amount_text.dart';
 import '../../l10n/l10n.dart';
 import '../../utilities/logger.dart';
 
@@ -1486,21 +1487,10 @@ class BridgeController extends ChangeNotifier {
     return '${p >= 10 ? p.toStringAsFixed(0) : p.toStringAsFixed(1)}%';
   }
 
-  /// Every digit, trailing zeros trimmed, thousands grouped.
-  static String _coin(BigInt v, int decimals) {
-    final unit = BigInt.from(10).pow(decimals);
-    final whole = (v ~/ unit).toString();
-    final frac = (v % unit)
-        .toString()
-        .padLeft(decimals, '0')
-        .replaceFirst(RegExp(r'0+$'), '');
-    final b = StringBuffer();
-    for (var i = 0; i < whole.length; i++) {
-      if (i > 0 && (whole.length - i) % 3 == 0) b.write(',');
-      b.write(whole[i]);
-    }
-    return frac.isEmpty ? '$b' : '$b.$frac';
-  }
+  /// Every digit, trailing zeros trimmed, thousands grouped ("." decimals
+  /// in every language: lib/l10n/amount_text.dart).
+  static String _coin(BigInt v, int decimals) =>
+      formatAmountUnits(v, decimals: decimals);
 
   static bool _sameBytes(List<int> a, List<int> b) {
     if (a.length != b.length) return false;

@@ -193,6 +193,7 @@ void main() {
       final a = await _again(
         () => sandbox.order(
           assetId: btc.assetId,
+          blockchain: btc.blockchain,
           amount: BuyBeamAmount.parse('0.0123', decimals: 8).amount!,
           beamAddress: _beamAddress,
           refundAddress: _btcRefund,

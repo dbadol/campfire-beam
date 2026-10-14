@@ -183,6 +183,12 @@ class BeamDexService {
   /// [receiveAsset]: every non-empty pool of the pair (or only [kind]) is
   /// asked, and the one that delivers the most wins.
   ///
+  /// A pool whose shader answers "no liquidity" or "no such pool" is
+  /// skipped: BEAM/bUSDT has a dust pool (5 groth / 1 unit) that refuses
+  /// every trade beside a real one, and the first refusal must not hide
+  /// the pool that can quote. The pair reads empty (or missing) only when
+  /// no pool quotes; any other error still stops the quote.
+  ///
   /// [pools] reuses a recent [listPools] result.
   Future<BeamSwapQuote> quote({
     required int payAsset,
@@ -213,19 +219,27 @@ class BeamDexService {
       );
     }
     BeamSwapQuote? best;
+    BeamDexException? skipped;
     for (final p in live) {
-      final q = await quotePool(
-        pool: p,
-        payAsset: payAsset,
-        payAmount: payAmount,
-      );
+      final BeamSwapQuote q;
+      try {
+        q = await quotePool(pool: p, payAsset: payAsset, payAmount: payAmount);
+      } on BeamDexException catch (e) {
+        if (e.code == BeamDexErrorCode.poolEmpty ||
+            e.code == BeamDexErrorCode.noPool) {
+          skipped ??= e;
+          continue;
+        }
+        rethrow;
+      }
       if (best == null ||
           q.receive > best.receive ||
           (q.receive == best.receive && q.pay < best.pay)) {
         best = q;
       }
     }
-    if (best!.receivesNothing) {
+    if (best == null) throw skipped!;
+    if (best.receivesNothing) {
       throw const BeamDexException(
         BeamDexErrorCode.amountTooSmall,
         'the amount is too small to receive anything',

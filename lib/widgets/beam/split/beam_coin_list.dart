@@ -13,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
@@ -65,11 +66,8 @@ abstract final class BeamCoinListText {
 
   static String get empty => appL10n.splitCoinListEmpty;
 
-  /// 4073500 -> "4,073,500".
-  static String _grouped(int n) => n.toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
+  /// 4073500 -> "4,073,500" ("4 073 500" in Russian).
+  static String _grouped(int n) => groupThousands(n.toString());
 }
 
 /// Shows [coins] of one asset: a sheet on a phone, a dialog on desktop.

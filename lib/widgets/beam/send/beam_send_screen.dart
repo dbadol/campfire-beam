@@ -42,7 +42,6 @@ import '../../../pages/send_view/confirm_transaction_view.dart';
 import '../../../pages/send_view/sub_widgets/building_transaction_dialog.dart';
 import '../../../pages_desktop_specific/desktop_home_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/address_book_address_chooser/address_book_address_chooser.dart';
-import '../../../providers/global/locale_provider.dart';
 import '../../../providers/global/wallets_provider.dart';
 import '../../../route_generator.dart';
 import '../../../themes/stack_colors.dart';
@@ -213,9 +212,6 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
       coin: _wallet.cryptoCurrency,
       walletName: ref.watch(pWalletName(widget.walletId)),
       walletId: widget.walletId,
-      locale: ref.watch(
-        localeServiceChangeNotifierProvider.select((l) => l.locale),
-      ),
       clipboard: widget.clipboard,
       balancesChanged: _balances,
       onScanQr: _scan,
@@ -261,7 +257,6 @@ class BeamSendPage extends StatefulWidget {
     required this.backend,
     required this.coin,
     required this.walletId,
-    required this.locale,
     this.walletName,
     this.clipboard = const ClipboardWrapper(),
     this.balancesChanged,
@@ -279,7 +274,6 @@ class BeamSendPage extends StatefulWidget {
   final BeamSendBackend backend;
   final CryptoCurrency coin;
   final String walletId;
-  final String locale;
   final String? walletName;
   final ClipboardInterface clipboard;
 
@@ -496,7 +490,6 @@ class BeamSendPageState extends State<BeamSendPage> {
     final form = BeamSendForm(
       key: _form,
       model: model,
-      locale: widget.locale,
       desktop: desktop,
       walletName: widget.walletName,
       clipboard: widget.clipboard,

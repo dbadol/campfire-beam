@@ -482,11 +482,11 @@ class BeamSendModel extends ChangeNotifier {
     _notify();
   }
 
-  /// Call on every change of the amount field; [locale] decides the
-  /// decimal separator.
-  void setAmountText(String text, String locale) {
+  /// Call on every change of the amount field ("." decimals in every
+  /// language: [BeamSendFormat.parse]).
+  void setAmountText(String text) {
     _amountText = text;
-    _amount = BeamSendFormat.parse(text, locale);
+    _amount = BeamSendFormat.parse(text);
     _sendAll = false;
     _scheduleFee();
     _notify();
@@ -496,7 +496,7 @@ class BeamSendModel extends ChangeNotifier {
   /// amount field. BEAM to an address: the whole balance, the fee comes out
   /// of it on the next screen. BEAM to a name: the balance less the
   /// minimum fee. Any other asset: all of it (the fee is paid in BEAM).
-  String useMax(String locale) {
+  String useMax() {
     final have = available();
     BigInt max = have;
     if (_assetId == 0 && !isAddress) {
@@ -504,7 +504,7 @@ class BeamSendModel extends ChangeNotifier {
       if (max < BigInt.zero) max = BigInt.zero;
     }
     _amount = max > BigInt.zero ? max : null;
-    _amountText = max > BigInt.zero ? BeamSendFormat.editable(max, locale) : '';
+    _amountText = max > BigInt.zero ? BeamSendFormat.editable(max) : '';
     _sendAll = max > BigInt.zero;
     _scheduleFee();
     _notify();

@@ -14,6 +14,7 @@
 /// Every message that blocks sending says so and names the next step.
 library;
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import 'beam_sync_state.dart';
 
@@ -229,14 +230,6 @@ abstract final class BeamSyncMessages {
     return l.syncLeftDays(n, number(n));
   }
 
-  /// 139235 -> "139,235". The same in every language, like amounts.
-  static String number(int n) {
-    final digits = n.abs().toString();
-    final out = StringBuffer(n < 0 ? '-' : '');
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) out.write(',');
-      out.write(digits[i]);
-    }
-    return out.toString();
-  }
+  /// 139235 -> "139,235" ("139 235" in Russian), grouped like amounts.
+  static String number(int n) => groupThousands(n.toString());
 }

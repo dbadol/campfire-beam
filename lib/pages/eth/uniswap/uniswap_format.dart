@@ -12,6 +12,7 @@
 // has its own number of decimals (ETH 18, USDC 6, WBEAM 8) and amounts are
 // formatted from the exact integer.
 
+import '../../../l10n/amount_text.dart';
 import '../../../wallets/beam/contracts/dex/beam_ratio.dart';
 import '../../../wallets/ethereum/uniswap/uniswap_models.dart';
 import '../../../widgets/beam/dex/dex_format.dart';
@@ -67,7 +68,10 @@ abstract final class UniFormat {
   }
 
   /// Every digit, trailing zeros trimmed, thousands grouped.
-  static String exact(BigInt v, int decimals) {
+  static String exact(BigInt v, int decimals) =>
+      _exact(v, decimals, amountGroupSeparator);
+
+  static String _exact(BigInt v, int decimals, String group) {
     final negative = v.isNegative;
     final a = v.abs();
     final u = unit(decimals);
@@ -78,13 +82,12 @@ abstract final class UniFormat {
               .toString()
               .padLeft(decimals, '0')
               .replaceFirst(RegExp(r'0+$'), '');
-    final w = _group(whole.toString());
+    final w = groupThousands(whole.toString(), separator: group);
     return '${negative ? '-' : ''}$w${frac.isEmpty ? '' : '.$frac'}';
   }
 
   /// [exact] without grouping, for a text field.
-  static String plain(BigInt v, int decimals) =>
-      exact(v, decimals).replaceAll(',', '');
+  static String plain(BigInt v, int decimals) => _exact(v, decimals, '');
 
   /// Rounded down to what people read (as the BEAM DEX does).
   static String compact(BigInt v, int decimals) {
@@ -132,13 +135,4 @@ abstract final class UniFormat {
   static String shortAny(String address) => address.length <= 14
       ? address
       : '${address.substring(0, 6)}…${address.substring(address.length - 4)}';
-
-  static String _group(String digits) {
-    final b = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) b.write(',');
-      b.write(digits[i]);
-    }
-    return b.toString();
-  }
 }

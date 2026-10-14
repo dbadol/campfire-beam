@@ -306,9 +306,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
       alignment: Alignment.centerRight,
       child: CustomTextButton(
         text: context.l10n.minterBurnAllOfIt,
-        onTap: () => setState(
-          () => _amount.text = BeamUnits.format(_available).replaceAll(',', ''),
-        ),
+        onTap: () => setState(() => _amount.text = BeamUnits.plain(_available)),
       ),
     ),
   ];

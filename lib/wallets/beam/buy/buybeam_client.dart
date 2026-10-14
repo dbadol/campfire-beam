@@ -38,6 +38,7 @@ import 'package:http/http.dart' as http;
 import '../../../l10n/l10n.dart';
 import '../../../utilities/coin_chains.dart';
 import '../../../utilities/logger.dart';
+import 'buybeam_deposit_address.dart';
 
 const kBuyBeamBaseUrl = 'https://buybeam.my/api/v1/buy';
 
@@ -80,6 +81,11 @@ enum BuyBeamErrorCode {
 
   /// JSON, but not what was asked for; nothing in it is used.
   unexpectedAnswer('unexpected_answer'),
+
+  /// The order's deposit address is not an address of the coin's own chain
+  /// (another chain's, a typo, a payment link): never shown, since a
+  /// payment to it is lost (audit D-10).
+  wrongDepositAddress('wrong_deposit_address'),
 
   /// A code this version does not know ([BuyBeamError.rawCode] keeps it).
   unknown('unknown');
@@ -614,12 +620,19 @@ class BuyBeamClient {
     );
   }
 
-  /// A deposit address for buying with [amount] of [assetId], the BEAM
-  /// going to [beamAddress]. Asking again with the same four values
-  /// returns the same order. Refused ([BuyBeamErrorCode.unexpectedAnswer])
-  /// unless the answer is exactly this order and can be paid.
+  /// A deposit address for buying with [amount] of [assetId] (a coin on
+  /// [blockchain], buybeam.my's chain id), the BEAM going to [beamAddress].
+  /// Asking again with the same four values returns the same order.
+  /// Refused ([BuyBeamErrorCode.unexpectedAnswer]) unless the answer is
+  /// exactly this order and can be paid, and
+  /// ([BuyBeamErrorCode.wrongDepositAddress]) unless the deposit address is
+  /// one of the coin's own chain (buybeam_deposit_address.dart): a payment
+  /// to another chain's address, or to a payment link, is lost. Sandbox
+  /// orders carry made-up addresses (sbx_…) that nobody can pay, and are
+  /// not checked.
   Future<BuyBeamOrderAnswer> order({
     required String assetId,
+    required String blockchain,
     required BuyBeamAmount amount,
     required String beamAddress,
     required String refundAddress,
@@ -650,6 +663,13 @@ class BuyBeamClient {
         (!sandbox && !payable)) {
       Logging.instance.w('buybeam: order answer refused');
       throw const BuyBeamError.unexpectedAnswer();
+    }
+    if (!sandbox && !isBuyBeamDepositAddressOf(deposit, blockchain)) {
+      Logging.instance.w('buybeam: deposit address not of $blockchain');
+      throw const BuyBeamError(
+        BuyBeamErrorCode.wrongDepositAddress,
+        rawCode: 'wrong_deposit_address',
+      );
     }
     return BuyBeamOrderAnswer(
       depositAddress: deposit,

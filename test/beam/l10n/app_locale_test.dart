@@ -68,6 +68,11 @@ class _FakeRuDelegate extends LocalizationsDelegate<AppLocalizations> {
 }
 
 class _Backend implements BeamSplitBackend {
+  _Backend({BigInt? groth}) : groth = groth ?? BigInt.from(4520000000);
+
+  /// The one coin's amount.
+  final BigInt groth;
+
   final _sync = ValueNotifier<BeamSyncAssessment>(synced());
 
   @override
@@ -84,7 +89,7 @@ class _Backend implements BeamSplitBackend {
     BeamUtxo(
       id: 'c0',
       assetId: 0,
-      amount: BigInt.from(4520000000),
+      amount: groth,
       type: 'norm',
       statusCode: 1,
       statusString: 'available',
@@ -212,6 +217,37 @@ void main() {
     // Nothing picked the language up for numbers.
     expect(Intl.defaultLocale, isNull);
     expect(NumberFormat.decimalPattern().format(1234.5), '1,234.5');
+  });
+
+  testWidgets('Russian: amounts from 1,000 up are grouped with a narrow '
+      'no-break space, never a comma; the decimal point stays a dot', (
+    tester,
+  ) async {
+    await loadFonts(tester);
+    await _pump(
+      tester,
+      // 1234.5 BEAM, and 1,234,567.89 in English.
+      BeamSplitView(backend: _Backend(groth: BigInt.from(123450000000))),
+      locale: const Locale('ru'),
+    );
+    expect(appL10n.localeName, 'ru');
+    expect(find.textContaining('1\u202F234.5 BEAM'), findsWidgets);
+    expect(find.textContaining('1,234.5'), findsNothing);
+    expect(find.textContaining('1 234,5'), findsNothing);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/ru_split_grouped.png'),
+    );
+  });
+
+  testWidgets('English: the same amount keeps its comma', (tester) async {
+    await _pump(
+      tester,
+      BeamSplitView(backend: _Backend(groth: BigInt.from(123450000000))),
+      locale: const Locale('en'),
+    );
+    expect(find.textContaining('1,234.5 BEAM'), findsWidgets);
+    expect(find.textContaining('\u202F'), findsNothing);
   });
 
   testWidgets('Russian with a translated message: shown, through a widget '

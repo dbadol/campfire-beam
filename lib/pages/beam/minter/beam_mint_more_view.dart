@@ -170,11 +170,8 @@ class _BeamMintMoreViewState extends State<BeamMintMoreView> {
               alignment: Alignment.centerRight,
               child: CustomTextButton(
                 text: l10n.minterMintMoreMost,
-                onTap: () => setState(
-                  () =>
-                      _amount.text = BeamUnits.format(_most)
-                          .replaceAll(',', ''),
-                ),
+                onTap: () =>
+                    setState(() => _amount.text = BeamUnits.plain(_most)),
               ),
             ),
             if (_problem != null) ...[

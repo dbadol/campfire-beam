@@ -15,6 +15,7 @@
 
 import 'dart:math' as math;
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/buy/buybeam_client.dart';
 import '../../../wallets/beam/buy/buybeam_order.dart';
@@ -72,6 +73,9 @@ abstract final class BuyBeamWords {
 
   /// "166,888.69 BEAM" from groth.
   static String beam(BigInt groth) => '${UniFormat.compact(groth, 8)} BEAM';
+
+  /// "166,888.69123456 BEAM" from groth: every digit, as received.
+  static String beamExact(BigInt groth) => '${formatAmountUnits(groth)} BEAM';
 
   /// "111,326 BEAM": whole BEAM from a thousand up, for a list.
   static String beamShort(double beam) => beam >= 1000
@@ -246,6 +250,14 @@ abstract final class BuyBeamWords {
           ], l),
           fix: BuyFix.tryAgain,
           fixLabel: l.commonTryAgain,
+        );
+      case BuyBeamErrorCode.wrongDepositAddress:
+        return BuyProblem(
+          title: l.buyProblemWrongDeposit(coin.chainName),
+          detail: l.buyProblemWrongDepositDetail(sym),
+          fix: BuyFix.tryAgain,
+          fixLabel: l.commonTryAgain,
+          serious: true,
         );
       case BuyBeamErrorCode.unexpectedAnswer:
         return BuyProblem(

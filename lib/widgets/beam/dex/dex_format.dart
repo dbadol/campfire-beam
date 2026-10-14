@@ -9,6 +9,7 @@
 
 import 'package:decimal/decimal.dart';
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../wallets/beam/contracts/dex/beam_ratio.dart';
@@ -75,19 +76,21 @@ abstract final class DexFormat {
   /// The exact amount, trailing zeros trimmed, thousands grouped:
   /// 637304113367 → "6,373.04113367". This is what confirmation screens
   /// show: nothing rounded away.
-  static String exact(BigInt groth) {
+  static String exact(BigInt groth) => _exact(groth, amountGroupSeparator);
+
+  /// The exact amount without grouping, for putting back into a text
+  /// field: 10000000 → "0.1".
+  static String plain(BigInt groth) => _exact(groth, '');
+
+  static String _exact(BigInt groth, String group) {
     final negative = groth.isNegative;
     final v = groth.abs();
     final whole = v ~/ _unit;
     final frac = (v % _unit).toString().padLeft(decimals, '0');
     final trimmed = frac.replaceFirst(RegExp(r'0+$'), '');
-    final w = _group(whole.toString());
+    final w = groupThousands(whole.toString(), separator: group);
     return '${negative ? '-' : ''}$w${trimmed.isEmpty ? '' : '.$trimmed'}';
   }
-
-  /// The exact amount without grouping, for putting back into a text
-  /// field: 10000000 → "0.1".
-  static String plain(BigInt groth) => exact(groth).replaceAll(',', '');
 
   /// A short amount for lists: rounded down to what people read.
   /// ≥ 1000 → 2 decimals, ≥ 1 → 4, below 1 → 4 significant digits (at most
@@ -152,15 +155,8 @@ abstract final class DexFormat {
       ? hex
       : '${hex.substring(0, 6)}…${hex.substring(hex.length - 6)}';
 
-  /// "1,234,567" from "1234567".
-  static String _group(String digits) {
-    final out = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) out.write(',');
-      out.write(digits[i]);
-    }
-    return out.toString();
-  }
+  /// "1,234,567" from "1234567" ("1 234 567" in Russian).
+  static String _group(String digits) => groupThousands(digits);
 
   /// [groth] of BEAM in the fiat currency, written the way the rest of
   /// Campfire writes money ("1.19 USD", "1.234,56 EUR" in a German locale,

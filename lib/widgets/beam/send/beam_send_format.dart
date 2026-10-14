@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/amount_text.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 
@@ -19,23 +20,9 @@ abstract final class BeamSendFormat {
   static const int decimals = 8;
   static final BigInt _one = BigInt.from(100000000);
 
-  /// `123456789012` → `1,234.56789012`; trailing zeros dropped.
-  static String units(BigInt value) {
-    final negative = value.isNegative;
-    final abs = value.abs();
-    final whole = (abs ~/ _one).toString();
-    final frac = abs
-        .remainder(_one)
-        .toString()
-        .padLeft(decimals, '0')
-        .replaceFirst(RegExp(r'0+$'), '');
-    final grouped = StringBuffer();
-    for (var i = 0; i < whole.length; i++) {
-      if (i > 0 && (whole.length - i) % 3 == 0) grouped.write(',');
-      grouped.write(whole[i]);
-    }
-    return '${negative ? '-' : ''}$grouped${frac.isEmpty ? '' : '.$frac'}';
-  }
+  /// `123456789012` → `1,234.56789012` (`1 234.56789012` in Russian);
+  /// trailing zeros dropped, "." decimals in every language.
+  static String units(BigInt value) => formatAmountUnits(value);
 
   /// `1.5 BEAM`, `10 FOMO`, `3 XYZ #321` (unverified assets always carry
   /// their id, because anyone can mint an asset and call it anything).
@@ -54,25 +41,31 @@ abstract final class BeamSendFormat {
   }
 
   /// What the user typed, in units; null when it is not a positive amount
-  /// with at most 8 decimals in [locale]'s notation.
-  static BigInt? parse(String text, String locale) {
+  /// with at most 8 decimals, written with a "." decimal point.
+  ///
+  /// The same in every language and on every device (the owner's rule;
+  /// lib/l10n/amount_text.dart): a comma is never a decimal point here, so
+  /// "0,5" is refused, never 5, and "1,000" is refused, never 1. (On iOS
+  /// and macOS the device locale is Russian's own once the app declares
+  /// Russian, and its decimal comma would otherwise make "1,000" one BEAM.)
+  static BigInt? parse(String text) {
     final t = text.trim();
-    if (t.isEmpty) return null;
+    if (t.isEmpty || t.contains(',')) return null;
     final a = Amount.tryParseEditableAmount(
       t,
-      locale: locale,
+      locale: kAppAmountLocale,
       fractionDigits: decimals,
     );
     if (a == null || a.raw <= BigInt.zero) return null;
     return a.raw;
   }
 
-  /// [value] as text the amount field accepts again (no grouping).
-  static String editable(BigInt value, String locale) =>
-      Amount.formatEditableDecimal(
-        Amount(rawValue: value, fractionDigits: decimals).decimal,
-        locale: locale,
-      );
+  /// [value] as text the amount field accepts again: no grouping, "."
+  /// decimals.
+  static String editable(BigInt value) => Amount.formatEditableDecimal(
+    Amount(rawValue: value, fractionDigits: decimals).decimal,
+    locale: kAppAmountLocale,
+  );
 
   /// `2d37ef…c1a09f`: enough of both ends to compare by eye. The full
   /// address is one tap away (copy).

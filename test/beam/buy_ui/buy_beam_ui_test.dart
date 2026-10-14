@@ -59,7 +59,7 @@ bool _icons = false;
 Future<void> _golden(String name) =>
     expectLater(find.byKey(goldenKey), matchesGoldenFile('goldens/$name.png'));
 
-const _deposit = 'bc1qfake0deposit0address0000000000000000000';
+const _deposit = kFakeDeposit;
 
 class _Rig {
   _Rig({this.desktop = false, this.tor = false}) {
@@ -80,6 +80,10 @@ class _Rig {
 
   /// The wallet has buybeam.my's BEAM transaction.
   bool arrived = false;
+
+  /// What the wallet got in it, and at which of its addresses.
+  BigInt received = BigInt.parse('11132012345678');
+  String receivedAt = kFakeBeamAddress;
   bool supportOpened = false;
 
   BuyBeamDeps get deps => BuyBeamDeps(
@@ -89,7 +93,9 @@ class _Rig {
     newBeamAddress: () async => kFakeBeamAddress,
     refundAddressFor: (a) async =>
         a.blockchain == 'eth' ? kFakeEthRefund : null,
-    receivedInWallet: (tx) async => arrived && tx == 'beamtx0fake',
+    receivedInWallet: (tx) async => arrived && tx == 'beamtx0fake'
+        ? BuyBeamReceipt(groth: received, address: receivedAt)
+        : null,
     onWantWbeam: (_, _) => wbeamTaps++,
     onOpenTransaction: (_, tx) async => openedTx = tx,
     onOpenSupport: () => supportOpened = true,
@@ -399,6 +405,16 @@ void main() {
             expect(_k('buy-arrived'), findsOneWidget);
             expect(find.byKey(const Key('buy-step-done')), findsNWidgets(4));
             expect(find.text('You got'), findsOneWidget);
+            // What the wallet got, every digit: not buybeam.my's estimate.
+            expect(
+              _text(tester, 'buy-order-received'),
+              '111,320.12345678 BEAM',
+            );
+            expect(_k('buy-order-estimate'), findsNothing);
+            expect(
+              find.text('111,320.12345678 BEAM is in Everyday BEAM.'),
+              findsOneWidget,
+            );
             expect(_k('buy-keep-open'), findsNothing);
           case 'refunded':
             expect(
@@ -499,6 +515,50 @@ void main() {
     await finish(tester);
   });
 
+  testWidgets("phone: D-10 — a deposit address that is not the coin's "
+      'chain is never shown: the words say why, nothing is kept', (
+    tester,
+  ) async {
+    final rig = _Rig();
+    rig.server.depositAddress = '0x1111111111111111111111111111111111111111';
+    await _openForm(tester, rig);
+    await tester.enterText(_k('buy-refund'), kFakeBtcRefund);
+    await _type(tester, 'buy-amount', '0.0123');
+    await tester.tap(_k('buy-cta'));
+    await _flush(tester);
+    expect(
+      find.text(
+        "buybeam.my's deposit address isn't a Bitcoin address, so it isn't "
+        'shown.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'BTC sent to it would be lost. Nothing to pay, and nothing was sent. '
+        'This is not something you did. Try again in a moment.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('0x1111111111111111111111111111111111111111'),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('buy-qr')), findsNothing);
+    expect(find.text('Send 0.0123 BTC'), findsNothing);
+    expect(rig.store.writes, isEmpty);
+    expect(rig.controller.orders(), isEmpty);
+    await _golden('phone_buy_wrong_deposit');
+    // "Try again" asks again; this time buybeam.my gives a Bitcoin address.
+    rig.server.depositAddress = _deposit;
+    await tester.ensureVisible(find.text('Try again'));
+    await tester.tap(find.text('Try again'));
+    await _flush(tester);
+    expect(find.text('Send 0.0123 BTC'), findsOneWidget);
+    expect(find.text(_deposit), findsOneWidget);
+    await finish(tester);
+  });
+
   testWidgets('phone: Ethereum coins get the Ethereum wallet as refund '
       'address; an amount buybeam.my cannot read exactly is caught first', (
     tester,
@@ -554,6 +614,29 @@ void main() {
     await tester.pump();
     expect(rig.wbeamTaps, 1);
     await finish(tester);
+  });
+
+  testWidgets('phone: a transaction buybeam.my names that reached another '
+      'address, or carried nothing, is not "arrived"', (tester) async {
+    for (final (at, groth) in [
+      (kFakeBeamAddress2, BigInt.parse('11132012345678')),
+      (kFakeBeamAddress, BigInt.zero),
+    ]) {
+      final rig = _Rig()
+        ..arrived = true
+        ..receivedAt = at
+        ..received = groth;
+      await rig.stored('delivered', txId: 'beamtx0fake');
+      await _openOrder(tester, rig);
+      await tester.pump(const Duration(seconds: 6));
+      await _flush(tester);
+      expect(_k('buy-arrived'), findsNothing);
+      expect(find.text('Your BEAM has arrived'), findsNothing);
+      expect(find.text('buybeam.my sent your BEAM'), findsOneWidget);
+      expect(find.text('You got'), findsNothing);
+      expect(find.text('Back to your wallet'), findsOneWidget);
+      await finish(tester);
+    }
   });
 
   testWidgets('phone: arrived — "See it in your wallet" opens the BEAM '
