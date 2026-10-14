@@ -254,14 +254,16 @@
     "where": [
       "lib/airdrop.js",
       "lib/bans.js",
-      "lib/dex_liquidity.js"
+      "lib/dex_liquidity.js",
+      "lib/fuddle.js"
     ]
   },
   "The network fee is not the one this screen expected. Nothing was sent.": {
     "where": [
       "lib/airdrop.js",
       "lib/bans.js",
-      "lib/dex_liquidity.js"
+      "lib/dex_liquidity.js",
+      "lib/fuddle.js"
     ]
   },
   "The codes could not be saved on this device, so nothing was sent. ({reason})": {
@@ -481,6 +483,7 @@
       "screens/consent.js",
       "screens/contacts.js",
       "screens/dapps.js",
+      "screens/fuddle.js",
       "screens/passkey_setup.js",
       "screens/scan_sheet.js",
       "screens/wallet_data.js",
@@ -1937,6 +1940,7 @@
       "screens/eth_swap_parts.js",
       "screens/eth_ui.js",
       "screens/fast_start.js",
+      "screens/fuddle.js",
       "screens/install.js",
       "screens/minter_create.js",
       "screens/minter_mint.js",
@@ -2808,6 +2812,7 @@
     "where": [
       "lib/contracts.js",
       "screens/airdrop.js",
+      "screens/fuddle.js",
       "screens/names.js",
       "screens/pool_parts.js"
     ]
@@ -3184,7 +3189,8 @@
   },
   "Games": {
     "where": [
-      "lib/dapps/store.js"
+      "lib/dapps/store.js",
+      "screens/fuddle.js"
     ]
   },
   "Technology": {
@@ -4567,6 +4573,361 @@
     "where": [
       "lib/fiat.js"
     ]
+  },
+  "Fuddle answered something this wallet cannot check. Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "about a minute": {
+    "where": [
+      "lib/fuddle.js",
+      "screens/fuddle.js"
+    ]
+  },
+  "about an hour": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "A game takes about 15–20 minutes: six guesses, and each hint arrives about a minute after you guess.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "After each hint you have {time} to make your next guess. If you don't, the game ends unsolved and your entry stays in the prize pool.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "If you don't make your first guess within {time}, the game ends and your entry and answering fee come back to you.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Entries close {time} before the tournament ends, so every game has time for all six guesses.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Each letter you guess costs {price}, paid with the guess.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "price"
+    ]
+  },
+  "Letters bought ahead stay in this tournament. If its answer service stops taking new games you can't start another game to use them, and letters left when the tournament ends are not given back.": {
+    "where": [
+      "lib/fuddle.js",
+      "screens/fuddle.js"
+    ]
+  },
+  "When the tournament ends, {fee} of what was paid in goes to Fuddle as its fee and {cut} to the tournament's creator; the rest is the prize pool, shared by score.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "cut",
+      "fee"
+    ]
+  },
+  "When the tournament ends, {fee} of what was paid in goes to Fuddle as its fee; the rest is the prize pool, shared by score.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "If nobody scores, everyone gets back what they paid in, with no fee.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "The answer service picked the words, but each one was fixed on chain before anyone played, and every hint is checked when the word is revealed.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "If the service gives a wrong hint, misses its time or never reveals the word, you get back your entry, the letters of that game and the answering fee, plus {slash} from its bond.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "slash"
+    ]
+  },
+  "Make your first guess within {time}, or the game ends and your entry comes back.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Make your next guess within {time}, or the game ends unsolved and your entry stays in the pool.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "The answer service is checking your guess. The hint usually lands within a minute or two; it must land within {time}.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "The answer service missed its time to answer. You can end this game and take back your entry, letters and answering fee, plus its compensation.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This game is over. The answer service shows the word on chain within {time}, so every hint can be checked.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "The answer service did not show the word in time. You can end this game and take back your entry, letters and answering fee, plus its compensation.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "No first guess was made in time. End the game to take back your entry and answering fee.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "A hint was wrong: the revealed word does not give it.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "The answer service did not answer a guess in time.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "The answer service did not reveal the word in time.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "The answer service failed this game.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This tournament is not on the network. Go back and pick another one.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This game is not on the network yet. If you just entered, wait a minute and look again.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "Fuddle could not be read from the network. Check your connection and try again.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This tournament's answer service has not agreed to run it yet, so nobody can enter. Pick another tournament.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This tournament's answer service is not taking new games. Games already in play go on to their end.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "You already have 4 games open in this tournament, the most allowed. Finish one, then enter again.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "Every place in this tournament is in play right now. Try again in a few minutes, when a game ends.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This game was entered from another wallet.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This guess needs letters you do not have. Try again: the wallet buys them with the guess.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This tournament is not settled yet, so there is nothing to collect. It is settled once every game has ended.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This wallet did not play in this tournament.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This was already collected.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This game is not refunded: it was played to its end.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This refund was already taken.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "Fuddle could not do that. Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "Fuddle built a different transaction than requested, so it was not sent. Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "Fuddle could not do that ({reason}). Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Another Fuddle transaction is in progress. Finish or cancel it first.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "Fuddle is paused: no new games for now. Games in play go on.": {
+    "where": [
+      "lib/fuddle.js",
+      "screens/fuddle.js"
+    ]
+  },
+  "This tournament has not started yet. Entries open in {time}.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Entries for this tournament are closed. Its games are finishing; pick a newer tournament.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This tournament has no {n}-letter games.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ]
+  },
+  "Your last guess is still waiting for its hint.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This game takes no more guesses.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "Type a {n}-letter word.": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ]
+  },
+  "This game cannot be ended now: nothing in it is overdue.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This tournament is already settled.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "This tournament cannot be settled yet: it has not ended, or a game in it is still open.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "There is nothing for you to collect in this tournament.": {
+    "where": [
+      "lib/fuddle.js"
+    ]
+  },
+  "about {n} minutes": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "about {n} minute",
+      "other": "about {n} minutes"
+    }
+  },
+  "about {n} hours": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "about {n} hour",
+      "other": "about {n} hours"
+    }
+  },
+  "about {n} days": {
+    "where": [
+      "lib/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "about {n} day",
+      "other": "about {n} days"
+    }
   },
   "Stop: unsigned code": {
     "where": [
@@ -7819,6 +8180,23 @@
       "lib/wallet.js"
     ]
   },
+  "Fuddle payout": {
+    "where": [
+      "lib/wallet.js"
+    ]
+  },
+  "Fuddle game": {
+    "where": [
+      "lib/wallet.js"
+    ]
+  },
+  "Fuddle": {
+    "where": [
+      "lib/wallet.js",
+      "screens/fuddle.js",
+      "screens/fuddle_screens.js"
+    ]
+  },
   "Moved to Ethereum": {
     "where": [
       "lib/wallet.js"
@@ -8674,6 +9052,7 @@
       "screens/bridge_move.js",
       "screens/burn.js",
       "screens/coins.js",
+      "screens/fuddle.js",
       "screens/minter_create.js",
       "screens/minter_mint.js",
       "screens/name_detail.js",
@@ -8740,6 +9119,7 @@
       "screens/eth_swap_parts.js",
       "screens/eth_swap_tx.js",
       "screens/eth_tx.js",
+      "screens/fuddle.js",
       "screens/minter_create.js",
       "screens/minter_mint.js",
       "screens/name_detail.js",
@@ -9228,6 +9608,7 @@
   "The wallet did not answer in time. Check Activity before trying again.": {
     "where": [
       "screens/airdrop.js",
+      "screens/fuddle.js",
       "screens/names.js",
       "screens/pool_parts.js",
       "screens/review.js",
@@ -9572,7 +9953,8 @@
   "Take back {amount}": {
     "where": [
       "screens/airdrop_batches.js",
-      "screens/consent.js"
+      "screens/consent.js",
+      "screens/fuddle.js"
     ],
     "placeholders": [
       "amount"
@@ -10729,6 +11111,7 @@
       "screens/buy_screens.js",
       "screens/dex_screens.js",
       "screens/eth_screens.js",
+      "screens/fuddle_screens.js",
       "screens/store_screens.js"
     ]
   },
@@ -10875,7 +11258,8 @@
   },
   "Your move": {
     "where": [
-      "screens/bridge_crossing.js"
+      "screens/bridge_crossing.js",
+      "screens/fuddle.js"
     ]
   },
   "No moves yet": {
@@ -11507,7 +11891,9 @@
   },
   "Collect {amount}": {
     "where": [
-      "screens/bridge_text.js"
+      "screens/bridge_text.js",
+      "screens/consent.js",
+      "screens/fuddle.js"
     ],
     "placeholders": [
       "amount"
@@ -12894,6 +13280,7 @@
       "screens/buy_screens.js",
       "screens/dex_screens.js",
       "screens/eth_screens.js",
+      "screens/fuddle_screens.js",
       "screens/store_screens.js"
     ],
     "placeholders": [
@@ -13387,6 +13774,42 @@
       "name"
     ]
   },
+  "Pay {amount} and play": {
+    "where": [
+      "screens/consent.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Guess {word} and pay {amount} for letters": {
+    "where": [
+      "screens/consent.js"
+    ],
+    "placeholders": [
+      "amount",
+      "word"
+    ]
+  },
+  "Guess {word}": {
+    "where": [
+      "screens/consent.js"
+    ],
+    "placeholders": [
+      "word"
+    ]
+  },
+  "End the game": {
+    "where": [
+      "screens/consent.js",
+      "screens/fuddle.js"
+    ]
+  },
+  "Settle the tournament": {
+    "where": [
+      "screens/consent.js"
+    ]
+  },
   "Confirm your name": {
     "where": [
       "screens/consent.js"
@@ -13463,6 +13886,36 @@
     ]
   },
   "Confirm your purchase": {
+    "where": [
+      "screens/consent.js"
+    ]
+  },
+  "Confirm your game": {
+    "where": [
+      "screens/consent.js"
+    ]
+  },
+  "Confirm your guess": {
+    "where": [
+      "screens/consent.js"
+    ]
+  },
+  "Confirm your letters": {
+    "where": [
+      "screens/consent.js"
+    ]
+  },
+  "End this game": {
+    "where": [
+      "screens/consent.js"
+    ]
+  },
+  "Confirm your refund": {
+    "where": [
+      "screens/consent.js"
+    ]
+  },
+  "Collect your payout": {
     "where": [
       "screens/consent.js"
     ]
@@ -13554,7 +14007,8 @@
   },
   "You collect": {
     "where": [
-      "screens/consent.js"
+      "screens/consent.js",
+      "screens/fuddle.js"
     ]
   },
   "transfer #{id}, from your Ethereum wallet": {
@@ -13795,6 +14249,19 @@
     "count": {
       "one": "Lock {amount} in {n} code",
       "other": "Lock {amount} in {n} codes"
+    }
+  },
+  "Buy {n} letters for {amount}": {
+    "where": [
+      "screens/consent.js"
+    ],
+    "placeholders": [
+      "amount",
+      "n"
+    ],
+    "count": {
+      "one": "Buy {n} letter for {amount}",
+      "other": "Buy {n} letters for {amount}"
     }
   },
   "Your contacts on this device could not be opened, so they were left exactly as they are. Nothing was changed. Lock and unlock the wallet, then try again.": {
@@ -14410,6 +14877,32 @@
       "screens/dapps.js"
     ]
   },
+  "Guess the hidden word in six tries, win a share of the prize pool": {
+    "where": [
+      "screens/dapps.js"
+    ]
+  },
+  "Built into BEAM Campfire · tournaments on BEAM": {
+    "where": [
+      "screens/dapps.js"
+    ]
+  },
+  "Opens soon": {
+    "where": [
+      "screens/dapps.js"
+    ]
+  },
+  "Play": {
+    "where": [
+      "screens/dapps.js",
+      "screens/fuddle.js"
+    ]
+  },
+  "Soon": {
+    "where": [
+      "screens/dapps.js"
+    ]
+  },
   "Remove {name}": {
     "where": [
       "screens/dapps.js"
@@ -14424,6 +14917,11 @@
     ]
   },
   "BEAM Campfire couldn't read your installed dApps. Nothing was changed. Try again; if it keeps happening, reload BEAM Campfire.": {
+    "where": [
+      "screens/dapps.js"
+    ]
+  },
+  "Built into BEAM Campfire": {
     "where": [
       "screens/dapps.js"
     ]
@@ -14634,7 +15132,8 @@
   },
   "Back to dApps": {
     "where": [
-      "screens/dapps.js"
+      "screens/dapps.js",
+      "screens/fuddle.js"
     ]
   },
   "Opening {name}": {
@@ -16616,7 +17115,8 @@
   },
   "empty": {
     "where": [
-      "screens/eth_swap_parts.js"
+      "screens/eth_swap_parts.js",
+      "screens/fuddle.js"
     ]
   },
   "0.5%: strict; fails more often when others trade": {
@@ -17870,6 +18370,1053 @@
     "where": [
       "screens/fast_start.js"
     ]
+  },
+  "Something went wrong. Nothing was sent. Try again.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Fuddle opens soon": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Fuddle is a word game on BEAM: guess a hidden word in six tries, with every hint checked on chain, and share the prize pool by score.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "It is not open yet: its contract is being prepared. This screen will show the tournaments as soon as it opens. Nothing here can spend your funds until then.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Answers by the BEAM Campfire service": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Answers by another service, not the BEAM Campfire one": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "in {time}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "now": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Playing is paused: {reason}.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Not connected": {
+    "where": [
+      "screens/fuddle.js",
+      "screens/node.js"
+    ]
+  },
+  "This needs {need} and the wallet has {have}.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "have",
+      "need"
+    ]
+  },
+  "{letter}: in the word, right place": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "letter"
+    ]
+  },
+  "{letter}: in the word, another place": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "letter"
+    ]
+  },
+  "{letter}: not in the word": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "letter"
+    ]
+  },
+  "Your guesses": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Right letter, right place": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "In the word, another place": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Not in the word": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Letters": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Delete a letter": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Entries close {when} · ends {end}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "end",
+      "when"
+    ]
+  },
+  "Entries open {when}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "when"
+    ]
+  },
+  "Settled": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Entries closed · games finishing": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Tournament #{tid}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "tid"
+    ]
+  },
+  "Entry {entry} · prize pool {pool}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "entry",
+      "pool"
+    ]
+  },
+  "{free} of {all} places free": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "all",
+      "free"
+    ]
+  },
+  "Waiting for the hint": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Make your first guess · {time} left": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Your move · {time} left": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Game over · the word is being revealed": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Not solved": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Ended: no guess in time": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "The answer service is late: end the game for your refund": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "No first guess in time: end the game for your entry": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Refund taken": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Tournament #{tid} is settled": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "tid"
+    ]
+  },
+  "Guess a hidden word in six tries. Every hint is checked on chain, and the prize pool is shared by score.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Fuddle could not be read from the network: {reason}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Reading the tournaments from the network…": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your game is waiting for a guess": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Continue your game": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your games": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Tournaments": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Play tournament #{tid}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "tid"
+    ]
+  },
+  "No tournament is taking entries right now.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "A new one usually opens every day. Look again later; your games and winnings stay here.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "All your games": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Before you play": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Word length": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Longer words score more: 5 letters count 1.25 times, 6 letters 1.5 times. A 5-letter game solved in three guesses scores {score}.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "score"
+    ]
+  },
+  "This tournament plays {n}-letter words; scores count {mult}%.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "mult",
+      "n"
+    ]
+  },
+  "Entry": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "goes into the prize pool": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Answering fee": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "paid to the answer service for a game you play; back if you never guess": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "You pay now": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "You collected what this tournament paid you.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "This tournament is settled. Nothing is left for you to collect: no score, and every refund was taken.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your result": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your score": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "of {total} scored by all players": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "total"
+    ]
+  },
+  "nobody scored: everyone gets back what they paid in": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your share of the prize pool": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Refunds not taken yet": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "BEAM back": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "answering fees and compensation": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your score so far": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your share if it ended now": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Every game has ended. The answer service settles the tournament within minutes; then you can collect here.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "The tournament has ended; its last games are finishing. Once every game has ended it is settled and you can collect here.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your games here": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "This tournament could not be read: {reason}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Reading the tournament…": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Prize pool": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Prize pool now": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "{amount} of it put up by the creator": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Entries close": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Places free": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "{free} of {all}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "all",
+      "free"
+    ]
+  },
+  "Ends": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "block {h}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "h"
+    ]
+  },
+  "Players": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Answer service record": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "{honest} games answered honestly · {failed} failed": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "failed",
+      "honest"
+    ]
+  },
+  "a bond of {bond} pays for its failures": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "bond"
+    ]
+  },
+  "Enter and pay {amount}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Settle it now ({fee} BEAM network fee)": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "This tournament is settled.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Entries for this tournament are closed. Its games are finishing.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "If the answer service fails your game, you get back the entry, its letters and the answering fee, plus {slash}.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "slash"
+    ]
+  },
+  "Entry sent.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Sent. It reaches your balance in about a minute.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Settling counts the scores and fixes everyone's payout. Anyone may do it once every game has ended.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Sent. The tournament is settled in about a minute.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "In play": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "The service failed it: refund ready": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "The service failed it: refunded": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Never played: entry ready to take back": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Never played: entry taken back": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "The answer service is late": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "No first guess in time": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your entry did not go through. Nothing left your wallet. Go back and try again.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Starting your game": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Entry on its way to a block": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your game opens": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "the first-guess clock starts then": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Sending your guess": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "it lands in the next block, about a minute": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "The answer service checks it": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "usually within a minute or two": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your hint appears here": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "You can leave this screen: the hint waits here for you.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your guess is on chain": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "usually within a minute or two; it must answer within {time}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Solved!": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Score {score}. Your share of the prize pool is paid when the tournament ends.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "score"
+    ]
+  },
+  "Not solved in six guesses.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "The word was checked on chain against every hint. Your entry stays in the prize pool.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "This game ended unsolved.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "No guess came within {time} of the last hint, so the game ended. Your entry stays in the prize pool.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "time"
+    ]
+  },
+  "Step 1 of 2: end the game (a {fee} BEAM network fee). Step 2: take your refund, here.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "Step 1 of 2: end the game (a {fee} BEAM network fee). Step 2: take your entry back, here. Or leave it: it comes back with your final collection when the tournament ends.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "No first guess was made in time, so this game never started.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "You get back {amount}: the entry, the letters of this game and the answering fee, plus {slash} compensation from the service's bond.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount",
+      "slash"
+    ]
+  },
+  "You get back {amount}: the entry and the answering fee.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Refund taken: {amount}.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Its refund came with your final collection.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Up to {amount} for letters · network fee {fee} BEAM": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount",
+      "fee"
+    ]
+  },
+  "Uses letters you bought ahead · network fee {fee} BEAM": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "This game could not be read: {reason}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Reading your game…": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Guess {n} of {total}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n",
+      "total"
+    ]
+  },
+  "Send my guess": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Buy letters ahead": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Back to Fuddle": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "See the tournament": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your guess did not go through. Nothing left your wallet. Type it again and send it.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Ending the game moves no money; the refund is the next step, on this screen.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Sent. The game ends in about a minute; then take your refund here.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Letters of this game": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Compensation from the service's bond": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Letters to buy": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Sent. Your letters arrive in about a minute.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Each guess buys the letters it needs by itself, so you never have to do this. Letters bought ahead are used first by your guesses in this tournament.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Letters, one for each you want (for example aeiou)": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "{n} letters: {amount}, plus a {fee} BEAM network fee.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount",
+      "fee",
+      "n"
+    ]
+  },
+  "Type the letters you want.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Buy letters": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your games could not be read: {reason}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Reading your games…": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "No games yet.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your games show here while their tournament runs, and until you collect what it pays.": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Find a tournament": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "To collect": {
+    "where": [
+      "screens/fuddle.js"
+    ]
+  },
+  "Your Fuddle games": {
+    "where": [
+      "screens/fuddle.js",
+      "screens/fuddle_screens.js"
+    ]
+  },
+  "Solved in {n} guesses · score {score}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n",
+      "score"
+    ],
+    "count": {
+      "one": "Solved in {n} guess · score {score}",
+      "other": "Solved in {n} guesses · score {score}"
+    }
+  },
+  "{n} letters · tournament #{tid}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n",
+      "tid"
+    ],
+    "count": {
+      "one": "{n} letter · tournament #{tid}",
+      "other": "{n} letters · tournament #{tid}"
+    }
+  },
+  "{n} letters": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} letter",
+      "other": "{n} letters"
+    }
+  },
+  "Game {idx}: {n} letters": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "idx",
+      "n"
+    ],
+    "count": {
+      "one": "Game {idx}: {n} letter",
+      "other": "Game {idx}: {n} letters"
+    }
+  },
+  "Solved in {n} guesses.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "Solved in {n} guess.",
+      "other": "Solved in {n} guesses."
+    }
+  },
+  "Buys {n} letters for {amount} · network fee {fee} BEAM": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "amount",
+      "fee",
+      "n"
+    ],
+    "count": {
+      "one": "Buys {n} letter for {amount} · network fee {fee} BEAM",
+      "other": "Buys {n} letters for {amount} · network fee {fee} BEAM"
+    }
+  },
+  "{n} letters · tournament #{tid} · game {idx}": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "idx",
+      "n",
+      "tid"
+    ],
+    "count": {
+      "one": "{n} letter · tournament #{tid} · game {idx}",
+      "other": "{n} letters · tournament #{tid} · game {idx}"
+    }
+  },
+  "Type {n} more letters": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "Type {n} more letter",
+      "other": "Type {n} more letters"
+    }
+  },
+  "You have {n} letters bought ahead here.": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "You have {n} letter bought ahead here.",
+      "other": "You have {n} letters bought ahead here."
+    }
+  },
+  "Buy {n} letters": {
+    "where": [
+      "screens/fuddle.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "Buy {n} letter",
+      "other": "Buy {n} letters"
+    }
   },
   "No hidden tokens. To hide one, tap it on Wallet, then \"Hide from Wallet\".": {
     "where": [
@@ -20739,11 +22286,6 @@
     ]
   },
   "Connecting to": {
-    "where": [
-      "screens/node.js"
-    ]
-  },
-  "Not connected": {
     "where": [
       "screens/node.js"
     ]

@@ -1,0 +1,617 @@
+{
+ "source": "Fuddle v9 8e86b3140 (app.wasm sha256 52067c773a6f91b8eaadd892b133ccbf131f6df4a1c7d12b7305ff725f724e62), run in BEAM 7.5.14493's BVM through the answer service's simulator bridge (service/test/build/fuddle9_bridge); words are made-up test strings",
+ "app_sha256": "52067c773a6f91b8eaadd892b133ccbf131f6df4a1c7d12b7305ff725f724e62",
+ "cid": "e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+ "service_pk": "a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01",
+ "players": {
+  "alice": "17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301",
+  "bob": "708866dc0a50fca05937d80a34e6f47e222111239a20de8df12383c6d18d1bb400"
+ },
+ "games": {
+  "tb": 0,
+  "tk": 1,
+  "tu": 2,
+  "g": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   6,
+   10,
+   11
+  ],
+  "k": [
+   0,
+   1
+  ],
+  "bob": [
+   1,
+   7,
+   8,
+   9
+  ]
+ },
+ "views": {
+  "my_key": {
+   "wallet": "alice",
+   "args": "role=user,action=my_key,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "height": 4100013,
+   "output": "{\"my_pk\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\"}"
+  },
+  "view_state": {
+   "wallet": "alice",
+   "args": "role=user,action=view_state,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "height": 4100013,
+   "output": "{\"owner\": \"558e984cf6e3a3f42d995ec1c9d17d8357c4a8628dc9b2cdfdf9fef2165f1a4801\",\"fee_bps\": 100,\"paused\": 0,\"slash\": 50000000,\"answer_fee\": 12000000,\"tournaments\": 3,\"height\": 4100013,\"dicts\": [{\"len\": 4,\"ver\": 0,\"root\": \"cb116563262d585bb762aeb4002c9d4235a76cac60c8d982601354a6e50f3809\",\"depth\": 9,\"words\": 381},{\"len\": 5,\"ver\": 0,\"root\": \"3776c7d80c0708671abaaa3bb446e994d5d3ff94fc91bbd721f0fb9c42e9a4a2\",\"depth\": 10,\"words\": 543},{\"len\": 6,\"ver\": 0,\"root\": \"e233a5c513b545d43dd72a2a771e3bf9dec07cad4a4979ed187dd642c20ff612\",\"depth\": 11,\"words\": 1029}]}"
+  },
+  "answerer": {
+   "wallet": "alice",
+   "args": "role=user,action=view_answerer,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,pk=a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01",
+   "height": 4100013,
+   "output": "{\"pk\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"enabled\": 1,\"bond\": 5000000000,\"reserved\": 0,\"free_bond\": 5000000000,\"earned\": 0,\"open_games\": 0,\"honest_games\": 0,\"failed_games\": 0,\"batches\": [{\"len\": 4,\"committed\": 2,\"current\": 0,\"current_used\": 0,\"leaves_left\": 512},{\"len\": 5,\"committed\": 2,\"current\": 0,\"current_used\": 0,\"leaves_left\": 512},{\"len\": 6,\"committed\": 2,\"current\": 0,\"current_used\": 0,\"leaves_left\": 512}]}"
+  },
+  "tournament_unaccepted": {
+   "wallet": "alice",
+   "args": "role=user,action=view_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=2",
+   "height": 4100013,
+   "output": "{\"tournament\": {\"tid\": 2,\"creator\": \"abb4bdf64aa158037f103a7135d0ab30f37ebdcd0da14790dff696e79f6df36501\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 0,\"entry\": 100000000,\"letter_price\": 1000000,\"sponsored\": 0,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 8,\"len_mask\": 7,\"start_h\": 4100011,\"end_h\": 4100751,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100010,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100311,\"accepted\": 0,\"games\": 0,\"open_games\": 0,\"ended_games\": 0,\"failed_games\": 0,\"players\": 0,\"total_score\": 0,\"gross_in\": 0,\"phase\": \"awaiting_answerer\",\"pool_estimate\": 0}}"
+  },
+  "err_enter_unaccepted": {
+   "wallet": "alice",
+   "args": "role=user,action=enter_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=2,len=5",
+   "height": 4100013,
+   "output": "{\"error\": \"its answer service has not accepted this tournament yet\"}"
+  },
+  "err_game_not_found": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=999,idx=0",
+   "height": 4100013,
+   "output": "{\"error\": \"game not found\"}"
+  },
+  "game_your_move_fresh": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=0",
+   "height": 4100014,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 0,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 0,\"verdict\": 0,\"attempts\": 0,\"solved_at\": 0,\"deadline_h\": 4100454,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 0,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 0,\"guesses\": [],\"phase\": \"your_move\",\"next_attempt\": 0,\"guess_due_h\": 4100054}}"
+  },
+  "game_waiting_hint": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=0",
+   "height": 4100020,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 0,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 0,\"verdict\": 0,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100454,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 0,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 2000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"qxzcd\",\"answered\": 0,\"guessed_h\": 4100020,\"answered_h\": 0}],\"phase\": \"waiting_hint\",\"hint_due_h\": 4100040,\"timeout_from_h\": 4100041}}"
+  },
+  "game_hinted": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=0",
+   "height": 4100021,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 0,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 0,\"verdict\": 0,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100454,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 0,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 2000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"qxzcd\",\"answered\": 1,\"feedback\": \"10200\",\"guessed_h\": 4100020,\"answered_h\": 4100021}],\"phase\": \"your_move\",\"next_attempt\": 1,\"guess_due_h\": 4100081}}"
+  },
+  "game_waiting_reveal_solved": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=0",
+   "height": 4100026,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 0,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 0,\"verdict\": 0,\"attempts\": 3,\"solved_at\": 0,\"deadline_h\": 4100454,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 0,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 7000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"qxzcd\",\"answered\": 1,\"feedback\": \"10200\",\"guessed_h\": 4100020,\"answered_h\": 4100021},{\"attempt\": 1,\"letters\": \"vpgxr\",\"answered\": 1,\"feedback\": \"00000\",\"guessed_h\": 4100022,\"answered_h\": 4100023},{\"attempt\": 2,\"letters\": \"zqzzz\",\"answered\": 1,\"feedback\": \"22222\",\"guessed_h\": 4100025,\"answered_h\": 4100026}],\"phase\": \"waiting_reveal\",\"solved\": 1,\"reveal_due_h\": 4100086,\"timeout_from_h\": 4100087}}"
+  },
+  "game_revealed_solved": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=0",
+   "height": 4100036,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 0,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 1,\"verdict\": 1,\"attempts\": 3,\"solved_at\": 3,\"deadline_h\": 4100454,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 0,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 7000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"qxzcd\",\"answered\": 1,\"feedback\": \"10200\",\"guessed_h\": 4100020,\"answered_h\": 4100021},{\"attempt\": 1,\"letters\": \"vpgxr\",\"answered\": 1,\"feedback\": \"00000\",\"guessed_h\": 4100022,\"answered_h\": 4100023},{\"attempt\": 2,\"letters\": \"zqzzz\",\"answered\": 1,\"feedback\": \"22222\",\"guessed_h\": 4100025,\"answered_h\": 4100026}],\"phase\": \"revealed\"}}"
+  },
+  "game_revealed_unsolved_six": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=2",
+   "height": 4100058,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 2,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 6,\"status\": 1,\"verdict\": 1,\"attempts\": 6,\"solved_at\": 0,\"deadline_h\": 4100459,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 0,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 35000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"msrlkc\",\"answered\": 1,\"feedback\": \"000000\",\"guessed_h\": 4100037,\"answered_h\": 4100038},{\"attempt\": 1,\"letters\": \"snvzqn\",\"answered\": 1,\"feedback\": \"000100\",\"guessed_h\": 4100039,\"answered_h\": 4100040},{\"attempt\": 2,\"letters\": \"lrzjdn\",\"answered\": 1,\"feedback\": \"001000\",\"guessed_h\": 4100041,\"answered_h\": 4100042},{\"attempt\": 3,\"letters\": \"jfqfbc\",\"answered\": 1,\"feedback\": \"000000\",\"guessed_h\": 4100043,\"answered_h\": 4100044},{\"attempt\": 4,\"letters\": \"plqfrq\",\"answered\": 1,\"feedback\": \"000000\",\"guessed_h\": 4100045,\"answered_h\": 4100046},{\"attempt\": 5,\"letters\": \"dgglpc\",\"answered\": 1,\"feedback\": \"000000\",\"guessed_h\": 4100047,\"answered_h\": 4100048}],\"phase\": \"revealed\"}}"
+  },
+  "tournament_beam": {
+   "wallet": "alice",
+   "args": "role=user,action=view_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100058,
+   "output": "{\"tournament\": {\"tid\": 0,\"creator\": \"87b5eb9464d15f8fc2cab005551d2cbc611756f6a1240b3217b1981c07765cb901\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 0,\"entry\": 100000000,\"letter_price\": 1000000,\"sponsored\": 30000000,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 4,\"len_mask\": 7,\"start_h\": 4100004,\"end_h\": 4100744,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100003,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100304,\"accepted\": 1,\"games\": 3,\"open_games\": 0,\"ended_games\": 3,\"failed_games\": 0,\"players\": 2,\"total_score\": 3750,\"gross_in\": 359000000,\"phase\": \"open\",\"pool_estimate\": 385410000}}"
+  },
+  "tournament_token": {
+   "wallet": "alice",
+   "args": "role=user,action=view_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=1",
+   "height": 4100058,
+   "output": "{\"tournament\": {\"tid\": 1,\"creator\": \"87b5eb9464d15f8fc2cab005551d2cbc611756f6a1240b3217b1981c07765cb901\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 7,\"entry\": 200000000,\"letter_price\": 5000000,\"sponsored\": 0,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 8,\"len_mask\": 2,\"start_h\": 4100006,\"end_h\": 4100746,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100005,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100306,\"accepted\": 1,\"games\": 2,\"open_games\": 1,\"ended_games\": 1,\"failed_games\": 0,\"players\": 1,\"total_score\": 2187,\"gross_in\": 450000000,\"phase\": \"open\",\"pool_estimate\": 445500000}}"
+  },
+  "err_enter_max_open": {
+   "wallet": "alice",
+   "args": "role=user,action=enter_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,len=5",
+   "height": 4100062,
+   "output": "{\"error\": \"you have the most open games allowed in this tournament; finish one first\"}"
+  },
+  "game_hint_overdue": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=4",
+   "height": 4100086,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 4,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 6,\"status\": 0,\"verdict\": 0,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100500,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 1,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 6000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"bmvxbb\",\"answered\": 0,\"guessed_h\": 4100065,\"answered_h\": 0}],\"phase\": \"hint_overdue\",\"hint_due_h\": 4100085,\"timeout_from_h\": 4100086}}"
+  },
+  "game_waiting_reveal_idle": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=3",
+   "height": 4100126,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 3,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 4,\"status\": 0,\"verdict\": 0,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100499,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 1,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 4000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"pgcj\",\"answered\": 1,\"feedback\": \"0000\",\"guessed_h\": 4100063,\"answered_h\": 4100064}],\"phase\": \"waiting_reveal\",\"solved\": 0,\"reveal_due_h\": 4100184,\"timeout_from_h\": 4100185}}"
+  },
+  "game_reveal_overdue": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=6",
+   "height": 4100126,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 6,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 4,\"status\": 0,\"verdict\": 0,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100502,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 2,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 4000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"cqvc\",\"answered\": 1,\"feedback\": \"2222\",\"guessed_h\": 4100063,\"answered_h\": 4100064}],\"phase\": \"reveal_overdue\",\"solved\": 1,\"reveal_due_h\": 4100124,\"timeout_from_h\": 4100125}}"
+  },
+  "game_unplayed_ended": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=5",
+   "height": 4100126,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 5,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 0,\"verdict\": 0,\"attempts\": 0,\"solved_at\": 0,\"deadline_h\": 4100501,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 3,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 0,\"guesses\": [],\"phase\": \"unplayed_ended\",\"timeout_from_h\": 4100102}}"
+  },
+  "err_refund_playing": {
+   "wallet": "alice",
+   "args": "role=user,action=claim_refund,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=3",
+   "height": 4100126,
+   "output": "{\"error\": \"only a failed game or one that ended unplayed is refunded\"}"
+  },
+  "game_failed_silent": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=4",
+   "height": 4100127,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 4,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 6,\"status\": 2,\"verdict\": 3,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100500,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 1,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 6000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"bmvxbb\",\"answered\": 0,\"guessed_h\": 4100065,\"answered_h\": 0}],\"phase\": \"failed\"}}"
+  },
+  "game_failed_unrevealed": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=6",
+   "height": 4100127,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 6,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 4,\"status\": 2,\"verdict\": 4,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100502,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 2,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 4000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"cqvc\",\"answered\": 1,\"feedback\": \"2222\",\"guessed_h\": 4100063,\"answered_h\": 4100064}],\"phase\": \"failed\"}}"
+  },
+  "game_ended_unplayed": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=5",
+   "height": 4100127,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 5,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 3,\"verdict\": 5,\"attempts\": 0,\"solved_at\": 0,\"deadline_h\": 4100501,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 3,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 0,\"guesses\": [],\"phase\": \"ended_unplayed\"}}"
+  },
+  "game_refunded": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=4",
+   "height": 4100128,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 4,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 6,\"status\": 2,\"verdict\": 3,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100500,\"refunded\": 1,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 1,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 6000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"bmvxbb\",\"answered\": 0,\"guessed_h\": 4100065,\"answered_h\": 0}],\"phase\": \"failed\"}}"
+  },
+  "game_refunded_unplayed": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=5",
+   "height": 4100128,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 5,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 3,\"verdict\": 5,\"attempts\": 0,\"solved_at\": 0,\"deadline_h\": 4100501,\"refunded\": 1,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 3,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 0,\"guesses\": [],\"phase\": \"ended_unplayed\"}}"
+  },
+  "err_already_refunded": {
+   "wallet": "alice",
+   "args": "role=user,action=claim_refund,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=4",
+   "height": 4100128,
+   "output": "{\"error\": \"already refunded\"}"
+  },
+  "game_revealed_idle": {
+   "wallet": "alice",
+   "args": "role=user,action=view_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=3",
+   "height": 4100129,
+   "output": "{\"game\": {\"tid\": 0,\"idx\": 3,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 4,\"status\": 1,\"verdict\": 1,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100499,\"refunded\": 0,\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"batch_id\": 0,\"leaf_index\": 1,\"asset\": 0,\"letter_price\": 1000000,\"answer_blocks\": 20,\"inline_in\": 4000000,\"guesses\": [{\"attempt\": 0,\"letters\": \"pgcj\",\"answered\": 1,\"feedback\": \"0000\",\"guessed_h\": 4100063,\"answered_h\": 4100064}],\"phase\": \"revealed\"}}"
+  },
+  "err_enter_full": {
+   "wallet": "alice",
+   "args": "role=user,action=enter_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,len=6",
+   "height": 4100133,
+   "output": "{\"error\": \"every slot of this tournament is in play; try again shortly\"}"
+  },
+  "err_not_your_game": {
+   "wallet": "alice",
+   "args": "role=user,action=submit_guess,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=8,attempt=0,guess=bcdfg,buy_missing=1",
+   "height": 4100172,
+   "output": "{\"error\": \"not your game\"}"
+  },
+  "err_claim_not_finalised": {
+   "wallet": "alice",
+   "args": "role=user,action=claim,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100172,
+   "output": "{\"error\": \"tournament not finalised\"}"
+  },
+  "my_tournament_open": {
+   "wallet": "alice",
+   "args": "role=user,action=view_my_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100172,
+   "output": "{\"me\": {\"tid\": 0,\"joined\": 1,\"letters\": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"score\": 2000,\"games\": 8,\"failed_games\": 2,\"paid_in\": 865000000,\"refund_asset\": 310000000,\"refund_beam\": 136000000,\"refund_asset_paid\": 206000000,\"refund_beam_paid\": 74000000,\"claimed\": 0,\"open_games\": 2,\"prize_estimate\": 688144000}}"
+  },
+  "tournaments": {
+   "wallet": "alice",
+   "args": "role=user,action=view_tournaments,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,skip=0,limit=50",
+   "height": 4100172,
+   "output": "{\"tournaments\": [{\"tid\": 0,\"creator\": \"87b5eb9464d15f8fc2cab005551d2cbc611756f6a1240b3217b1981c07765cb901\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 0,\"entry\": 100000000,\"letter_price\": 1000000,\"sponsored\": 30000000,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 4,\"len_mask\": 7,\"start_h\": 4100004,\"end_h\": 4100744,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100003,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100304,\"accepted\": 1,\"games\": 12,\"open_games\": 4,\"ended_games\": 8,\"failed_games\": 2,\"players\": 2,\"total_score\": 3750,\"gross_in\": 1273000000,\"phase\": \"open\",\"pool_estimate\": 1290270000},{\"tid\": 1,\"creator\": \"87b5eb9464d15f8fc2cab005551d2cbc611756f6a1240b3217b1981c07765cb901\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 7,\"entry\": 200000000,\"letter_price\": 5000000,\"sponsored\": 0,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 8,\"len_mask\": 2,\"start_h\": 4100006,\"end_h\": 4100746,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100005,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100306,\"accepted\": 1,\"games\": 2,\"open_games\": 1,\"ended_games\": 1,\"failed_games\": 0,\"players\": 1,\"total_score\": 2187,\"gross_in\": 450000000,\"phase\": \"open\",\"pool_estimate\": 445500000},{\"tid\": 2,\"creator\": \"abb4bdf64aa158037f103a7135d0ab30f37ebdcd0da14790dff696e79f6df36501\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 0,\"entry\": 100000000,\"letter_price\": 1000000,\"sponsored\": 0,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 8,\"len_mask\": 7,\"start_h\": 4100011,\"end_h\": 4100751,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100010,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100311,\"accepted\": 0,\"games\": 0,\"open_games\": 0,\"ended_games\": 0,\"failed_games\": 0,\"players\": 0,\"total_score\": 0,\"gross_in\": 0,\"phase\": \"awaiting_answerer\",\"pool_estimate\": 0}]}"
+  },
+  "my_games": {
+   "wallet": "alice",
+   "args": "role=user,action=view_my_games,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100214,
+   "output": "{\"games\": [{\"idx\": 0,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 1,\"verdict\": 1,\"attempts\": 3,\"solved_at\": 3,\"deadline_h\": 4100454,\"refunded\": 0},{\"idx\": 2,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 6,\"status\": 1,\"verdict\": 1,\"attempts\": 6,\"solved_at\": 0,\"deadline_h\": 4100459,\"refunded\": 0},{\"idx\": 3,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 4,\"status\": 1,\"verdict\": 1,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100499,\"refunded\": 0},{\"idx\": 4,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 6,\"status\": 2,\"verdict\": 3,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100500,\"refunded\": 1},{\"idx\": 5,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 5,\"status\": 3,\"verdict\": 5,\"attempts\": 0,\"solved_at\": 0,\"deadline_h\": 4100501,\"refunded\": 1},{\"idx\": 6,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 4,\"status\": 2,\"verdict\": 4,\"attempts\": 1,\"solved_at\": 0,\"deadline_h\": 4100502,\"refunded\": 0},{\"idx\": 10,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 4,\"status\": 3,\"verdict\": 5,\"attempts\": 0,\"solved_at\": 0,\"deadline_h\": 4100573,\"refunded\": 0},{\"idx\": 11,\"player\": \"17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301\",\"len\": 6,\"status\": 3,\"verdict\": 5,\"attempts\": 0,\"solved_at\": 0,\"deadline_h\": 4100612,\"refunded\": 0}]}"
+  },
+  "tournament_beam_ready": {
+   "wallet": "alice",
+   "args": "role=user,action=view_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100747,
+   "output": "{\"tournament\": {\"tid\": 0,\"creator\": \"87b5eb9464d15f8fc2cab005551d2cbc611756f6a1240b3217b1981c07765cb901\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 0,\"entry\": 100000000,\"letter_price\": 1000000,\"sponsored\": 30000000,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 4,\"len_mask\": 7,\"start_h\": 4100004,\"end_h\": 4100744,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100003,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100304,\"accepted\": 1,\"games\": 12,\"open_games\": 0,\"ended_games\": 12,\"failed_games\": 2,\"players\": 2,\"total_score\": 3750,\"gross_in\": 1273000000,\"phase\": \"ready_to_finalise\",\"pool_estimate\": 1290270000}}"
+  },
+  "tournament_beam_final": {
+   "wallet": "alice",
+   "args": "role=user,action=view_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100748,
+   "output": "{\"tournament\": {\"tid\": 0,\"creator\": \"87b5eb9464d15f8fc2cab005551d2cbc611756f6a1240b3217b1981c07765cb901\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 0,\"entry\": 100000000,\"letter_price\": 1000000,\"sponsored\": 30000000,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 4,\"len_mask\": 7,\"start_h\": 4100004,\"end_h\": 4100744,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100003,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100304,\"accepted\": 1,\"games\": 12,\"open_games\": 0,\"ended_games\": 12,\"failed_games\": 2,\"players\": 2,\"total_score\": 3750,\"gross_in\": 1273000000,\"phase\": \"finalised\",\"pool\": 488370000,\"creator_due\": 0,\"creator_paid\": 0,\"paid_out\": 206000000}}"
+  },
+  "tournament_token_final": {
+   "wallet": "alice",
+   "args": "role=user,action=view_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=1",
+   "height": 4100748,
+   "output": "{\"tournament\": {\"tid\": 1,\"creator\": \"87b5eb9464d15f8fc2cab005551d2cbc611756f6a1240b3217b1981c07765cb901\",\"answerer\": \"a9f4b45747db8282f969923c112f342b51979aba87d6363ceeb503cc394ccbcd01\",\"asset\": 7,\"entry\": 200000000,\"letter_price\": 5000000,\"sponsored\": 0,\"answer_fee\": 12000000,\"slash\": 50000000,\"fee_bps\": 100,\"creator_bps\": 0,\"max_open\": 8,\"len_mask\": 2,\"start_h\": 4100006,\"end_h\": 4100746,\"game_blocks\": 440,\"answer_blocks\": 20,\"created_h\": 4100005,\"first_guess_blocks\": 40,\"idle_blocks\": 60,\"min_game_blocks\": 440,\"entries_close_h\": 4100306,\"accepted\": 1,\"games\": 2,\"open_games\": 0,\"ended_games\": 2,\"failed_games\": 0,\"players\": 1,\"total_score\": 2187,\"gross_in\": 450000000,\"phase\": \"finalised\",\"pool\": 247500000,\"creator_due\": 0,\"creator_paid\": 0,\"paid_out\": 0}}"
+  },
+  "my_tournament_final": {
+   "wallet": "alice",
+   "args": "role=user,action=view_my_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100748,
+   "output": "{\"me\": {\"tid\": 0,\"joined\": 1,\"letters\": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"score\": 2000,\"games\": 8,\"failed_games\": 2,\"paid_in\": 865000000,\"refund_asset\": 510000000,\"refund_beam\": 160000000,\"refund_asset_paid\": 206000000,\"refund_beam_paid\": 74000000,\"claimed\": 0,\"open_games\": 0,\"prize\": 260464000,\"payout_asset\": 564464000,\"payout_beam\": 86000000,\"claimable\": 1}}"
+  },
+  "my_tournament_token_final": {
+   "wallet": "alice",
+   "args": "role=user,action=view_my_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=1",
+   "height": 4100748,
+   "output": "{\"me\": {\"tid\": 1,\"joined\": 1,\"letters\": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"score\": 2187,\"games\": 2,\"failed_games\": 0,\"paid_in\": 450000000,\"refund_asset\": 200000000,\"refund_beam\": 12000000,\"refund_asset_paid\": 0,\"refund_beam_paid\": 0,\"claimed\": 0,\"open_games\": 0,\"prize\": 247500000,\"payout_asset\": 447500000,\"payout_beam\": 12000000,\"claimable\": 1}}"
+  },
+  "claimable": {
+   "wallet": "alice",
+   "args": "role=user,action=view_claimable,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,skip=0,limit=200",
+   "height": 4100748,
+   "output": "{\"claimable\": [{\"tid\": 0,\"asset\": 0,\"prize\": 260464000,\"payout_asset\": 564464000,\"payout_beam\": 86000000},{\"tid\": 1,\"asset\": 7,\"prize\": 247500000,\"payout_asset\": 447500000,\"payout_beam\": 12000000}]}"
+  },
+  "my_tournament_claimed": {
+   "wallet": "alice",
+   "args": "role=user,action=view_my_tournament,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100749,
+   "output": "{\"me\": {\"tid\": 0,\"joined\": 1,\"letters\": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"score\": 2000,\"games\": 8,\"failed_games\": 2,\"paid_in\": 865000000,\"refund_asset\": 510000000,\"refund_beam\": 160000000,\"refund_asset_paid\": 206000000,\"refund_beam_paid\": 74000000,\"claimed\": 1,\"open_games\": 0,\"prize\": 260464000,\"payout_asset\": 564464000,\"payout_beam\": 86000000,\"claimable\": 0}}"
+  },
+  "err_already_claimed": {
+   "wallet": "alice",
+   "args": "role=user,action=claim,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100749,
+   "output": "{\"error\": \"already claimed\"}"
+  },
+  "view_state_end": {
+   "wallet": "alice",
+   "args": "role=user,action=view_state,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "height": 4100749,
+   "output": "{\"owner\": \"558e984cf6e3a3f42d995ec1c9d17d8357c4a8628dc9b2cdfdf9fef2165f1a4801\",\"fee_bps\": 100,\"paused\": 0,\"slash\": 50000000,\"answer_fee\": 12000000,\"tournaments\": 3,\"height\": 4100749,\"dicts\": [{\"len\": 4,\"ver\": 0,\"root\": \"cb116563262d585bb762aeb4002c9d4235a76cac60c8d982601354a6e50f3809\",\"depth\": 9,\"words\": 381},{\"len\": 5,\"ver\": 0,\"root\": \"3776c7d80c0708671abaaa3bb446e994d5d3ff94fc91bbd721f0fb9c42e9a4a2\",\"depth\": 10,\"words\": 543},{\"len\": 6,\"ver\": 0,\"root\": \"e233a5c513b545d43dd72a2a771e3bf9dec07cad4a4979ed187dd642c20ff612\",\"depth\": 11,\"words\": 1029}]}"
+  }
+ },
+ "builds": {
+  "enter_beam": {
+   "wallet": "alice",
+   "args": "role=user,action=enter_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,len=5",
+   "height": 4100013,
+   "output": "{}",
+   "raw": "8189ae17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301000000000000000005ffffffff8102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a41803605b0395467564646c652076393a20656e7465722067616d6581800400fcac06e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "locks 1 BEAM entry + 0.12 BEAM answering fee: one BEAM entry of 1.12; charge 220000",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100014,
+    "fee": 2300000,
+    "units": 193494,
+    "method": 9,
+    "charge": 220000,
+    "pays": {
+     "0": 112000000
+    }
+   }
+  },
+  "buy_letters": {
+   "wallet": "alice",
+   "args": "role=user,action=buy_letters,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,letters=qxzbq",
+   "height": 4100014,
+   "output": "{}",
+   "raw": "818add17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a3010000000000000000000001000000000000000000000000000000000000000000000000000000000002000000000000000000000000000100000001008102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a41803a8550296467564646c652076393a20627579206c657474657273818003404b4ce10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "locks 5 x 0.01 BEAM = 0.05 BEAM (letters q, q, x, z, b)",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100015,
+    "fee": 1630000,
+    "units": 136113,
+    "method": 10,
+    "charge": 153000,
+    "pays": {
+     "0": 5000000
+    }
+   }
+  },
+  "enter_token": {
+   "wallet": "alice",
+   "args": "role=user,action=enter_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=1,len=5",
+   "height": 4100016,
+   "output": "{}",
+   "raw": "8189ae17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301010000000000000005ffffffff8102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a41803605b0395467564646c652076393a20656e7465722067616d65828003001bb7870400c2eb0be10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "locks 2 (2e8 groth) of asset 7 + 0.12 BEAM answering fee: two funds entries",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100017,
+    "fee": 2300000,
+    "units": 193494,
+    "method": 9,
+    "charge": 220000,
+    "pays": {
+     "0": 12000000,
+     "7": 200000000
+    }
+   }
+  },
+  "guess_buy_missing": {
+   "wallet": "alice",
+   "args": "role=user,action=submit_guess,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=0,attempt=0,guess=qxzcd,buy_missing=1",
+   "height": 4100019,
+   "output": "{}",
+   "raw": "818bb517e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a30100000000000000000000000000101719020300018102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a4180360610290467564646c652076393a20677565737381800380841ee10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "q, x, z from stock; buys the 2 missing letters inline: locks 0.02 BEAM",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100020,
+    "fee": 1660000,
+    "units": 133728,
+    "method": 11,
+    "charge": 156000,
+    "pays": {
+     "0": 2000000
+    }
+   }
+  },
+  "guess_token_buy_missing": {
+   "wallet": "alice",
+   "args": "role=user,action=submit_guess,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=1,idx=0,attempt=0,guess=xhgtz,buy_missing=1",
+   "height": 4100019,
+   "output": "{}",
+   "raw": "818bb517e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a30101000000000000000000000000170706131900018102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a4180360610290467564646c652076393a20677565737381870440787d01e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "no stock: buys all 5 letters inline: locks 5 x 5e6 = 2.5e7 of asset 7",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100020,
+    "fee": 1660000,
+    "units": 133743,
+    "method": 11,
+    "charge": 156000,
+    "pays": {
+     "7": 25000000
+    }
+   }
+  },
+  "guess_from_stock": {
+   "wallet": "alice",
+   "args": "role=user,action=submit_guess,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=0,attempt=2,guess=zqzzz,buy_missing=0",
+   "height": 4100024,
+   "output": "{}",
+   "raw": "818bb517e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a30100000000000000000000000002191019191900008102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a4180360610290467564646c652076393a20677565737380e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "every letter from stock (buy_missing=0): no funds, the fee only",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100025,
+    "fee": 1660000,
+    "units": 138543,
+    "method": 11,
+    "charge": 156000,
+    "pays": {}
+   }
+  },
+  "claim_timeout_silent": {
+   "wallet": "alice",
+   "args": "role=user,action=claim_timeout,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=4",
+   "height": 4100126,
+   "output": "{}",
+   "raw": "818e8c0000000000000000040000008003d8470398467564646c652076393a20636c61696d2074696d656f757480e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unsigned, no funds: ends the unanswered game as silent (verdict 3)",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100127,
+    "fee": 2250000,
+    "units": 194129,
+    "method": 14,
+    "charge": 215000,
+    "pays": {}
+   }
+  },
+  "claim_timeout_unrevealed_bob": {
+   "wallet": "bob",
+   "args": "role=user,action=claim_timeout,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=6",
+   "height": 4100126,
+   "output": "{}",
+   "raw": "818e8c0000000000000000060000008003d8470398467564646c652076393a20636c61696d2074696d656f757480e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "anyone (bob) ends alice's unrevealed game (verdict 4); no funds",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100127,
+    "fee": 2250000,
+    "units": 194519,
+    "method": 14,
+    "charge": 215000,
+    "pays": {}
+   }
+  },
+  "claim_timeout_unplayed": {
+   "wallet": "alice",
+   "args": "role=user,action=claim_timeout,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=5",
+   "height": 4100126,
+   "output": "{}",
+   "raw": "818e8c0000000000000000050000008003d8470398467564646c652076393a20636c61696d2074696d656f757480e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unsigned, no funds: ends the never-played game (verdict 5)",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100127,
+    "fee": 2250000,
+    "units": 186819,
+    "method": 14,
+    "charge": 215000,
+    "pays": {}
+   }
+  },
+  "claim_refund_failed": {
+   "wallet": "alice",
+   "args": "role=user,action=claim_refund,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=4",
+   "height": 4100127,
+   "output": "{}",
+   "raw": "8195ad17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a3010000000000000000040000008102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a4180338bb029b467564646c652076393a20726566756e64206f6620612067616d65818084007a030ae10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unlocks entry 1 + letters used 6 x 0.01 + answering fee 0.12 + slash 0.5 = 1.68 BEAM (one BEAM entry)",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100128,
+    "fee": 1890000,
+    "units": 161838,
+    "method": 21,
+    "charge": 179000,
+    "pays": {
+     "0": -168000000
+    }
+   }
+  },
+  "claim_refund_unplayed": {
+   "wallet": "alice",
+   "args": "role=user,action=claim_refund,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,idx=5",
+   "height": 4100127,
+   "output": "{}",
+   "raw": "8195ad17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a3010000000000000000050000008102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a4180338bb029b467564646c652076393a20726566756e64206f6620612067616d6581808400fcac06e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unlocks entry 1 + answering fee 0.12 = 1.12 BEAM, no slash",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100128,
+    "fee": 1890000,
+    "units": 161838,
+    "method": 21,
+    "charge": 179000,
+    "pays": {
+     "0": -112000000
+    }
+   }
+  },
+  "enter_beam_evict": {
+   "wallet": "alice",
+   "args": "role=user,action=enter_game,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0,len=6",
+   "height": 4100171,
+   "output": "{}",
+   "raw": "8189ae17e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a301000000000000000006070000008102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a4180378ce0495467564646c652076393a20656e7465722067616d6581800400fcac06e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "tournament full: the shader ends bob's overdue never-played game in the same call; charge 315000; locks 1.12 BEAM",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100172,
+    "fee": 3250000,
+    "units": 285770,
+    "method": 9,
+    "charge": 315000,
+    "pays": {
+     "0": 112000000
+    }
+   }
+  },
+  "finalize_beam": {
+   "wallet": "alice",
+   "args": "role=user,action=finalize,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100747,
+   "output": "{}",
+   "raw": "818f8800000000000000008003708e019e467564646c652076393a2066696e616c697a6520746f75726e616d656e7480e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unsigned, no funds: settles the tournament",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100748,
+    "fee": 1120000,
+    "units": 90012,
+    "method": 15,
+    "charge": 102000,
+    "pays": {}
+   }
+  },
+  "finalize_token": {
+   "wallet": "alice",
+   "args": "role=user,action=finalize,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=1",
+   "height": 4100747,
+   "output": "{}",
+   "raw": "818f8801000000000000008003708e019e467564646c652076393a2066696e616c697a6520746f75726e616d656e7480e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unsigned, no funds: settles the token tournament",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100748,
+    "fee": 1120000,
+    "units": 90012,
+    "method": 15,
+    "charge": 102000,
+    "pays": {}
+   }
+  },
+  "claim_beam": {
+   "wallet": "alice",
+   "args": "role=user,action=claim,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=0",
+   "height": 4100748,
+   "output": "{}",
+   "raw": "8190a917e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a30100000000000000008102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a41803a0030290467564646c652076393a20636c61696d818084004bc526e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unlocks alice's prize share + refunds not taken early (g6 failed: entry, letters, fee, slash; g7, g8 unplayed: entry + fee): one BEAM entry",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100749,
+    "fee": 1420000,
+    "units": 119682,
+    "method": 16,
+    "charge": 132000,
+    "pays": {
+     "0": -650464000
+    }
+   }
+  },
+  "claim_token": {
+   "wallet": "alice",
+   "args": "role=user,action=claim,cid=e10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153,tid=1",
+   "height": 4100748,
+   "output": "{}",
+   "raw": "8190a917e367bb8bc3ac4ace3fbd9aa09c40e58d11d2bfa764948552ba2966a740e1a30101000000000000008102d38ec8e464e0f8ecf9986f749500fc8c2466d2c088f853a275e3e78317a41803a0030290467564646c652076393a20636c61696d828083001bb78784e04eac1ae10691e856332edba2dd4dcdbd788e758811104a8ac223a12e9683f37aad6153",
+   "landed": true,
+   "notes": "unlocks prize + the unplayed game's entry in asset 7, and its answering fee in BEAM: two funds entries",
+   "tx": {
+    "status": 3,
+    "reason": "",
+    "landed_h": 4100749,
+    "fee": 1420000,
+    "units": 119682,
+    "method": 16,
+    "charge": 132000,
+    "pays": {
+     "0": -12000000,
+     "7": -447500000
+    }
+   }
+  }
+ }
+}
