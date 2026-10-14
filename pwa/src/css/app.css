@@ -1155,7 +1155,9 @@ details.more.card { padding: 12px 16px; }
 
 /* Fuddle (screens/fuddle.js). A hint is colour AND a mark: a tick (right place), arrows (another
    place), a dash (not in the word); the tile's letter keeps the text colour, so it reads in every
-   palette. Tints are mixed from the palette's own green and yellow over the surface. */
+   palette. Tints are mixed from the palette's own green and yellow over the surface.
+   Its generic names (.tile, .key, .grid-row) are scoped to its own containers with :where(), which adds
+   no specificity: Home's shortcut line is also .tile, and an unscoped 52 px tile squeezed its labels. */
 .fuddle-mark { display: inline-flex; gap: 3px; align-items: center; flex: none; }
 .fuddle-mark .m { width: 10px; height: 14px; border-radius: 3px; }
 .fuddle-mark .m.correct { background: var(--green); }
@@ -1184,8 +1186,8 @@ details.more.card { padding: 12px 16px; }
 .fuddle-clock.urgent svg { color: var(--warn); }
 .fuddle-status:empty { display: none; }
 .fuddle-grid { display: flex; flex-direction: column; gap: 6px; align-items: center; margin: 2px 0; }
-.grid-row { display: flex; gap: 6px; }
-.tile { position: relative; width: 52px; height: 52px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 2px solid var(--border); color: var(--text); font-weight: 700; font-size: 24px; line-height: 1; }
+:where(.fuddle-grid) .grid-row { display: flex; gap: 6px; }
+:where(.fuddle-grid, .fuddle-legend) .tile { position: relative; width: 52px; height: 52px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 2px solid var(--border); color: var(--text); font-weight: 700; font-size: 24px; line-height: 1; }
 /* The grid takes what the keyboard leaves: smaller tiles on a short phone, never past 52 px. */
 .fuddle-grid { --tile: clamp(30px, calc((100dvh - 500px) / 6), 52px); }
 .fuddle-grid.len-6 { --tile: clamp(30px, calc((100dvh - 500px) / 6), 48px); }
@@ -1195,34 +1197,34 @@ details.more.card { padding: 12px 16px; }
 .fuddle-panel { position: sticky; bottom: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px; background: var(--bg); margin: 4px calc(-1 * var(--gutter)) 0; padding: 10px var(--gutter) calc(8px + var(--safe-bottom)); box-shadow: 0 -1px 0 var(--border); }
 .fuddle-buy-link { align-self: center; min-height: 32px; padding: 2px 8px; }
 .fuddle-panel p { margin: 0; }
-.tile.empty { background: transparent; }
-.tile.typed { border-color: var(--text-2); }
-.tile.waiting { border-style: dashed; border-color: var(--muted); }
-.grid-row.sending .tile { animation: fuddle-pulse 1.4s ease-in-out infinite; }
+:where(.fuddle-grid, .fuddle-legend) .tile.empty { background: transparent; }
+:where(.fuddle-grid, .fuddle-legend) .tile.typed { border-color: var(--text-2); }
+:where(.fuddle-grid, .fuddle-legend) .tile.waiting { border-style: dashed; border-color: var(--muted); }
+:where(.fuddle-grid) .grid-row.sending .tile { animation: fuddle-pulse 1.4s ease-in-out infinite; }
 @keyframes fuddle-pulse { 50% { opacity: 0.55; } }
-@media (prefers-reduced-motion: reduce) { .grid-row.sending .tile { animation: none; } }
-.tile.correct { background: color-mix(in srgb, var(--green) 32%, var(--surface)); border-color: var(--green); }
-.tile.present { background: color-mix(in srgb, var(--yellow) 32%, var(--surface)); border-color: var(--yellow); }
-.tile.absent { background: var(--surface-2); border-color: var(--surface-2); color: var(--muted); }
-.tile .mk { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; display: flex; color: var(--text); }
-.tile .mk svg { width: 14px; height: 14px; stroke-width: 3; }
-.tile.absent .mk { color: var(--muted); }
-.tile.mini { width: 26px; height: 26px; border-radius: 6px; flex: none; }
-.tile.mini .mk { position: static; }
+@media (prefers-reduced-motion: reduce) { :where(.fuddle-grid) .grid-row.sending .tile { animation: none; } }
+:where(.fuddle-grid, .fuddle-legend) .tile.correct { background: color-mix(in srgb, var(--green) 32%, var(--surface)); border-color: var(--green); }
+:where(.fuddle-grid, .fuddle-legend) .tile.present { background: color-mix(in srgb, var(--yellow) 32%, var(--surface)); border-color: var(--yellow); }
+:where(.fuddle-grid, .fuddle-legend) .tile.absent { background: var(--surface-2); border-color: var(--surface-2); color: var(--muted); }
+:where(.fuddle-grid, .fuddle-legend) .tile .mk { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; display: flex; color: var(--text); }
+:where(.fuddle-grid, .fuddle-legend) .tile .mk svg { width: 14px; height: 14px; stroke-width: 3; }
+:where(.fuddle-grid, .fuddle-legend) .tile.absent .mk { color: var(--muted); }
+:where(.fuddle-grid, .fuddle-legend) .tile.mini { width: 26px; height: 26px; border-radius: 6px; flex: none; }
+:where(.fuddle-grid, .fuddle-legend) .tile.mini .mk { position: static; }
 .fuddle-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-size: 13px; color: var(--text-2); }
-.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+:where(.fuddle-legend) .legend-item { display: inline-flex; align-items: center; gap: 6px; }
 .fuddle-keys { display: flex; flex-direction: column; gap: 6px; }
-.key-row { display: flex; gap: 5px; justify-content: center; }
-.key { position: relative; flex: 1 1 0; max-width: 44px; min-height: 46px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
-.key.wide { flex: 1.6 1 0; max-width: 70px; }
-.key svg { width: 22px; height: 22px; }
-.key .mk { position: absolute; top: 1px; right: 2px; display: flex; }
-.key .mk svg { width: 10px; height: 10px; stroke-width: 3; }
-.key.correct { background: color-mix(in srgb, var(--green) 32%, var(--surface)); border-color: var(--green); }
-.key.present { background: color-mix(in srgb, var(--yellow) 32%, var(--surface)); border-color: var(--yellow); }
-.key.absent { background: var(--surface-2); color: var(--muted); }
-.key:disabled { opacity: 0.5; cursor: default; }
-@media (max-height: 700px) { .key { min-height: 40px; } .fuddle-panel { gap: 6px; } }
+:where(.fuddle-keys) .key-row { display: flex; gap: 5px; justify-content: center; }
+:where(.fuddle-keys) .key { position: relative; flex: 1 1 0; max-width: 44px; min-height: 46px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+:where(.fuddle-keys) .key.wide { flex: 1.6 1 0; max-width: 70px; }
+:where(.fuddle-keys) .key svg { width: 22px; height: 22px; }
+:where(.fuddle-keys) .key .mk { position: absolute; top: 1px; right: 2px; display: flex; }
+:where(.fuddle-keys) .key .mk svg { width: 10px; height: 10px; stroke-width: 3; }
+:where(.fuddle-keys) .key.correct { background: color-mix(in srgb, var(--green) 32%, var(--surface)); border-color: var(--green); }
+:where(.fuddle-keys) .key.present { background: color-mix(in srgb, var(--yellow) 32%, var(--surface)); border-color: var(--yellow); }
+:where(.fuddle-keys) .key.absent { background: var(--surface-2); color: var(--muted); }
+:where(.fuddle-keys) .key:disabled { opacity: 0.5; cursor: default; }
+@media (max-height: 700px) { :where(.fuddle-keys) .key { min-height: 40px; } .fuddle-panel { gap: 6px; } }
 .fuddle-buy { display: flex; flex-direction: column; gap: 10px; }
 .fuddle-buy h2, .fuddle-buy p { margin: 0; }
 .fuddle-buy .field { display: flex; flex-direction: column; gap: 6px; }
