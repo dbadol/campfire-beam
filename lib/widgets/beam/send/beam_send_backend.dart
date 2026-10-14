@@ -232,13 +232,19 @@ class BeamWalletSendBackend implements BeamSendBackend {
     return txId;
   }
 
-  /// Records the owner [prepared] pays as the one this wallet paid. A
-  /// failure to write it never turns a sent payment into an error.
+  /// Records the owner [prepared] pays as the one this wallet paid, if the
+  /// record still holds what it held when [prepared] was built (a payment
+  /// to the same name recorded since is never overwritten). A failure to
+  /// write it never turns a sent payment into an error.
   Future<void> _pinOwner(BansPrepared prepared) async {
     final s = prepared.summary;
     if (s.name != null && s.ownerKey != null) {
       try {
-        await _pins.pin(s.name!, s.ownerKey!);
+        await _pins.pin(
+          s.name!,
+          s.ownerKey!,
+          expected: prepared.pinnedOwnerKey,
+        );
       } catch (_) {}
     }
   }

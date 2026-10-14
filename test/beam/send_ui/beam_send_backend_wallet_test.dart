@@ -443,6 +443,33 @@ void main() {
     );
   });
 
+  test('the production backend: a name payment prepared before another '
+      'payment to the name was recorded never overwrites that record '
+      '(release audit 1.3.0)', () async {
+    final w = await ready();
+    final pins = SecureBansOwnerPins(w.secureStorageInterface, w.walletId);
+    final b = backendFor(w);
+    final m = BeamSendModel(b, nameDebounce: Duration.zero);
+    addTearDown(m.dispose);
+    m.setRecipient('beam');
+    await resolved(m);
+    m.setAmountText('0.00012345');
+    final early = await m.prepare(w.cryptoCurrency);
+    // Meanwhile another payment to the name (another Send tab) went out
+    // and recorded the owner it paid.
+    expect(
+      await pins.pin(BansName('beam'), fakeMyKey, expected: null),
+      isTrue,
+    );
+    expect(await early.send(), 'ee' * 16);
+    early.dispose();
+    expect(
+      await pins.pinned(BansName('beam')),
+      fakeMyKey,
+      reason: 'prepared over no record: left as the later payment wrote it',
+    );
+  });
+
   test('beamSendOutcomeUnknown: a dropped connection or a timeout may have '
       'sent it; a refusal did not', () {
     expect(beamSendOutcomeUnknown(TimeoutException('x')), isTrue);

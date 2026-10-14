@@ -346,7 +346,7 @@ class ScriptedBackend implements BeamSendBackend {
     final s = prepared.summary;
     if (s.name != null && s.ownerKey != null) {
       try {
-        await pins.pin(s.name!, s.ownerKey!);
+        await pins.pin(s.name!, s.ownerKey!, expected: prepared.pinnedOwnerKey);
       } catch (_) {}
     }
     return txId;

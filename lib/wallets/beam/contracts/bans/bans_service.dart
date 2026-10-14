@@ -256,6 +256,7 @@ class BansPrepared {
     required this.rawData,
     required this.invokeData,
     required this.summary,
+    this.pinnedOwnerKey,
   });
 
   final BansAction action;
@@ -267,6 +268,13 @@ class BansPrepared {
   final List<int> rawData;
   final BeamInvokeData invokeData;
   final BansSummary summary;
+
+  /// A payment to a name: the owner key this wallet's record held for the
+  /// name when the payment was prepared (null: none), read once, here. The
+  /// owner it pays is recorded afterwards only if the record still holds
+  /// this ([BansOwnerPins.pin]), so a payment prepared before another one
+  /// was recorded never overwrites it (release audit 1.3.0).
+  final String? pinnedOwnerKey;
 }
 
 /// BANS for one BEAM wallet: resolve names, list mine, and build every
@@ -542,7 +550,9 @@ class BeamBansService {
   /// [pinnedOwnerKey] is the owner key this wallet paid [name] before (null:
   /// never). Another owner now is refused ([BansOwnerChangedSincePaid])
   /// unless it is [acceptedOwnerKey], the new key the person saw next to the
-  /// old one and chose to pay ([bansPinVerdict]).
+  /// old one and chose to pay ([bansPinVerdict]). It travels with the
+  /// result ([BansPrepared.pinnedOwnerKey]): the owner paid is recorded only
+  /// if the record still holds it then.
   Future<BansPrepared> preparePay(
     BansName name,
     int assetId,
@@ -598,7 +608,7 @@ class BeamBansService {
       pays.length == 1 && pays.single == BansAmount(assetId, amount),
       'the kernel pays exactly the amount',
     );
-    return _prepared(BansAction.pay, a, built, BansSummary(
+    final summary = BansSummary(
       action: BansAction.pay,
       name: name,
       youPay: pays,
@@ -610,7 +620,14 @@ class BeamBansService {
       comments: built.data.comments,
       ownerKey: key,
       expireHeight: after.domain?.expireHeight,
-    ));
+    );
+    return _prepared(
+      BansAction.pay,
+      a,
+      built,
+      summary,
+      pinnedOwnerKey: pinnedOwnerKey,
+    );
   }
 
   /// Builds a claim of up to 30 waiting payments and sale proceeds. Throws
@@ -757,13 +774,15 @@ class BeamBansService {
     BansAction action,
     String a,
     _Built built,
-    BansSummary summary,
-  ) => BansPrepared(
+    BansSummary summary, {
+    String? pinnedOwnerKey,
+  }) => BansPrepared(
     action: action,
     args: a,
     rawData: built.raw,
     invokeData: built.data,
     summary: summary,
+    pinnedOwnerKey: pinnedOwnerKey,
   );
 
   BansPrepared _claim(BansAction action, String a, _Built built, String vault) {

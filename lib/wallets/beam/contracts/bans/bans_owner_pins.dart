@@ -28,9 +28,18 @@ abstract class BansOwnerPins {
   Future<String?> pinned(BansName name);
 
   /// Records [ownerKey] as the owner [name] was paid. Called once the
-  /// payment is sent. Throws [BansPinsUnreadable], writing nothing, when the
-  /// record cannot be read: an unreadable record is never overwritten.
-  Future<void> pin(BansName name, String ownerKey);
+  /// payment is sent, with [expected] the key the record held for [name]
+  /// when the payment was prepared (null: none), as the prepared payment
+  /// carries it (`BansPrepared.pinnedOwnerKey`).
+  ///
+  /// Compare-and-set: written only while the record still holds [expected],
+  /// so a payment prepared earlier never overwrites what another payment to
+  /// the same name recorded since (release audit 1.3.0). Returns whether
+  /// the record holds [ownerKey] afterwards: false when it held another key
+  /// than [expected] and was left as it was. Throws [BansPinsUnreadable],
+  /// writing nothing, when the record cannot be read: an unreadable record
+  /// is never overwritten.
+  Future<bool> pin(BansName name, String ownerKey, {required String? expected});
 }
 
 /// [BansKey.zero] in place of a paid owner: "this wallet paid before, but its
@@ -102,14 +111,21 @@ class SecureBansOwnerPins implements BansOwnerPins {
   Future<String?> pinned(BansName name) async => (await _read())[name.value];
 
   @override
-  Future<void> pin(BansName name, String ownerKey) => _serial(() async {
+  Future<bool> pin(
+    BansName name,
+    String ownerKey, {
+    required String? expected,
+  }) => _serial(() async {
     final key = BansKey.require(ownerKey);
     final all = await _read();
-    if (all[name.value] == key) return;
+    final now = all[name.value];
+    if (now == key) return true;
+    if (now != expected) return false;
     await _storage.write(
       key: _key,
       value: jsonEncode({...all, name.value: key}),
     );
+    return true;
   });
 
   /// Forgets every name of this wallet: the wallet itself is being deleted.
@@ -159,6 +175,16 @@ class MemoryBansOwnerPins implements BansOwnerPins {
   Future<String?> pinned(BansName name) async => _pins[name.value];
 
   @override
-  Future<void> pin(BansName name, String ownerKey) async =>
-      _pins[name.value] = BansKey.require(ownerKey);
+  Future<bool> pin(
+    BansName name,
+    String ownerKey, {
+    required String? expected,
+  }) async {
+    final key = BansKey.require(ownerKey);
+    final now = _pins[name.value];
+    if (now == key) return true;
+    if (now != expected) return false;
+    _pins[name.value] = key;
+    return true;
+  }
 }

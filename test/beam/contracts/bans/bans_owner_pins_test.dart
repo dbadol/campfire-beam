@@ -39,11 +39,11 @@ void main() {
     final pins = SecureBansOwnerPins(s, _wallet);
     final beam = BansName('beam');
     expect(await pins.pinned(beam), isNull);
-    await pins.pin(beam, beamOwnerKey);
+    expect(await pins.pin(beam, beamOwnerKey, expected: null), isTrue);
     expect(await pins.pinned(beam), beamOwnerKey);
     expect(await pins.pinned(BansName('alice')), isNull);
     expect(await SecureBansOwnerPins(s, _other).pinned(beam), isNull, reason: 'another wallet');
-    await pins.pin(beam, _newKey);
+    expect(await pins.pin(beam, _newKey, expected: beamOwnerKey), isTrue);
     expect(await pins.pinned(beam), _newKey);
     // A fresh instance reads what was written.
     expect(await SecureBansOwnerPins(s, _wallet).pinned(beam), _newKey);
@@ -52,8 +52,14 @@ void main() {
   test('two payments at once both land', () async {
     final s = FakeSecureStorage();
     await Future.wait([
-      SecureBansOwnerPins(s, _wallet).pin(BansName('beam'), beamOwnerKey),
-      SecureBansOwnerPins(s, _wallet).pin(BansName('alice'), _newKey),
+      SecureBansOwnerPins(
+        s,
+        _wallet,
+      ).pin(BansName('beam'), beamOwnerKey, expected: null),
+      SecureBansOwnerPins(
+        s,
+        _wallet,
+      ).pin(BansName('alice'), _newKey, expected: null),
     ]);
     final pins = SecureBansOwnerPins(s, _wallet);
     expect(await pins.pinned(BansName('beam')), beamOwnerKey);
@@ -71,7 +77,7 @@ void main() {
     );
     expect(await bansPaidOwner(broken, BansName('beam')), kBansPaidOwnerUnknown);
     await expectLater(
-      broken.pin(BansName('alice'), _newKey),
+      broken.pin(BansName('alice'), _newKey, expected: null),
       throwsA(isA<BansPinsUnreadable>()),
     );
     expect(
@@ -107,7 +113,7 @@ void main() {
         );
       }
       await expectLater(
-        pins.pin(BansName('bob'), beamOwnerKey),
+        pins.pin(BansName('bob'), beamOwnerKey, expected: null),
         throwsA(isA<BansPinsUnreadable>()),
       );
       expect(
@@ -118,11 +124,46 @@ void main() {
     }
   });
 
+  test('compare-and-set: a payment prepared before another one was recorded '
+      'never overwrites it (release audit 1.3.0)', () async {
+    for (final pins in <BansOwnerPins>[
+      SecureBansOwnerPins(FakeSecureStorage(), _wallet),
+      MemoryBansOwnerPins(),
+    ]) {
+      final beam = BansName('beam');
+      final kind = pins.runtimeType;
+      // Two payments both prepared while nothing was recorded; the second
+      // one sent records its owner first.
+      expect(await pins.pin(beam, _newKey, expected: null), isTrue);
+      expect(
+        await pins.pin(beam, beamOwnerKey, expected: null),
+        isFalse,
+        reason: '$kind: prepared before _newKey was recorded',
+      );
+      expect(await pins.pinned(beam), _newKey, reason: '$kind');
+      // Prepared against a key the record no longer holds: left alone.
+      expect(await pins.pin(beam, beamOwnerKey, expected: fakeMyKey), isFalse);
+      expect(await pins.pinned(beam), _newKey, reason: '$kind');
+      // The key it already holds: nothing to change, and it holds it.
+      expect(await pins.pin(beam, _newKey, expected: fakeMyKey), isTrue);
+      // Prepared against what it holds now: recorded.
+      expect(await pins.pin(beam, beamOwnerKey, expected: _newKey), isTrue);
+      expect(await pins.pinned(beam), beamOwnerKey, reason: '$kind');
+      // Another name is its own record.
+      final alice = BansName('alice');
+      expect(await pins.pin(alice, _newKey, expected: null), isTrue);
+      expect(await pins.pinned(beam), beamOwnerKey, reason: '$kind');
+    }
+  });
+
   test('only a real owner key is pinned; deleteAll forgets the wallet', () async {
     final s = FakeSecureStorage();
     final pins = SecureBansOwnerPins(s, _wallet);
-    await expectLater(pins.pin(BansName('beam'), '00' * 33), throwsA(isA<BansInvalidKey>()));
-    await pins.pin(BansName('beam'), beamOwnerKey);
+    await expectLater(
+      pins.pin(BansName('beam'), '00' * 33, expected: null),
+      throwsA(isA<BansInvalidKey>()),
+    );
+    await pins.pin(BansName('beam'), beamOwnerKey, expected: null);
     await pins.deleteAll();
     expect(await pins.pinned(BansName('beam')), isNull);
     expect(await s.read(key: 'BEAM_BANS_PINS:$_wallet'), isNull);

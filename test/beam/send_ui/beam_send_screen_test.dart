@@ -51,8 +51,11 @@ class _UnreadablePins implements BansOwnerPins {
   Future<String?> pinned(BansName name) async => throw const BansPinsUnreadable();
 
   @override
-  Future<void> pin(BansName name, String ownerKey) async =>
-      throw const BansPinsUnreadable();
+  Future<bool> pin(
+    BansName name,
+    String ownerKey, {
+    required String? expected,
+  }) async => throw const BansPinsUnreadable();
 }
 
 Widget _page(
@@ -327,7 +330,7 @@ void main() {
         'owner', (tester) async {
       final b = ScriptedBackend();
       // This wallet paid `beam` before, when another key owned it.
-      await b.pins.pin(BansName('beam'), fakeMyKey);
+      await b.pins.pin(BansName('beam'), fakeMyKey, expected: null);
       await _open(tester, desktop: false, backend: b);
       await _type(tester, _to, 'beam');
       await settleLookup(tester);
@@ -358,7 +361,7 @@ void main() {
         'a different check code (audit D-1 review M-1)', (tester) async {
       expect(BansKey.fingerprint(_collider), BansKey.fingerprint(beamOwnerKey));
       final b = ScriptedBackend();
-      await b.pins.pin(BansName('beam'), _collider);
+      await b.pins.pin(BansName('beam'), _collider, expected: null);
       await _open(tester, desktop: false, backend: b);
       await _type(tester, _to, 'beam');
       await settleLookup(tester);

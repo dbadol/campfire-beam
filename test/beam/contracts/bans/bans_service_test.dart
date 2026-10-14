@@ -497,6 +497,16 @@ void main() {
         acceptedOwnerKey: beamOwnerKey,
       );
       expect(chosen.summary.ownerKey, beamOwnerKey);
+      // The key read at prepare travels with the payment: its owner is
+      // recorded only over that key (release audit 1.3.0).
+      expect(same.pinnedOwnerKey, beamOwnerKey);
+      expect(chosen.pinnedOwnerKey, fakeMyKey);
+      final first = await svc.preparePay(
+        BansName('beam'),
+        0,
+        BigInt.from(12345),
+      );
+      expect(first.pinnedOwnerKey, isNull);
     });
 
     test('pay: an amount other than the request is refused', () async {
