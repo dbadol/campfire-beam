@@ -45,7 +45,7 @@ export const STORAGE_TEXT = Object.freeze({
       : t("Safari deletes a site's data after 7 days without a visit to it, and this move's record is kept only here: BEAM Campfire needs it to finish the move. Open BEAM Campfire until the move says Done."),
   bridgeCta: tk('Start the move'),
   // Shown by screens/airdrop_codes.js after its own sentence (hence the leading space).
-  codesNote: { safariTab: tk(' Safari can delete them after 7 days without a visit.'), mayClear: tk(' This browser may clear them when space runs low.') },
+  codesNote: { safariTab: tk('Safari can delete them after 7 days without a visit.'), mayClear: tk('This browser may clear them when space runs low.') },
 });
 
 /** Home: the notice for a wallet in a Safari tab whose storage is not kept; null otherwise. rerender: after Later. */

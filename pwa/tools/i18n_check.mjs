@@ -18,13 +18,6 @@ export const EXEMPT = Object.freeze({
   'lib/update_sources.js': 'inlined into the loader; shown through lib/loader_words.js',
   'lib/node_address.js': 'inlined into the loader (its bytes are in loader_compat); shown through lib/loader_words.js',
   'lib/dapps/frame_policy.js': 'inlined into the loader (its bytes are in loader_compat); policy text and internal errors only',
-  // The airdrop v3 port is rewriting these on branch web-0214: wrapped once it has merged.
-  'lib/airdrop.js': 'airdrop v3 port in progress (web-0214): wrap after it merges',
-  'lib/airdrop_csv.js': 'airdrop v3 port in progress (web-0214): wrap after it merges',
-  'screens/airdrop.js': 'airdrop v3 port in progress (web-0214): wrap after it merges',
-  'screens/airdrop_create.js': 'airdrop v3 port in progress (web-0214): wrap after it merges',
-  'screens/airdrop_batches.js': 'airdrop v3 port in progress (web-0214): wrap after it merges',
-  'screens/airdrop_codes.js': 'airdrop v3 port in progress (web-0214): wrap after it merges',
 });
 
 export const guarded = (rel) => (rel === 'app.js' || rel.startsWith('lib/') || rel.startsWith('screens/')) && !EXEMPT[rel];
