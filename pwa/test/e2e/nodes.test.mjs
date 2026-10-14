@@ -2,7 +2,8 @@
 // Home. End to end on BEAM mainnet (the installed Google Chrome, headless). Spends nothing (a
 // throwaway wallet). Nothing in the app is changed for the test.
 //
-//   CAMPFIRE_IGNORE_NODE_CERTS=1 npm run e2e:nodes
+//   npm run e2e:nodes   (CAMPFIRE_IGNORE_NODE_CERTS=1 only while BEAM's node certificates are lapsed;
+//   tests 6 and 7 never ignore certificates)
 //
 // As the failover suite: Chrome maps every pool host name to 127.0.0.1 (--host-resolver-rules), where
 // one TLS relay (node_relay.mjs, self-signed, so Chrome runs with --ignore-certificate-errors) relays
@@ -18,8 +19,12 @@
 // 4. "Start on any node": the pick is forgotten; lock and unlock start on a random node and fail over
 //    past the dead one as before.
 // 5. Every pool node refusing: every row says "Not answering" (no endless spinner).
-// 6. Without the relay and without --ignore-certificate-errors (BEAM's real nodes, 2026-10-13: their
-//    certificates lapsed): the rows say "Not answering", as a person's browser sees them.
+// 6. Without the relay and without --ignore-certificate-errors: BEAM's real nodes as a person's browser
+//    sees them since their certificates were renewed (2026-10-14): every row shows its block (eu-node01
+//    sends an incomplete chain; the browser completes it), and the wallet is Synced.
+// 7. Without --ignore-certificate-errors, every pool name led to the relay's self-signed certificate (as
+//    on 2026-10-13, when BEAM's certificates lapsed; us-* nodes are self-signed): every row "Not
+//    answering", none spins, one notice with the way on; no TLS session got through.
 // Screenshots of every state at 390x844 and 1280x900, light and dark: CAMPFIRE_NODE_SHOTS.
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,10 +35,11 @@ import { join } from 'node:path';
 import { chromium } from 'playwright-core';
 import { CHROME, NODE_HOSTS, startServer, recordedPage, waitScreen, sleep, SHOTS } from './harness.mjs';
 import { createWallet, waitHome, waitSynced, unlockWithPassword, lock } from './flows.mjs';
-import { selfSignedCert, upstreamCa, startRelay } from './node_relay.mjs';
+import { selfSignedCert, upstreamCa, startRelay, startCanary } from './node_relay.mjs';
 
 const PORT = Number(process.env.CAMPFIRE_NODES_PORT || 8816);
 const RELAY_PORT = 8200; // the pool's port: the mapped names land here
+const CANARY_PORT = Number(process.env.CAMPFIRE_NODES_CANARY_PORT || 8217); // test 7: a self-signed listener that only counts
 const PASSWORD = `nodes-${randomBytes(6).toString('hex')}`;
 const OUT = process.env.CAMPFIRE_NODE_SHOTS || join(SHOTS, 'nodes');
 const MAP = NODE_HOSTS.map((n) => `MAP ${n.split(':')[0]} 127.0.0.1`).join(', ');
@@ -42,7 +48,7 @@ const tid = (id) => `[data-testid="${id}"]`;
 const host = (a) => a.split(':')[0];
 const name = (a) => a.split('.')[0];
 
-let tmp, srv, relay;
+let tmp, srv, relay, tlsCert;
 const modes = new Map(); // host -> 'forward' | 'refuse' | 'silent'
 let ctx = null;
 let page = null;
@@ -89,7 +95,7 @@ async function waitChecked(timeout = 30000) {
 
 before(async () => {
   tmp = mkdtempSync(join(tmpdir(), 'campfire-nodes-'));
-  const tlsCert = selfSignedCert(join(tmp, 'cert'));
+  tlsCert = selfSignedCert(join(tmp, 'cert'));
   const ca = await upstreamCa();
   relay = await startRelay({ port: RELAY_PORT, tlsCert, ca, behaviour: (n) => modes.get(n) || 'forward', upstream: (n) => ({ host: n, port: 8200 }) });
   srv = await startServer({ root: 'dist', port: PORT });
@@ -277,16 +283,23 @@ test('nodes: every pool node refusing: each row says "Not answering", none spins
   assert.deepEqual(violations, [], 'no CSP violations: every check stayed inside connect-src');
 });
 
-test("nodes: BEAM's real nodes as a browser sees them on 2026-10-13 (certificates lapsed): \"Not answering\", no spinner", { timeout: 10 * 60000 }, async () => {
-  // CAMPFIRE_IGNORE_NODE_CERTS is for the relay's upstream: this browser verifies certificates as a person's does.
-  const real = await chromium.launchPersistentContext(join(tmp, 'profile-real'), {
+/** A browser that verifies certificates as a person's does (no --ignore-certificate-errors), with its own profile. */
+function certCheckingBrowser(profile, args = []) {
+  return chromium.launchPersistentContext(join(tmp, profile), {
     executablePath: CHROME,
     headless: !process.env.HEADED,
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
     colorScheme: 'light',
-    args: ['--disable-features=AutofillServerCommunication'],
+    args: [...args, '--disable-features=AutofillServerCommunication'],
   });
+}
+
+test("nodes: BEAM's real nodes as a browser sees them since 2026-10-14 (certificates renewed): every row its block, Synced through a verified certificate", { timeout: 10 * 60000 }, async () => {
+  // CAMPFIRE_IGNORE_NODE_CERTS is for the relay's upstream: this browser verifies certificates as a person's does,
+  // and nothing is mapped: it reaches BEAM's real nodes. eu-node02/03/04 and eu-nodes send their full chain;
+  // eu-node01 sends only its own certificate, and the browser fetches the missing intermediate itself.
+  const real = await certCheckingBrowser('profile-real');
   try {
     for (const p of real.pages()) await p.close().catch(() => {});
     const r = await recordedPage(real, { label: 'real' });
@@ -297,17 +310,75 @@ test("nodes: BEAM's real nodes as a browser sees them on 2026-10-13 (certificate
       await waitScreen(page, 'welcome', 180000);
       await createWallet(page, { password: PASSWORD });
       await waitHome(page);
+      await waitSynced(page, 5 * 60000);
+      const inUse = await app(() => window.__campfire.node());
+      assert.ok(FULL.includes(inUse), `Synced on a full-chain node, its certificate verified by the browser: ${inUse}`);
       await openNodeScreenFromHome();
-      await page.waitForFunction(() => [...document.querySelectorAll('.node-row')].every((x) => /Not answering|Block|Connecting…/.test(x.textContent) && !/Checking…/.test(x.textContent)), null, { timeout: 30000 });
+      await waitChecked(30000);
+      const height = await app(() => window.__campfire.height());
       const rows = await allRows();
-      console.log(`# BEAM's real nodes from this browser: ${JSON.stringify(Object.fromEntries(rows.map(([n, x]) => [n, x.text])))}`);
-      await page.waitForSelector(tid('nodes-all-down'), { timeout: 30000 });
+      console.log(`# BEAM's real nodes from this browser: ${JSON.stringify(Object.fromEntries(rows.map(([n, x]) => [n, x.text])))}; wallet on ${name(inUse)} at ${height}`);
+      for (const [n, x] of rows) {
+        if (x.inUse) {
+          assert.equal(`${n}.mainnet.beam.mw:8200`, inUse);
+          assert.match(x.text, /^Block\s[\d,]+$/);
+          continue;
+        }
+        const m = x.text.match(/^Block\s([\d,]+) · (\d+(?:\.\d)?)\s(ms|s)$/);
+        assert.ok(m, `${n} answers this browser: ${x.text}`);
+        const h = Number(m[1].replace(/,/g, ''));
+        assert.ok(Math.abs(h - height) <= 3, `${n}: block ${h} vs the wallet's ${height}`);
+        assert.deepEqual([x.state, x.use], ['ok', true], n);
+      }
+      assert.equal(await page.$(tid('nodes-all-down')), null, 'no "none is answering" while they answer');
       await shots('nodes-08-real-nodes-today');
-      assert.ok(rows.every(([, x]) => !/Checking…/.test(x.text)), 'nothing left spinning');
+      const hosts = [...new Set(r.rec.websockets.map((u) => new URL(u).host))];
+      assert.ok(hosts.every((x) => NODE_HOSTS.includes(x)), `only pool nodes, ever: ${hosts}`);
+      assert.deepEqual(r.rec.errors, [], 'no page errors');
     } finally {
       page = keep;
     }
   } finally {
     await real.close().catch(() => {});
+  }
+});
+
+test('nodes: certificates a browser refuses (as on 2026-10-13 when they lapsed; us-* are self-signed): every row "Not answering", no spinner, the way on', { timeout: 10 * 60000 }, async () => {
+  // A browser that verifies certificates, every pool name led to a listener on 127.0.0.1 whose certificate is
+  // self-signed (it names the pool, so trust is the only thing wrong with it). It counts the connections that
+  // reach it and the TLS sessions that complete: none may, or the browser took a certificate it must refuse.
+  const canary = await startCanary(CANARY_PORT, tlsCert);
+  const toCanary = NODE_HOSTS.map((n) => `MAP ${host(n)} 127.0.0.1:${CANARY_PORT}`).join(', ');
+  const refusing = await certCheckingBrowser('profile-refused', [`--host-resolver-rules=${toCanary}`]);
+  try {
+    for (const p of refusing.pages()) await p.close().catch(() => {});
+    const r = await recordedPage(refusing, { label: 'refused' });
+    const keep = page;
+    page = r.page;
+    try {
+      await page.goto(srv.url);
+      await waitScreen(page, 'welcome', 180000);
+      await createWallet(page, { password: PASSWORD });
+      await waitHome(page);
+      await openNodeScreenFromHome();
+      await page.waitForFunction(() => [...document.querySelectorAll('.node-row')].every((x) => /Not answering|Block|Connecting…/.test(x.textContent) && !/Checking…/.test(x.textContent)), null, { timeout: 30000 });
+      await page.waitForSelector(tid('nodes-all-down'), { timeout: 30000 });
+      const rows = await allRows();
+      console.log(`# every certificate refused: ${JSON.stringify(Object.fromEntries(rows.map(([n, x]) => [n, x.text])))}; connections ${canary.tcp}, TLS sessions ${canary.total}`);
+      assert.match(await page.textContent(tid('nodes-all-down')), /None of BEAM's public nodes is answering this browser right now\./);
+      // Every row, the one the wallet keeps trying included.
+      for (const [n, x] of rows) assert.deepEqual([x.state, x.text, x.use], ['bad', 'Not answering', false], n);
+      assert.ok(rows.every(([, x]) => !/Checking…/.test(x.text)), 'nothing left spinning');
+      assert.ok(canary.tcp >= NODE_HOSTS.length, `the browser tried them (${canary.tcp} connections)`);
+      assert.equal(canary.total, 0, 'the browser refused every certificate: no TLS session completed');
+      assert.equal(await app(() => window.__campfire.sync().state === 'synced'), false, 'never Synced through a refused certificate');
+      await shots('nodes-09-certificates-refused');
+      assert.deepEqual(r.rec.errors, [], 'no page errors');
+    } finally {
+      page = keep;
+    }
+  } finally {
+    await refusing.close().catch(() => {});
+    await canary.stop().catch(() => {});
   }
 });

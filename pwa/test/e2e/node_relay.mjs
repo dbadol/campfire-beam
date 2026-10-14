@@ -35,14 +35,16 @@ function derToPem(der) {
 }
 
 /**
- * Roots for the relay's own upstream TLS: Node's store plus the issuers named in
- * eu-node01's certificate (Authority Information Access: Let's Encrypt YE1 and
- * Root YE, cross-signed by ISRG Root X2). eu-node01 sends only its own
- * certificate; browsers fetch the rest themselves, Node does not.
+ * Roots for the relay's own upstream TLS: Node's store plus the issuers
+ * eu-node01's certificate can name (Authority Information Access: one of Let's
+ * Encrypt's ECDSA intermediates YE1/YE2/YE3, picked at each renewal - YE1 until
+ * 2026-10-13, YE2 since the renewal of 2026-10-14 - and Root YE, cross-signed by
+ * ISRG Root X2). eu-node01 sends only its own certificate; browsers fetch the
+ * rest themselves, Node does not.
  */
 export async function upstreamCa() {
   const extra = [];
-  for (const u of ['http://ye1.i.lencr.org/', 'http://ye.i.lencr.org/']) {
+  for (const u of ['http://ye1.i.lencr.org/', 'http://ye2.i.lencr.org/', 'http://ye3.i.lencr.org/', 'http://ye.i.lencr.org/']) {
     try {
       const r = await fetch(u, { signal: AbortSignal.timeout(8000) });
       if (r.ok) extra.push(derToPem(new Uint8Array(await r.arrayBuffer())));
