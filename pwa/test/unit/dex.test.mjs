@@ -85,6 +85,43 @@ test('best quote: every live pool of the pair is asked; the most received wins, 
   assert.equal(q.receive, 800n);
 });
 
+test('best quote: a pool of the pair that cannot quote is skipped, not taken for the pair (BEAM/bUSDT dust pool)', async () => {
+  // Mainnet 2026-10-14: BEAM/bUSDT kind 1 holds 5 groth / 1 unit and its shader says "no liquidity";
+  // kind 2 is the real pool. Asked first, the dust pool must not make a 299.989 BEAM swap read "empty".
+  const pools = [pool(0, 37, 1, 5, 1, 1n), pool(0, 37, 2, 22492175770341n, 209188406307n, 400493169221n)];
+  const asked = [];
+  const predict = async (args) => {
+    asked.push(args);
+    if (/kind=1/.test(args)) {
+      const e = new Error('no liquidity');
+      e.code = 'shader';
+      throw e;
+    }
+    return prediction(2, 29701881182, 275877939); // the mainnet answer: pay_raw, buy
+  };
+  const q = await bestQuote(predict, { pools, payAsset: 0, receiveAsset: 37, payAmount: 29998900000n });
+  assert.equal(asked.length, 2, 'both pools asked');
+  assert.equal(q.kind, 2);
+  assert.equal(q.receive, 275877939n);
+  // Every pool refusing: still the named reason.
+  const none = async () => {
+    const e = new Error('no liquidity');
+    e.code = 'shader';
+    throw e;
+  };
+  await assert.rejects(bestQuote(none, { pools, payAsset: 0, receiveAsset: 37, payAmount: 1n }), (e) => e.code === 'poolEmpty');
+  // Anything else a pool says still stops the quote (it is not "this pool is thin").
+  const odd = async (args) => {
+    if (/kind=1/.test(args)) {
+      const e = new Error('weird');
+      e.code = 'shader';
+      throw e;
+    }
+    return prediction(2, 1000000, 9);
+  };
+  await assert.rejects(bestQuote(odd, { pools, payAsset: 0, receiveAsset: 37, payAmount: 1000000n }), (e) => e.code === 'shader');
+});
+
 test('best quote: no pool, an empty pool, a tiny amount and shader refusals have names', async () => {
   const live = [pool(0, 174, 2, 100, 100)];
   await assert.rejects(bestQuote(async () => ({}), { pools: live, payAsset: 0, receiveAsset: 36, payAmount: 1n }), (e) => e.code === 'noPool');
