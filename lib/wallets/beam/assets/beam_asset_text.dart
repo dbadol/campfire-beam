@@ -9,11 +9,11 @@
 
 import 'package:decimal/decimal.dart';
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../utilities/amount/amount_unit.dart';
-import '../../../utilities/util.dart';
 import '../../crypto_currency/crypto_currency.dart';
 import '../contracts/dex/dex_constants.dart';
 import 'beam_asset_catalog.dart';
@@ -27,6 +27,10 @@ abstract final class BeamAssetText {
   /// "1,234.50000000 FOMO". Assets use whole units with BEAM's decimals
   /// setting ([maxDecimals]); the user's BEAM unit (mBEAM…) never applies
   /// to another asset.
+  ///
+  /// Every amount here is written the app's way, whatever [locale] says:
+  /// "." decimals in every language, thousands grouped for the app's
+  /// language (lib/l10n/amount_text.dart). [locale] only shapes fiat.
   static String amount(
     Amount value,
     BeamAssetContract asset, {
@@ -35,7 +39,7 @@ abstract final class BeamAssetText {
     bool withUnit = true,
   }) => AmountUnit.normal.displayAmount(
     amount: value,
-    locale: locale,
+    locale: kAppAmountLocale,
     coin: _beam,
     maxDecimalPlaces: maxDecimals,
     withUnitName: withUnit,
@@ -51,7 +55,7 @@ abstract final class BeamAssetText {
     required String locale,
   }) {
     final text = amount(value, asset, locale: locale, withUnit: false);
-    final sep = Util.getSymbolsFor(locale: locale)?.DECIMAL_SEP ?? '.';
+    const sep = '.';
     var trimmed = text;
     if (trimmed.contains(sep)) {
       trimmed = trimmed.replaceFirst(RegExp(r'0+$'), '');
@@ -95,21 +99,9 @@ abstract final class BeamAssetText {
       _units(groth, 'BEAM', locale);
 
   /// [raw] smallest units (8 decimals) as "1,234.5 [unit]", trailing zeros
-  /// dropped, grouped for [locale].
-  static String _units(BigInt raw, String unit, String locale) {
-    final symbols = Util.getSymbolsFor(locale: locale);
-    final sep = symbols?.DECIMAL_SEP ?? '.';
-    final group = symbols?.GROUP_SEP ?? ',';
-    final one = BigInt.from(100000000);
-    final whole = (raw.abs() ~/ one).toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (m) => '${m[0]}$group',
-    );
-    var frac = (raw.abs() % one).toString().padLeft(8, '0');
-    frac = frac.replaceFirst(RegExp(r'0+$'), '');
-    final sign = raw.isNegative ? '-' : '';
-    return frac.isEmpty ? '$sign$whole $unit' : '$sign$whole$sep$frac $unit';
-  }
+  /// dropped, written the app's way ([formatAmountUnits]).
+  static String _units(BigInt raw, String unit, String locale) =>
+      '${formatAmountUnits(raw)} $unit';
 
   /// A list row's amount, rounded down to what a person reads: 2 decimals
   /// from 1,000, 4 from 1, all 8 below ("6,477,953.06 GIGA",
@@ -143,10 +135,7 @@ abstract final class BeamAssetText {
         : 4;
     final step = BigInt.from(10).pow(8 - places);
     final rounded = groth ~/ step * step;
-    if (rounded == BigInt.zero) {
-      final symbols = Util.getSymbolsFor(locale: locale);
-      return '< 0${symbols?.DECIMAL_SEP ?? '.'}0001 BEAM';
-    }
+    if (rounded == BigInt.zero) return '< 0.0001 BEAM';
     return '≈ ${beam(rounded, locale: locale)}';
   }
 

@@ -104,7 +104,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
   late final _amount = TextEditingController(
     text: widget.initialValue == null
         ? ''
-        : BeamUnits.format(widget.initialValue!).replaceAll(',', ''),
+        : BeamUnits.plain(widget.initialValue!),
   );
   late final _count = TextEditingController(
     text: '${widget.initialCount ?? 10}',

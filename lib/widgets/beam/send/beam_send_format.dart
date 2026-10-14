@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/amount_text.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 
@@ -19,23 +20,9 @@ abstract final class BeamSendFormat {
   static const int decimals = 8;
   static final BigInt _one = BigInt.from(100000000);
 
-  /// `123456789012` → `1,234.56789012`; trailing zeros dropped.
-  static String units(BigInt value) {
-    final negative = value.isNegative;
-    final abs = value.abs();
-    final whole = (abs ~/ _one).toString();
-    final frac = abs
-        .remainder(_one)
-        .toString()
-        .padLeft(decimals, '0')
-        .replaceFirst(RegExp(r'0+$'), '');
-    final grouped = StringBuffer();
-    for (var i = 0; i < whole.length; i++) {
-      if (i > 0 && (whole.length - i) % 3 == 0) grouped.write(',');
-      grouped.write(whole[i]);
-    }
-    return '${negative ? '-' : ''}$grouped${frac.isEmpty ? '' : '.$frac'}';
-  }
+  /// `123456789012` → `1,234.56789012` (`1 234.56789012` in Russian);
+  /// trailing zeros dropped, "." decimals in every language.
+  static String units(BigInt value) => formatAmountUnits(value);
 
   /// `1.5 BEAM`, `10 FOMO`, `3 XYZ #321` (unverified assets always carry
   /// their id, because anyone can mint an asset and call it anything).

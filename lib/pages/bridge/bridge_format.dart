@@ -12,6 +12,7 @@
 // every amount is formatted from its exact integer with its own decimals,
 // never through `double` (the money value next to it may be).
 
+import '../../l10n/amount_text.dart';
 import '../../l10n/l10n.dart';
 import '../../wallets/bridge/bridge_controller.dart';
 import '../../wallets/bridge/bridge_fees.dart';
@@ -160,12 +161,5 @@ abstract final class BridgeFormat {
     return l.bridgeAgoDate(months[local.month - 1], '${local.day}');
   }
 
-  static String _group(String digits) {
-    final b = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) b.write(',');
-      b.write(digits[i]);
-    }
-    return b.toString();
-  }
+  static String _group(String digits) => groupThousands(digits);
 }

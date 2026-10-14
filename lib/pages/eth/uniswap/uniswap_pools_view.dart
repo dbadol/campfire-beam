@@ -21,6 +21,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/amount_text.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/ethereum/uniswap/uniswap_discovery.dart';
@@ -131,15 +132,7 @@ class _UniswapPoolsViewState extends State<UniswapPoolsView> {
 
   static String _num(double v) {
     if (!v.isFinite) return '?';
-    if (v >= 1000) {
-      final digits = v.toStringAsFixed(0);
-      final b = StringBuffer();
-      for (var i = 0; i < digits.length; i++) {
-        if (i > 0 && (digits.length - i) % 3 == 0) b.write(',');
-        b.write(digits[i]);
-      }
-      return b.toString();
-    }
+    if (v >= 1000) return groupThousands(v.toStringAsFixed(0));
     if (v >= 1) return v.toStringAsFixed(4);
     return v.toStringAsPrecision(4);
   }

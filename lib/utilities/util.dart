@@ -18,6 +18,7 @@ import 'package:intl/number_symbols.dart';
 import 'package:intl/number_symbols_data.dart';
 
 import '../app_config.dart';
+import '../l10n/amount_text.dart';
 import '../wallets/wallet/impl/monero_wallet.dart';
 import '../wallets/wallet/intermediate/external_wallet.dart';
 import '../wallets/wallet/wallet.dart';
@@ -34,6 +35,10 @@ abstract class Util {
   static bool? isIpad;
 
   static NumberSymbols? getSymbolsFor({required String locale}) {
+    // Campfire for BEAM: amounts written the app's way in every language
+    // ("." decimals; lib/l10n/amount_text.dart). Not cached: it follows the
+    // app's language.
+    if (locale == kAppAmountLocale) return amountNumberSymbols();
     return _numberSymbolsCache.putIfAbsent(locale, () {
       final exactSymbols = numberFormatSymbols[locale];
       if (exactSymbols is NumberSymbols) {

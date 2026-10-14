@@ -49,6 +49,12 @@ AppLocalizations get appL10n => _current;
 @visibleForTesting
 void debugResetAppL10n() => _current = appL10nEnglish;
 
+/// Makes [l10n] the current language for code with no BuildContext, as
+/// [AppL10nBinding] does in the app. Tests reset it with
+/// [debugResetAppL10n] in tearDown.
+@visibleForTesting
+void debugSetAppL10n(AppLocalizations l10n) => _current = l10n;
+
 extension AppL10nContext on BuildContext {
   /// This context's messages; English where no localizations are in scope
   /// (a widget pumped in a bare MaterialApp).

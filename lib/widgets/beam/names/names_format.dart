@@ -9,6 +9,7 @@
 
 import 'package:intl/intl.dart';
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/bans/bans_constants.dart';
 
@@ -51,15 +52,8 @@ abstract final class NamesFormat {
   static String whole(BigInt units) =>
       _thousands((units + _groth ~/ BigInt.two) ~/ _groth);
 
-  static String _thousands(BigInt v) {
-    final s = v.toString();
-    final out = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) out.write(',');
-      out.write(s[i]);
-    }
-    return out.toString();
-  }
+  /// `1,162` (`1 162` in Russian: lib/l10n/amount_text.dart).
+  static String _thousands(BigInt v) => groupThousands(v.toString());
 
   /// Parses what a person typed as an amount ("1,000.5", "0.25") into
   /// groth-scale units. Null when it is not a positive amount with at most

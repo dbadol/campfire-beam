@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../pages/send_view/send_view.dart';
@@ -210,10 +211,7 @@ class BeamDashboardModel {
     final frac = (raw % BigInt.from(100000000)).toString().padLeft(8, '0');
     final keep = whole > BigInt.zero ? frac.substring(0, 4) : frac;
     final trimmed = keep.replaceFirst(RegExp(r'0+$'), '');
-    final w = whole.toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (_) => ',',
-    );
+    final w = groupThousands(whole.toString());
     if (trimmed.isEmpty) {
       return whole == BigInt.zero && raw > BigInt.zero ? '< 0.0001' : w;
     }

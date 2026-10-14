@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 
 /// Amounts on the BEAM screens. Every BEAM asset, BEAM itself included, is
@@ -16,23 +17,23 @@ abstract final class BeamUnits {
   static const decimals = 8;
   static final BigInt one = BigInt.from(100000000);
 
-  /// `123456789012` → `1,234.56789012`: thousands grouped, trailing zeros
-  /// dropped, never rounded (an amount that moves money is shown exactly).
-  static String format(BigInt units) {
-    final negative = units.isNegative;
-    final abs = units.abs();
-    final whole = (abs ~/ one).toString();
-    final frac = abs
+  /// `123456789012` → `1,234.56789012` (`1 234.56789012` in Russian):
+  /// thousands grouped, trailing zeros dropped, "." decimals in every
+  /// language, never rounded (an amount that moves money is shown exactly).
+  static String format(BigInt units) => formatAmountUnits(units);
+
+  /// [format] without grouping, for putting back into a text field:
+  /// `123456789012` → `1234.56789012`.
+  static String plain(BigInt units) {
+    final whole = (units.abs() ~/ one).toString();
+    final frac = units
+        .abs()
         .remainder(one)
         .toString()
         .padLeft(decimals, '0')
         .replaceFirst(RegExp(r'0+$'), '');
-    final grouped = StringBuffer();
-    for (var i = 0; i < whole.length; i++) {
-      if (i > 0 && (whole.length - i) % 3 == 0) grouped.write(',');
-      grouped.write(whole[i]);
-    }
-    return '${negative ? '-' : ''}$grouped${frac.isEmpty ? '' : '.$frac'}';
+    return '${units.isNegative ? '-' : ''}$whole'
+        '${frac.isEmpty ? '' : '.$frac'}';
   }
 
   /// [format] followed by [symbol].
