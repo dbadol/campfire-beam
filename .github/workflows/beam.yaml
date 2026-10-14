@@ -94,7 +94,7 @@ jobs:
       # The app's translations (lib/l10n/generated/, not committed): the
       # analyzer reads them before any test or build would generate them.
       - name: Generate translations
-        run: flutter gen-l10n
+        run: mkdir -p build && flutter gen-l10n  # it also writes build/l10n_untranslated.json
 
       - name: Analyze BEAM code
         run: flutter analyze lib/wallets/beam test/beam

@@ -78,7 +78,7 @@ jobs:
           ./prebuild.sh
           # The app's translations (lib/l10n/generated/, not committed): the
           # live test below compiles the app before any build would make them.
-          cd .. && flutter gen-l10n
+          cd .. && mkdir -p build && flutter gen-l10n
 
       - name: The core inside the app, live on mainnet (direct, two wallets, Tor)
         env:
@@ -146,7 +146,7 @@ jobs:
           ./prebuild.sh
           # The app's translations (lib/l10n/generated/, not committed): the
           # live test below compiles the app before any build would make them.
-          cd .. && flutter gen-l10n
+          cd .. && mkdir -p build && flutter gen-l10n
 
       # The runner user cannot create symbolic links, so link_assets.sh's links
       # are broken; copy the five asset folders instead (as upstream's build.yaml).
