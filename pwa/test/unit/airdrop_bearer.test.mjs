@@ -40,7 +40,7 @@ test('v3: a claim never shows the code, but a code still works like cash and can
 test('said where codes are made (before the button) and with a code that was found, in the words of its contract', () => {
   const create = src('screens/airdrop_create.js');
   // New codes are made on v3 only, so the create screen says v3's words.
-  assert.match(create, /notice\('warn', h\('strong', \{ text: `\$\{t\(BEARER_TEXT_V3\.createTitle\)\}\. ` \}\), t\(BEARER_TEXT_V3\.createMessage\)\)/);
+  assert.match(create, /notice\('warn', h\('strong', \{ text: asSentence\(t\(BEARER_TEXT_V3\.createTitle\)\) \}\), t\(BEARER_TEXT_V3\.createMessage\)\)/);
   assert.doesNotMatch(create, /BEARER_TEXT\./, 'not the old contract\'s words');
   assert.match(create, /bearer\.dataset\.testid = 'drop-bearer';/);
   assert.doesNotMatch(create, /Anyone with a code can claim it\./, 'not said twice');

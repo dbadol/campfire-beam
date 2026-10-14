@@ -371,7 +371,7 @@
     "other": "Это не ваша ошибка, и ничего не отправлено. Попробуйте снова через {n} минуты."
   },
   "Private": "Приватный",
-  "Change": "Изменить",
+  "Change coin": "Сдача",
   "Mined": "Из майнинга",
   "Split cancelled": "Разделение отменено",
   "Split into coins": "Разделено на монеты",
@@ -2150,6 +2150,7 @@
   "Both are signed with this one confirmation.": "Обе подписываются этим одним подтверждением.",
   "BEAM Campfire asks Ethereum again right before signing.": "BEAM Campfire ещё раз запрашивает Ethereum прямо перед подписью.",
   "Moving…": "Переносим…",
+  "Change": "Изменить",
   "for {n} transactions": {
     "one": "за {n} транзакцию",
     "few": "за {n} транзакции",

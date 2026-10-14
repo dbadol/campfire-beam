@@ -2216,15 +2216,9 @@
       "screens/buy_screens.js"
     ]
   },
-  "Change": {
+  "Change coin": {
     "where": [
-      "lib/coins.js",
-      "screens/bridge_review.js",
-      "screens/eth_review.js",
-      "screens/eth_swap_parts.js",
-      "screens/import_wallet.js",
-      "screens/review.js",
-      "screens/split_review.js"
+      "lib/coins.js"
     ]
   },
   "Mined": {
@@ -11379,6 +11373,16 @@
   "Moving…": {
     "where": [
       "screens/bridge_review.js"
+    ]
+  },
+  "Change": {
+    "where": [
+      "screens/bridge_review.js",
+      "screens/eth_review.js",
+      "screens/eth_swap_parts.js",
+      "screens/import_wallet.js",
+      "screens/review.js",
+      "screens/split_review.js"
     ]
   },
   "for {n} transactions": {

@@ -1,14 +1,14 @@
 // Tiny DOM helpers. Text always goes in through textContent: nothing on any
 // screen is built from HTML strings, so nothing from the chain or a pasted
 // address can turn into markup. (The CSP also forbids inline script/style.)
-import { t, dateLocale } from './i18n.js';
+import { t, dateLocale, typeset, joinsTight } from './i18n.js';
 
 export function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {
     if (v === undefined || v === null || v === false) continue;
     if (k === 'class') el.className = v;
-    else if (k === 'text') el.textContent = v;
+    else if (k === 'text') el.textContent = typeset(v);
     else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === 'dataset') Object.assign(el.dataset, v);
     else if (k === 'value') el.value = v;
@@ -24,7 +24,13 @@ export function h(tag, props = {}, ...children) {
 export function append(el, children) {
   for (const c of children.flat(Infinity)) {
     if (c === null || c === undefined || c === false) continue;
-    el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
+    if (c instanceof Node) {
+      el.appendChild(c);
+      continue;
+    }
+    let s = typeset(String(c));
+    if (el.lastChild && joinsTight(el.lastChild.textContent)) s = s.replace(/^[ \t]+/, '');
+    el.appendChild(document.createTextNode(s));
   }
   return el;
 }

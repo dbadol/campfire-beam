@@ -24,7 +24,7 @@ import { v3CreationFee, createFee, cancelFee, GAS_PER_VOUCHER, V3_MAX_VOUCHERS }
 import { airdrop, amountText, dropProblemText, forgetOnLock, BEARER_TEXT_V3 } from './airdrop.js';
 import { confirmKeptHere } from './storage_warning.js';
 import { syncReason } from '../lib/sync.js';
-import { t, tn } from '../lib/i18n.js';
+import { t, tn, asSentence } from '../lib/i18n.js';
 
 // The engine writes a call's funds as signed 64-bit numbers.
 const I64_MAX = (1n << 63n) - 1n;
@@ -157,7 +157,7 @@ export default function airdropCreate(app, p = {}) {
       el.dataset.code = result.code || '';
       n.push(el);
     }
-    const bearer = notice('warn', h('strong', { text: `${t(BEARER_TEXT_V3.createTitle)}. ` }), t(BEARER_TEXT_V3.createMessage));
+    const bearer = notice('warn', h('strong', { text: asSentence(t(BEARER_TEXT_V3.createTitle)) }), t(BEARER_TEXT_V3.createMessage));
     bearer.dataset.testid = 'drop-bearer';
     n.push(
       bearer,

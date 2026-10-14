@@ -366,3 +366,28 @@ test('translations reach the page as text only: no HTML string anywhere in the a
   files.push('app.js', 'lang-boot.js', 'loader-watch.js');
   for (const f of files) assert.doesNotMatch(read(f), /\.innerHTML\b|\.outerHTML\s*=|insertAdjacentHTML|document\.write\(|createContextualFragment|DOMParser/, f);
 });
+
+test('Chinese and Japanese: no space after their punctuation, across text nodes too; a heading becomes a sentence the language\'s way', async () => {
+  const { typeset, asSentence, joinsTight } = await import('../../src/lib/i18n.js');
+  const fetchImpl = serve({ 'zh-Hans': { Reload: '重新加载' }, ja: { Reload: '再読み込み' }, ru: { Reload: 'Перезагрузить' } });
+  try {
+    await activateLanguage('en', { storage: memoryStorage(), doc: fakeDoc(), notify: false, fetchImpl });
+    assert.equal(typeset('Done. Next one.'), 'Done. Next one.');
+    assert.equal(asSentence('Codes work like cash'), 'Codes work like cash. ');
+    assert.equal(joinsTight('Done.'), false);
+    await activateLanguage('ru', { storage: memoryStorage(), doc: fakeDoc(), notify: false, fetchImpl });
+    assert.equal(typeset('Готово. Дальше.'), 'Готово. Дальше.', 'Russian keeps its spaces');
+    for (const l of ['zh-Hans', 'ja']) {
+      await activateLanguage(l, { storage: memoryStorage(), doc: fakeDoc(), notify: false, fetchImpl });
+      assert.equal(typeset('已发送。 下一步：  继续'), '已发送。下一步：继续', l);
+      assert.equal(typeset('BEAM 0.5 BEAM'), 'BEAM 0.5 BEAM', `${l}: spaces elsewhere stay`);
+      assert.equal(asSentence('领取码就像现金'), '领取码就像现金。', l);
+      assert.equal(asSentence('Reconnecting…'), 'Reconnecting。', `${l}: the old ending is replaced, not doubled`);
+      assert.equal(joinsTight('标题。'), true);
+      assert.equal(joinsTight('BEAM'), false);
+      assert.equal(typeset(42), 42, 'not a string: as it is');
+    }
+  } finally {
+    await activateLanguage('en', { storage: memoryStorage(), doc: fakeDoc(), notify: false, fetchImpl });
+  }
+});

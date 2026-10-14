@@ -76,7 +76,7 @@ export function parseCoin(j) {
 /** What kind of coin it is, in a word, or '' for an ordinary one. */
 export function coinKind(c) {
   if (c.shielded) return t('Private');
-  if (c.type === 'chng') return t('Change');
+  if (c.type === 'chng') return t('Change coin'); // not the Edit button's "Change": two words in other languages
   if (c.type === 'mine' || c.type === 'fees' || c.type === 'Tres') return t('Mined');
   return '';
 }

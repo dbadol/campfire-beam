@@ -39,7 +39,7 @@ test('a get_utxo entry: amounts, statuses by name, heights, private coins', () =
   assert.equal(big.exact, false);
   assert.equal(coinSummary([big]).get(9).availableTotal, 0n);
   assert.equal(coinKind(s), 'Private');
-  assert.equal(coinKind(parseCoin({ type: 'chng' })), 'Change');
+  assert.equal(coinKind(parseCoin({ type: 'chng' })), 'Change coin');
   assert.equal(coinKind(parseCoin({ type: 'mine' })), 'Mined');
   assert.equal(coinKind(parseCoin({ type: 'norm' })), '');
 });

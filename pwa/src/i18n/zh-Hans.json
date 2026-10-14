@@ -350,7 +350,7 @@
     "other": "这不是你的操作造成的，也未发送任何内容。请在 {n} 分钟后重试。"
   },
   "Private": "隐私",
-  "Change": "修改",
+  "Change coin": "找零",
   "Mined": "挖矿所得",
   "Split cancelled": "拆分已取消",
   "Split into coins": "拆分成多枚币",
@@ -1928,6 +1928,7 @@
   "Both are signed with this one confirmation.": "两笔都通过这一次确认签名。",
   "BEAM Campfire asks Ethereum again right before signing.": "BEAM Campfire 会在签名前一刻再次向 Ethereum 核实。",
   "Moving…": "正在转移…",
+  "Change": "修改",
   "for {n} transactions": {
     "other": "共 {n} 笔交易"
   },

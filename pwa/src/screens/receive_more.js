@@ -17,7 +17,7 @@ import { primary, secondary, textButton, notice, openSheet, copyText } from '../
 import { wallet } from '../lib/wallet.js';
 import { PRIVATE_TYPES, MORE_WAYS as T, typeTitle, typeExplainer, privateReceiveGate, blockedReason, receiveErrorText, makePrivateAddress } from '../lib/receive_types.js';
 import { qrElement } from './receive.js';
-import { t } from '../lib/i18n.js';
+import { t, asSentence } from '../lib/i18n.js';
 
 export function moreWays(app) {
   let open = false;
@@ -51,7 +51,7 @@ export function moreWays(app) {
             { 'data-testid': 'more-ways-blocked', 'data-block': gate.block },
             notice(
               'warn',
-              h('strong', { text: `${t(T.blockedTitle)}. ` }),
+              h('strong', { text: asSentence(t(T.blockedTitle)) }),
               why.reason,
               why.actions.length ? h('div', { class: 'btn-row prompt-actions' }, ...why.actions.map((a, i) => h('button', { class: `btn ${i === 0 ? 'btn-primary' : 'btn-text'} btn-small`, type: 'button', 'data-testid': `more-ways-${a}`, onclick: () => go(a) }, t(actionLabel[a])))) : null,
             ),

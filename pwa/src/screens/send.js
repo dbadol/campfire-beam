@@ -28,7 +28,7 @@ import { bans, day } from './names.js';
 import { hiddenIds } from '../lib/hidden_tokens.js';
 import { recipientButtons, contactLine, noteField, scannedAmount, otherWalletHint } from './send_extras.js';
 import { listWallets } from '../lib/wallets.js';
-import { t } from '../lib/i18n.js';
+import { t, asSentence } from '../lib/i18n.js';
 
 /** How a payment to a name goes out: through BEAM's name vault, a contract call. */
 const NAME_MODE = {
@@ -221,7 +221,7 @@ export default function send(app) {
     amount.classList.toggle('bad', Boolean(amtErr));
 
     const sync = wallet.state.sync;
-    put(syncMsg, sync.canSend ? null : notice('warn', `${sync.title}. ${sync.detail}`));
+    put(syncMsg, sync.canSend ? null : notice('warn', `${asSentence(sync.title)}${sync.detail}`));
     contactInfo.update(addr.value.trim(), { ok: check.state === 'ok' && !check.name, name: Boolean(check.name) });
     note.setToName(Boolean(check.state === 'ok' && check.name) || classifyRecipient(addr.value).kind === 'name');
     const ok = check.state === 'ok' && amt != null && !amtErr && sync.canSend;

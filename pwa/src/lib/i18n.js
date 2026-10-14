@@ -169,6 +169,30 @@ function rulesFor(lang) {
 /** The language the app shows now: 'en', 'ru', 'zh-Hans' or 'ja'. */
 export const lang = () => active;
 
+// Chinese and Japanese write no space after their own full stop, comma and the like. Sentences are often
+// joined with a space in code (`${t(a)} ${t(b)}`, a bold heading then its text): without this they read
+// "…。 …" (found by the zh and ja translators, 2026-10-14).
+const CJK = new Set(['zh-Hans', 'ja']);
+const CJK_MARK = '。．，、：；！？）」』';
+const CJK_SPACE_AFTER = new RegExp(`([${CJK_MARK}])[ \\t]+`, 'g');
+const CJK_ENDS = new RegExp(`[${CJK_MARK}]$`);
+
+/** A text as the active language sets it: in Chinese and Japanese, no space after their punctuation. */
+export function typeset(s) {
+  return CJK.has(active) && typeof s === 'string' ? s.replace(CJK_SPACE_AFTER, '$1') : s;
+}
+
+/** Whether a text that follows `before` should lose its leading spaces (Chinese and Japanese only). */
+export function joinsTight(before) {
+  return CJK.has(active) && typeof before === 'string' && CJK_ENDS.test(before);
+}
+
+/** A heading made the first sentence of a notice: its full stop and the space after it, as the language writes them. */
+export function asSentence(title) {
+  const s = String(title).replace(/[.。…]+$/, '');
+  return CJK.has(active) ? `${s}。` : `${s}. `;
+}
+
 /**
  * The locale for dates and times on screen: the English one a screen used before (undefined: the
  * device's), or the app's language when it is not English. Never for amounts: numbers are always

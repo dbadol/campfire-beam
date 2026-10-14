@@ -350,7 +350,7 @@
     "other": "ご自身の操作が原因ではありません。何も送信されていません。{n}分後にもう一度お試しください。"
   },
   "Private": "プライベート",
-  "Change": "変更",
+  "Change coin": "おつり",
   "Mined": "マイニング報酬",
   "Split cancelled": "分割キャンセル済み",
   "Split into coins": "コインに分割済み",
@@ -1928,6 +1928,7 @@
   "Both are signed with this one confirmation.": "この一回の確定で、両方に署名します。",
   "BEAM Campfire asks Ethereum again right before signing.": "BEAM Campfireは署名の直前に、Ethereumに改めて確認します。",
   "Moving…": "移動しています…",
+  "Change": "変更",
   "for {n} transactions": {
     "other": "{n}件のトランザクション分"
   },
