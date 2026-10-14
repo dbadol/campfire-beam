@@ -222,8 +222,9 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
     required String copied,
     required String copiedClears,
   }) async {
-    // A code is a bearer claim on locked funds (issue #76): on desktop it
-    // leaves the clipboard a minute later if it is still there.
+    // A code is a bearer claim on locked funds (issue #76): it leaves the
+    // clipboard a minute later on every platform (on desktop only if it is
+    // still there), and at once when the app locks (SecretClipboard).
     final clears = await SecretClipboard.copy(
       text,
       clipboard: widget.clipboard,
