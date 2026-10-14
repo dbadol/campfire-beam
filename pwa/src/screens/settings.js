@@ -62,14 +62,18 @@ export default function settings(app) {
   // named in its own script so a person who cannot read the current one still finds theirs. It changes
   // at once: lib/i18n.js reads that catalog and app.js draws this screen again. The 12 words stay
   // English whatever is chosen (BEAM's word list is English only).
+  // The closed select shows only the start of its choice on a phone, so "Like this device" stays
+  // short (as Theme's) and the row's second line names the device's language while it is followed.
   const device = deviceLanguage(navigatorLanguages());
+  const langChoice = readLanguageChoice();
   const langSel = h(
     'select',
     { class: 'inline', 'aria-label': t('Language'), 'data-testid': 'lang-select' },
-    h('option', { value: 'system', text: t('Like this device ({language})', { language: LANGUAGE_NAMES[device] }) }),
+    h('option', { value: 'system', text: t('Like this device') }),
     ...LANGUAGES.map((l) => h('option', { value: l, lang: l, text: LANGUAGE_NAMES[l] })),
   );
-  langSel.value = readLanguageChoice();
+  langSel.value = langChoice;
+  const langSub = langChoice === 'system' ? h('div', { class: 's', lang: device, 'data-testid': 'lang-device', text: LANGUAGE_NAMES[device] }) : null;
   langSel.addEventListener('change', () => {
     langSel.disabled = true;
     setLanguage(langSel.value).finally(() => {
@@ -158,7 +162,7 @@ export default function settings(app) {
       { class: 'card list' },
       h('div', { class: 'row', 'data-testid': 'theme-row' }, h('span', { class: 'ico' }, icon('moon')), h('span', { class: 'main' }, h('div', { class: 't', text: t('Theme') }), h('div', { class: 's', text: t('Light or dark') })), themeSel),
       h('div', { class: 'row', 'data-testid': 'skin-row' }, h('span', { class: 'ico' }, icon('palette')), h('span', { class: 'main' }, h('div', { class: 't', text: t('Colours') }), h('div', { class: 's', text: t('Campfire or BEAM') })), skinSel),
-      h('div', { class: 'row', 'data-testid': 'lang-row' }, h('span', { class: 'ico' }, icon('language')), h('span', { class: 'main' }, h('div', { class: 't', text: t('Language') }), h('div', { class: 's', text: t('The words on every screen') })), langSel),
+      h('div', { class: 'row', 'data-testid': 'lang-row' }, h('span', { class: 'ico' }, icon('language')), h('span', { class: 'main' }, h('div', { class: 't', text: t('Language') }), langSub), langSel),
     ),
     h('p', { class: 'section-title', text: t('App') }),
     h(

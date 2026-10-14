@@ -3,7 +3,7 @@
 //
 // 1. Chrome set to Russian, the release as it ships (no catalog translated yet): never asked, <html
 //    lang="ru"> from the first paint, English words, only ru.json read, Settings shows "Like this
-//    device (Русский)" chosen; another language at once on the same screen; kept after a reload; like
+//    device" chosen with Русский under it; another language at once on the same screen; kept after a reload; like
 //    this device again.
 // 2. The same app built with a pseudo-Russian catalog (every text "⟦English⟧"): screen after screen,
 //    every word on show must come from the catalog. What does not is listed (an English text that does
@@ -46,9 +46,10 @@ test('Chrome in Russian, nothing translated yet: never asked, lang="ru", English
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ru-RU', colorScheme: 'light' });
   const { page, rec } = await recordedPage(ctx, { label: 'i18n-ru' });
   const catalogs = [];
+  // What the app reads (the first install downloads every file of the release, catalogs included).
   ctx.on('request', (r) => {
     const m = /\/i18n\/([A-Za-z-]+)\.json$/.exec(r.url());
-    if (m) catalogs.push(m[1]);
+    if (m && !r.serviceWorker()) catalogs.push(m[1]);
   });
   await page.goto(srv.url);
   await waitScreen(page, 'welcome', 120000);
@@ -80,17 +81,28 @@ test('Chrome in Russian, nothing translated yet: never asked, lang="ru", English
   });
   assert.deepEqual(card, { title: 'Appearance', rowTitle: 'Language', sameCard: true });
   assert.equal(await page.inputValue(tid('lang-select')), 'system', 'like this device: nothing was asked or saved');
-  assert.deepEqual(await page.$$eval(`${tid('lang-select')} option`, (o) => o.map((x) => x.textContent)), ['Like this device (Русский)', 'English', 'Русский', '简体中文', '日本語']);
+  assert.deepEqual(await page.$$eval(`${tid('lang-select')} option`, (o) => o.map((x) => x.textContent)), ['Like this device', 'English', 'Русский', '简体中文', '日本語']);
+  assert.equal(await page.textContent(tid('lang-device')), 'Русский', "the device's language, named under the row");
+  assert.equal(await page.getAttribute(tid('lang-device'), 'lang'), 'ru');
   assert.equal(await page.evaluate(() => localStorage.getItem('campfire-lang')), null);
   await shot(page, 'i18n-02-settings-language-ru-device');
   await page.emulateMedia({ colorScheme: 'dark' });
   await shot(page, 'i18n-03-settings-language-ru-device-dark');
+  // A computer's window too, light and dark.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator(tid('lang-row')).scrollIntoViewIfNeeded();
+  await shot(page, 'i18n-03b-settings-language-desktop-dark');
   await page.emulateMedia({ colorScheme: 'light' });
+  await shot(page, 'i18n-03c-settings-language-desktop-light');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator(tid('lang-row')).scrollIntoViewIfNeeded();
 
   // Japanese: at once, the same screen drawn again where it was, the choice kept.
-  const before = await page.evaluate(() => {
+  const rowTop = () => page.evaluate(() => document.querySelector('[data-testid="lang-select"]').getBoundingClientRect().top);
+  await page.focus(tid('lang-select'));
+  const before = await rowTop();
+  await page.evaluate(() => {
     document.querySelector('[data-testid="lang-row"]').dataset.old = '1';
-    return window.scrollY;
   });
   await page.selectOption(tid('lang-select'), 'ja');
   await page.waitForFunction(() => document.documentElement.lang === 'ja');
@@ -98,8 +110,11 @@ test('Chrome in Russian, nothing translated yet: never asked, lang="ru", English
   assert.equal(await page.evaluate(() => window.__campfire.screen()), 'settings');
   assert.equal(await page.evaluate(() => localStorage.getItem('campfire-lang')), 'ja');
   assert.equal(await page.inputValue(tid('lang-select')), 'ja');
-  assert.ok(Math.abs((await page.evaluate(() => window.scrollY)) - before) < 4, 'where it was');
+  await page.waitForTimeout(700);
+  assert.ok(Math.abs((await rowTop()) - before) < 4, `the select stays where it was on screen (${before} -> ${await rowTop()})`);
+  assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.dataset.testid), 'lang-select', 'and keeps the focus');
   assert.equal(await page.textContent(`${tid('lang-row')} .t`), 'Language', 'nothing translated yet: English');
+  assert.equal(await page.$(tid('lang-device')), null, 'a language chosen: no device line');
   assert.ok(catalogs.includes('ja'), 'the Japanese catalog was read once chosen');
   await shot(page, 'i18n-04-settings-japanese-chosen');
 

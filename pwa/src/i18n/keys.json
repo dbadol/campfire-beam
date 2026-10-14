@@ -6742,7 +6742,8 @@
   },
   "Like this device": {
     "where": [
-      "lib/theme.js"
+      "lib/theme.js",
+      "screens/settings.js"
     ]
   },
   "Light": {
@@ -21624,14 +21625,6 @@
       "screens/settings.js"
     ]
   },
-  "Like this device ({language})": {
-    "where": [
-      "screens/settings.js"
-    ],
-    "placeholders": [
-      "language"
-    ]
-  },
   "On. Tap to turn off.": {
     "where": [
       "screens/settings.js"
@@ -21785,11 +21778,6 @@
     ]
   },
   "Red or blue": {
-    "where": [
-      "screens/settings.js"
-    ]
-  },
-  "The words on every screen": {
     "where": [
       "screens/settings.js"
     ]

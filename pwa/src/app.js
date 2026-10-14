@@ -401,10 +401,16 @@ onLanguageChange(() => {
   const y = window.scrollY;
   const active = document.activeElement;
   const testid = active && active.dataset ? active.dataset.testid : null;
+  const top = testid ? active.getBoundingClientRect().top : null;
   app.go(app.currentName, app.params, { replace: true });
   window.scrollTo(0, y);
   const again = testid ? root.querySelector(`[data-testid="${CSS.escape(testid)}"]`) : null;
-  if (again && typeof again.focus === 'function') again.focus();
+  if (!again) return;
+  if (typeof again.focus === 'function') again.focus({ preventScroll: true });
+  // The control stays where it was on screen, also once the rows above it that fill in a moment later have.
+  const keep = () => again.isConnected && window.scrollBy(0, again.getBoundingClientRect().top - top);
+  keep();
+  for (const ms of [60, 200, 500]) setTimeout(keep, ms);
 });
 
 boot().catch((e) => {
