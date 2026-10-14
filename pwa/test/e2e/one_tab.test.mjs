@@ -246,14 +246,16 @@ test('4. a holder that does not answer: "Take over anyway"; once it runs again i
   await cdp2.send('Debugger.enable');
   await cdp2.send('Debugger.pause');
   try {
+    // The wait (lib/one_tab.js NO_ANSWER_MS, 10 s) starts with the tap: measured from just before it, so a
+    // slow screenshot in between (a loaded machine) cannot eat into it.
+    const t0 = Date.now();
     await p1.click(tid('one-tab-use-here'));
     await p1.waitForSelector(tid('one-tab-status'));
     assert.match(await p1.textContent(tid('one-tab-status')), /Waiting for the other tab to lock your wallet and save it/);
     await shot(p1, 'onetab-03-waiting-light');
-    const t0 = Date.now();
     await p1.waitForSelector(tid('one-tab-steal'), { timeout: 30000 });
     const waited = Date.now() - t0;
-    assert.ok(waited >= 8000, `"Take over anyway" came after the wait (${waited} ms)`);
+    assert.ok(waited >= 9500, `"Take over anyway" came after the wait (${waited} ms after the tap)`);
     assert.match(await p1.textContent(tid('one-tab-note')), /The other tab isn't answering\. It may be asleep in the background\./);
     assert.equal(await p1.textContent(tid('one-tab-steal')), 'Take over anyway');
     await both(p1, 'onetab-04-not-answering');
