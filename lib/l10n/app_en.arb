@@ -13847,17 +13847,17 @@
   "@settingsCoinUnitsSheetTitle": {
     "description": "Edit units screen (App settings → Advanced → Units → one coin): title of the bottom sheet that lists the units an amount of this coin can be shown in (e.g. BEAM, mBEAM)."
   },
-  "settingsColoursBeamDark": "BEAM dark",
-  "@settingsColoursBeamDark": {
-    "description": "Settings → Colours: the name of the choice that always shows BEAM's colours in a dark theme. Keep 'BEAM' as written; translate 'dark'. (glossary: theme)"
-  },
   "settingsColoursBeamDarkDetail": "Always dark",
   "@settingsColoursBeamDarkDetail": {
-    "description": "Settings → Colours: the line under the choice 'BEAM dark'. (glossary: theme)"
+    "description": "Settings → Colours: the line under the choice 'BEAM' (BEAM's colours in a dark theme, the BEAM choice listed first). (glossary: theme)"
   },
-  "settingsColoursBeamDeviceDetail": "Light or dark, like this device",
+  "settingsColoursBeamDevice": "BEAM light or dark",
+  "@settingsColoursBeamDevice": {
+    "description": "Settings → Colours: the name of the choice that shows BEAM's colours light or dark as the phone or computer is set. Keep 'BEAM' as written; translate 'light or dark'. (glossary: theme)"
+  },
+  "settingsColoursBeamDeviceDetail": "Like this device",
   "@settingsColoursBeamDeviceDetail": {
-    "description": "Settings → Colours: the line under the choice 'BEAM': BEAM's colours, light or dark as the phone or computer is set. (glossary: theme, like this device)"
+    "description": "Settings → Colours: the line under the choice 'BEAM light or dark': light or dark as the phone or computer is set. (glossary: theme, like this device)"
   },
   "settingsColoursBeamLight": "BEAM light",
   "@settingsColoursBeamLight": {

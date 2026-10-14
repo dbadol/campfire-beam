@@ -47,20 +47,22 @@ typedef BeamThemePrefs = ({
   String darkId,
 });
 
-/// Settings -> Colours.
+/// Settings -> Colours, in the order shown. BEAM is dark by default (owner,
+/// 2026-10-14): the choice named just "BEAM" is the dark one, first after
+/// Campfire.
 enum BeamColours {
   campfire,
-  beamDevice,
+  beamDark,
   beamLight,
-  beamDark;
+  beamDevice;
 
   /// The choice's name. "Campfire" and "BEAM" are brand names, never
   /// translated.
   String get label => switch (this) {
     campfire => 'Campfire',
-    beamDevice => 'BEAM',
+    beamDark => 'BEAM',
     beamLight => appL10n.settingsColoursBeamLight,
-    beamDark => appL10n.settingsColoursBeamDark,
+    beamDevice => appL10n.settingsColoursBeamDevice,
   };
 
   /// The line under the choice's name.
