@@ -279,11 +279,12 @@ void main() {
       expect(_field(tester, _to), _address);
       expect(_field(tester, _amount), '2');
 
-      // With Send already showing, a second scan fills it again.
+      // With Send already showing, a second scan fills it again: a new
+      // payment, so the first code's amount does not ride along.
       reader.next = 'alice.beam';
       await _scan(tester, const Key('beamDesktopScanButton'));
       expect(_field(tester, _to), 'alice.beam');
-      expect(_field(tester, _amount), '2', reason: 'no amount: kept');
+      expect(_field(tester, _amount), '', reason: 'no amount in this code');
       await finish(tester);
     });
 

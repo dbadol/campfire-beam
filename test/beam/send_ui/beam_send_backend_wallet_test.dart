@@ -194,7 +194,7 @@ void main() {
     final m = BeamSendModel(backendFor(w), nameDebounce: Duration.zero);
     addTearDown(m.dispose);
     m.setRecipient(vectorAddress('regular'));
-    m.setAmountText('0.01', 'en_US');
+    m.setAmountText('0.01');
     m.comment = 'for lunch';
     expect(m.canReview, isTrue);
 
@@ -225,7 +225,7 @@ void main() {
     final m = BeamSendModel(backendFor(w), nameDebounce: Duration.zero);
     addTearDown(m.dispose);
     m.setRecipient(vectorAddress('regular'));
-    m.setAmountText('0.01', 'en_US');
+    m.setAmountText('0.01');
     final first = m.prepare(w.cryptoCurrency);
     await expectLater(
       m.prepare(w.cryptoCurrency),
@@ -249,7 +249,7 @@ void main() {
     addTearDown(m.dispose);
     m.setRecipient('beam');
     await resolved(m);
-    m.setAmountText('0.00012345', 'en_US');
+    m.setAmountText('0.00012345');
     expect(m.canReview, isTrue);
 
     final review = await m.prepare(w.cryptoCurrency);
@@ -275,7 +275,7 @@ void main() {
     addTearDown(m.dispose);
     m.setRecipient('beam');
     await resolved(m);
-    m.setAmountText('0.00012345', 'en_US');
+    m.setAmountText('0.00012345');
     final review = await m.prepare(w.cryptoCurrency);
 
     core.names['beam'] = 'view_name_listed';
@@ -294,7 +294,7 @@ void main() {
     addTearDown(m.dispose);
     m.setRecipient('beam');
     await resolved(m);
-    m.setAmountText('0.00012345', 'en_US');
+    m.setAmountText('0.00012345');
     core.names['beam'] = 'view_name_listed';
     await expectLater(
       m.prepare(w.cryptoCurrency),
@@ -320,7 +320,7 @@ void main() {
     final m = BeamSendModel(b, nameDebounce: Duration.zero);
     addTearDown(m.dispose);
     m.setRecipient(vectorAddress('regular'));
-    m.setAmountText('0.01', 'en_US');
+    m.setAmountText('0.01');
     final review = await m.prepare(w.cryptoCurrency);
 
     explorer.height = kTip + 100;
@@ -383,7 +383,7 @@ void main() {
     addTearDown(m1.dispose);
     m1.setRecipient('beam');
     await resolved(m1);
-    m1.setAmountText('0.00012345', 'en_US');
+    m1.setAmountText('0.00012345');
     final r1 = await m1.prepare(w.cryptoCurrency);
     core.names['beam'] = 'view_name_listed';
     await expectLater(r1.send(), throwsA(isA<BansOwnerChanged>()));
@@ -395,7 +395,7 @@ void main() {
     addTearDown(m2.dispose);
     m2.setRecipient('beam');
     await resolved(m2);
-    m2.setAmountText('0.00012345', 'en_US');
+    m2.setAmountText('0.00012345');
     final r2 = await m2.prepare(w.cryptoCurrency);
     expect(await r2.send(), 'ee' * 16);
     expect(await pins.pinned(BansName('beam')), beamOwnerKey);
@@ -424,7 +424,7 @@ void main() {
     addTearDown(m.dispose);
     m.setRecipient('beam');
     await resolved(m);
-    m.setAmountText('0.00012345', 'en_US');
+    m.setAmountText('0.00012345');
     final r = await m.prepare(w.cryptoCurrency);
     host.lastTransport!.reply('process_invoke_data', (Map<String, Object?> _) => throw TimeoutException('x'));
     await expectLater(r.send(), throwsA(anything));

@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/bans/bans_constants.dart';
+import '../airdrop/beam_units.dart';
 
 /// Number and date wording for the Names screens. Every BEAM asset uses the
 /// groth scale (10^8), so one formatter serves BEAM and tokens alike.
@@ -57,16 +58,11 @@ abstract final class NamesFormat {
 
   /// Parses what a person typed as an amount ("1,000.5", "0.25") into
   /// groth-scale units. Null when it is not a positive amount with at most
-  /// eight decimals.
-  static BigInt? parse(String text) {
-    final t = text.trim().replaceAll(',', '');
-    final m = RegExp(r'^(\d*)(?:\.(\d{0,8}))?$').firstMatch(t);
-    if (m == null || t.isEmpty || t == '.') return null;
-    final w = m.group(1)!.isEmpty ? '0' : m.group(1)!;
-    final f = (m.group(2) ?? '').padRight(8, '0');
-    final v = BigInt.parse(w) * _groth + BigInt.parse(f);
-    return v > BigInt.zero ? v : null;
-  }
+  /// eight decimals. The Airdrop and Minter fields' rules ([BeamUnits.parse]):
+  /// commas only as thousands groups before a "." ("1,000.5"), a lone one
+  /// as the decimal point ("0,5" is 0.5, never 5), and "1,000" refused (a
+  /// thousand or one?). Stripping every comma read a Russian "0,5" as 5.
+  static BigInt? parse(String text) => BeamUnits.parse(text);
 
   /// `$10`, `$1,200`.
   static String usd(int dollars) => '\$${_thousands(BigInt.from(dollars))}';

@@ -65,7 +65,6 @@ Widget _page(
   coin: Beam(CryptoCurrencyNetwork.main),
   walletId: 'beam-test-wallet',
   walletName: 'My BEAM',
-  locale: 'en_US',
   clipboard: FakeClipboard(),
   minimumBuildTime: Duration.zero,
   routeOnSuccessName: '/',

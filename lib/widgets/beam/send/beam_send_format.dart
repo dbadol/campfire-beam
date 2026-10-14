@@ -41,25 +41,31 @@ abstract final class BeamSendFormat {
   }
 
   /// What the user typed, in units; null when it is not a positive amount
-  /// with at most 8 decimals in [locale]'s notation.
-  static BigInt? parse(String text, String locale) {
+  /// with at most 8 decimals, written with a "." decimal point.
+  ///
+  /// The same in every language and on every device (the owner's rule;
+  /// lib/l10n/amount_text.dart): a comma is never a decimal point here, so
+  /// "0,5" is refused, never 5, and "1,000" is refused, never 1. (On iOS
+  /// and macOS the device locale is Russian's own once the app declares
+  /// Russian, and its decimal comma would otherwise make "1,000" one BEAM.)
+  static BigInt? parse(String text) {
     final t = text.trim();
-    if (t.isEmpty) return null;
+    if (t.isEmpty || t.contains(',')) return null;
     final a = Amount.tryParseEditableAmount(
       t,
-      locale: locale,
+      locale: kAppAmountLocale,
       fractionDigits: decimals,
     );
     if (a == null || a.raw <= BigInt.zero) return null;
     return a.raw;
   }
 
-  /// [value] as text the amount field accepts again (no grouping).
-  static String editable(BigInt value, String locale) =>
-      Amount.formatEditableDecimal(
-        Amount(rawValue: value, fractionDigits: decimals).decimal,
-        locale: locale,
-      );
+  /// [value] as text the amount field accepts again: no grouping, "."
+  /// decimals.
+  static String editable(BigInt value) => Amount.formatEditableDecimal(
+    Amount(rawValue: value, fractionDigits: decimals).decimal,
+    locale: kAppAmountLocale,
+  );
 
   /// `2d37ef…c1a09f`: enough of both ends to compare by eye. The full
   /// address is one tap away (copy).

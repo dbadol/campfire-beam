@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/amount_text.dart';
 import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/amount/amount.dart';
@@ -23,7 +24,6 @@ import '../../../utilities/beam/scan_recognize.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/constants.dart';
 import '../../../utilities/text_styles.dart';
-import '../../../utilities/util.dart';
 import '../../../wallets/beam/contracts/bans/bans_recipient.dart';
 import '../../custom_buttons/blue_text_button.dart';
 import '../../desktop/desktop_dialog.dart';
@@ -47,7 +47,6 @@ class BeamSendForm extends StatefulWidget {
   const BeamSendForm({
     super.key,
     required this.model,
-    required this.locale,
     required this.desktop,
     this.walletName,
     this.clipboard = const ClipboardWrapper(),
@@ -60,7 +59,6 @@ class BeamSendForm extends StatefulWidget {
   });
 
   final BeamSendModel model;
-  final String locale;
   final bool desktop;
 
   /// Shown in the balance header on a phone, as Campfire's send screen does.
@@ -101,14 +99,14 @@ class BeamSendFormState extends State<BeamSendForm> {
     _amount = TextEditingController(
       text: widget.initialAmount == null
           ? ''
-          : BeamSendFormat.editable(widget.initialAmount!, widget.locale),
+          : BeamSendFormat.editable(widget.initialAmount!),
     );
     _comment = TextEditingController(text: _m.comment);
     for (final f in [_toFocus, _amountFocus, _commentFocus]) {
       f.addListener(_refresh);
     }
     if (_to.text.isNotEmpty) _m.setRecipient(_to.text);
-    if (_amount.text.isNotEmpty) _m.setAmountText(_amount.text, widget.locale);
+    if (_amount.text.isNotEmpty) _m.setAmountText(_amount.text);
   }
 
   @override
@@ -133,7 +131,7 @@ class BeamSendFormState extends State<BeamSendForm> {
     _amount.clear();
     _comment.clear();
     _m.setRecipient('');
-    _m.setAmountText('', widget.locale);
+    _m.setAmountText('');
     _m.comment = '';
     _m.setAsset(0);
     setState(() {});
@@ -150,15 +148,19 @@ class BeamSendFormState extends State<BeamSendForm> {
         truncateOverprecision: true,
       );
       if (parsed != null) {
-        _amount.text = BeamSendFormat.editable(parsed.raw, widget.locale);
-        _m.setAmountText(_amount.text, widget.locale);
+        _amount.text = BeamSendFormat.editable(parsed.raw);
+        _m.setAmountText(_amount.text);
       }
     }
   }
 
   /// Puts [recipient] (and [amount] in BEAM, "1.5") into the form, as a
-  /// scan from the wallet home does on desktop.
+  /// scan from the wallet home does on desktop. A scan starts a new
+  /// payment: what an earlier one left in an open Send tab (its amount, its
+  /// comment, another asset) is cleared first, so the link's amount, or
+  /// none, is what goes, never the old one.
   void fill(String recipient, {String? amount}) {
+    clear();
     _setRecipient(recipient, amount: amount);
     setState(() {});
   }
@@ -208,7 +210,7 @@ class BeamSendFormState extends State<BeamSendForm> {
   }
 
   void _useMax() {
-    final text = _m.useMax(widget.locale);
+    final text = _m.useMax();
     _amount.text = text;
     _amount.selection = TextSelection.collapsed(offset: text.length);
   }
@@ -575,17 +577,11 @@ class BeamSendFormState extends State<BeamSendForm> {
     if (picked == null || !mounted) return;
     _m.setAsset(picked);
     if (_amount.text.isNotEmpty) {
-      _m.setAmountText(_amount.text, widget.locale);
+      _m.setAmountText(_amount.text);
     }
   }
 
   // --------------------------------------------------------------- amount
-
-  /// The app locale's decimal separator when it is "." or ",".
-  String? get _localeSeparator {
-    final sep = Util.getSymbolsFor(locale: widget.locale)?.DECIMAL_SEP ?? '.';
-    return sep == '.' || sep == ',' ? sep : null;
-  }
 
   Widget _amountField(BuildContext context) {
     final c = Theme.of(context).extension<StackColors>()!;
@@ -601,16 +597,17 @@ class BeamSendFormState extends State<BeamSendForm> {
           : const TextInputType.numberWithOptions(decimal: true),
       textAlign: TextAlign.right,
       inputFormatters: [
-        // The decimal key types the app locale's separator, whatever the
-        // phone's region offers.
-        if (_localeSeparator case final sep?) BeamDecimalKeyFormatter(sep),
+        // The decimal key types ".", whatever the phone's region offers
+        // (a Russian decimal pad has only ","): amounts take a "." in every
+        // language, and a pasted "1,000" is refused, never read as 1.
+        BeamDecimalKeyFormatter('.'),
         AmountInputFormatter(
           controller: _amount,
           decimals: BeamSendFormat.decimals,
-          locale: widget.locale,
+          locale: kAppAmountLocale,
         ),
       ],
-      onChanged: (v) => _m.setAmountText(v, widget.locale),
+      onChanged: _m.setAmountText,
       decoration: InputDecoration(
         contentPadding: _desktop
             ? const EdgeInsets.only(top: 22, right: 12, bottom: 22)
