@@ -451,7 +451,20 @@ test('airdrop: claiming a 5 FOMO code reaches the approve sheet with the normali
   assert.equal(await page.textContent(tid('airdrop-bearer')), 'Claiming shows this code to the network before it is confirmed, so someone watching could claim it first. That is how this airdrop contract works; codes are meant for small amounts.');
   await shots('airdrop-03-claim-found');
 
+  // An old-contract claim shows the code to the network: a hard stop first, not claiming is the main
+  // button, and stopping sends nothing (release audit 1.3.0, B2).
+  await page.click(tid('airdrop-cta'));
+  await page.waitForSelector(tid('airdrop-old-stop'));
+  assert.match(await page.textContent('.sheet'), /Claim with the old airdrop contract\?.*shows the code to the network.*Codes made since 13 October 2026 never need this/s);
+  assert.ok((await page.getAttribute(tid('airdrop-old-stop'), 'class')).includes('btn-primary'), "Don't claim is the main button");
+  await shots('airdrop-03b-old-contract-stop');
+  await page.click(tid('airdrop-old-stop'));
+  await page.waitForSelector(tid('airdrop-old-stop'), { state: 'detached' });
+  assert.equal((await page.evaluate(() => window.__stubs.args)).length, 0, "Don't claim: nothing built, nothing sent");
+
   await tapWithRealBalance('airdrop-cta');
+  await page.waitForSelector(tid('airdrop-old-go'));
+  await page.click(tid('airdrop-old-go'));
   const sheet = await readSheet();
   console.log(`# claim sheet: ${JSON.stringify(sheet)}`);
   await shots('airdrop-04-claim-consent-not-enough');
@@ -660,6 +673,7 @@ test('screens with data, for the screenshots (lookups replaced in the page)', { 
   assert.equal(await page.textContent(tid('airdrop-cta')), 'Claim 0.5 BEAM');
   await shots('airdrop-10-claim-found-beam');
   await page.click(tid('airdrop-cta'));
+  await page.click(tid('airdrop-old-go'));
   await page.waitForSelector(tid('airdrop-done'));
   assert.equal(await page.getAttribute(tid('airdrop-done'), 'data-status'), 'sent', 'sent, not yet received: it counts once mined');
   assert.equal(await page.textContent(tid('airdrop-done')), 'Claim sent');

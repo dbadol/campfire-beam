@@ -121,6 +121,10 @@ function nameReview(app, p) {
       app.sendDraft = null;
       app.go('txStatus', { txId: r.txId, amount: p.amount, fee: r.fee, assetId: p.assetId, address: display(p.name), name: p.name, mustBeOnline: false }, { replace: true });
     } catch (e) {
+      // No answer in time: the payment may have gone out. Keep the owner Send checked, as if it had, so a
+      // changed owner is still flagged next time instead of reading as a first payment (audit 1.3.0, S3).
+      const checked = p.acceptedKey || p.ownerKey;
+      if (e.code === 'timeout' && checked) await pinNamePayment(app, p.name, checked).catch((err) => console.warn('[campfire] name pin', err && err.message));
       cta.disabled = false;
       cta.textContent = label;
       put(msg, notice(e.code === 'rejected' ? 'info' : 'error', nameProblemText(e, 'payment')));

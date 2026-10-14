@@ -776,7 +776,7 @@ test('cancel: exactly the unclaimed codes, their values and prepaid fees back, t
 test('lookups: v3 first, then the old contract; an error on v3 is never taken for "not there"', async () => {
   const asked = [];
   const v3 = { busy: false, checkVoucher: async (c) => (asked.push(['v3', c]), c === 'V3-CODE' ? { contract: 'v3', key: OTHER, batchId: 1n, assetId: 36, value: 5n, gas: 0n, redeemed: false } : c === 'BROKEN' ? Promise.reject(Object.assign(new Error('no Airdrop v3 contract'), { code: 'contractNotFound' })) : null), redeem: async (c) => ({ txId: 'v3', info: { contract: 'v3' } }), createBatch: async () => 'v3 batch' };
-  const old = { busy: false, checkVoucher: async (c) => (asked.push(['v2', c]), c === 'OLD-CODE' ? { hash: 'ab'.repeat(32), batchId: 2n, assetId: 174, value: 7n, redeemed: false } : null), redeem: async () => ({ txId: 'v2', info: {} }), createBatch: async () => assert.fail('never on the old contract') };
+  const old = { busy: false, checkVoucher: async (c) => (asked.push(['v2', c]), c === 'OLD-CODE' ? { hash: 'ab'.repeat(32), batchId: 2n, assetId: 174, value: 7n, redeemed: false } : null), redeem: async () => (asked.push(['redeem-v2']), { txId: 'v2', info: {} }), createBatch: async () => assert.fail('never on the old contract') };
   const both = createAirdrops({ v3, old });
   assert.equal((await both.checkVoucher('V3-CODE')).contract, 'v3');
   assert.deepEqual(asked.splice(0), [['v3', 'V3-CODE']], 'found on v3: the old contract is not asked');
@@ -788,7 +788,12 @@ test('lookups: v3 first, then the old contract; an error on v3 is never taken fo
   await assert.rejects(both.checkVoucher('BROKEN'), (e) => e.code === 'contractNotFound');
   assert.deepEqual(asked.splice(0), [['v3', 'BROKEN']], 'not asked on the old contract after a v3 error');
   assert.equal((await both.redeem('V3-CODE')).txId, 'v3');
-  assert.equal((await both.redeem('OLD-CODE')).txId, 'v2');
+  // The old contract's claim shows the code to the network: refused unless the person agreed (audit 1.3.0, B2).
+  const asksBefore = asked.length;
+  await assert.rejects(both.redeem('OLD-CODE'), (e) => e.code === 'oldNeedsConsent');
+  await assert.rejects(both.redeem('OLD-CODE', { oldConsent: 'yes' }), (e) => e.code === 'oldNeedsConsent', 'only true agrees');
+  assert.ok(!asked.slice(asksBefore).some((a) => a[0] === 'redeem-v2'), 'the old contract is never asked to claim');
+  assert.equal((await both.redeem('OLD-CODE', { oldConsent: true })).txId, 'v2');
   await assert.rejects(both.redeem('NOWHERE'), (e) => e.code === 'voucherNotFound');
   assert.equal(await both.createBatch({}), 'v3 batch', 'new codes are made on v3 only');
 });

@@ -351,6 +351,11 @@
       "lib/airdrop_v3.js"
     ]
   },
+  "This code is from the old airdrop contract. Claiming it there shows the code to the network.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
   "Enter an amount.": {
     "where": [
       "lib/amount.js",
@@ -9877,6 +9882,31 @@
     ],
     "placeholders": [
       "amount"
+    ]
+  },
+  "Claim with the old airdrop contract?": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "This code is from the old airdrop contract. Claiming it there shows the code to the network, so someone watching could claim it first.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Codes made since 13 October 2026 never need this. If you got this code recently, stop and ask whoever gave it to you.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Don't claim": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Claim on the old contract anyway": {
+    "where": [
+      "screens/airdrop.js"
     ]
   },
   "Press and hold in the box, then tap Paste.": {
