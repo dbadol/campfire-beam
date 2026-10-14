@@ -100,7 +100,9 @@ if [[ "${CFB_SKIP_START_CHECK:-}" != 1 ]]; then
   # app would open the real ~/Library/campfirebeam.
   probe="$(CFFIXED_USER_HOME="$start_home" osascript -l JavaScript -e \
     'ObjC.import("Foundation"); $.NSSearchPathForDirectoriesInDomains($.NSLibraryDirectory, $.NSUserDomainMask, true).objectAtIndex(0).js')"
-  [[ "$probe" == "$start_home/Library" ]] \
+  # Compared as resolved paths: Foundation writes /private/tmp as /tmp.
+  [[ "$(basename "$probe")" == Library \
+     && "$(cd "$(dirname "$probe")" 2>/dev/null && pwd -P)" == "$(cd "$start_home" && pwd -P)" ]] \
     || die "CFFIXED_USER_HOME is not honoured here ($probe); the start check would use the real data"
   CFFIXED_USER_HOME="$start_home" "$EXE" >"$start_log" 2>&1 &
   start_pid=$!
