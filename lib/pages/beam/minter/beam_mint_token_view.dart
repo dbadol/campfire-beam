@@ -184,8 +184,13 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
   String? _error(TokenMetadataField field) =>
       _touched.contains(field) ? _check(field) : null;
 
+  /// The maximum supply typed, in whole tokens: digits, which spaces and
+  /// "_" may group ("1 000 000"). A comma is refused, never dropped: "1,5"
+  /// became 15, and "1,000" is a thousand in English but one in Russian
+  /// (release audit 1.3.0). The field then says what it takes.
   BigInt? get _wholeSupply {
-    final t = _supply.text.replaceAll(RegExp(r'[\s,_]'), '');
+    final t = _supply.text.replaceAll(RegExp(r'[\s_]'), '');
+    if (!RegExp(r'^\d+$').hasMatch(t)) return null;
     final v = BigInt.tryParse(t);
     if (v == null || v <= BigInt.zero) return null;
     if ((v * BeamTokenMetadata.nthRatio).bitLength > 128) return null;
