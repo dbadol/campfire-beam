@@ -38,6 +38,10 @@
 //   refused a server, Campfire asks once per server whether it may connect
 //   (Allow reloads it), and More (⋯) lists the servers it may reach, each
 //   with Remove access.
+// * Tor turned on while a dApp is open (desktop: the setting is a click
+//   away): the dApp's own traffic does not go through Tor, so it starts
+//   again at once without its servers, as if opened with Tor on; turned
+//   off, it starts again with them.
 
 import 'dart:async';
 
@@ -118,7 +122,8 @@ class DappBrowserView extends ConsumerStatefulWidget {
   /// Overrides the dApp window (tests); [DappWebviewGlue.create] otherwise.
   final DappWebviewFactory? webviewFactory;
 
-  /// Overrides whether Tor is on (tests).
+  /// Overrides whether Tor is on (tests; a change starts the dApp again,
+  /// as a change of the setting does).
   final bool? torOn;
 
   @override
@@ -168,6 +173,14 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
   String? _asking;
   final _declined = <String>{};
 
+  /// Whether Tor was on when the running session was started: what its
+  /// server lets the page reach was decided then.
+  bool? _sessionTor;
+
+  /// Set while a start is under way, so a Tor change in the meantime is
+  /// looked at again when it ends.
+  bool _starting = false;
+
   bool get _desktop => widget.desktop ?? Util.isDesktop;
   bool get _available => widget.webviewAvailable ?? dappWebviewAvailable();
   String get _name => widget.installation.manifest.name;
@@ -190,12 +203,47 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
     );
     if (_available) {
       widget.host.presenter.attach(_showApproval, fiat: _fiatPrice);
+      if (widget.torOn == null) _listenToTor(true);
       unawaited(_start());
     }
   }
 
   @override
+  void didUpdateWidget(DappBrowserView old) {
+    super.didUpdateWidget(old);
+    if (widget.torOn != old.torOn) {
+      // After this frame: a restart sets state, which a widget being
+      // updated must not.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _torChanged());
+    }
+  }
+
+  /// Follows Campfire's Tor setting while the dApp is open.
+  void _listenToTor(bool on) {
+    try {
+      on
+          ? Prefs.instance.addListener(_torChanged)
+          : Prefs.instance.removeListener(_torChanged);
+    } catch (_) {
+      // No settings (a test): [DappBrowserView.torOn] decides.
+    }
+  }
+
+  /// Tor was turned on or off: the page may reach other servers now (none
+  /// of a file's while Tor is on, a bundled dApp's price and fee APIs only
+  /// while it is off), and only a new start puts that in its server and
+  /// its page. Pending approvals of the old page answer -32021, as on any
+  /// reload.
+  void _torChanged() {
+    if (!mounted || _disposed || !_available || _starting) return;
+    final started = _sessionTor;
+    if (started == null || started == _torOn) return;
+    unawaited(_restart());
+  }
+
+  @override
   void dispose() {
+    if (widget.torOn == null) _listenToTor(false);
     unawaited(_walletChanges?.cancel());
     _coverTimer?.cancel();
     _disposed = true;
@@ -231,6 +279,8 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
       _loading = true;
       _failure = null;
     });
+    _starting = true;
+    final tor = _torOn;
     try {
       final installer = await widget.host.installer();
       final session = await DappHostSession.start(
@@ -238,7 +288,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
         installer: installer,
         wallet: widget.host.wallet,
         consent: widget.host.consent,
-        allowRemoteOrigins: !_torOn,
+        allowRemoteOrigins: !tor,
         onActivity: _onActivity,
         onAskToReach: _askToReach,
       );
@@ -247,6 +297,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
         return;
       }
       _session = session;
+      _sessionTor = tor;
       if (!mounted) return;
       final glue = await (widget.webviewFactory ?? DappWebviewGlue.create)(
         session: session,
@@ -275,7 +326,11 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
           _failure = _Failure.couldntStart;
         });
       }
+    } finally {
+      _starting = false;
     }
+    // Tor changed while this start was under way.
+    _torChanged();
   }
 
   void _coverUntilLoaded() {
@@ -414,6 +469,7 @@ class _DappBrowserViewState extends ConsumerState<DappBrowserView> {
   Future<void> _restart() async {
     final old = _session;
     _session = null;
+    _sessionTor = null;
     setState(() => _glue = null);
     await old?.close();
     if (mounted) await _start();
