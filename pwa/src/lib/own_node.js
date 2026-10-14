@@ -154,7 +154,7 @@ export async function useRandomNodes(app, { first = null } = {}) {
  * password first, as for any move away from an own node).
  */
 export async function usePoolNode(app, address) {
-  if (!isPoolNode(address)) throw new Error("That is not one of BEAM's public nodes.");
+  if (!isPoolNode(address)) throw new Error(t("That is not one of BEAM's public nodes."));
   if (isOwnNode(app.prefs.node)) return useRandomNodes(app, { first: address });
   await app.setPrefs({ node: RANDOM_NODE, poolNode: address });
   if (!app.dbPass) return;

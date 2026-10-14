@@ -539,10 +539,10 @@ export class Wallet {
    */
   async useNode(address) {
     const p = this.plan;
-    if (!isPoolNode(address)) throw new EngineError('node', "That is not one of BEAM's public nodes.");
-    if (!p || !p.random || !this.session) throw new EngineError('node', "The wallet is not running on BEAM's public nodes.");
-    if (this.state.importing) throw new EngineError('busy', 'The wallet is still getting ready. Try again when it is done.');
-    if (this.hopping) throw new EngineError('busy', 'The wallet is moving to another node right now. Try again in a moment.');
+    if (!isPoolNode(address)) throw new EngineError('node', t("That is not one of BEAM's public nodes."));
+    if (!p || !p.random || !this.session) throw new EngineError('node', t("The wallet is not running on BEAM's public nodes."));
+    if (this.state.importing) throw new EngineError('busy', t('The wallet is still getting ready. Try again when it is done.'));
+    if (this.hopping) throw new EngineError('busy', t('The wallet is moving to another node right now. Try again in a moment.'));
     p.order = poolOrder(Math.random, address);
     p.emptyHops = 0;
     p.staleHops = 0;
@@ -794,7 +794,7 @@ export class Wallet {
 
   /** comment: the person's note, kept with the payment in this wallet only (lib/payments.js). */
   async send({ address, amount, assetId = 0, mode, comment = '' }) {
-    if (!this.session) throw new EngineError('stopped', 'The wallet is not open yet. Go back to Home, then try again.');
+    if (!this.session) throw new EngineError('stopped', t('The wallet is not open yet. Go back to Home, then try again.'));
     const params = { address, value: toJsonNumber(amount), fee: toJsonNumber(mode.fee) };
     if (comment) params.comment = comment;
     if (Number(assetId) !== 0) params.asset_id = Number(assetId);

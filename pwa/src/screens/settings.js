@@ -74,11 +74,10 @@ export default function settings(app) {
   );
   langSel.value = langChoice;
   const langSub = langChoice === 'system' ? h('div', { class: 's', lang: device, 'data-testid': 'lang-device', text: LANGUAGE_NAMES[device] }) : null;
+  // Not disabled while the catalog is read: a disabled select loses the focus, and app.js puts the
+  // redrawn screen back where it was by the focused control.
   langSel.addEventListener('change', () => {
-    langSel.disabled = true;
-    setLanguage(langSel.value).finally(() => {
-      if (langSel.isConnected) langSel.disabled = false;
-    });
+    setLanguage(langSel.value);
   });
 
   const faceRowBox = h('div');

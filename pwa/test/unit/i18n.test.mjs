@@ -215,6 +215,25 @@ test('Settings: saved (or forgotten for "like this device"), applied at once, ev
   }
 });
 
+test('two changes in a row: the later one wins, whichever catalog arrives first', async () => {
+  let release;
+  const slow = new Promise((r) => (release = r));
+  const fetchImpl = async (url) => {
+    if (/ja\.json$/.test(url)) await slow;
+    return { ok: true, json: async () => (/ja\.json$/.test(url) ? { Reload: '再読み込み' } : { Reload: 'Перезагрузить' }) };
+  };
+  const doc = fakeDoc();
+  const first = activateLanguage('ja', { storage: memoryStorage(), doc, fetchImpl, notify: false });
+  const second = activateLanguage('ru', { storage: memoryStorage(), doc, fetchImpl, notify: false });
+  await second;
+  release();
+  await first;
+  assert.equal(lang(), 'ru');
+  assert.equal(t('Reload'), 'Перезагрузить');
+  assert.equal(doc.documentElement.attrs.lang, 'ru');
+  await activateLanguage('en', { storage: memoryStorage(), doc: fakeDoc(), notify: false });
+});
+
 test('the early texts (splash, first tripwire stop) are kept for the next start, only those, only when translated', async () => {
   const s = memoryStorage();
   await activateLanguage('ru', { storage: s, doc: fakeDoc(), fetchImpl: serve({ ru: { 'Stop: unsigned code': 'Стоп: неподписанный код', Reload: 'Перезагрузить', 'Starting': '' } }), notify: false });

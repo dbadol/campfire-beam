@@ -264,8 +264,10 @@ function writeEarly(storage) {
  * Makes `language` the active one: reads its catalog (English needs none; a catalog that cannot be
  * read leaves English), sets <html lang>, and tells the listeners. Returns the language now active.
  */
+let latest = 0;
 export async function activateLanguage(language, { storage = globalThis.localStorage, doc = globalThis.document, fetchImpl = globalThis.fetch, notify = true } = {}) {
   const want = LANGUAGES.includes(language) ? language : 'en';
+  const mine = ++latest;
   let next = null;
   if (want !== 'en') {
     try {
@@ -275,6 +277,8 @@ export async function activateLanguage(language, { storage = globalThis.localSto
       next = null; // unreadable: the texts stay English, the language attribute still follows the choice
     }
   }
+  // Chosen again meanwhile (two changes in a row): the later choice wins, whichever catalog came first.
+  if (mine !== latest) return active;
   active = want;
   entries = next && next.size ? next : null;
   applyLanguage(want, doc);
