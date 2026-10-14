@@ -239,6 +239,7 @@ class AirdropV3Verdict {
     this.problem,
     this.confirmations,
     this.mined = false,
+    this.notMined = false,
     this.onChain = false,
   });
 
@@ -255,6 +256,12 @@ class AirdropV3Verdict {
   /// [AirdropV3BatchState.failed]: the batch's own transaction was mined,
   /// so its funds are locked and can be taken back.
   final bool mined;
+
+  /// [AirdropV3BatchState.failed]: the batch's own transaction is known not
+  /// to have gone into a block, so nothing was locked. Neither this nor
+  /// [mined] when the wallet does not know (the send timed out, or the
+  /// transaction is no longer in its history).
+  final bool notMined;
 
   /// [AirdropV3BatchState.notSent]: the network turned it down (rather than
   /// it never being sent).
@@ -409,6 +416,7 @@ class BeamAirdropV3Service {
               rec,
               problem: check.problem,
               mined: rec.txStatus == AirdropBatchTxStatus.confirmed,
+              notMined: rec.txStatus == AirdropBatchTxStatus.failed,
             );
     }
     if (rec.txStatus == AirdropBatchTxStatus.failed) {

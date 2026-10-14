@@ -147,6 +147,7 @@
   "airdropCodesCantOpenMessage": "この端末のセキュアストレージが応答しませんでした。この画面を閉じて開き直してください。コードは失われていません。",
   "airdropCodesCantOpenTitle": "保存済みのコードを開けませんでした",
   "airdropCodesCheckErrorTitle": "コードを確認できませんでした",
+  "airdropCodesCheckFailedMaybeLocked": "このバッチが送信途中に誰かにコピーされ、コードが空のバウチャーを指している可能性があります。資金は安全です：このバッチが「作成したバッチ」にあれば、そこで取り戻して資金を戻してください。なければ、何もロックされていません。新しいコードを作成してください。",
   "airdropCodesCheckFailedNothingLocked": "このバッチが送信途中に誰かにコピーされ、コードが空のバウチャーを指している可能性があります。資金は安全です：何もロックされていません。新しいコードを作成してください。",
   "airdropCodesCheckFailedTakeBack": "このバッチが送信途中に誰かにコピーされ、コードが空のバウチャーを指している可能性があります。資金は安全です：「作成したバッチ」でこのバッチを取り戻して資金を戻し、新しいコードを作成してください。",
   "airdropCodesCheckFailedTitle": "これらのコードは共有しないでください",

@@ -347,7 +347,6 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
     final v = _verdict;
     final l10n = context.l10n;
     if (v?.state == AirdropV3BatchState.failed) {
-      final mined = v!.mined;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -358,10 +357,14 @@ class _BeamAirdropCodesViewState extends State<BeamAirdropCodesView> {
             kind: BeamNoticeKind.danger,
             title: l10n.airdropCodesCheckFailedTitle,
             message: joinSentences([
-              airdropCheckProblemText(v.problem),
-              mined
+              airdropCheckProblemText(v!.problem),
+              // "Nothing was locked" only when that is known: without its
+              // transaction the batch may be in a block after all.
+              v.mined
                   ? l10n.airdropCodesCheckFailedTakeBack
-                  : l10n.airdropCodesCheckFailedNothingLocked,
+                  : v.notMined
+                  ? l10n.airdropCodesCheckFailedNothingLocked
+                  : l10n.airdropCodesCheckFailedMaybeLocked,
             ], l10n),
           ),
         ],

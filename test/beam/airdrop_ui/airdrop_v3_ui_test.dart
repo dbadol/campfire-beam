@@ -27,6 +27,7 @@ import 'package:stackwallet/pages/beam/airdrop/beam_claim_voucher_view.dart';
 import 'package:stackwallet/pages/beam/airdrop/beam_create_airdrop_view.dart';
 import 'package:stackwallet/wallets/beam/api/beam_api.dart';
 import 'package:stackwallet/wallets/beam/contracts/airdrop/airdrop.dart';
+import 'package:stackwallet/wallets/beam/rpc/beam_transport.dart';
 import 'package:stackwallet/wallets/beam/rpc/fake_transport.dart';
 import 'package:stackwallet/wallets/beam/sync/beam_sync_state.dart';
 import 'package:stackwallet/widgets/beam/airdrop/airdrop_text.dart';
@@ -391,6 +392,56 @@ void main() {
       expect(find.byType(BeamCreateAirdropView), findsOneWidget);
       expect(_textOf(tester, 'create-locked'), '0.6 bETH');
       expect(_textOf(tester, 'create-gas'), '0.066 BEAM');
+    });
+
+    testWidgets('a copied batch whose own transaction this wallet does not '
+        'know: never "nothing was locked", it points to My batches (release '
+        'audit 1.3.0)', (tester) async {
+      init(balances: const {0: 66707641121, 36: 1000000000});
+      final b = await sent();
+      final p = shader.pending!;
+      shader.mine((
+        creator: v3Other,
+        assetId: p.assetId,
+        gas: BigInt.zero,
+        entries: [for (final e in p.entries) (key: e.key, value: BigInt.one)],
+      ));
+      // The history lost it (restored from the seed, say): whether ours
+      // went into a block is not known.
+      t.reply(
+        'tx_status',
+        const BeamRpcException(-32001, 'Transaction not found'),
+      );
+      await openCodes(tester, b.localId, justCreated: false);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('codes-check-failed')), findsOneWidget);
+      expect(
+        find.textContaining('Your funds are safe: nothing was locked.'),
+        findsNothing,
+      );
+      expect(
+        find.textContaining('if this batch is in My batches, take it back'),
+        findsOneWidget,
+      );
+      expect(find.text('My batches'), findsOneWidget);
+      expect(find.text('Take the batch back'), findsNothing);
+      await expectScreen(tester, 'v3_codes_check_failed_unknown_tx');
+
+      // Known never to have gone into a block: then it says so.
+      await tester.pumpWidget(const SizedBox());
+      final saved = (await store.all()).single;
+      expect(saved.check!.ok, isFalse);
+      await store.put(saved.copyWith(txStatus: AirdropBatchTxStatus.failed));
+      await openCodes(tester, b.localId, justCreated: false);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Your funds are safe: nothing was locked.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('if this batch is in My batches'),
+        findsNothing,
+      );
     });
 
     testWidgets('a create the network turned down: these codes hold nothing', (

@@ -147,6 +147,7 @@
   "airdropCodesCantOpenMessage": "本设备的安全存储没有应答。请关闭此页面后重新打开；领取码没有丢失。",
   "airdropCodesCantOpenTitle": "无法打开保存的领取码",
   "airdropCodesCheckErrorTitle": "无法检查领取码",
+  "airdropCodesCheckFailedMaybeLocked": "可能有人在这个批次发送途中复制了它，因此这些领取码可能指向空的空投券。你的资金是安全的：如果这个批次在“我的批次”中，请在那里收回它以取回资金；如果不在，就没有锁定任何资金。请创建新的领取码。",
   "airdropCodesCheckFailedNothingLocked": "可能有人在这个批次发送途中复制了它，因此这些领取码可能指向空的空投券。你的资金是安全的：没有锁定任何资金。请创建新的领取码。",
   "airdropCodesCheckFailedTakeBack": "可能有人在这个批次发送途中复制了它，因此这些领取码可能指向空的空投券。你的资金是安全的：请在“我的批次”中收回这个批次以取回资金，然后创建新的领取码。",
   "airdropCodesCheckFailedTitle": "请勿分享这些领取码",
