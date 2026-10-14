@@ -76,6 +76,9 @@ jobs:
           cd scripts
           echo "yes" | ./build_app.sh -v "${{ inputs.version }}" -b "${{ inputs.build_number }}" -p linux -a campfire -d -s
           ./prebuild.sh
+          # The app's translations (lib/l10n/generated/, not committed): the
+          # live test below compiles the app before any build would make them.
+          cd .. && flutter gen-l10n
 
       - name: The core inside the app, live on mainnet (direct, two wallets, Tor)
         env:
@@ -141,6 +144,9 @@ jobs:
           cd scripts
           echo "yes" | ./build_app.sh -v "${{ inputs.version }}" -b "${{ inputs.build_number }}" -p windows -a campfire -d -s
           ./prebuild.sh
+          # The app's translations (lib/l10n/generated/, not committed): the
+          # live test below compiles the app before any build would make them.
+          cd .. && flutter gen-l10n
 
       # The runner user cannot create symbolic links, so link_assets.sh's links
       # are broken; copy the five asset folders instead (as upstream's build.yaml).
