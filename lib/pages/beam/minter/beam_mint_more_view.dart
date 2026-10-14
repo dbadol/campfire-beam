@@ -19,6 +19,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/minter/minter.dart';
 import '../../../wallets/beam/sync/beam_sync_state.dart';
@@ -79,7 +80,9 @@ class _BeamMintMoreViewState extends State<BeamMintMoreView> {
     if (p != null) return p;
     final v = BeamUnits.parse(_amount.text);
     if (v != null && v > _most) {
-      return 'At most ${widget.assetNames.amount(_t.assetId, _most)}';
+      return context.l10n.minterMintMoreAtMost(
+        widget.assetNames.amount(_t.assetId, _most),
+      );
     }
     return null;
   }
@@ -126,24 +129,25 @@ class _BeamMintMoreViewState extends State<BeamMintMoreView> {
       final v = BeamUnits.parse(_amount.text);
       final ok = v != null && _amountProblem == null;
       final names = widget.assetNames;
+      final l10n = context.l10n;
       return BeamPageScaffold(
-        title: 'Mint more',
+        title: l10n.minterMintMoreTitle,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             RoundedWhiteContainer(
               child: BeamAssetTitle(
                 display: names.display(_t.assetId),
-                subtitle:
-                    'You can still mint '
-                    '${names.amount(_t.assetId, _t.mintable)}',
+                subtitle: l10n.minterMintMoreCanStill(
+                  names.amount(_t.assetId, _t.mintable),
+                ),
               ),
             ),
             const BeamGap(16),
             BeamTextField(
               fieldKey: const ValueKey('mint-more-amount'),
               controller: _amount,
-              label: 'How many to mint',
+              label: l10n.minterMintMoreHowMany,
               hint: '1000',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -165,12 +169,9 @@ class _BeamMintMoreViewState extends State<BeamMintMoreView> {
             Align(
               alignment: Alignment.centerRight,
               child: CustomTextButton(
-                text: 'Most',
-                onTap: () => setState(
-                  () =>
-                      _amount.text = BeamUnits.format(_most)
-                          .replaceAll(',', ''),
-                ),
+                text: l10n.minterMintMoreMost,
+                onTap: () =>
+                    setState(() => _amount.text = BeamUnits.plain(_most)),
               ),
             ),
             if (_problem != null) ...[
@@ -187,14 +188,14 @@ class _BeamMintMoreViewState extends State<BeamMintMoreView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            BeamSyncNotice(sync: sync, what: 'Minting'),
+            BeamSyncNotice(sync: sync, action: BeamPausedAction.minting),
             BeamCtaBar(
               primaryKey: const ValueKey('mint-more-cta'),
               label: ok
-                  ? 'Mint ${names.amount(_t.assetId, v)}'
-                  : 'Mint ${names.symbol(_t.assetId)}',
+                  ? l10n.minterMintAmountCta(names.amount(_t.assetId, v))
+                  : l10n.minterMintSymbolCta(names.symbol(_t.assetId)),
               busy: _preparing,
-              busyLabel: 'Preparing…',
+              busyLabel: l10n.minterPreparing,
               onPressed: ok && sync.canSpend ? _mint : null,
             ),
           ],

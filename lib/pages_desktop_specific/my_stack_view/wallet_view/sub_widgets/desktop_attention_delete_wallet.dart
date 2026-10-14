@@ -14,6 +14,7 @@ import 'package:stack_wallet_backup/secure_storage.dart';
 import 'package:tuple/tuple.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../pages/settings_views/wallet_settings_view/wallet_settings_wallet_settings/delete_view_only_wallet_keys_view.dart';
 import '../../../../providers/global/wallets_provider.dart';
 import '../../../../route_generator.dart';
@@ -44,12 +45,6 @@ class DesktopAttentionDeleteWallet extends ConsumerStatefulWidget {
 
 class _DesktopAttentionDeleteWallet
     extends ConsumerState<DesktopAttentionDeleteWallet> {
-  static const _deleteWarning =
-      "You are going to permanently delete your wallet.\n\nIf you delete your"
-      " wallet, the only way you can have access to your funds is by using your"
-      " backup key.\n\n${AppConfig.appName} does not keep nor is able to "
-      "restore your backup key or your wallet.\n\nPLEASE SAVE YOUR BACKUP KEY.";
-
   @override
   Widget build(BuildContext context) {
     return DesktopDialog(
@@ -71,7 +66,10 @@ class _DesktopAttentionDeleteWallet
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 26),
             child: Column(
               children: [
-                Text("Attention!", style: STextStyles.desktopH2(context)),
+                Text(
+                  context.l10n.walletViewDeleteAttention,
+                  style: STextStyles.desktopH2(context),
+                ),
                 const SizedBox(height: 16),
                 RoundedContainer(
                   color: Theme.of(
@@ -80,7 +78,7 @@ class _DesktopAttentionDeleteWallet
                   child: Padding(
                     padding: const EdgeInsets.all(10.0),
                     child: Text(
-                      _deleteWarning,
+                      context.l10n.walletViewDeleteWarning(AppConfig.appName),
                       style: STextStyles.desktopTextExtraExtraSmall(context)
                           .copyWith(
                             color: Theme.of(
@@ -97,7 +95,7 @@ class _DesktopAttentionDeleteWallet
                     SecondaryButton(
                       width: 250,
                       buttonHeight: ButtonHeight.xl,
-                      label: "Cancel",
+                      label: context.l10n.commonCancel,
                       onPressed: () {
                         Navigator.of(context, rootNavigator: true).pop();
                       },
@@ -106,7 +104,7 @@ class _DesktopAttentionDeleteWallet
                     PrimaryButton(
                       width: 250,
                       buttonHeight: ButtonHeight.xl,
-                      label: "View Backup Key",
+                      label: context.l10n.walletViewViewBackupKey,
                       onPressed: () async {
                         try {
                           final wallet = ref
@@ -133,7 +131,7 @@ class _DesktopAttentionDeleteWallet
                                                 left: 32,
                                               ),
                                               child: Text(
-                                                "Wallet keys",
+                                                context.l10n.walletViewWalletKeys,
                                                 style: STextStyles.desktopH3(
                                                   context,
                                                 ),
@@ -216,10 +214,6 @@ class ErrorLoadingKeysDialog extends StatelessWidget {
 
   final String walletId;
 
-  static const _errorInfoExtra =
-      "Could not retrieve wallet keys/mnemonic phrase/seed.\n\n"
-      "Are you certain you would like to continue with wallet deletion?";
-
   @override
   Widget build(BuildContext context) {
     return DesktopDialog(
@@ -233,7 +227,7 @@ class ErrorLoadingKeysDialog extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 32),
                 child: Text(
-                  "Decryption error",
+                  context.l10n.walletViewDecryptionError,
                   style: STextStyles.desktopH3(context),
                 ),
               ),
@@ -251,13 +245,13 @@ class ErrorLoadingKeysDialog extends StatelessWidget {
               children: [
                 RoundedWhiteContainer(
                   child: Text(
-                    _errorInfoExtra,
+                    context.l10n.walletViewDecryptionErrorInfo,
                     style: STextStyles.label(context).copyWith(fontSize: 16),
                   ),
                 ),
                 const SizedBox(height: 40),
                 PrimaryButton(
-                  label: "Continue",
+                  label: context.l10n.commonContinue,
                   onPressed: () async {
                     await Navigator.of(context).push(
                       RouteGenerator.getRoute(

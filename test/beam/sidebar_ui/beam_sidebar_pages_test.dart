@@ -99,7 +99,7 @@ Future<void> _expectAllOn(WidgetTester tester, BeamWallet wallet) async {
     tester
         .widget<BeamClaimVoucherView>(find.byType(BeamClaimVoucherView))
         .service,
-    same(wiring.airdrop),
+    same(wiring.airdrops),
   );
 
   await tapMenu(tester, BeamSidebarDestination.tokens.menuKey);

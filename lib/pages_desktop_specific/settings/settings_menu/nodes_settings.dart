@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../pages/settings_views/global_settings_view/manage_nodes_views/coin_nodes_view.dart';
 import '../../../providers/providers.dart';
 import '../../../route_generator.dart';
@@ -129,7 +130,7 @@ class _NodesSettings extends ConsumerState<NodesSettings> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        "Nodes",
+                        context.l10n.desktopSettingsNodesTitle,
                         style: STextStyles.desktopTextSmall(context),
                       ),
                       // Campfire for BEAM: which node the wallet uses and
@@ -140,7 +141,7 @@ class _NodesSettings extends ConsumerState<NodesSettings> {
                       ],
                       const SizedBox(height: 16),
                       Text(
-                        "Select a coin to see nodes",
+                        context.l10n.desktopSettingsNodesHint,
                         style: STextStyles.desktopTextExtraExtraSmall(context),
                       ),
                       const SizedBox(height: 20),
@@ -159,7 +160,7 @@ class _NodesSettings extends ConsumerState<NodesSettings> {
                           style: STextStyles.field(context),
                           decoration:
                               standardInputDecoration(
-                                "Search",
+                                context.l10n.desktopSettingsNodesSearch,
                                 searchNodeFocusNode,
                                 context,
                               ).copyWith(
@@ -279,15 +280,15 @@ class _NodesSettings extends ConsumerState<NodesSettings> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              "${coin.prettyName} nodes",
+                                              context.l10n.desktopSettingsNodesCoinNodes(coin.prettyName),
                                               style: STextStyles.titleBold12(
                                                 context,
                                               ),
                                             ),
                                             Text(
                                               count > 1
-                                                  ? "$count nodes"
-                                                  : "Default",
+                                                  ? context.l10n.desktopSettingsNodesCount(count)
+                                                  : context.l10n.desktopSettingsNodesDefault,
                                               style: STextStyles.label(context),
                                             ),
                                           ],

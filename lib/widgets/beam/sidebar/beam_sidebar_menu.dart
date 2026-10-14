@@ -35,6 +35,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../pages_desktop_specific/desktop_menu.dart';
 import '../../../pages_desktop_specific/desktop_menu_item.dart';
 import '../../../providers/desktop/current_desktop_menu_item.dart';
@@ -117,6 +118,7 @@ class _BeamSidebarMenuState extends ConsumerState<BeamSidebarMenu> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final expanded = widget.expanded;
     final duration = widget.duration;
     // 16 px either side when expanded, 8 when minimized (Campfire's).
@@ -127,7 +129,7 @@ class _BeamSidebarMenuState extends ConsumerState<BeamSidebarMenu> {
       _item(
         'myStack',
         DesktopMenuItemId.myStack,
-        'My ${AppConfig.prefix}',
+        l10n.sidebarMyApp(AppConfig.prefix),
         const DesktopMyStackIcon(),
       ),
       for (final d in BeamSidebarDestination.shown) ...[
@@ -153,35 +155,35 @@ class _BeamSidebarMenuState extends ConsumerState<BeamSidebarMenu> {
       _item(
         'notifications',
         DesktopMenuItemId.notifications,
-        'Notifications',
+        l10n.sidebarNotifications,
         const DesktopNotificationsIcon(),
       ),
       gap,
       _item(
         'addressBook',
         DesktopMenuItemId.addressBook,
-        'Address Book',
+        l10n.sidebarAddressBook,
         const DesktopAddressBookIcon(),
       ),
       gap,
       _item(
         'settings',
         DesktopMenuItemId.settings,
-        'Settings',
+        l10n.sidebarSettings,
         const DesktopSettingsIcon(),
       ),
       gap,
       _item(
         'support',
         DesktopMenuItemId.support,
-        'Support',
+        l10n.sidebarSupport,
         const DesktopSupportIcon(),
       ),
       gap,
       _item(
         'about',
         DesktopMenuItemId.about,
-        'About',
+        l10n.sidebarAbout,
         const DesktopAboutIcon(),
       ),
     ];
@@ -249,13 +251,13 @@ class _BeamSidebarMenuState extends ConsumerState<BeamSidebarMenu> {
                         duration: duration,
                         labelLength: 123,
                         icon: const DesktopExitIcon(),
-                        label: 'Exit',
+                        label: l10n.sidebarExit,
                         value: 7,
                         onChanged: (_) => unawaited(beamDesktopExit(context)),
                         controller: _controller('exit'),
                         isExpandedInitially: expanded,
                         dense: true,
-                        tooltip: 'Exit',
+                        tooltip: l10n.sidebarExit,
                       ),
                     ],
                   ],
@@ -267,7 +269,9 @@ class _BeamSidebarMenuState extends ConsumerState<BeamSidebarMenu> {
                 const Spacer(),
                 IconButton(
                   key: const Key('beamSidebarMinimize'),
-                  tooltip: expanded ? 'Show icons only' : 'Show labels',
+                  tooltip: expanded
+                      ? l10n.sidebarShowIconsOnly
+                      : l10n.sidebarShowLabels,
                   splashRadius: 18,
                   padding: EdgeInsets.zero,
                   visualDensity: VisualDensity.standard,

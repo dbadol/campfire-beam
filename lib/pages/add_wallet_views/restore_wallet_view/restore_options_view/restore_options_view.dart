@@ -16,6 +16,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:logger/logger.dart';
 import 'package:tuple/tuple.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../pages_desktop_specific/my_stack_view/exit_to_my_stack_button.dart';
 import '../../../../providers/ui/verify_recovery_phrase/mnemonic_word_count_state_provider.dart';
 import '../../../../themes/stack_colors.dart';
@@ -316,7 +317,7 @@ class _RestoreOptionsViewState extends ConsumerState<RestoreOptionsView> {
               if (!isDesktop) CoinImage(coin: coin, height: 100, width: 100),
               SizedBox(height: isDesktop ? 0 : 16),
               Text(
-                "Restore options",
+                context.l10n.restoreOptionsTitle,
                 textAlign: TextAlign.center,
                 style: isDesktop
                     ? STextStyles.desktopH2(context)
@@ -562,7 +563,7 @@ class _SeedRestoreOptionState extends ConsumerState<SeedRestoreOption> {
             widget.coin is Mimblewimblecoin)
           SizedBox(height: Util.isDesktop ? 24 : 16),
         Text(
-          "Choose recovery phrase length",
+          context.l10n.restoreChooseLength,
           style: Util.isDesktop
               ? STextStyles.desktopTextExtraSmall(context).copyWith(
                   color: Theme.of(context).extension<StackColors>()!.textDark3,
@@ -580,7 +581,7 @@ class _SeedRestoreOptionState extends ConsumerState<SeedRestoreOption> {
                   (e) => DropdownMenuItem(
                     value: e,
                     child: Text(
-                      "$e words",
+                      context.l10n.restoreWordCount(e),
                       style: STextStyles.desktopTextMedium(context),
                     ),
                   ),
@@ -651,7 +652,7 @@ class _SeedRestoreOptionState extends ConsumerState<SeedRestoreOption> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Advanced",
+                      context.l10n.restoreAdvanced,
                       style: Util.isDesktop
                           ? STextStyles.desktopTextExtraExtraSmall(
                               context,
@@ -702,7 +703,7 @@ class _SeedRestoreOptionState extends ConsumerState<SeedRestoreOption> {
                           standardInputDecoration(
                             widget.coin is CryptonoteCurrency
                                 ? "Seed Offset"
-                                : "BIP39 passphrase",
+                                : context.l10n.addWalletBip39Passphrase,
                             widget.pwFocusNode,
                             context,
                           ).copyWith(
@@ -751,9 +752,7 @@ class _SeedRestoreOptionState extends ConsumerState<SeedRestoreOption> {
                                   "wallet from the given mnemonic, allowing recovery "
                                   "of a hidden or alternate wallet based on the same "
                                   "seed phrase."
-                            : "If the recovery phrase you are about to restore "
-                                  "was created with an optional BIP39 passphrase "
-                                  "you can enter it here.",
+                            : context.l10n.restorePassphraseInfo,
                         style: Util.isDesktop
                             ? STextStyles.desktopTextExtraSmall(
                                 context,

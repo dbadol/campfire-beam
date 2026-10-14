@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tuple/tuple.dart';
 
+import '../l10n/l10n.dart';
 import '../notifications/show_flush_bar.dart';
 import '../pages/settings_views/global_settings_view/manage_nodes_views/add_edit_node_view.dart';
 import '../pages/settings_views/global_settings_view/manage_nodes_views/node_details_view.dart';
@@ -165,7 +166,7 @@ class _NodeCardState extends ConsumerState<NodeCard> {
                   children: [
                     const SizedBox(width: 66),
                     CustomTextButton(
-                      text: "Connect",
+                      text: context.l10n.sharedNodeConnect,
                       enabled: _status == "Disconnected",
                       onTap: () async {
                         final TorPlainNetworkOption netOption;
@@ -209,7 +210,7 @@ class _NodeCardState extends ConsumerState<NodeCard> {
 
                           if (!canConnect) {
                             final message = ethResult == null
-                                ? "Could not connect to node"
+                                ? context.l10n.sharedNodeCouldNotConnect
                                 : ethNodeTestMessage(ethResult, _node.host);
                             if (context.mounted) {
                               unawaited(
@@ -238,7 +239,7 @@ class _NodeCardState extends ConsumerState<NodeCard> {
                     ),
                     const SizedBox(width: 48),
                     CustomTextButton(
-                      text: "Details",
+                      text: context.l10n.sharedNodeDetails,
                       onTap: () {
                         Navigator.of(context).pushNamed(
                           NodeDetailsView.routeName,
@@ -300,7 +301,9 @@ class _NodeCardState extends ConsumerState<NodeCard> {
                       // "Disconnected" read as broken for nodes that are
                       // just not chosen.
                       widget.coin is Beam || widget.coin is Ethereum
-                          ? (_status == "Connected" ? "In use" : "Not in use")
+                          ? (_status == "Connected"
+                                ? context.l10n.sharedNodeInUse
+                                : context.l10n.sharedNodeNotInUse)
                           : _status,
                       style: STextStyles.label(context),
                     ),

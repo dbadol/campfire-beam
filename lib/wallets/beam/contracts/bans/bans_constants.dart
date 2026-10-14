@@ -37,11 +37,11 @@ const String kBansShaderName = 'bans_app.wasm';
 const String kBansShaderAsset = 'assets/beam/shaders/$kBansShaderName';
 
 /// BEAM's Anon-Vault app shader: `bvm/Shaders/vault_anon/app.wasm` at tag
-/// `beam-7.5.14493` (git blob 3befada9, the same bytes on master). The web
-/// wallet builds payments to a name with it (`role=user,action=send_anon`,
-/// the owner key it checked passed as `pkOwner`), so the BANS shader never
-/// re-reads the owner while building (audit D-1). Pinned here so both apps
-/// pin the same bytes (pwa/tools/shader_check.mjs); this app does not use it.
+/// `beam-7.5.14493` (git blob 3befada9, the same bytes on master). Both apps
+/// build payments to a name with it (`role=user,action=send_anon`, the owner
+/// key they checked passed as `pkOwner`), so the BANS shader never re-reads
+/// the owner from the node while building (audit D-1). Both apps pin the same
+/// bytes (pwa/tools/shader_check.mjs).
 const String kVaultAnonShaderSha256 =
     '25eb5a8d6156c02810f6bf2eae31c43d5ed25a83a029dd714204b687d92a9422';
 
@@ -50,6 +50,20 @@ const int kVaultAnonShaderSize = 15969;
 
 /// The Anon-Vault app shader's file name under `assets/beam/shaders/`.
 const String kVaultAnonShaderName = 'vault_anon_app.wasm';
+
+/// BEAM's Anon-Vault: where every payment to a name goes (`vault` in BANS
+/// `view_params`, fixed since BANS was created). The node answers
+/// `view_params` without proof, so a different vault is refused (audit D-1).
+const String kBansVaultCid =
+    'a3385e50cf33afc9f769ee1d82d56b73046d680d343977f36d9a303d7bcdc4da';
+
+/// The pinned Anon-Vault app shader, read from [source].
+PinnedShader vaultAnonAppShader(ShaderSource source) => PinnedShader(
+  name: kVaultAnonShaderName,
+  sha256: kVaultAnonShaderSha256,
+  size: kVaultAnonShaderSize,
+  source: source,
+);
 
 /// The pinned BANS app shader, read from [source].
 PinnedShader bansAppShader(ShaderSource source) => PinnedShader(

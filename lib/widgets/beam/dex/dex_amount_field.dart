@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/constants.dart';
@@ -145,7 +146,7 @@ class DexAmountField extends StatelessWidget {
                         ),
                       ] else
                         Text(
-                          'Choose',
+                          context.l10n.dexChoose,
                           style: STextStyles.smallMed14(context)
                               .copyWith(color: colors.textDark),
                         ),

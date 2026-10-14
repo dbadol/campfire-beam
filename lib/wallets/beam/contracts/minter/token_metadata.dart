@@ -11,6 +11,8 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import '../../../../l10n/l10n.dart';
+
 /// Which field of a [BeamTokenMetadata] is wrong, and how.
 enum TokenMetadataField {
   name,
@@ -27,12 +29,19 @@ enum TokenMetadataField {
 }
 
 class TokenMetadataException implements Exception {
-  const TokenMetadataException(this.field, this.message);
+  const TokenMetadataException(this.field, this.message, {this.tickerMessage});
 
   final TokenMetadataField field;
 
-  /// Plain English the UI can show next to the field.
+  /// Plain words the UI can show next to the field, in the app's language.
   final String message;
+
+  /// [message] with the short name called "Ticker", as the Create a token
+  /// screen labels that field; null when [message] does not name it.
+  final String? tickerMessage;
+
+  /// [tickerMessage], or [message] when it does not name the short name.
+  String get asTicker => tickerMessage ?? message;
 
   @override
   String toString() => 'TokenMetadataException(${field.name}): $message';
@@ -141,9 +150,9 @@ class BeamTokenMetadata {
         'STD:${[for (final f in fields.entries)
           if (f.value != null) '${f.key}=${f.value}'].join(';')}';
     if (utf8.encode(s).length > maxEncodedBytes) {
-      throw const TokenMetadataException(
+      throw TokenMetadataException(
         TokenMetadataField.whole,
-        'The token details are too long in total.',
+        appL10n.minterMetaTooLongTotal,
       );
     }
     return s;
@@ -158,24 +167,13 @@ class BeamTokenMetadata {
   static final _forbidden = RegExp(r'[;"\\\x00-\x1f\x7f]');
 
   void _validate() {
-    _standard(name, maxNameLength, TokenMetadataField.name, 'Name');
-    _standard(
-      shortName,
-      maxShortNameLength,
-      TokenMetadataField.shortName,
-      'Short name',
-    );
-    _standard(
-      unitName,
-      maxUnitNameLength,
-      TokenMetadataField.unitName,
-      'Unit name',
-    );
+    _standard(name, maxNameLength, TokenMetadataField.name);
+    _standard(shortName, maxShortNameLength, TokenMetadataField.shortName);
+    _standard(unitName, maxUnitNameLength, TokenMetadataField.unitName);
     _standard(
       nthUnitName,
       maxNthUnitNameLength,
       TokenMetadataField.nthUnitName,
-      'Smallest unit name',
     );
     _text(
       shortDescription,
@@ -189,9 +187,9 @@ class BeamTokenMetadata {
     );
     final c = color;
     if (c != null && !_color.hasMatch(c)) {
-      throw const TokenMetadataException(
+      throw TokenMetadataException(
         TokenMetadataField.color,
-        'Use a colour like #25C2A0.',
+        appL10n.minterMetaColor,
       );
     }
     _link(siteUrl, TokenMetadataField.siteUrl);
@@ -199,44 +197,32 @@ class BeamTokenMetadata {
     _link(logoUrl, TokenMetadataField.logoUrl);
   }
 
-  static void _standard(
-    String v,
-    int max,
-    TokenMetadataField field,
-    String label,
-  ) {
-    if (v.isEmpty || v.trim() != v) {
-      throw TokenMetadataException(
-        field,
-        '$label cannot be empty or start or end with a space.',
-      );
-    }
-    if (v.length > max) {
-      throw TokenMetadataException(
-        field,
-        '$label can be at most $max characters.',
-      );
-    }
-    if (!_standardChars.hasMatch(v)) {
-      throw TokenMetadataException(
-        field,
-        '$label can use English letters, digits, spaces and . , - _ only.',
-      );
-    }
+  /// [field] names itself in the messages (the `field` select of the
+  /// minterMeta* messages); the short name also gets its "Ticker" wording.
+  static void _standard(String v, int max, TokenMetadataField field) {
+    final l = appL10n;
+    TokenMetadataException fail(String Function(String field) say) =>
+        TokenMetadataException(
+          field,
+          say(field.name),
+          tickerMessage: field == TokenMetadataField.shortName
+              ? say('ticker')
+              : null,
+        );
+    if (v.isEmpty || v.trim() != v) throw fail(l.minterMetaEmpty);
+    if (v.length > max) throw fail((f) => l.minterMetaTooLong(f, max));
+    if (!_standardChars.hasMatch(v)) throw fail(l.minterMetaCharacters);
   }
 
   static void _text(String? v, int maxBytes, TokenMetadataField field) {
     if (v == null) return;
     if (v.isEmpty || _forbidden.hasMatch(v)) {
-      throw TokenMetadataException(
-        field,
-        'The description cannot be empty or contain ; " \\ or line breaks.',
-      );
+      throw TokenMetadataException(field, appL10n.minterMetaDescription);
     }
     if (utf8.encode(v).length > maxBytes) {
       throw TokenMetadataException(
         field,
-        'The description can be at most $maxBytes bytes.',
+        appL10n.minterMetaDescriptionTooLong(maxBytes),
       );
     }
   }
@@ -244,10 +230,7 @@ class BeamTokenMetadata {
   static void _link(String? v, TokenMetadataField field) {
     if (v == null) return;
     if (v.length > maxUrlLength || !_url.hasMatch(v)) {
-      throw TokenMetadataException(
-        field,
-        'Use a full link starting with https://, without spaces, ; " or \\.',
-      );
+      throw TokenMetadataException(field, appL10n.minterMetaLink);
     }
   }
 
@@ -266,5 +249,4 @@ class BeamTokenMetadata {
     }
     return out;
   }
-
 }

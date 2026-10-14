@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../notifications/notification_feed_entry_card.dart';
 import '../../providers/global/shopin_bit_service_provider.dart';
 import '../../providers/ui/notification_feed_provider.dart';
@@ -59,7 +60,10 @@ class _NotificationsViewState extends ConsumerState<NotificationsView> {
       child: Scaffold(
         backgroundColor: Theme.of(context).extension<StackColors>()!.background,
         appBar: AppBar(
-          title: Text("Notifications", style: STextStyles.navBarTitle(context)),
+          title: Text(
+            context.l10n.notificationsTitle,
+            style: STextStyles.navBarTitle(context),
+          ),
           leading: AppBarBackButton(
             onPressed: () async {
               Navigator.of(context).pop();
@@ -98,8 +102,7 @@ class _NotificationsViewState extends ConsumerState<NotificationsView> {
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                "Payments you receive while "
-                                "Campfire is open will appear here.",
+                                context.l10n.notificationsEmpty,
                                 style: STextStyles.itemSubtitle(context),
                               ),
                             ),

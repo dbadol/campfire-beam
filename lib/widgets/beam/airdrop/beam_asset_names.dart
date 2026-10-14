@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/api/beam_api.dart';
@@ -127,7 +128,7 @@ class BeamAssetTitle extends StatelessWidget {
     final notes = [
       if (subtitle != null) subtitle!,
       if (!display.verified && markUnverified)
-        'Not verified · ${display.idLabel}',
+        context.l10n.beamAssetNotVerified(display.idLabel),
     ];
     return Row(
       children: [
@@ -155,7 +156,10 @@ class BeamAssetTitle extends StatelessWidget {
                 ),
               if (copied != null)
                 Text(
-                  'Not the verified ${copied.symbol} (#${copied.id})',
+                  context.l10n.beamAssetNotTheVerified(
+                    copied.symbol,
+                    '${copied.id}',
+                  ),
                   style: STextStyles.label(context)
                       .copyWith(color: colors.textError),
                 ),
@@ -245,8 +249,9 @@ Future<int?> showBeamAssetPicker({
                   onPressed: () => Navigator.of(context).pop(a.assetId),
                   child: BeamAssetTitle(
                     display: names.display(a.assetId),
-                    subtitle:
-                        'You have ${names.amount(a.assetId, a.available)}',
+                    subtitle: context.l10n.beamAssetYouHave(
+                      names.amount(a.assetId, a.available),
+                    ),
                   ),
                 ),
               ),
@@ -254,11 +259,7 @@ Future<int?> showBeamAssetPicker({
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  hiddenCount == 1
-                      ? '1 asset you hid is not listed. Show it again from '
-                            'the asset list.'
-                      : '$hiddenCount assets you hid are not listed. Show '
-                            'them again from the asset list.',
+                  context.l10n.beamAssetPickerHidden(hiddenCount),
                   key: const ValueKey('beam-asset-picker-hidden'),
                   style: STextStyles.label(context),
                 ),

@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:tuple/tuple.dart';
 
 import '../../../db/isar/main_db.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../pages/settings_views/wallet_settings_view/wallet_network_settings_view/wallet_network_settings_view.dart';
 import '../../../providers/global/wallets_provider.dart';
@@ -217,7 +218,10 @@ void openBeamNodeSettings(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Network', style: STextStyles.desktopH3(context)),
+                      Text(
+                        context.l10n.receiveNetworkTitle,
+                        style: STextStyles.desktopH3(context),
+                      ),
                       DesktopDialogCloseButton(
                         onPressedOverride: Navigator.of(
                           context,

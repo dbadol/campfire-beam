@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../models/beam_utxo.dart';
 import 'beam_coins.dart';
 
@@ -55,54 +56,38 @@ abstract final class BeamSplitMessages {
   /// What the wallet's open money flows are, from their gate reasons.
   static String busy(Iterable<String> reasons) {
     final r = reasons.toSet();
+    final l = appL10n;
     final String what;
     if (r.any((x) => x.contains('swap'))) {
-      what = 'A swap is still being confirmed';
+      what = l.txSplitBusySwap;
     } else if (r.any((x) => x.contains('claim'))) {
-      what = 'Name payments are being claimed';
+      what = l.txSplitBusyClaim;
     } else if (r.any((x) => x.contains('dApp'))) {
-      what = 'A dApp is waiting for your approval';
+      what = l.txSplitBusyDapp;
     } else if (r.any((x) => x.contains('split'))) {
-      what = 'Another split is on its way';
+      what = l.txSplitBusySplit;
     } else {
-      what = 'A payment is being prepared or sent';
+      what = l.txSplitBusyPayment;
     }
-    return '$what. Splitting turns back on by itself once it is done, '
-        'usually within a few minutes.';
+    return joinSentences([what, l.txSplitResumesSoon]);
   }
 
-  static const scanning =
-      'Campfire is still looking for this wallet\'s coins after the restore. '
-      'Splitting turns on by itself once the scan is done; the wallet home '
-      'shows how far it is.';
+  static String get scanning => appL10n.txSplitScanning;
 
-  static const poolShare =
-      'Pool shares are not split: they go back to their pool as a whole.';
+  static String get poolShare => appL10n.txSplitPoolShare;
 
-  static const notPrepared =
-      'This split was not prepared. Go back and review it again.';
+  static String get notPrepared => appL10n.txSplitNotPrepared;
 
-  static const tooLittle =
-      'There is not enough here to split: each new coin has to be worth more '
-      'than the 0.001 BEAM a payment costs.';
+  static String get tooLittle => appL10n.txSplitTooLittle;
 
-  static String changed() =>
-      'Your coins changed since this split was prepared. Go back and review '
-      'it again.';
+  static String changed() => appL10n.txSplitChanged;
 
   static String needBeamForFee(BigInt fee, BigInt beam) =>
-      'Splitting costs a ${_beam(fee)} network fee, paid in BEAM, and this '
-      'wallet has ${_beam(beam)} available. Add at least '
-      '${_beam(fee - beam)} first.';
+      appL10n.txSplitNeedBeam(_beam(fee), _beam(beam), _beam(fee - beam));
 
-  static const outcomeUnknown =
-      "The connection dropped while splitting, so it's not certain whether "
-      'the split started. Check your transaction history before trying '
-      'again.';
+  static String get outcomeUnknown => appL10n.txSplitOutcomeUnknown;
 
-  static const alreadyHandedOff =
-      'This split was already handed to the wallet. Check your transaction '
-      'history before trying again.';
+  static String get alreadyHandedOff => appL10n.txSplitAlreadyHandedOff;
 
   /// "0.005 BEAM": trailing zeros dropped, at least one decimal place.
   static String _beam(BigInt groth) {

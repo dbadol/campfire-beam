@@ -86,6 +86,34 @@ found="$(find "$APP" -type f \( -name wallet-api -o -name beam-node -o -name bea
 # Nothing from this machine (account name, home path) may ship in the app.
 check_no_account_name "$APP"
 
+# 4. It starts. The app runs once from a fresh, empty home (CFFIXED_USER_HOME
+# moves ~/Library, where its data lives, so the wallets of an installed copy
+# are never opened) and must still be running, with no unhandled exception,
+# after 30 s. 1.3.0's first trial build passed every test and opened as a
+# black window: BEAM's themes crashed startup while being stored.
+# CFB_SKIP_START_CHECK=1 skips it (a machine with no screen).
+if [[ "${CFB_SKIP_START_CHECK:-}" != 1 ]]; then
+  start_home="$(mktemp -d)"
+  start_log="$start_home/start.log"
+  CFFIXED_USER_HOME="$start_home" "$EXE" >"$start_log" 2>&1 &
+  start_pid=$!
+  start_ok=1
+  for _ in $(seq 30); do
+    sleep 1
+    if ! kill -0 "$start_pid" 2>/dev/null; then start_ok=0; break; fi
+    if grep -q "Unhandled Exception" "$start_log"; then start_ok=0; break; fi
+  done
+  kill "$start_pid" 2>/dev/null || true; sleep 2; kill -9 "$start_pid" 2>/dev/null || true
+  if [[ $start_ok != 1 ]]; then
+    grep -m1 -A8 "Unhandled Exception" "$start_log" >&2 || tail -20 "$start_log" >&2
+    die "the app did not start cleanly from an empty home (log above)"
+  fi
+  [[ -d "$start_home/Library/campfirebeam" ]] \
+    || die "the start check's app did not use its empty home; refusing to trust it"
+  rm -rf "$start_home"
+  log "the app starts from an empty home: running after 30 s, no unhandled exception"
+fi
+
 mkdir -p "$OUT_DIR" dist && rm -rf dist/stage && mkdir dist/stage
 cp -R "$APP" dist/stage/ && ln -s /Applications dist/stage/Applications
 DMG="$OUT_DIR/BEAM-Campfire-${VERSION}-${BUILD}-macos-arm64${SUFFIX}.dmg"

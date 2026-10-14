@@ -11,6 +11,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/logger.dart';
 import 'beam_connection_exception.dart';
 import 'beam_transport.dart';
@@ -85,7 +86,7 @@ class TcpLineTransport implements BeamTransport {
   Future<void> connect() {
     if (_closed) {
       return Future.error(
-        const BeamConnectionException('transport is closed'),
+        BeamConnectionException(appL10n.nodeRpcTransportIsClosed),
       );
     }
     if (_socket != null) return Future.value();
@@ -101,11 +102,11 @@ class TcpLineTransport implements BeamTransport {
         timeout: connectTimeout,
       );
     } on SocketException catch (e) {
-      throw BeamConnectionException('cannot connect to wallet-api', e);
+      throw BeamConnectionException(appL10n.nodeRpcCannotConnect, e);
     }
     if (_closed) {
       socket.destroy();
-      throw const BeamConnectionException('transport is closed');
+      throw BeamConnectionException(appL10n.nodeRpcTransportIsClosed);
     }
     socket.setOption(SocketOption.tcpNoDelay, true);
     // Write-side failures surface through _write and the read side's
@@ -135,7 +136,9 @@ class TcpLineTransport implements BeamTransport {
     if (socket == null) {
       return Future.error(
         BeamConnectionException(
-          _closed ? 'transport is closed' : 'not connected',
+          _closed
+              ? appL10n.nodeRpcTransportIsClosed
+              : appL10n.nodeRpcNotConnected,
         ),
       );
     }
@@ -168,7 +171,7 @@ class TcpLineTransport implements BeamTransport {
 
     unawaited(
       _write(socket, bytes).catchError((Object e) {
-        _fail(id, BeamConnectionException('write failed', e));
+        _fail(id, BeamConnectionException(appL10n.nodeRpcWriteFailed, e));
       }),
     );
     return pending.completer.future;
@@ -179,7 +182,7 @@ class TcpLineTransport implements BeamTransport {
   Future<void> _write(Socket socket, List<int> bytes) {
     final done = _writeTail.then((_) async {
       if (!identical(socket, _socket)) {
-        throw const BeamConnectionException('connection dropped');
+        throw BeamConnectionException(appL10n.nodeRpcConnectionDropped);
       }
       socket.add(bytes);
       await socket.flush();
@@ -270,7 +273,7 @@ class TcpLineTransport implements BeamTransport {
       'beam rpc: connection lost'
       '${error == null ? '' : ' (${error.runtimeType})'}',
     );
-    _failAll(BeamConnectionException('connection to wallet-api lost', error));
+    _failAll(BeamConnectionException(appL10n.nodeRpcConnectionLost, error));
     onDisconnected?.call(error);
   }
 
@@ -282,7 +285,7 @@ class TcpLineTransport implements BeamTransport {
     _socket = null;
     final lines = _lines;
     _lines = null;
-    _failAll(const BeamConnectionException('transport closed'));
+    _failAll(BeamConnectionException(appL10n.nodeRpcTransportClosed));
     await lines?.cancel();
     socket?.destroy();
     await _events.close();

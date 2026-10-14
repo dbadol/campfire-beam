@@ -28,6 +28,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
@@ -61,7 +62,7 @@ class BeamBackButton extends StatelessWidget {
           ? const EdgeInsets.symmetric(vertical: 20, horizontal: 24)
           : const EdgeInsets.all(10),
       child: AppBarIconButton(
-        semanticsLabel: 'Back Button. Takes Back To Previous Page.',
+        semanticsLabel: context.l10n.sendBackButtonLabel,
         size: desktop ? 40 : 32,
         color: desktop ? c.textFieldDefaultBG : c.background,
         icon: SvgPicture.asset(
@@ -118,13 +119,13 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
     super.dispose();
   }
 
-  Future<void> _copy(String text, String what) async {
+  Future<void> _copy(String text, String message) async {
     await widget.clipboard.setData(ClipboardData(text: text));
     if (mounted) {
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.info,
-          message: '$what copied',
+          message: message,
           iconAsset: Assets.svg.copy,
           context: context,
         ),
@@ -146,7 +147,9 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
               const BeamBackButton(desktop: true),
               Expanded(
                 child: Text(
-                  'Confirm ${BeamSendFormat.symbol(r.asset)} transaction',
+                  context.l10n.sendConfirmTitleDesktop(
+                    BeamSendFormat.symbol(r.asset),
+                  ),
                   style: STextStyles.desktopH3(context),
                 ),
               ),
@@ -175,7 +178,7 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
           backgroundColor: c.background,
           leading: const BeamBackButton(desktop: false),
           title: Text(
-            'Confirm transaction',
+            context.l10n.sendConfirmTitle,
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -203,31 +206,31 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
   // ---------------------------------------------------------------- body
 
   Widget _details(BuildContext context) {
+    final l10n = context.l10n;
     final rows = <Widget>[
       _recipient(context),
       _row(
         context,
-        label: 'Amount',
+        label: l10n.sendAmountLabel,
         value: BeamSendFormat.amount(r.amount, r.asset),
         valueKey: const Key('beamConfirmAmount'),
       ),
       _assetRow(context),
       _row(
         context,
-        label: 'Network fee',
+        label: l10n.beamNetworkFee,
         value: BeamSendFormat.beam(r.fee),
         valueKey: const Key('beamConfirmFee'),
-        note: r.isName
-            ? 'Read from the payment your wallet built. Paying a name costs '
-                  'more than paying an address.'
-            : null,
+        note: r.isName ? l10n.sendConfirmNameFeeNote : null,
       ),
       if (r.comment.isNotEmpty)
         _row(
           context,
-          label: 'Comment',
+          label: l10n.sendCommentLabel,
           value: r.comment,
-          note: r.isName ? 'Only you see this.' : 'The receiver sees this too.',
+          note: r.isName
+              ? l10n.sendCommentOnlyYou
+              : l10n.sendCommentReceiverSees,
         ),
     ];
     return Column(
@@ -236,7 +239,7 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
       children: [
         if (!_desktop) ...[
           Text(
-            'Send ${BeamSendFormat.symbol(r.asset)}',
+            l10n.sendConfirmHeading(BeamSendFormat.symbol(r.asset)),
             style: STextStyles.pageTitleH1(context),
           ),
           const SizedBox(height: 12),
@@ -311,7 +314,7 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
         children: [
           Row(
             children: [
-              Text('Asset', style: _labelStyle(context)),
+              Text(context.l10n.sendAssetLabel, style: _labelStyle(context)),
               const Spacer(),
               BeamAssetIcon(r.asset, size: 18),
               const SizedBox(width: 6),
@@ -339,12 +342,13 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
 
   Widget _recipient(BuildContext context) {
     final c = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     if (r.isName) {
       return _box(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Send to', style: _labelStyle(context)),
+            Text(l10n.sendToLabel, style: _labelStyle(context)),
             const SizedBox(height: 4),
             Text(
               r.destination,
@@ -355,35 +359,27 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
             ),
             const SizedBox(height: 4),
             SelectableText(
-              'Owner key ${r.ownerFingerprint}',
+              l10n.sendNameOwnerKey('${r.ownerFingerprint}'),
               key: const Key('beamConfirmOwner'),
               style: STextStyles.label(context),
             ),
             const SizedBox(height: 8),
             Text(
-              'Anonymous name payment: the amount is visible on the '
-              'blockchain, the recipient is not. The name is checked once '
-              'more right before sending, and nothing is sent if its owner '
-              'changed.',
+              l10n.sendConfirmNameAnonymous,
               style: STextStyles.label(context).copyWith(color: c.textDark3),
             ),
             if (r.nameOnHold) ...[
               const SizedBox(height: 8),
-              const BeamNotice(
+              BeamNotice(
                 kind: BeamNoticeKind.warning,
-                message:
-                    'This name has lapsed. Payments still reach its owner '
-                    'for now, but it may pass to someone else if they '
-                    "don't renew it.",
+                message: l10n.sendConfirmNameLapsed,
               ),
             ],
             if (r.nameListed && !r.nameOnHold) ...[
               const SizedBox(height: 8),
-              const BeamNotice(
+              BeamNotice(
                 kind: BeamNoticeKind.warning,
-                message:
-                    'This name is listed for sale. It may change owner '
-                    'before your payment arrives.',
+                message: l10n.sendNameListedForSale,
               ),
             ],
           ],
@@ -400,7 +396,7 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Send to', style: _labelStyle(context)),
+          Text(l10n.sendToLabel, style: _labelStyle(context)),
           const SizedBox(height: 4),
           Row(
             children: [
@@ -413,8 +409,9 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
               ),
               IconButton(
                 key: const Key('beamConfirmCopyAddress'),
-                tooltip: 'Copy the full address',
-                onPressed: () => _copy(r.destination, 'Address'),
+                tooltip: l10n.sendCopyFullAddress,
+                onPressed: () =>
+                    _copy(r.destination, l10n.sendConfirmAddressCopied),
                 icon: SvgPicture.asset(
                   Assets.svg.copy,
                   width: 16,
@@ -429,10 +426,7 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
           ),
           if (how != null)
             Text(
-              regular
-                  ? "Regular BEAM address. The receiver's wallet must be "
-                        'online to accept this payment.'
-                  : how,
+              regular ? l10n.sendConfirmRegularAddress : how,
               key: const Key('beamConfirmAddressType'),
               style: STextStyles.label(context),
             ),
@@ -466,7 +460,9 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _desktop ? 'Total amount to send' : 'Total',
+                _desktop
+                    ? context.l10n.sendTotalAmount
+                    : context.l10n.sendTotal,
                 style: totalStyle,
               ),
               const SizedBox(width: 12),
@@ -486,7 +482,7 @@ class _BeamConfirmContentState extends State<BeamConfirmContent> {
           BeamNotice(
             kind: BeamNoticeKind.warning,
             title: syncMessage.title,
-            message: syncMessage.detail ?? "Sending is paused until it's done.",
+            message: syncMessage.detail ?? context.l10n.sendSyncPaused,
           ),
         ],
         SizedBox(height: _desktop ? 28 : 16),

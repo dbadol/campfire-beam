@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/pinpad_views/lock_screen_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/desktop_auth_send.dart';
 import '../../../utilities/util.dart';
@@ -55,9 +56,9 @@ Future<bool?> campfireNamesAuthGate(
         popOnSuccess: true,
         routeOnSuccessArguments: true,
         routeOnSuccess: "",
-        biometricsCancelButtonString: "CANCEL",
+        biometricsCancelButtonString: context.l10n.beamAuthCancel,
         biometricsLocalizedReason: reason,
-        biometricsAuthenticationTitle: "Confirm transaction",
+        biometricsAuthenticationTitle: context.l10n.beamAuthTitle,
       ),
       settings: const RouteSettings(name: "/beamNamesConfirmLockscreen"),
     ),

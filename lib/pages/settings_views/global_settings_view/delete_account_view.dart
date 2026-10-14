@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../db/hive/db.dart';
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../utilities/util.dart';
@@ -41,7 +42,7 @@ class _DeleteAccountViewState extends State<DeleteAccountView> {
       barrierDismissible: true,
       context: context,
       builder: (_) => StackDialog(
-        title: "Are you sure you want to delete all Wallets?",
+        title: context.l10n.settingsDeleteAllWalletsQuestion,
         leftButton: TextButton(
           style: Theme.of(context)
               .extension<StackColors>()!
@@ -50,7 +51,7 @@ class _DeleteAccountViewState extends State<DeleteAccountView> {
             Navigator.pop(context);
           },
           child: Text(
-            "Cancel",
+            context.l10n.commonCancel,
             style: STextStyles.button(context).copyWith(
               color:
                   Theme.of(context).extension<StackColors>()!.accentColorDark,
@@ -72,7 +73,7 @@ class _DeleteAccountViewState extends State<DeleteAccountView> {
             }
           },
           child: Text(
-            "Delete",
+            context.l10n.settingsDelete,
             style: STextStyles.button(context),
           ),
         ),
@@ -101,7 +102,7 @@ class _DeleteAccountViewState extends State<DeleteAccountView> {
                 },
               ),
               title: Text(
-                "Delete account",
+                context.l10n.settingsDeleteAccount,
                 style: STextStyles.navBarTitle(context),
               ),
             ),
@@ -111,13 +112,13 @@ class _DeleteAccountViewState extends State<DeleteAccountView> {
           children: [
             RoundedWhiteContainer(
               child: Text(
-                "There is no account to delete, but Apple requires that we have a way to 'delete accounts' in the app and will reject our app updates if we don't, so here it is. Clicking this will delete all app data (not from our servers, because we never had it in the first place).\n\nWhen you click confirm, all app data will be deleted, including wallets and preferences, and you will be taken back to the very first onboarding screen. BE SURE TO BACKUP ALL SEEDS!!\n\nAre you sure you want to delete your \"account\"?",
+                context.l10n.settingsDeleteAccountExplanation,
                 style: STextStyles.smallMed12(context),
               ),
             ),
             const Spacer(),
             PrimaryButton(
-              label: "Confirm",
+              label: context.l10n.settingsConfirm,
               onPressed: onConfirmDeleteAccount,
             ),
           ],

@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/logger.dart';
 import '../../../wallets/beam/contracts/bans/bans_inbox_monitor.dart';
 import '../../../wallets/beam/node/beam_private_node_coordinator.dart';
@@ -102,7 +103,7 @@ class BeamHomeController extends ChangeNotifier {
   String? get sendPausedReason => _canSpend && _problem == null
       ? null
       : BeamHomeText.sendPaused(assessment: _assessment, problem: _problem) ??
-            'Sending is paused for a moment.';
+            appL10n.homeSendingPausedMoment;
 
   /// Starts listening. Safe to call more than once.
   void start() {

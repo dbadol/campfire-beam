@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/assets.dart';
 import '../../utilities/text_styles.dart';
@@ -199,7 +200,7 @@ class _WalletNavigationBarState extends ConsumerState<WalletNavigationBar> {
                                           ),
                                           overrideText: AnimatedCrossFade(
                                             firstChild: Text(
-                                              "More",
+                                              context.l10n.walletViewMore,
                                               style:
                                                   STextStyles.buttonSmall(context)
                                                       .copyWith(
@@ -209,7 +210,7 @@ class _WalletNavigationBarState extends ConsumerState<WalletNavigationBar> {
                                               ),
                                             ),
                                             secondChild: Text(
-                                              "More",
+                                              context.l10n.walletViewMore,
                                               style:
                                                   STextStyles.buttonSmall(context)
                                                       .copyWith(

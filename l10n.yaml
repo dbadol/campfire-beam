@@ -1,0 +1,18 @@
+# App text in several languages: Flutter's gen-l10n (flutter_localizations + intl).
+#
+# lib/l10n/app_en.arb is the source: every user-visible English sentence of
+# the BEAM screens and the shell a BEAM user goes through, each with an
+# "@key" description saying where it appears and what it means. The other
+# ARB files hold translations; a key missing there shows the English text.
+# Never put an empty string in a translation file: it would show as blank.
+# Guarded by test/beam/l10n/. Code is generated into lib/l10n/generated/
+# (not committed) by `flutter pub get` / `flutter gen-l10n`.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: true
+required-resource-attributes: true
+preferred-supported-locales: [en]
+untranslated-messages-file: build/l10n_untranslated.json

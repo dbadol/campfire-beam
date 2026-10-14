@@ -37,6 +37,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/utxo/beam_coin_split.dart';
@@ -231,7 +232,7 @@ class _BeamSplitViewState extends State<BeamSplitView> {
           BeamHeldAsset(id, coins[id]?.availableTotal ?? BigInt.zero),
       ],
       names: _names,
-      title: 'Which coins to split',
+      title: context.l10n.splitPickAssetTitle,
     );
     if (picked != null && mounted) {
       setState(() {
@@ -285,14 +286,15 @@ class _BeamSplitViewState extends State<BeamSplitView> {
 
   static BeamProblem _explain(Object e) {
     final w = beamWalletExceptionFrom(e);
+    final l = appL10n;
     final title = switch (w.problem) {
-      BeamWalletProblem.walletBusy => 'Another payment is still open',
-      BeamWalletProblem.scanningForCoins => 'Still looking for your coins',
-      BeamWalletProblem.notSynced => 'Not up to date yet',
-      BeamWalletProblem.insufficientFunds => 'Your coins changed',
-      BeamWalletProblem.sendOutcomeUnknown => 'Not sure the split started',
-      BeamWalletProblem.notOpen => 'Still connecting',
-      _ => 'The coins were not split',
+      BeamWalletProblem.walletBusy => l.splitProblemBusy,
+      BeamWalletProblem.scanningForCoins => l.splitProblemScanning,
+      BeamWalletProblem.notSynced => l.splitProblemNotSynced,
+      BeamWalletProblem.insufficientFunds => l.splitProblemCoinsChanged,
+      BeamWalletProblem.sendOutcomeUnknown => l.splitProblemMaybeStarted,
+      BeamWalletProblem.notOpen => l.splitProblemConnecting,
+      _ => l.splitProblemNotSplit,
     };
     return BeamProblem(title, w.message);
   }
@@ -328,13 +330,13 @@ class _BeamSplitViewState extends State<BeamSplitView> {
                   kind: BeamNoticeKind.danger,
                   title: _loadProblem!.title,
                   message: _loadProblem!.message,
-                  actionLabel: 'Try again',
+                  actionLabel: context.l10n.commonTryAgain,
                   onAction: _load,
                 ),
                 const BeamGap(),
               ],
               if (_coins == null && _loadProblem == null)
-                const BeamWorking('Reading your coins…'),
+                BeamWorking(context.l10n.splitReadingCoins),
               if (_coins != null) ..._form(context, plan),
               if (_problem != null) ...[
                 const BeamGap(),
@@ -351,7 +353,7 @@ class _BeamSplitViewState extends State<BeamSplitView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              BeamSyncNotice(sync: sync, what: 'Splitting'),
+              BeamSyncNotice(sync: sync, action: BeamPausedAction.splitting),
               if (sync.canSpend && blocked != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -367,7 +369,7 @@ class _BeamSplitViewState extends State<BeamSplitView> {
                     ? BeamSplitText.title
                     : BeamSplitText.cta(plan.count),
                 busy: _preparing,
-                busyLabel: 'Checking your coins…',
+                busyLabel: context.l10n.splitChecking,
                 onPressed: ready ? _review : null,
               ),
             ],
@@ -410,8 +412,9 @@ class _BeamSplitViewState extends State<BeamSplitView> {
     final many = _choices.length > 1;
     final issue = _fundsIssue;
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     return [
-      const BeamLabel('Now'),
+      BeamLabel(l10n.splitNowLabel),
       RoundedWhiteContainer(
         key: const ValueKey('split-asset'),
         onPressed: many ? _pickAsset : null,
@@ -444,12 +447,12 @@ class _BeamSplitViewState extends State<BeamSplitView> {
           kind: BeamNoticeKind.info,
           message: issue,
           // Never a dead end: more BEAM is one tap away.
-          actionLabel: _b.addFunds == null ? null : 'Receive BEAM',
+          actionLabel: _b.addFunds == null ? null : l10n.splitReceiveBeam,
           onAction: _b.addFunds,
         ),
       if (plan != null) ...[
         if (issue != null) const BeamGap(16),
-        const BeamLabel(BeamSplitText.countLabel),
+        BeamLabel(BeamSplitText.countLabel),
         DexChoiceChips<int>(
           values: _counts,
           labelOf: (n) => '$n',
@@ -461,22 +464,22 @@ class _BeamSplitViewState extends State<BeamSplitView> {
           }),
         ),
         const BeamGap(16),
-        const BeamLabel('After'),
+        BeamLabel(l10n.splitAfterLabel),
         BeamDetailCard(
           children: [
             BeamDetailRow(
-              label: 'You will have',
+              label: l10n.splitYouWillHave,
               value: BeamSplitText.newCoins(plan, symbol),
               valueKey: const ValueKey('split-new-coins'),
             ),
             BeamDetailRow(
-              label: 'Network fee',
+              label: l10n.beamNetworkFee,
               value: BeamSplitText.fee(plan),
               valueKey: const ValueKey('split-fee'),
             ),
             if (plan.change > BigInt.zero)
               BeamDetailRow(
-                label: 'Stays as change',
+                label: l10n.splitChangeLabel,
                 value: BeamUnits.withSymbol(plan.change, symbol),
                 valueKey: const ValueKey('split-change'),
               ),
@@ -491,7 +494,7 @@ class _BeamSplitViewState extends State<BeamSplitView> {
           alignment: Alignment.centerLeft,
           child: CustomTextButton(
             key: const ValueKey('split-see-coins'),
-            text: 'See each coin',
+            text: l10n.splitSeeEachCoin,
             onTap: () => showBeamCoinList(
               context: context,
               coins: coins,
@@ -537,7 +540,7 @@ class _BeamSplitViewState extends State<BeamSplitView> {
       ),
       bottom: BeamCtaBar(
         primaryKey: const ValueKey('split-done-cta'),
-        label: 'Done',
+        label: context.l10n.commonDone,
         onPressed: () => Navigator.of(context).maybePop(),
       ),
     );

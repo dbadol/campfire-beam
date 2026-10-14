@@ -121,7 +121,7 @@ class _SWDatePickerState extends State<_SWDatePicker> {
                       child: child,
                     ),
                     child: SecondaryButton(
-                      label: "Cancel",
+                      label: context.l10n.commonCancel,
                       buttonHeight: Util.isDesktop ? ButtonHeight.m : null,
                       onPressed: () {
                         setState(
@@ -157,7 +157,7 @@ class _SWDatePickerState extends State<_SWDatePicker> {
                     ),
                     child: PrimaryButton(
                       buttonHeight: Util.isDesktop ? ButtonHeight.m : null,
-                      label: "Ok",
+                      label: context.l10n.sharedOk,
                       onPressed: () {
                         setState(
                           () {

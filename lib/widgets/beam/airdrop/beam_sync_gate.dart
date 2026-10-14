@@ -10,6 +10,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/sync/beam_sync_messages.dart';
 import '../../../wallets/beam/sync/beam_sync_state.dart';
 import 'beam_blocks.dart';
@@ -35,29 +36,43 @@ class BeamSyncGate extends StatelessWidget {
 /// up to date: what is happening and that the button waits for it. Empty
 /// when spending is allowed.
 class BeamSyncNotice extends StatelessWidget {
-  const BeamSyncNotice({super.key, required this.sync, required this.what});
+  const BeamSyncNotice({super.key, required this.sync, required this.action});
 
   final BeamSyncAssessment sync;
 
-  /// What is paused, e.g. "Claiming".
-  final String what;
+  /// What is paused, e.g. claiming.
+  final BeamPausedAction action;
 
   @override
   Widget build(BuildContext context) {
     if (sync.canSpend) return const SizedBox.shrink();
+    final l10n = context.l10n;
     final m = BeamSyncMessages.describe(sync);
     final waiting = sync is BeamSyncConnecting || sync is BeamSyncCatchingUp;
     final when = waiting
-        ? '$what turns back on by itself once the wallet is up to date.'
-        : '$what stays off until this is fixed.';
+        ? l10n.beamPausedResumesBySelf(action.name)
+        : l10n.beamPausedStaysOff(action.name);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: BeamNotice(
         key: const ValueKey('beam-sync-notice'),
         kind: waiting ? BeamNoticeKind.info : BeamNoticeKind.warning,
         title: m.title,
-        message: m.detail == null ? when : '${m.detail} $when',
+        message: joinSentences([m.detail, when], l10n),
       ),
     );
   }
+}
+
+/// The money action a [BeamSyncNotice] says is paused. Each has its own
+/// whole sentences in the catalogue (beamPausedResumesBySelf,
+/// beamPausedStaysOff), selected by [name].
+enum BeamPausedAction {
+  splitting,
+  minting,
+  creatingToken,
+  burning,
+  creatingCodes,
+  takingBack,
+  claiming,
 }

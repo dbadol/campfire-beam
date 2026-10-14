@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/text_styles.dart';
@@ -87,9 +88,7 @@ class BeamPageScaffold extends StatelessWidget {
       : ShaderMask(
           blendMode: BlendMode.dstIn,
           shaderCallback: (rect) {
-            final solid = rect.height <= _fade
-                ? 0.0
-                : 1 - _fade / rect.height;
+            final solid = rect.height <= _fade ? 0.0 : 1 - _fade / rect.height;
             return LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -118,7 +117,7 @@ class BeamPageScaffold extends StatelessWidget {
                   size: 32,
                   color: colors.textFieldDefaultBG,
                   shadows: const [],
-                  semanticsLabel: 'Back',
+                  semanticsLabel: context.l10n.beamBack,
                   icon: SvgPicture.asset(
                     Assets.svg.arrowLeft,
                     width: 18,
@@ -184,7 +183,7 @@ class BeamPageScaffold extends StatelessWidget {
               size: 32,
               color: colors.background,
               shadows: const [],
-              semanticsLabel: 'Back',
+              semanticsLabel: context.l10n.beamBack,
               icon: SvgPicture.asset(
                 Assets.svg.arrowLeft,
                 width: 24,

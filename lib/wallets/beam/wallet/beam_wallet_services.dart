@@ -12,7 +12,10 @@ import 'dart:async';
 import '../../wallet/impl/beam_wallet.dart';
 import '../api/beam_api.dart';
 import '../contracts/airdrop/airdrop_constants.dart';
+import '../contracts/airdrop/airdrop_v3_constants.dart';
 import '../contracts/airdrop/beam_airdrop_service.dart';
+import '../contracts/airdrop/beam_airdrop_v3_service.dart';
+import '../contracts/airdrop/beam_airdrops.dart';
 import '../contracts/airdrop/voucher_code_store.dart';
 import '../contracts/bans/bans_inbox_monitor.dart';
 import '../contracts/bans/bans_service.dart';
@@ -86,14 +89,19 @@ class BeamWalletServices {
   /// * The first store wins. A wallet's codes live in one place, so a later
   ///   (different) store never replaces it: that could hide saved codes, the
   ///   only key to locked funds.
-  /// * An [airdrop] service built before any store was given (one that
-  ///   could only claim, never create) is replaced by one with the store. A
-  ///   screen still holding the old one can claim with it as before.
+  /// * Airdrop services built before any store was given (ones that could
+  ///   only claim, never create) are replaced by ones with the store. A
+  ///   screen still holding the old ones can claim with them as before, and
+  ///   they share the same one-transaction-at-a-time lock.
   void attachVoucherStore(VoucherCodeStore store) {
     if (_voucherStore != null) return;
     _voucherStore = store;
     final built = _airdrop;
     if (built != null && built.store == null) _airdrop = null;
+    final v3 = _airdropV3;
+    if (v3 != null && v3.store == null) _airdropV3 = null;
+    final both = _airdrops;
+    if (both != null && both.store == null) _airdrops = null;
   }
 
   late final BeamApi api = BeamApi(transport);
@@ -110,15 +118,34 @@ class BeamWalletServices {
 
   late final BansInboxMonitor bansInbox = BansInboxMonitor(bans.inbox);
 
-  BeamAirdropService? _airdrop;
+  /// One airdrop transaction at a time, across both airdrop contracts.
+  final AirdropFlowLock _airdropLock = AirdropFlowLock();
 
-  /// Creating batches needs the app's secure voucher store, given through
-  /// [of] or [attachVoucherStore] before this is read; claiming does not.
+  BeamAirdropService? _airdrop;
+  BeamAirdropV3Service? _airdropV3;
+  BeamAirdrops? _airdrops;
+
+  /// The old airdrop contract (codes made before Airdrop v3). Creating
+  /// batches needs the app's secure voucher store, given through [of] or
+  /// [attachVoucherStore] before this is read; claiming does not.
   BeamAirdropService get airdrop => _airdrop ??= BeamAirdropService(
     api,
     airdropAppShader(_shaders),
     store: _voucherStore,
+    lock: _airdropLock,
   );
+
+  /// Airdrop v3, where every new batch is made.
+  BeamAirdropV3Service get airdropV3 => _airdropV3 ??= BeamAirdropV3Service(
+    api,
+    airdropV3AppShader(_shaders),
+    store: _voucherStore,
+    lock: _airdropLock,
+  );
+
+  /// Both airdrop contracts as the screens use them.
+  BeamAirdrops get airdrops =>
+      _airdrops ??= BeamAirdrops(old: airdrop, v3: airdropV3);
 
   late final BeamMinterService minter = BeamMinterService(
     api,

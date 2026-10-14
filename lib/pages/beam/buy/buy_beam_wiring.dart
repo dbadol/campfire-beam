@@ -32,9 +32,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app_config.dart';
 import '../../../db/isar/main_db.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
-import '../../../models/isar/models/blockchain_data/transaction.dart'
-    show TransactionType;
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/prefs.dart';
@@ -138,7 +137,7 @@ BuyBeamDeps buyBeamDepsFor(
       return api.createAddress(
         type: BeamAddressType.regular,
         expiration: BeamAddressExpiration.never,
-        comment: 'Buy BEAM',
+        comment: appL10n.buyAddressComment,
       );
     },
     refundAddressFor: (asset) async {
@@ -158,13 +157,10 @@ BuyBeamDeps buyBeamDepsFor(
         return null;
       }
     },
-    receivedInWallet: (txId) async {
-      final tx = await _walletTx(wallet, txId);
-      // Received and confirmed (a pending one has no height yet).
-      return tx != null &&
-          tx.type == TransactionType.incoming &&
-          tx.height != null;
-    },
+    // Received and confirmed (a pending one has no height yet), with the
+    // address and the amount: the screen checks they are the buy's.
+    receivedInWallet: (txId) async =>
+        BuyBeamReceipt.of(await _walletTx(wallet, txId)),
     onWantWbeam: (context, ref) =>
         unawaited(openWbeamBuy(context, ref, closeFirst: desktop)),
     onOpenTransaction: (context, txId) =>
@@ -239,7 +235,7 @@ Future<void> openBuyBeamFromAnywhere(
     return;
   }
   if (wallet == null) {
-    final id = await _pickWallet(context, 'Which BEAM wallet?', [
+    final id = await _pickWallet(context, context.l10n.buyPickBeamWallet, [
       for (final w in ctx.wallets) (id: w.walletId, name: w.info.name),
     ]);
     if (id == null || !context.mounted) return;
@@ -272,7 +268,7 @@ Future<void> openWbeamBuy(
       ? eths.single
       : eths.where((w) => w.walletId == chosen).firstOrNull;
   if (wallet == null) {
-    final id = await _pickWallet(context, 'Which Ethereum wallet?', [
+    final id = await _pickWallet(context, context.l10n.buyPickEthWallet, [
       for (final w in eths) (id: w.walletId, name: w.info.name),
     ]);
     if (id == null || !context.mounted) return;

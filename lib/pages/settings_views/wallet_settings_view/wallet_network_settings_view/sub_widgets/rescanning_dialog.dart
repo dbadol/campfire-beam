@@ -9,6 +9,7 @@
  */
 
 import 'package:flutter/material.dart';
+import '../../../../../l10n/l10n.dart';
 import '../../../../../utilities/util.dart';
 import '../../../../../widgets/animated_widgets/rotating_arrows.dart';
 import '../../../../../widgets/conditional_parent.dart';
@@ -74,9 +75,9 @@ class _RescanningDialogState extends State<RescanningDialog>
           maxWidth: 500,
           child: child,
         ),
-        child: const StackDialog(
-          title: "Rescanning blockchain",
-          message: "This may take a while. Please do not exit this screen.",
+        child: StackDialog(
+          title: context.l10n.walletSettingsRescanning,
+          message: context.l10n.walletSettingsRescanningMessage,
           icon: RotatingArrows(
             width: 24,
             height: 24,

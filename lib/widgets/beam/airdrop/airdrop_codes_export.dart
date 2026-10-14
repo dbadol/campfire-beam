@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/host/secret_file.dart';
 import 'beam_layout.dart';
 
@@ -65,7 +66,7 @@ class CampfireAirdropCodesExporter implements AirdropCodesExporter {
     if (BeamLayoutScope.isDesktop(context)) {
       final home = Platform.environment['HOME'];
       final path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save airdrop codes',
+        dialogTitle: context.l10n.airdropExportSaveDialogTitle,
         fileName: fileName,
         initialDirectory: home != null && Directory(home).existsSync()
             ? home

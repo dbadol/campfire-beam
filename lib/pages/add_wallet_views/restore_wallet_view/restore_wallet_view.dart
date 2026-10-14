@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../pages_desktop_specific/desktop_home_view.dart';
 import '../../../pages_desktop_specific/desktop_menu.dart'
@@ -113,7 +114,7 @@ class RestoreWalletView extends ConsumerStatefulWidget {
     await showLoading(
       whileFuture: load,
       context: nav.context,
-      message: "Opening ${wallet.info.name}",
+      message: appL10n.restoreOpeningWallet(wallet.info.name),
     );
     if (!nav.mounted) return;
     unawaited(nav.pushNamed(WalletView.routeName, arguments: wallet.walletId));
@@ -312,7 +313,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.warning,
-            message: "Invalid seed phrase!",
+            message: context.l10n.restoreInvalidPhrase,
             context: context,
           ),
         );
@@ -783,7 +784,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                     aspectRatio: 1,
                     child: AppBarIconButton(
                       semanticsLabel:
-                          "View QR Code Button. Opens Camera To Scan QR Code For Restoring Wallet.",
+                          context.l10n.restoreScanQrSemantics,
                       key: const Key("restoreWalletViewQrCodeButton"),
                       size: 36,
                       shadows: const [],
@@ -811,7 +812,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                     aspectRatio: 1,
                     child: AppBarIconButton(
                       semanticsLabel:
-                          "Paste Button. Pastes From Clipboard For Restoring Wallet.",
+                          context.l10n.restorePasteSemantics,
                       key: const Key("restoreWalletPasteButton"),
                       size: 36,
                       shadows: const [],
@@ -850,14 +851,14 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                   ),
                 SizedBox(height: isDesktop ? 0 : 4),
                 Text(
-                  "Recovery phrase",
+                  context.l10n.restorePhraseTitle,
                   style: isDesktop
                       ? STextStyles.desktopH2(context)
                       : STextStyles.pageTitleH1(context),
                 ),
                 SizedBox(height: isDesktop ? 16 : 8),
                 Text(
-                  "Enter your $_seedWordCount-word recovery phrase.",
+                  context.l10n.restoreEnterPhrase(_seedWordCount),
                   style: isDesktop
                       ? STextStyles.desktopSubtitleH2(context)
                       : STextStyles.subtitle(context),
@@ -886,7 +887,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                "Paste",
+                                context.l10n.restorePaste,
                                 style:
                                     STextStyles.desktopButtonSmallSecondaryEnabled(
                                       context,
@@ -1025,7 +1026,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                                                             bottom: 4.0,
                                                           ),
                                                       child: Text(
-                                                        "Please check spelling",
+                                                        context.l10n.restoreCheckSpelling,
                                                         textAlign:
                                                             TextAlign.left,
                                                         style:
@@ -1149,7 +1150,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                                                             bottom: 4.0,
                                                           ),
                                                       child: Text(
-                                                        "Please check spelling",
+                                                        context.l10n.restoreCheckSpelling,
                                                         textAlign:
                                                             TextAlign.left,
                                                         style:
@@ -1190,7 +1191,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                             ),
                             const SizedBox(height: 32),
                             PrimaryButton(
-                              label: "Restore wallet",
+                              label: context.l10n.addWalletRestoreButton,
                               width: 480,
                               onPressed: requestRestore,
                             ),
@@ -1280,7 +1281,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                                         bottom: 4.0,
                                       ),
                                       child: Text(
-                                        "Please check spelling",
+                                        context.l10n.restoreCheckSpelling,
                                         textAlign: TextAlign.left,
                                         style: STextStyles.label(context)
                                             .copyWith(
@@ -1297,7 +1298,7 @@ class _RestoreWalletViewState extends ConsumerState<RestoreWalletView> {
                             padding: const EdgeInsets.only(top: 8.0),
                             child: PrimaryButton(
                               onPressed: requestRestore,
-                              label: "Restore",
+                              label: context.l10n.restoreAction,
                             ),
                           ),
                         ],

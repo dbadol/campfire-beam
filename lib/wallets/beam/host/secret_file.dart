@@ -12,6 +12,7 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
+import '../../../l10n/l10n.dart';
 import 'beam_host_exception.dart';
 
 /// Name prefix of every transient secret file and scratch directory.
@@ -148,24 +149,27 @@ Future<File> createPrivateFile(String path) async {
 /// would let a value inject further options. The message names [key] only.
 void checkConfigValue(String key, String value) {
   if (value.isEmpty) {
-    throw BeamHostException(BeamHostError.invalidInput, '"$key" is empty');
+    throw BeamHostException(
+      BeamHostError.invalidInput,
+      appL10n.nodeHostSettingEmpty(key),
+    );
   }
   if (value.contains('#')) {
     throw BeamHostException(
       BeamHostError.invalidInput,
-      '"$key" contains "#", which BEAM reads as the start of a comment',
+      appL10n.nodeHostSettingHasHash(key),
     );
   }
   if (value.contains(RegExp(r'[\x00-\x1f\x7f]'))) {
     throw BeamHostException(
       BeamHostError.invalidInput,
-      '"$key" contains a line break or another control character',
+      appL10n.nodeHostSettingHasControlCharacter(key),
     );
   }
   if (value != value.trim()) {
     throw BeamHostException(
       BeamHostError.invalidInput,
-      '"$key" begins or ends with whitespace, which BEAM trims',
+      appL10n.nodeHostSettingHasOuterWhitespace(key),
     );
   }
 }

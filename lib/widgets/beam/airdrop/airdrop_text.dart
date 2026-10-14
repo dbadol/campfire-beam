@@ -9,6 +9,7 @@
 
 import 'dart:async';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/airdrop/airdrop.dart';
 import '../../../wallets/beam/rpc/beam_connection_exception.dart';
 import '../../../wallets/beam/rpc/beam_transport.dart';
@@ -23,108 +24,130 @@ class BeamProblem {
 }
 
 /// Problems every contract screen shares: the core or the network.
-BeamProblem? beamTransportProblem(Object error) => switch (error) {
-  BeamConnectionException() || TimeoutException() => const BeamProblem(
-    "Couldn't reach the wallet",
-    'The wallet did not answer in time. Check your connection, then try '
-        'again.',
-  ),
-  BeamRpcException(:final message) => BeamProblem(
-    'The wallet refused this',
-    message.isEmpty
-        ? 'Nothing was sent. Try again in a moment.'
-        : 'Nothing was sent. The wallet said: "$message". Try again in a '
-              'moment.',
-  ),
-  _ => null,
-};
+BeamProblem? beamTransportProblem(Object error) {
+  final l = appL10n;
+  return switch (error) {
+    BeamConnectionException() || TimeoutException() => BeamProblem(
+      l.beamProblemNoAnswerTitle,
+      l.beamProblemNoAnswerMessage,
+    ),
+    BeamRpcException(:final message) => BeamProblem(
+      l.beamProblemRefusedTitle,
+      message.isEmpty
+          ? l.beamProblemRefusedMessage
+          : l.beamProblemRefusedWithReason(message),
+    ),
+    _ => null,
+  };
+}
 
 /// What a voucher code is, said where codes are made and claimed.
 ///
-/// The live Airdrop contract redeems with the code itself (the preimage of
+/// The old Airdrop contract redeems with the code itself (the preimage of
 /// the hash it stores), so a claim carries the code in a transaction that
 /// the network sees before it is in a block. Anyone watching could take the
 /// code and claim the voucher first. Campfire cannot change that contract;
-/// it says so, so codes are used for amounts where that risk is acceptable.
+/// it says so where its codes are claimed ([claimMessage]).
+///
+/// Airdrop v3, where every new code is made, signs a claim with a key made
+/// from the code, so the code never reaches the network and a copied claim
+/// pays only its claimer. The code itself still works like cash, and its
+/// maker can take it back until a claim is confirmed ([createMessageV3],
+/// [claimMessageV3]; the web wallet's `BEARER_TEXT_V3`, word for word).
 abstract final class AirdropBearerText {
-  static const createTitle = 'Codes work like cash';
+  static String get createTitle => appL10n.airdropBearerCreateTitle;
 
-  static const createMessage =
-      'Anyone who has a code can claim it. Claiming also shows the code to '
-      'the network before it is confirmed, so someone watching could claim '
-      'it first. Use codes for small amounts, and give each one to one '
-      'person.';
+  static String get createMessageV3 => appL10n.airdropBearerCreateMessageV3;
 
-  static const claimMessage =
-      'Claiming shows this code to the network before it is confirmed, so '
-      'someone watching could claim it first. That is how this airdrop '
-      'contract works; codes are meant for small amounts.';
+  static String get claimMessageV3 => appL10n.airdropBearerClaimMessageV3;
+
+  static String get claimMessage => appL10n.airdropBearerClaimMessage;
 }
 
 /// The airdrop's refusals in plain words.
 BeamProblem airdropProblem(Object error) {
   final t = beamTransportProblem(error);
   if (t != null) return t;
+  final l = appL10n;
   if (error is! BeamAirdropException) {
-    return const BeamProblem(
-      'Something went wrong on our side',
-      'Nothing was sent. Try again; if it keeps happening, restart the '
-          'wallet.',
-    );
+    return BeamProblem(l.beamProblemOurSideTitle, l.beamProblemOurSideMessage);
   }
   return switch (error.code) {
-    AirdropErrorCode.invalidCode => const BeamProblem(
-      "That isn't a voucher code",
-      'Codes are 16 letters and digits, like ABCD-EFGH-JKLM-NPQR. Paste '
-          'the whole code you were given.',
+    AirdropErrorCode.invalidCode => BeamProblem(
+      l.airdropErrInvalidCodeTitle,
+      l.airdropErrInvalidCodeMessage,
     ),
-    AirdropErrorCode.voucherNotFound => const BeamProblem(
-      'No voucher has this code',
-      'Check it letter by letter: codes never use I, O, 0 or 1. If it '
-          'still fails, ask the sender: the code may have been cancelled.',
+    AirdropErrorCode.voucherNotFound => BeamProblem(
+      l.airdropErrNotFoundTitle,
+      l.airdropErrNotFoundMessage,
     ),
-    AirdropErrorCode.alreadyRedeemed => const BeamProblem(
-      'This voucher was already claimed',
-      'Each code works once. Ask the sender for a new one.',
+    AirdropErrorCode.alreadyRedeemed => BeamProblem(
+      l.airdropErrAlreadyClaimedTitle,
+      l.airdropErrAlreadyClaimedMessage,
     ),
-    AirdropErrorCode.busy => const BeamProblem(
-      'Another airdrop action is still open',
-      'Finish or close it, then try again.',
+    AirdropErrorCode.busy => BeamProblem(
+      l.airdropErrBusyTitle,
+      l.airdropErrBusyMessage,
     ),
-    AirdropErrorCode.codesNotSaved => const BeamProblem(
-      "The codes couldn't be saved on this device",
-      'So nothing was sent and nothing was locked. Free up some space or '
-          'restart the wallet, then try again.',
+    AirdropErrorCode.codesNotSaved => BeamProblem(
+      l.airdropErrCodesNotSavedTitle,
+      l.airdropErrCodesNotSavedMessage,
     ),
-    AirdropErrorCode.unexpectedTransaction => const BeamProblem(
-      'Stopped for your safety',
-      'The wallet built a different transaction than the one you asked '
-          'for, so nothing was sent. Try again; if it repeats, update the '
-          'app.',
+    AirdropErrorCode.unexpectedTransaction => BeamProblem(
+      l.beamProblemUnexpectedTxTitle,
+      l.beamProblemUnexpectedTxMessage,
     ),
-    AirdropErrorCode.expired ||
-    AirdropErrorCode.alreadyExecuted => const BeamProblem(
-      'This confirmation is out of date',
-      'Nothing new was sent. Go back and start again.',
+    AirdropErrorCode.expired || AirdropErrorCode.alreadyExecuted => BeamProblem(
+      l.beamProblemOutOfDateTitle,
+      l.beamProblemOutOfDateMessage,
     ),
-    AirdropErrorCode.walletNotSynced => const BeamProblem(
-      'The wallet is still catching up',
-      'Try again once it is up to date.',
+    AirdropErrorCode.walletNotSynced => BeamProblem(
+      l.beamProblemNotSyncedTitle,
+      l.beamProblemNotSyncedMessage,
     ),
     AirdropErrorCode.batchNotFound ||
-    AirdropErrorCode.nothingToCancel => const BeamProblem(
-      'Nothing left to take back',
-      'Every code of this batch was already claimed or cancelled.',
+    AirdropErrorCode.nothingToCancel => BeamProblem(
+      l.airdropErrNothingToCancelTitle,
+      l.airdropErrNothingToCancelMessage,
     ),
-    AirdropErrorCode.stillHoldsFunds => const BeamProblem(
-      'These codes can still unlock funds',
-      'So they stay saved. Cancel the unclaimed codes first, or wait until '
-          'the batch has settled on the network.',
+    AirdropErrorCode.stillHoldsFunds => BeamProblem(
+      l.airdropErrStillHoldsFundsTitle,
+      l.airdropErrStillHoldsFundsMessage,
     ),
-    AirdropErrorCode.contractNotFound => const BeamProblem(
-      "The airdrop contract didn't answer",
-      'The wallet may be on the wrong network. Check the node in Settings.',
+    AirdropErrorCode.contractNotFound => BeamProblem(
+      l.airdropErrContractNotFoundTitle,
+      l.airdropErrContractNotFoundMessage,
     ),
-    _ => BeamProblem('The airdrop refused this', error.message),
+    AirdropErrorCode.paused => BeamProblem(
+      l.airdropErrPausedTitle,
+      l.airdropErrPausedMessage,
+    ),
+    AirdropErrorCode.changed => BeamProblem(
+      l.airdropErrChangedTitle,
+      l.airdropErrChangedMessage,
+    ),
+    AirdropErrorCode.notBatchCreator => BeamProblem(
+      l.airdropErrNotBatchCreatorTitle,
+      l.airdropErrNotBatchCreatorMessage,
+    ),
+    AirdropErrorCode.notAcknowledged => BeamProblem(
+      l.airdropClaimOldContractTitle,
+      l.airdropClaimOldContractMessage,
+    ),
+    _ => BeamProblem(l.airdropErrRefusedTitle, error.message),
+  };
+}
+
+/// Why a new batch's codes failed the check before sharing, in plain words
+/// (the screen adds what to do next).
+String airdropCheckProblemText(AirdropCheckProblem? p) {
+  final l = appL10n;
+  return switch (p) {
+    AirdropCheckProblem.notFound => l.airdropCheckProblemNotFound,
+    AirdropCheckProblem.otherKey => l.airdropCheckProblemOtherKey,
+    AirdropCheckProblem.otherValue => l.airdropCheckProblemOtherValue,
+    AirdropCheckProblem.otherBatch => l.airdropCheckProblemOtherBatch,
+    AirdropCheckProblem.notMine => l.airdropCheckProblemNotMine,
+    null => l.airdropCheckProblemUnknown,
   };
 }

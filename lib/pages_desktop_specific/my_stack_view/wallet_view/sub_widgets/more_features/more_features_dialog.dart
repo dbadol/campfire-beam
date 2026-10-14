@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../../db/sqlite/firo_cache.dart';
+import '../../../../../l10n/l10n.dart';
 import '../../../../../providers/providers.dart';
 import '../../../../../themes/stack_colors.dart';
 import '../../../../../themes/theme_providers.dart';
@@ -345,7 +346,7 @@ class _MoreFeaturesDialogState extends ConsumerState<MoreFeaturesDialog> {
               Padding(
                 padding: const EdgeInsets.only(left: 32),
                 child: Text(
-                  "More features",
+                  context.l10n.walletViewMoreFeatures,
                   style: STextStyles.desktopH3(context),
                 ),
               ),

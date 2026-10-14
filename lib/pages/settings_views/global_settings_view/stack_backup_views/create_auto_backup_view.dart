@@ -20,6 +20,7 @@ import 'package:stack_wallet_backup/stack_wallet_backup.dart';
 import 'package:zxcvbn/zxcvbn.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/prefs_provider.dart';
 import '../../../../providers/global/secure_store_provider.dart';
 import '../../../../providers/global/wallets_provider.dart';
@@ -67,7 +68,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
   final zxcvbn = Zxcvbn();
 
   String passwordFeedback =
-      "Add another word or two. Uncommon words are better. Use a few words, avoid common phrases. No need for symbols, digits, or uppercase letters.";
+      appL10n.appBackupPassphraseAdvice;
 
   bool shouldShowPasswordHint = true;
 
@@ -136,8 +137,8 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
           return fileToSavePath;
         }(),
         context: context,
-        message: "Encrypting initial backup",
-        subMessage: "This shouldn't take long",
+        message: appL10n.appBackupEncryptingInitial,
+        subMessage: appL10n.appBackupShouldNotTakeLong,
         delay: const Duration(seconds: 1),
         onException: (e) => ex = e,
       );
@@ -156,7 +157,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
             context: context,
             barrierDismissible: false,
             builder: (_) => StackOkDialog(
-              title: "${AppConfig.prefix} Auto Backup enabled and saved to:",
+              title: appL10n.appBackupAutoEnabledSavedTo(AppConfig.prefix),
               message: [savedPath, ?notice].join("\n\n"),
             ),
           );
@@ -172,7 +173,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
             context: context,
             barrierDismissible: false,
             builder: (_) => StackOkDialog(
-              title: "Failed to enable Auto Backup",
+              title: appL10n.appBackupEnableFailed,
               message: ex?.toString(),
             ),
           );
@@ -232,7 +233,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
             },
           ),
           title: Text(
-            "Create Auto Backup",
+            context.l10n.appBackupCreateAutoTitlePhone,
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -251,7 +252,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            "Create your backup file",
+                            context.l10n.appBackupCreateYourFile,
                             style: STextStyles.smallMed12(context),
                           ),
                           const SizedBox(height: 10),
@@ -286,7 +287,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
                               controller: fileLocationController,
                               style: STextStyles.field(context),
                               decoration: InputDecoration(
-                                hintText: "Save to...",
+                                hintText: context.l10n.appBackupSaveTo,
                                 hintStyle: STextStyles.fieldLabel(context),
                                 suffixIcon: UnconstrainedBox(
                                   child: Row(
@@ -332,7 +333,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
                               autocorrect: false,
                               decoration:
                                   standardInputDecoration(
-                                    "Create passphrase",
+                                    context.l10n.appBackupCreatePassphraseHint,
                                     passwordFocusNode,
                                     context,
                                   ).copyWith(
@@ -470,7 +471,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
                               autocorrect: false,
                               decoration:
                                   standardInputDecoration(
-                                    "Confirm passphrase",
+                                    context.l10n.appBackupConfirmPassphrase,
                                     passwordRepeatFocusNode,
                                     context,
                                   ).copyWith(
@@ -511,7 +512,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
                           ),
                           const SizedBox(height: 32),
                           Text(
-                            "Auto Backup frequency",
+                            context.l10n.appBackupFrequencyLabel,
                             style: STextStyles.smallMed12(context),
                           ),
                           const SizedBox(height: 10),
@@ -604,7 +605,7 @@ class _EnableAutoBackupViewState extends ConsumerState<CreateAutoBackupView> {
                                 ? null
                                 : _createEnableAutoBackup,
                             child: Text(
-                              "Enable Auto Backup",
+                              context.l10n.appBackupEnableAutoTitle,
                               style: STextStyles.button(context),
                             ),
                           ),

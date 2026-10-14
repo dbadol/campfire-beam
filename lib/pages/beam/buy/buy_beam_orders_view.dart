@@ -20,6 +20,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/buy/buybeam_controller.dart';
 import '../../../widgets/beam/dex/dex_widgets.dart';
 import 'buy_beam_deps.dart';
@@ -68,9 +69,10 @@ class _BuyBeamOrdersViewState extends State<BuyBeamOrdersView> {
     final all = c.orders(beamWalletId: widget.deps.walletId);
     final open = all.where((o) => o.isOpen).toList();
     final ended = all.where((o) => !o.isOpen).toList();
+    final l10n = context.l10n;
     return DexPage(
       deps: widget.deps,
-      title: 'Your buys',
+      title: l10n.buyYourBuys,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -78,11 +80,9 @@ class _BuyBeamOrdersViewState extends State<BuyBeamOrdersView> {
           if (all.isEmpty)
             DexNotice(
               key: const Key('buy-orders-empty'),
-              title: 'No buys yet',
-              detail:
-                  'Pay with Bitcoin, Ether, USDT or another coin, and the '
-                  'BEAM arrives in ${widget.deps.walletName}.',
-              actionLabel: 'Buy BEAM',
+              title: l10n.buyNoBuysTitle,
+              detail: l10n.buyNoBuysDetail(widget.deps.walletName),
+              actionLabel: l10n.buyBeamButton,
               onAction: () => Navigator.of(context).pop(),
             ),
           for (final o in [...open, ...ended]) ...[

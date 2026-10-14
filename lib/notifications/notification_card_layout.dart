@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../themes/stack_colors.dart';
 import '../utilities/text_styles.dart';
 import '../utilities/util.dart';
@@ -61,7 +62,7 @@ class NotificationCardLayout extends StatelessWidget {
                         Expanded(child: Text(title, style: titleStyle)),
                         if (isDesktop && !read)
                           Text(
-                            "New",
+                            context.l10n.notificationsNew,
                             style: STextStyles.desktopTextExtraExtraSmall(
                               context,
                             ).copyWith(color: colors.accentColorGreen),

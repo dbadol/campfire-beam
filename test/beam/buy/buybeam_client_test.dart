@@ -44,6 +44,7 @@ Future<BuyBeamOrderAnswer> _order(
   String beam = kFakeBeamAddress,
 }) => c.order(
   assetId: kBtcId,
+  blockchain: 'btc',
   amount: _amount(amount, 8),
   beamAddress: beam,
   refundAddress: kFakeBtcRefund,
@@ -220,6 +221,7 @@ void main() {
         );
         await c.order(
           assetId: kBtcId,
+          blockchain: 'btc',
           amount: _amount('0.0123', 8),
           beamAddress: kFakeBeamAddress,
           refundAddress: kFakeBtcRefund,
@@ -350,7 +352,7 @@ void main() {
         ..queue('/order', orderJson(created: false));
       final c = _client(s);
       final a = await _order(c);
-      expect(a.depositAddress, 'bc1qfake0deposit0address0000000000000000000');
+      expect(a.depositAddress, kFakeDeposit);
       expect(a.created, isTrue);
       expect(a.payable, isTrue);
       final again = await _order(c);
@@ -373,6 +375,114 @@ void main() {
         expect(e.code, BuyBeamErrorCode.unexpectedAnswer);
       });
     }
+
+    test("D-10: a deposit address that is not an address of the coin's "
+        'chain is never shown', () async {
+      final wrong = {
+        'an Ethereum address': '0x1111111111111111111111111111111111111111',
+        'a Tron address': 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
+        'a Litecoin address': 'ltc1qxyur73jd23dky6tswalgtrynn2s63takhkjszu',
+        'a Bitcoin testnet address':
+            'tb1q6rga95756htd0kxemtdaehw7mlswrchrv3jq65',
+        'one mistyped character': 'bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx3s',
+        'a payment link':
+            'bitcoin:bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx2s?amount=0.0123',
+        'words': 'pay to this address',
+        'spaces around it': ' bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx2s ',
+        'a very long text': 'bc1q${'q' * 200}',
+        'the old made-up fixture':
+            'bc1qfake0deposit0address0000000000000000000',
+      };
+      for (final MapEntry(key: what, value: deposit) in wrong.entries) {
+        final s = FakeBuyBeamServer()
+          ..queue('/order', orderJson(deposit: deposit));
+        final e = await _error(_order(_client(s)));
+        expect(e.code, BuyBeamErrorCode.wrongDepositAddress, reason: what);
+        expect(e.rawCode, 'wrong_deposit_address');
+      }
+      for (final deposit in const [
+        kFakeDeposit,
+        '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
+        'bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0',
+      ]) {
+        final s = FakeBuyBeamServer()
+          ..queue('/order', orderJson(deposit: deposit));
+        expect((await _order(_client(s))).depositAddress, deposit);
+      }
+    });
+
+    test(
+      "D-10: each chain's coin is held to its own chain's addresses",
+      () async {
+        Future<BuyBeamOrderAnswer> ask(
+          FakeBuyBeamServer s,
+          String assetId,
+          String chain,
+          String amount,
+          int decimals,
+        ) => _client(s).order(
+          assetId: assetId,
+          blockchain: chain,
+          amount: _amount(amount, decimals),
+          beamAddress: kFakeBeamAddress,
+          refundAddress: 'refund',
+        );
+        for (final (id, chain, amount, decimals, good, bad) in const [
+          (
+            kEthId,
+            'eth',
+            '0.5',
+            18,
+            '0x52908400098527886E0F7030069857D2E4169EE7',
+            // One letter in the wrong case: the EIP-55 checksum fails.
+            '0x52908400098527886E0F7030069857D2E4169Ee7',
+          ),
+          (
+            kUsdtTronId,
+            'tron',
+            '1024.07',
+            6,
+            'TETTVacV7wnLSGsyqjftsSfWLJtjypkVAq',
+            '0x52908400098527886E0F7030069857D2E4169EE7',
+          ),
+          (
+            'coin:ltc',
+            'ltc',
+            '20',
+            8,
+            'ltc1qxyur73jd23dky6tswalgtrynn2s63takhkjszu',
+            kFakeDeposit,
+          ),
+          (
+            'coin:zec',
+            'zec',
+            '1',
+            8,
+            't1NMrVretwYSysjsFBtqJV75HgBLWeUUdah',
+            // Bitcoin's P2PKH: Zcash's t-addresses carry two version bytes.
+            '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
+          ),
+          (
+            'coin:kaia',
+            'kaia',
+            '9000',
+            18,
+            '0x52908400098527886E0F7030069857D2E4169EE7',
+            'kaia:0x52908400098527886E0F7030069857D2E4169EE7',
+          ),
+        ]) {
+          final s = FakeBuyBeamServer()..depositAddress = good;
+          expect(
+            (await ask(s, id, chain, amount, decimals)).depositAddress,
+            good,
+            reason: chain,
+          );
+          s.depositAddress = bad;
+          final e = await _error(ask(s, id, chain, amount, decimals));
+          expect(e.code, BuyBeamErrorCode.wrongDepositAddress, reason: chain);
+        }
+      },
+    );
 
     test('sandbox: not payable, no raw figure, the same number', () async {
       final s = FakeBuyBeamServer()
@@ -518,9 +628,11 @@ void main() {
     });
 
     test('the JSON number is the decimal typed', () async {
-      final s = FakeBuyBeamServer();
+      final s = FakeBuyBeamServer()
+        ..depositAddress = 'TETTVacV7wnLSGsyqjftsSfWLJtjypkVAq';
       await _client(s).order(
         assetId: kUsdtTronId,
+        blockchain: 'tron',
         amount: _amount('1024.07', 6),
         beamAddress: kFakeBeamAddress,
         refundAddress: 'TFakeTronRefundAddress000000000000',

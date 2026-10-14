@@ -21,6 +21,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/burn/burn.dart';
 import '../../../wallets/beam/sync/beam_sync_state.dart';
 import '../../../widgets/beam/airdrop/beam_asset_names.dart';
@@ -87,7 +88,7 @@ class _BeamBurnConfirmViewState extends State<BeamBurnConfirmView>
     if (!_acknowledged) return;
     final tx = await runSend(
       authorize: widget.authorize,
-      reason: 'Burn $_what forever',
+      reason: context.l10n.minterBurnConfirmAuthReason(_what),
       send: () => widget.service.execute(
         widget.prepared,
         acknowledgedPermanentLoss: _acknowledged,
@@ -102,19 +103,17 @@ class _BeamBurnConfirmViewState extends State<BeamBurnConfirmView>
     sync: widget.sync,
     builder: (context, sync) {
       final spent = widget.prepared.isExecuted;
+      final l10n = context.l10n;
       return BeamPageScaffold(
-        title: 'Confirm burn',
+        title: l10n.minterBurnConfirmTitle,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             BeamNotice(
               key: const ValueKey('burn-warning'),
               kind: BeamNoticeKind.danger,
-              title: 'This destroys $_what forever',
-              message:
-                  'Nobody can undo it: not you, not the token creator, not '
-                  'us. The tokens are locked in a contract that has no way '
-                  'to give anything back.',
+              title: l10n.minterBurnConfirmWarningTitle(_what),
+              message: l10n.minterBurnConfirmWarningMessage,
             ),
             const BeamGap(),
             RoundedWhiteContainer(
@@ -126,12 +125,12 @@ class _BeamBurnConfirmViewState extends State<BeamBurnConfirmView>
             BeamDetailCard(
               children: [
                 BeamDetailRow(
-                  label: 'Destroyed for good',
+                  label: l10n.minterBurnConfirmDestroyed,
                   value: _what,
                   valueKey: const ValueKey('burn-amount-confirm'),
                 ),
                 BeamDetailRow(
-                  label: 'Network fee',
+                  label: l10n.beamNetworkFee,
                   value: BeamUnits.withSymbol(_s.networkFee, 'BEAM'),
                   valueKey: const ValueKey('burn-fee'),
                 ),
@@ -141,7 +140,7 @@ class _BeamBurnConfirmViewState extends State<BeamBurnConfirmView>
             BeamTextField(
               fieldKey: const ValueKey('burn-type-ticker'),
               controller: _typed,
-              label: 'Type $_word to confirm',
+              label: l10n.minterBurnConfirmType(_word),
               textCapitalization: TextCapitalization.characters,
               enabled: !sending && !spent,
               onChanged: (_) => setState(() {}),
@@ -161,18 +160,18 @@ class _BeamBurnConfirmViewState extends State<BeamBurnConfirmView>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            BeamSyncNotice(sync: sync, what: 'Burning'),
+            BeamSyncNotice(sync: sync, action: BeamPausedAction.burning),
             if (spent && problem != null)
               BeamCtaBar(
-                label: 'Back',
+                label: l10n.commonBack,
                 onPressed: () => Navigator.of(context).maybePop(),
               )
             else
               BeamCtaBar(
                 primaryKey: const ValueKey('burn-confirm-cta'),
-                label: 'Burn $_what forever',
+                label: l10n.minterBurnConfirmCta(_what),
                 busy: sending,
-                busyLabel: 'Burning…',
+                busyLabel: l10n.minterBurning,
                 onPressed: _acknowledged && sync.canSpend ? _confirm : null,
               ),
           ],

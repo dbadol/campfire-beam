@@ -265,7 +265,7 @@ void main() {
     test('core not installed: the plain message, no button to nowhere', () {
       final b = BeamHomeText.syncBanner(
         assessment: connecting,
-        problem: const BeamWalletException(
+        problem: BeamWalletException(
           BeamWalletProblem.coreNotInstalled,
           BeamWalletMessages.coreNotInstalled,
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../db/special_migrations.dart';
+import '../l10n/l10n.dart';
 import '../themes/stack_colors.dart';
 import '../utilities/text_styles.dart';
 import '../utilities/util.dart';
@@ -41,9 +42,7 @@ class CampfireMigrateView extends StatelessWidget {
                     ),
                     Expanded(
                       child: Text(
-                        "Your old Campfire wallets are listed below. "
-                        "If you would like to keep them then copy the mnemonics "
-                        "somewhere safe so you can restore them.",
+                        context.l10n.migrateIntro,
                         style: STextStyles.w600_12(context),
                       ),
                     ),
@@ -120,7 +119,7 @@ class _ContinueButtonGroupState extends State<_ContinueButtonGroup> {
           height: 10,
         ),
         CheckboxTextButton(
-          label: "I have saved all my mnemonics and double checked each one",
+          label: context.l10n.migrateSavedCheckbox,
           onChanged: (value) {
             setState(() {
               _checked = value;
@@ -132,7 +131,7 @@ class _ContinueButtonGroupState extends State<_ContinueButtonGroup> {
         ),
         PrimaryButton(
           enabled: _checked,
-          label: "Continue",
+          label: context.l10n.commonContinue,
           onPressed: () {
             CampfireMigration.setDidRun();
             // could do pushReplacementNamed but we won't show this again on next run anyways
@@ -179,7 +178,7 @@ class _CampfireWalletState extends State<_CampfireWallet> {
                 style: STextStyles.w500_14(context),
               ),
               CustomTextButton(
-                text: "Copy mnemonic",
+                text: context.l10n.migrateCopyMnemonic,
                 onTap: () => Clipboard.setData(
                   ClipboardData(
                     text: widget.mnemonic.join(" "),
@@ -199,7 +198,7 @@ class _CampfireWalletState extends State<_CampfireWallet> {
               : Padding(
                   padding: const EdgeInsets.all(16),
                   child: PrimaryButton(
-                    label: "Show mnemonic",
+                    label: context.l10n.migrateShowMnemonic,
                     onPressed: () => setState(() => _show = true),
                   ),
                 ),

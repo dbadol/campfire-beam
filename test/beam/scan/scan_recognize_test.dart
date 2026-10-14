@@ -59,9 +59,16 @@ void main() {
   });
 
   group('beam: links', () {
-    test('the amount is read as typed: a comma, spaces, a plus sign', () {
+    test('the amount is read as typed: spaces, a plus sign; never a comma',
+        () {
       for (final (q, amount) in [
-        ('amount=1,25', '1.25'),
+        // A comma is a thousands separator or a decimal comma, a
+        // thousandfold apart: refused, never 1 or 1.25.
+        ('amount=1,000', null),
+        ('amount=1,25', null),
+        ('amount=0,5', null),
+        ('amount=1%2C000', null),
+        ('amount=1,000.5', null),
         ('amount=1+000', '1000'),
         ('amount=.5', '0.5'),
         ('amount=1.00000000', '1'),

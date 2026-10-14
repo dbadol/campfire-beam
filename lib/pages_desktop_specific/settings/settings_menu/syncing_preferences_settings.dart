@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../pages/settings_views/global_settings_view/syncing_preferences_views/syncing_options_view.dart';
 import '../../../providers/global/prefs_provider.dart';
 import '../../../themes/stack_colors.dart';
@@ -38,11 +39,11 @@ class _SyncingPreferencesSettings
   String _currentTypeDescription(SyncingType type) {
     switch (type) {
       case SyncingType.currentWalletOnly:
-        return "Sync only currently open wallet";
+        return context.l10n.desktopSettingsSyncCurrentOnly;
       case SyncingType.selectedWalletsAtStartup:
-        return "Sync only selected wallets at startup";
+        return context.l10n.desktopSettingsSyncSelectedAtStartup;
       case SyncingType.allWalletsOnStartup:
-        return "Sync all wallets at startup";
+        return context.l10n.desktopSettingsSyncAllAtStartup;
     }
   }
 
@@ -111,12 +112,12 @@ class _SyncingPreferencesSettings
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text: "Syncing Preferences",
+                              text: context.l10n.desktopSettingsSyncTitle,
                               style: STextStyles.desktopTextSmall(context),
                             ),
                             TextSpan(
                               text:
-                                  "\n\nSet up your syncing preferences for all wallets in your ${AppConfig.prefix}.",
+                                  "\n\n${context.l10n.desktopSettingsSyncBody(AppConfig.prefix)}",
                               style: STextStyles.desktopTextExtraExtraSmall(
                                 context,
                               ),
@@ -145,7 +146,7 @@ class _SyncingPreferencesSettings
                                     width: 200,
                                     buttonHeight: ButtonHeight.m,
                                     enabled: true,
-                                    label: "Save",
+                                    label: context.l10n.desktopSettingsSyncSave,
                                     onPressed: () {
                                       setState(() {
                                         changePrefs = false;
@@ -162,7 +163,7 @@ class _SyncingPreferencesSettings
                                   width: 200,
                                   buttonHeight: ButtonHeight.m,
                                   enabled: true,
-                                  label: "Change preferences",
+                                  label: context.l10n.desktopSettingsSyncChange,
                                   onPressed: () {
                                     setState(() {
                                       changePrefs = true;

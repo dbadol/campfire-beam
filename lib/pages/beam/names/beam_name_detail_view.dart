@@ -27,6 +27,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/bans/bans_models.dart';
@@ -178,6 +179,7 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final st = NameStatusText.of(d, clock, _price);
     final pending = deps.pending.of(d.name);
     return NamesPage(
@@ -222,8 +224,8 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
               children: [
                 NamesDetailRow(
                   label: status == BansNameStatus.onHold || _pastHold
-                      ? 'Expired on'
-                      : 'Yours until',
+                      ? l10n.namesRowExpiredOn
+                      : l10n.namesRowYoursUntil,
                   value: '≈ ${_date(d.expireHeight)}',
                   valueKey: const Key('names-detail-expiry'),
                   sub: _showBlocks ? NamesFormat.block(d.expireHeight) : null,
@@ -231,13 +233,13 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
                 ),
                 if (status == BansNameStatus.onHold)
                   NamesDetailRow(
-                    label: 'Renew by',
+                    label: l10n.namesRowRenewBy,
                     value: '≈ ${_date(_holdEnd)}',
                     valueColor: colors.accentColorRed,
                   ),
                 if (d.salePrice != null)
                   NamesDetailRow(
-                    label: 'For sale at',
+                    label: l10n.namesRowForSaleAt,
                     value: _price(d.salePrice!),
                     valueKey: const Key('names-detail-price'),
                   ),
@@ -246,16 +248,12 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
           ),
           const SizedBox(height: 8),
           Text(
-            _pastHold
-                ? 'Its 90 days of grace are over, so anyone can register it '
-                      'now. Renew it to get it back first.'
-                : 'After it expires you have 90 days to renew it before '
-                      'anyone else can take it.',
+            _pastHold ? l10n.namesGraceOver : l10n.namesGraceInfo,
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.textSubtitle1),
           ),
           const SizedBox(height: 16),
-          const NamesSectionLabel('Renew'),
+          NamesSectionLabel(l10n.namesRenewSection),
           NamesCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -271,14 +269,13 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
                   )
                 else
                   Text(
-                    '${d.name} is paid up to 50 years ahead, the most a name '
-                    'can be.',
+                    l10n.namesPaidUpMax(d.name),
                     style: STextStyles.smallMed12(context),
                   ),
                 if (_maxYears > 0) ...[
                   const SizedBox(height: 8),
                   NamesDetailRow(
-                    label: 'Price',
+                    label: l10n.namesPriceLabel,
                     value: NamesFormat.usd(name.usdPerPeriod * _y),
                     valueKey: const Key('names-detail-renew-usd'),
                     sub: _estimateText(),
@@ -292,16 +289,16 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
             NamesNotice(
               key: const Key('names-detail-error'),
               kind: NamesNoticeKind.error,
-              title: "Couldn't prepare it",
+              title: l10n.namesCouldntPrepare,
               detail: _error,
             ),
           ],
           const SizedBox(height: 16),
-          const NamesSectionLabel('More'),
+          NamesSectionLabel(l10n.namesMoreSection),
           NamesSecondaryAction(
             key: const Key('names-detail-transfer'),
             deps: deps,
-            label: 'Transfer to another wallet',
+            label: l10n.namesTransferToAnother,
             onPressed: _pastHold || _preparing
                 ? null
                 : () => _push(
@@ -317,7 +314,9 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
           NamesSecondaryAction(
             key: const Key('names-detail-sell'),
             deps: deps,
-            label: d.isListed ? 'Stop selling ${d.name}' : 'Sell ${d.name}',
+            label: d.isListed
+                ? l10n.namesStopSellingName(d.name)
+                : l10n.namesSellName(d.name),
             onPressed: _pastHold || _preparing
                 ? null
                 : d.isListed
@@ -334,16 +333,14 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
           if (_pastHold) ...[
             const SizedBox(height: 8),
             Text(
-              'An expired name cannot be transferred or sold until it is '
-              'renewed.',
+              l10n.namesExpiredCantTransfer,
               style: STextStyles.smallMed12(context)
                   .copyWith(color: colors.textSubtitle1),
             ),
           ] else if (d.isListed) ...[
             const SizedBox(height: 8),
             Text(
-              'When someone buys it, the payment waits for you on the Names '
-              'screen, where you claim it.',
+              l10n.namesListedPaymentWaits,
               style: STextStyles.smallMed12(context)
                   .copyWith(color: colors.textSubtitle1),
             ),
@@ -358,28 +355,29 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
     final est = _params?.estimate(name, _y);
     if (est == null) return null;
     final mid = (est.minGroth + est.maxGroth) ~/ BigInt.two;
-    return '≈ ${NamesFormat.whole(mid)} BEAM today';
+    return context.l10n.namesAboutBeamToday('${NamesFormat.whole(mid)} BEAM');
   }
 
   Widget _bottom() {
     const key = Key('names-detail-cta');
-    final label = 'Renew ${d.name} for ${NamesFormat.years(_y)}';
+    final l10n = context.l10n;
+    final label = l10n.namesRenewNameForYears(d.name, _y);
     if (_preparing) {
       return NamesPrimaryAction(
         deps: deps,
         buttonKey: key,
-        label: 'Preparing…',
+        label: l10n.namesPreparing,
         onPressed: null,
-        reason: 'Building the transaction so you can check it.',
+        reason: l10n.namesBuildingTx,
       );
     }
     if (_maxYears == 0) {
       return NamesPrimaryAction(
         deps: deps,
         buttonKey: key,
-        label: 'Renew ${d.name}',
+        label: l10n.namesRenewName(d.name),
         onPressed: null,
-        reason: 'Nothing to renew: it is paid up to the 50-year limit.',
+        reason: l10n.namesNothingToRenew,
       );
     }
     if (!deps.canSpend) {
@@ -388,7 +386,7 @@ class _BeamNameDetailViewState extends State<BeamNameDetailView> {
         buttonKey: key,
         label: label,
         onPressed: null,
-        reason: 'Renewing is paused until your wallet is up to date.',
+        reason: l10n.namesRenewingPaused,
       );
     }
     return NamesPrimaryAction(

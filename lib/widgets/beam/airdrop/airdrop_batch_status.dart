@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/airdrop/airdrop.dart';
 import 'beam_blocks.dart';
 
@@ -19,19 +20,23 @@ BeamStatusText airdropBatchStatus(
   AirdropSavedBatch? saved,
   AirdropBatch? chain,
 ) {
+  final l = appL10n;
   if (chain != null) {
     final claimed = chain.redeemedCount;
     final left = chain.unclaimedCount;
     if (left == 0) {
-      return (text: 'All $claimed claimed', kind: BeamNoticeKind.success);
+      return (
+        text: l.airdropStatusAllClaimed(claimed),
+        kind: BeamNoticeKind.success,
+      );
     }
     return (
-      text: '$claimed of ${chain.totalCount} claimed · $left waiting',
+      text: l.airdropStatusClaimedWaiting(claimed, chain.totalCount, left),
       kind: BeamNoticeKind.info,
     );
   }
   if (saved == null) {
-    return (text: 'Not checked yet', kind: BeamNoticeKind.warning);
+    return (text: l.airdropStatusNotChecked, kind: BeamNoticeKind.warning);
   }
   var available = 0, claimed = 0, gone = 0, unknown = 0;
   for (final c in saved.codes) {
@@ -53,30 +58,29 @@ BeamStatusText airdropBatchStatus(
   if (saved.txStatus == AirdropBatchTxStatus.failed &&
       available == 0 &&
       claimed == 0) {
-    return (
-      text: 'Not created — nothing was locked',
-      kind: BeamNoticeKind.danger,
-    );
+    return (text: l.airdropStatusNotCreated, kind: BeamNoticeKind.danger);
   }
   if (claimed == n) {
-    return (text: 'All $n claimed', kind: BeamNoticeKind.success);
+    return (text: l.airdropStatusAllClaimed(n), kind: BeamNoticeKind.success);
   }
   if (available > 0) {
     return (
-      text: '$claimed of $n claimed · $available waiting',
+      text: l.airdropStatusClaimedWaiting(claimed, n, available),
       kind: BeamNoticeKind.info,
     );
   }
   if (pending && (unknown > 0 || gone == n)) {
-    return (text: 'Waiting for the network', kind: BeamNoticeKind.warning);
+    return (text: l.airdropStatusWaitingNetwork, kind: BeamNoticeKind.warning);
   }
   if (gone > 0 && unknown == 0) {
     return (
-      text: claimed > 0 ? '$claimed claimed · $gone cancelled' : 'Cancelled',
+      text: claimed > 0
+          ? l.airdropStatusClaimedCancelled(claimed, gone)
+          : l.airdropStatusCancelled,
       kind: BeamNoticeKind.info,
     );
   }
-  return (text: 'Not checked yet', kind: BeamNoticeKind.warning);
+  return (text: l.airdropStatusNotChecked, kind: BeamNoticeKind.warning);
 }
 
 /// One code's state, for its pill.
@@ -85,16 +89,25 @@ BeamStatusText airdropCodeStatus(
   AirdropBatchTxStatus batch,
 ) => switch (code.status) {
   AirdropCodeStatus.available => (
-    text: 'Unclaimed',
+    text: appL10n.airdropCodeStatusUnclaimed,
     kind: BeamNoticeKind.success,
   ),
-  AirdropCodeStatus.claimed => (text: 'Claimed', kind: BeamNoticeKind.info),
+  AirdropCodeStatus.claimed => (
+    text: appL10n.airdropCodeStatusClaimed,
+    kind: BeamNoticeKind.info,
+  ),
   AirdropCodeStatus.notFound =>
     batch == AirdropBatchTxStatus.confirmed
-        ? (text: 'Cancelled', kind: BeamNoticeKind.danger)
-        : (text: 'Not active yet', kind: BeamNoticeKind.warning),
+        ? (
+            text: appL10n.airdropCodeStatusCancelled,
+            kind: BeamNoticeKind.danger,
+          )
+        : (
+            text: appL10n.airdropCodeStatusNotActive,
+            kind: BeamNoticeKind.warning,
+          ),
   AirdropCodeStatus.unknown => (
-    text: 'Not checked yet',
+    text: appL10n.airdropStatusNotChecked,
     kind: BeamNoticeKind.warning,
   ),
 };

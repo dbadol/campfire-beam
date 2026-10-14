@@ -17,6 +17,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stackwallet/wallets/beam/contracts/airdrop/airdrop_constants.dart';
+import 'package:stackwallet/wallets/beam/contracts/airdrop/airdrop_v3_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/bans/bans_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/common/invoke_data.dart';
 import 'package:stackwallet/wallets/beam/dapps/dapp_consent.dart';
@@ -334,6 +335,21 @@ void main() {
           ),
         ]),
       );
+      // Airdrop v3's creator key takes back the user's v3 batches, with
+      // their prepaid claim fees: no dApp signs with it either.
+      activity.clear();
+      final why = await refused(
+        invokeData([
+          invokeEntry(
+            contractId: kAirdropV3ContractId,
+            method: 4,
+            sigs: [
+              DappWalletKeys.keyHash([...hexBytes(kAirdropV3ContractId), 0]),
+            ],
+          ),
+        ]),
+      );
+      expect(why, contains('your airdrops'));
     });
 
     test('any call to BANS or its Anon-Vault is refused', () async {
@@ -355,6 +371,7 @@ void main() {
       expect(dappContractName(dexCid), 'Beam DEX');
       expect(dappContractName(kBansCid), 'BEAM names (BANS)');
       expect(dappContractName(kAirdropContractId), 'Campfire airdrops');
+      expect(dappContractName(kAirdropV3ContractId), 'Campfire airdrops');
       expect(dappContractName(cid(0xa1)), isNull);
     });
   });

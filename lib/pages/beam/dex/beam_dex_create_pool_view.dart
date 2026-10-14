@@ -30,6 +30,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/dex/beam_dex_service.dart';
@@ -112,7 +113,7 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
     final chosen = await showDexAssetPicker(
       context,
       deps: deps,
-      title: first ? 'First asset' : 'Second asset',
+      title: first ? context.l10n.dexFirstAsset : context.l10n.dexSecondAsset,
       assets: _choices,
       selected: first ? _a : _b,
     );
@@ -151,9 +152,8 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
       setState(() {
         _preparing = false;
         _problem = e.code == BeamDexErrorCode.poolExists
-            ? 'This pool already exists. Open it from the pools list.'
-            : "The DEX refused to build the pool: \"${e.message}\". "
-                  'Nothing was sent.';
+            ? context.l10n.dexPoolExists
+            : context.l10n.dexCreateRefused(e.message);
       });
       unawaited(deps.pools.refresh());
       return;
@@ -161,9 +161,7 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
       if (!mounted) return;
       setState(() {
         _preparing = false;
-        _problem =
-            "Couldn't build the pool: the wallet didn't answer. "
-            'Nothing was sent. Try again.';
+        _problem = context.l10n.dexCreateBuildFailed;
       });
       return;
     }
@@ -179,15 +177,13 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
   }
 
   ({VoidCallback? onPressed, String? reason}) _cta() {
-    if (_preparing) return (onPressed: null, reason: 'Building the pool…');
+    final l10n = context.l10n;
+    if (_preparing) return (onPressed: null, reason: l10n.dexBuildingPool);
     if (!deps.canSpend) {
-      return (
-        onPressed: null,
-        reason: 'Paused until the wallet is up to date.',
-      );
+      return (onPressed: null, reason: l10n.dexPausedUntilSynced);
     }
     if (_b == null) {
-      return (onPressed: null, reason: 'Choose the second asset.');
+      return (onPressed: null, reason: l10n.dexChooseSecondAsset);
     }
     if (_existing != null) return (onPressed: null, reason: null);
     final need = kDexPoolCreateDeposit + kDexPoolCreateFee;
@@ -195,11 +191,11 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
     if (need > beam) {
       return (
         onPressed: null,
-        reason:
-            'Not enough BEAM. A new pool needs '
-            '${DexFormat.exact(kDexPoolCreateDeposit)} BEAM for the deposit '
-            'plus about ${DexFormat.exact(kDexPoolCreateFee)} BEAM network '
-            'fee. You have ${DexFormat.exact(beam)} BEAM.',
+        reason: l10n.dexCreateNotEnoughBeam(
+          '${DexFormat.exact(kDexPoolCreateDeposit)} BEAM',
+          '${DexFormat.exact(kDexPoolCreateFee)} BEAM',
+          '${DexFormat.exact(beam)} BEAM',
+        ),
       );
     }
     return (onPressed: _create, reason: null);
@@ -210,12 +206,12 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
     final cta = _cta();
     return DexPage(
       deps: deps,
-      title: 'Create a pool',
+      title: context.l10n.dexCreatePoolTitle,
       body: _body(context),
       bottom: DexPrimaryAction(
         deps: deps,
         buttonKey: const Key('dex-create-cta'),
-        label: 'Create pool',
+        label: context.l10n.dexCreatePoolCta,
         reason: cta.reason,
         onPressed: cta.onPressed,
       ),
@@ -229,6 +225,8 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
     final existing = _existing;
     // Only a real price: "(No USD price)" would add nothing here.
     final depositWorth = deps.fiat?.value?.approx(kDexPoolCreateDeposit);
+    final deposit = '${DexFormat.exact(kDexPoolCreateDeposit)} BEAM';
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -236,17 +234,13 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
         DexNotice(
           key: const Key('dex-create-deposit-note'),
           kind: DexNoticeKind.warning,
-          title:
-              'Creating a pool locks a '
-              '${DexFormat.exact(kDexPoolCreateDeposit)} BEAM deposit'
-              '${depositWorth == null ? '' : ' ($depositWorth)'}',
-          detail:
-              'You get it back only when the pool is empty and '
-              'destroyed. The pool starts empty: you add the first coins '
-              'next, and they set its price.',
+          title: depositWorth == null
+              ? l10n.dexCreateDepositTitle(deposit)
+              : l10n.dexCreateDepositTitleWorth(deposit, depositWorth),
+          detail: l10n.dexCreateDepositDetail,
         ),
         const SizedBox(height: 16),
-        Text('Assets', style: labelStyle),
+        Text(l10n.dexAssetsLabel, style: labelStyle),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -258,7 +252,7 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
           ],
         ),
         const SizedBox(height: 16),
-        Text('Fee for every swap', style: labelStyle),
+        Text(l10n.dexFeeForEverySwap, style: labelStyle),
         const SizedBox(height: 6),
         for (final k in [BeamPoolKind.high, BeamPoolKind.mid, BeamPoolKind.low])
           Padding(
@@ -269,13 +263,14 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
           const SizedBox(height: 4),
           DexNotice(
             key: const Key('dex-create-exists'),
-            title:
-                'The ${deps.pairLabel(existing)} pool with a '
-                '${existing.kind.feePercent} fee already exists',
+            title: l10n.dexCreateExistsTitle(
+              deps.pairLabel(existing),
+              existing.kind.feePercent,
+            ),
             detail: existing.isEmpty
-                ? 'It is empty: add the first coins to it instead.'
-                : 'Add your coins to it instead, or pick another fee.',
-            actionLabel: 'Open the pool',
+                ? l10n.dexCreateExistsEmpty
+                : l10n.dexCreateExistsLive,
+            actionLabel: l10n.dexOpenPool,
             onAction: () => unawaited(
               showDexPage<void>(
                 context,
@@ -313,7 +308,7 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
           ] else
             Expanded(
               child: Text(
-                'Choose',
+                context.l10n.dexChoose,
                 style: STextStyles.smallMed14(context)
                     .copyWith(color: colors.textSubtitle1),
               ),
@@ -327,10 +322,11 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
   Widget _kindOption(BuildContext context, BeamPoolKind k) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final selected = k == _kind;
+    final l10n = context.l10n;
     final hint = switch (k) {
-      BeamPoolKind.high => 'Most BEAM pools use this. Right for most tokens.',
-      BeamPoolKind.mid => 'For pairs whose prices move less.',
-      BeamPoolKind.low => 'For assets that track each other closely.',
+      BeamPoolKind.high => l10n.dexKindHigh,
+      BeamPoolKind.mid => l10n.dexKindMid,
+      BeamPoolKind.low => l10n.dexKindLow,
     };
     return RoundedContainer(
       key: Key('dex-create-kind-${k.wire}'),
@@ -355,8 +351,8 @@ class _BeamDexCreatePoolViewState extends State<BeamDexCreatePoolView> {
               children: [
                 Text(
                   k == BeamPoolKind.high
-                      ? '${k.feePercent} fee · recommended'
-                      : '${k.feePercent} fee',
+                      ? l10n.dexFeeTierRecommended(k.feePercent)
+                      : l10n.dexFeeTier(k.feePercent),
                   style: STextStyles.smallMed14(context)
                       .copyWith(color: colors.textDark),
                 ),

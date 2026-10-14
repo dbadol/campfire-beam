@@ -634,13 +634,15 @@ void main() {
       expect(r(568.12972897), '568.1297 FOMO');
       expect(r(0.46659234), '0.46659234 FOMO');
       expect(r(12.5), '12.5 FOMO');
+      // A dot on a German device too: amounts never take the device's
+      // decimal comma (lib/l10n/amount_text.dart).
       expect(
         BeamAssetText.exact(
           Amount(rawValue: g(12.5), fractionDigits: 8),
           fomo,
           locale: 'de_DE',
         ),
-        '12,5 FOMO',
+        '12.5 FOMO',
       );
       expect(
         BeamAssetText.impersonation(

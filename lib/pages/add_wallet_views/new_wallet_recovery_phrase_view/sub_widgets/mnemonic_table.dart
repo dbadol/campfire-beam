@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/constants.dart';
 import '../../../../utilities/text_styles.dart';
@@ -110,10 +111,7 @@ class NoRecoveryPhraseNotice extends StatelessWidget {
 
   final bool isDesktop;
 
-  static const text =
-      'This wallet was imported from its wallet.db file and has no recovery '
-      'phrase in BEAM Campfire. Its original file and password are its '
-      'backup: keep them safe.';
+  static String get text => appL10n.backupNoPhraseImported;
 
   @override
   Widget build(BuildContext context) => Container(

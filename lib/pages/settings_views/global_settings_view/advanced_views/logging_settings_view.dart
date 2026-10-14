@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/prefs_provider.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/assets.dart';
@@ -86,7 +87,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
     final String path =
         Platform.isWindows ? currentPath.replaceAll("/", "\\") : currentPath;
     chosenPath = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: "Choose Log Save location",
+      dialogTitle: appL10n.settingsLogsChooseLocationDialog,
       initialDirectory: path,
       lockParentWindow: true,
     );
@@ -105,7 +106,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
         .where((f) => f.path.endsWith('.txt'));
 
     if (files.isEmpty) {
-      throw Exception("No logs found in ${logsDir.path}");
+      throw Exception(appL10n.settingsLogsNoneFound(logsDir.path));
     }
 
     final archive = Archive();
@@ -117,7 +118,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
     }
 
     if (archive.isEmpty) {
-      throw Exception("Failed to add log files to archive");
+      throw Exception(appL10n.settingsLogsArchiveFailed);
     }
 
     // Write zip to a temp location
@@ -128,7 +129,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
 
     await Share.shareXFiles([
       XFile(zipFile.path),
-    ], text: "${AppConfig.appName} logs");
+    ], text: appL10n.settingsLogsShareText(AppConfig.appName));
   }
 
   bool _exportLock = false;
@@ -141,7 +142,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
       await showLoading(
         whileFuture: _exportHelper(),
         context: context,
-        message: "Exporting logs...",
+        message: context.l10n.settingsLogsExporting,
         onException: (e) => throw e,
       );
     } catch (e, s) {
@@ -152,7 +153,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
             context: context,
             builder:
                 (context) => StackOkDialog(
-                  title: "Failed to export logs",
+                  title: context.l10n.settingsLogsExportFailed,
                   message: e.toString(),
                 ),
           ),
@@ -189,7 +190,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
               Navigator.of(context).pop();
             },
           ),
-          title: Text("Logging", style: STextStyles.navBarTitle(context)),
+          title: Text(context.l10n.settingsLogging, style: STextStyles.navBarTitle(context)),
         ),
         body: SafeArea(
           child: Padding(
@@ -199,7 +200,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
                 Row(
                   children: [
                     Text(
-                      "Log files location",
+                      context.l10n.settingsLogsLocationLabel,
                       style: STextStyles.fieldLabel(context),
                       textAlign: TextAlign.left,
                     ),
@@ -212,7 +213,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
                   controller: fileLocationController,
                   style: STextStyles.field(context),
                   decoration: InputDecoration(
-                    hintText: "Save to...",
+                    hintText: context.l10n.settingsLogsSaveToHint,
                     hintStyle: STextStyles.fieldLabel(context),
                     suffixIcon: UnconstrainedBox(
                       child: Row(
@@ -250,8 +251,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
                     Expanded(
                       child: RoundedWhiteContainer(
                         child: Text(
-                          "NOTE: ${AppConfig.appName} must be restarted in order"
-                          " for changes to take effect.",
+                          context.l10n.settingsLogsRestartNote(AppConfig.appName),
                           style: STextStyles.subtitle500(context),
                         ),
                       ),
@@ -263,13 +263,13 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
 
                 if (Platform.isAndroid)
                   SecondaryButton(
-                    label: "Export logs",
+                    label: context.l10n.settingsLogsExport,
                     onPressed: _androidExportLogs,
                   ),
                 if (Platform.isAndroid) const SizedBox(height: 16),
 
                 PrimaryButton(
-                  label: "Select log save location",
+                  label: context.l10n.settingsLogsSelectLocation,
                   onPressed: () async {
                     if (_lock) {
                       return;
@@ -288,7 +288,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
                         if (e.toString().contains(
                           "OS Error: Operation not permitted",
                         )) {
-                          err = "Cannot use chosen location";
+                          err = context.l10n.settingsLogsCannotUseLocation;
                         } else {
                           err = e.toString();
                         }
@@ -298,7 +298,7 @@ class _LoggingSettingsViewState extends ConsumerState<LoggingSettingsView> {
                             context: context,
                             builder:
                                 (context) => StackOkDialog(
-                                  title: "Failed to change logs path",
+                                  title: context.l10n.settingsLogsChangePathFailed,
                                   message: err,
                                 ),
                           ),

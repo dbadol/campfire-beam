@@ -9,6 +9,8 @@
 
 import 'dart:io';
 
+import '../../l10n/l10n.dart';
+
 /// What to say when the system file picker could not be opened (issue #1).
 ///
 /// On Linux, file_picker 10.x opens the picker only through the desktop's
@@ -16,11 +18,6 @@ import 'dart:io';
 /// fails the same way and "Try again" alone would not help: the message
 /// names what to install. [linux] overrides the platform, for tests.
 String filePickerFailureText({String app = 'Campfire', bool? linux}) {
-  if (linux ?? Platform.isLinux) {
-    return "$app couldn't open the file picker. On Linux it uses your "
-        "desktop's file chooser service: install xdg-desktop-portal and "
-        'xdg-desktop-portal-gtk (xdg-desktop-portal-kde on KDE), then try '
-        'again.';
-  }
-  return "$app couldn't open the file picker. Try again.";
+  if (linux ?? Platform.isLinux) return appL10n.scanFilePickerFailedLinux(app);
+  return appL10n.scanFilePickerFailed(app);
 }

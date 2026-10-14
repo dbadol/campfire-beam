@@ -13,6 +13,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/beam_app_identity.dart';
@@ -55,7 +56,7 @@ class SupportView extends StatelessWidget {
                   Navigator.of(context).pop();
                 },
               ),
-              title: Text("Support", style: STextStyles.navBarTitle(context)),
+              title: Text(context.l10n.settingsSupport, style: STextStyles.navBarTitle(context)),
             ),
             body: SafeArea(
               // BEAM's channels make a longer list than a small phone shows.
@@ -74,25 +75,23 @@ class SupportView extends StatelessWidget {
             child: Text(
               // BEAM's official channels, as listed on beam.mw. Bugs in
               // this app go to its GitHub issues.
-              "Questions about BEAM or your wallet: BEAM's support team and "
-              "community are on these channels. Found a bug in this app? "
-              "Tell us on GitHub.",
+              context.l10n.settingsSupportIntro,
               style: STextStyles.smallMed12(context),
             ),
           ),
           isDesktop ? const SizedBox(height: 24) : const SizedBox(height: 12),
           AboutItem(
             linkUrl: "https://t.me/BeamSupport",
-            label: "Support chat",
+            label: context.l10n.settingsSupportChat,
             buttonText: "@BeamSupport",
-            channel: "the support chat",
+            channel: context.l10n.settingsSupportChatChannel,
             iconAsset: Assets.socials.telegram,
             isDesktop: isDesktop,
           ),
           const SizedBox(height: 8),
           AboutItem(
             linkUrl: "mailto:support@beam.mw",
-            label: "Email",
+            label: context.l10n.settingsSupportEmail,
             buttonText: "support@beam.mw",
             iconAsset: Assets.svg.envelope,
             isDesktop: isDesktop,
@@ -100,7 +99,7 @@ class SupportView extends StatelessWidget {
           const SizedBox(height: 8),
           AboutItem(
             linkUrl: "https://github.com/vsnation/campfire-beam/issues",
-            label: "A bug in this app",
+            label: context.l10n.settingsSupportBugInApp,
             buttonText: "GitHub Issues",
             channel: "GitHub Issues",
             iconAsset: Assets.svg.circleQuestion,
@@ -141,9 +140,9 @@ class SupportView extends StatelessWidget {
           const SizedBox(height: 8),
           AboutItem(
             linkUrl: "https://forum.beam.mw",
-            label: "Forum",
+            label: context.l10n.settingsSupportForum,
             buttonText: "forum.beam.mw",
-            channel: "the forum",
+            channel: context.l10n.settingsSupportForumChannel,
             iconAsset: Assets.svg.questionMessage,
             isDesktop: isDesktop,
           ),
@@ -188,7 +187,7 @@ class AboutItem extends StatelessWidget {
           ),
         ),
         onPressed: () async {
-          if (label == "Email") {
+          if (label == context.l10n.settingsSupportEmail) {
             await launchUrl(
               Uri.parse(linkUrl),
               mode: LaunchMode.externalApplication,
@@ -283,7 +282,9 @@ class ScamWarningDialog extends StatelessWidget {
         ? STextStyles.w500_16(context)
         : STextStyles.w500_14(context);
     // BEAM's channels support BEAM, not this app alone.
-    final who = BeamAppIdentity.isActive ? "BEAM's team" : AppConfig.appName;
+    final publicOnly = BeamAppIdentity.isActive
+        ? context.l10n.settingsSupportPublicOnlyBeam
+        : context.l10n.settingsSupportPublicOnly(AppConfig.appName);
     return SDialog(
       padding: EdgeInsets.all(Util.isDesktop ? 32 : 16),
       child: ConditionalParent(
@@ -297,33 +298,31 @@ class ScamWarningDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Real support is always public",
+              context.l10n.settingsSupportRealIsPublic,
               style: Util.isDesktop
                   ? STextStyles.desktopH3(context)
                   : STextStyles.pageTitleH2(context),
             ),
             const SizedBox(height: 16),
             Text(
-              "$who only ever helps in public. Anyone who writes to you "
-              "privately first is not support.",
+              publicOnly,
               style: body.copyWith(fontWeight: FontWeight.normal),
             ),
             const SizedBox(height: 16),
-            const _Bullet(
+            _Bullet(
               text:
-                  "No one from support will ever ask for your recovery "
-                  "phrase, password or private keys.",
+                  context.l10n.settingsSupportNeverAsks,
             ),
             const SizedBox(height: 8),
-            const _Bullet(
-              text: "Anyone who asks you to send them coins is a scammer.",
+            _Bullet(
+              text: context.l10n.settingsSupportScammer,
             ),
             SizedBox(height: Util.isDesktop ? 32 : 24),
             LayoutBuilder(
               builder: (context, box) {
                 final height = Util.isDesktop ? ButtonHeight.l : null;
                 final open = PrimaryButton(
-                  label: "Open $channel",
+                  label: context.l10n.settingsSupportOpenChannel(channel),
                   buttonHeight: height,
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -331,7 +330,7 @@ class ScamWarningDialog extends StatelessWidget {
                   },
                 );
                 final cancel = SecondaryButton(
-                  label: "Cancel",
+                  label: context.l10n.commonCancel,
                   buttonHeight: height,
                   onPressed: () => Navigator.of(context).pop(),
                 );

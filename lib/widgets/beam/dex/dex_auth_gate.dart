@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/pinpad_views/lock_screen_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/desktop_auth_send.dart';
 import '../../../utilities/util.dart';
@@ -43,7 +44,10 @@ Future<bool?> campfireDexAuthGate(
               padding: const EdgeInsets.only(left: 32, right: 32, bottom: 32),
               child: DesktopAuthSend(
                 coin: coin ?? Beam(CryptoCurrencyNetwork.main),
-                // "Enter your wallet password to swap", not "to send BEAM".
+                // "Enter your wallet password to swap", not "to send BEAM":
+                // a whole sentence in the app's language where the reason
+                // is known, else the English action.
+                prompt: dexAuthPrompt(context.l10n, reason),
                 action: dexAuthAction(reason),
               ),
             ),
@@ -61,14 +65,26 @@ Future<bool?> campfireDexAuthGate(
         popOnSuccess: true,
         routeOnSuccessArguments: true,
         routeOnSuccess: "",
-        biometricsCancelButtonString: "CANCEL",
+        biometricsCancelButtonString: context.l10n.beamAuthCancel,
         biometricsLocalizedReason: reason,
-        biometricsAuthenticationTitle: "Confirm transaction",
+        biometricsAuthenticationTitle: context.l10n.beamAuthTitle,
       ),
       settings: const RouteSettings(name: "/beamDexConfirmLockscreen"),
     ),
   );
 }
+
+/// The desktop password prompt for a gate [reason] ("Authenticate to
+/// swap" → "Enter your wallet password to swap"), as one whole sentence in
+/// the app's language; null for a reason this gate does not know.
+String? dexAuthPrompt(AppLocalizations l, String reason) => <String, String>{
+  l.dexAuthSwap: l.dexAuthPromptSwap,
+  l.dexAuthAddLiquidity: l.dexAuthPromptAddLiquidity,
+  l.dexAuthWithdraw: l.dexAuthPromptWithdraw,
+  l.dexAuthCreatePool: l.dexAuthPromptCreatePool,
+  l.bridgeAuthMoveReason: l.bridgeAuthPromptMove,
+  l.bridgeAuthCollectReason: l.bridgeAuthPromptCollect,
+}[reason];
 
 /// What a DEX [reason] ("Authenticate to swap") asks the password for:
 /// "swap". Null for any other wording, which keeps Campfire's own prompt.

@@ -18,6 +18,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:zxcvbn/zxcvbn.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/secure_store_provider.dart';
 import '../../../../providers/global/wallets_provider.dart';
 import '../../../../themes/stack_colors.dart';
@@ -61,7 +62,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
   final zxcvbn = Zxcvbn();
 
   String passwordFeedback =
-      "Add another word or two. Uncommon words are better. Use a few words, avoid common phrases. No need for symbols, digits, or uppercase letters.";
+      appL10n.appBackupPassphraseAdvice;
 
   bool shouldShowPasswordHint = true;
 
@@ -116,8 +117,8 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
           return fileToSavePath;
         }(),
         context: context,
-        message: "Encrypting backup",
-        subMessage: "This shouldn't take long",
+        message: appL10n.appBackupEncrypting,
+        subMessage: appL10n.appBackupShouldNotTakeLong,
         delay: const Duration(seconds: 1),
         onException: (e) => ex = e,
         rootNavigator: Util.isDesktop,
@@ -130,7 +131,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
             barrierDismissible: false,
             builder: (_) => !Util.isDesktop
                 ? StackOkDialog(
-                    title: "Backup saved to:",
+                    title: appL10n.appBackupSavedToPhone,
                     message: [savedPath, ?notice].join("\n\n"),
                   )
                 : DesktopDialog(
@@ -148,7 +149,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                         children: [
                           const SizedBox(height: 26),
                           Text(
-                            "${AppConfig.prefix} backup saved to: \n",
+                            "${appL10n.appBackupSavedToDesktop(AppConfig.prefix)} \n",
                             style: STextStyles.desktopH3(context),
                           ),
                           Text(
@@ -171,7 +172,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                             children: [
                               Expanded(
                                 child: PrimaryButton(
-                                  label: "Ok",
+                                  label: appL10n.appBackupOk,
                                   buttonHeight: ButtonHeight.l,
                                   onPressed: Navigator.of(
                                     context,
@@ -196,8 +197,8 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
             context: context,
             barrierDismissible: false,
             builder: (_) => StackOkDialog(
-              title: "Backup creation failed",
-              message: ex?.toString() ?? "Unexpected error",
+              title: appL10n.appBackupCreateFailed,
+              message: ex?.toString() ?? appL10n.appBackupUnexpectedError,
             ),
           );
         }
@@ -268,7 +269,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                 },
               ),
               title: Text(
-                "Create backup",
+                context.l10n.appBackupCreateBackup,
                 style: STextStyles.navBarTitle(context),
               ),
             ),
@@ -301,7 +302,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
-                  "Choose file location",
+                  context.l10n.appBackupChooseLocation,
                   style: STextStyles.desktopTextExtraExtraSmall(context)
                       .copyWith(
                         color: Theme.of(
@@ -348,7 +349,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                       controller: fileLocationController,
                       style: STextStyles.field(context),
                       decoration: InputDecoration(
-                        hintText: "Save to...",
+                        hintText: context.l10n.appBackupSaveTo,
                         hintStyle: STextStyles.fieldLabel(context),
                         suffixIcon: UnconstrainedBox(
                           child: Row(
@@ -389,7 +390,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10.0),
                 child: Text(
-                  "Create a passphrase",
+                  context.l10n.appBackupCreatePassphraseLabel,
                   style: STextStyles.desktopTextExtraExtraSmall(context)
                       .copyWith(
                         color: Theme.of(
@@ -413,7 +414,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                 autocorrect: false,
                 decoration:
                     standardInputDecoration(
-                      "Create passphrase",
+                      context.l10n.appBackupCreatePassphraseHint,
                       passwordFocusNode,
                       context,
                     ).copyWith(
@@ -543,7 +544,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                 autocorrect: false,
                 decoration:
                     standardInputDecoration(
-                      "Confirm passphrase",
+                      context.l10n.appBackupConfirmPassphrase,
                       passwordRepeatFocusNode,
                       context,
                     ).copyWith(
@@ -598,7 +599,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                               .getPrimaryDisabledButtonStyle(context),
                     onPressed: !shouldEnableCreate ? null : _createBackup,
                     child: Text(
-                      "Create backup",
+                      context.l10n.appBackupCreateBackup,
                       style: STextStyles.button(context),
                     ),
                   )
@@ -609,7 +610,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                           return PrimaryButton(
                             width: 183,
                             buttonHeight: ButtonHeight.m,
-                            label: "Create backup",
+                            label: context.l10n.appBackupCreateBackup,
                             enabled: shouldEnableCreate,
                             onPressed: !shouldEnableCreate
                                 ? null
@@ -621,7 +622,7 @@ class _RestoreFromFileViewState extends ConsumerState<CreateBackupView> {
                       SecondaryButton(
                         width: 183,
                         buttonHeight: ButtonHeight.m,
-                        label: "Cancel",
+                        label: context.l10n.commonCancel,
                         onPressed: () {},
                       ),
                     ],

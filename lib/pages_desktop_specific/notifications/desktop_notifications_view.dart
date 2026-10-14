@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../notifications/notification_feed_entry_card.dart';
 import '../../providers/global/shopin_bit_service_provider.dart';
 import '../../providers/ui/notification_feed_provider.dart';
@@ -61,7 +62,10 @@ class _DesktopNotificationsViewState
         isCompactHeight: true,
         leading: Padding(
           padding: const EdgeInsets.only(left: 24),
-          child: Text("Notifications", style: STextStyles.desktopH3(context)),
+          child: Text(
+            context.l10n.notificationsTitle,
+            style: STextStyles.desktopH3(context),
+          ),
         ),
       ),
       body: entries.isEmpty
@@ -72,8 +76,7 @@ class _DesktopNotificationsViewState
                   child: RoundedWhiteContainer(
                     child: Center(
                       child: Text(
-                        "Payments you receive while Campfire is open will "
-                        "appear here.",
+                        context.l10n.notificationsEmpty,
                         style: STextStyles.desktopTextExtraExtraSmall(context),
                       ),
                     ),

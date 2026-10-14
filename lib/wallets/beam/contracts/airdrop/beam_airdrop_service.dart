@@ -13,6 +13,7 @@ import 'dart:math';
 
 import 'package:meta/meta.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../api/beam_api.dart';
 import '../../models/beam_call_results.dart';
 import '../../models/beam_transaction.dart';
@@ -85,9 +86,22 @@ enum AirdropErrorCode {
   /// A saved batch can still hold funds, so it cannot be forgotten.
   stillHoldsFunds,
 
+  /// A claim on the old contract was sent through [BeamAirdrops.execute]
+  /// without `acknowledgedCodeShown: true`: claiming there shows the code
+  /// to the network, and the person has to agree to that first.
+  notAcknowledged,
+
   /// The wallet is behind the network, so the chain cannot be trusted to
   /// say whether codes still hold funds.
   walletNotSynced,
+
+  /// Airdrop v3: the contract's owner paused new batches. Claims and
+  /// take-backs still work.
+  paused,
+
+  /// Airdrop v3: a code of the batch was claimed while its take-back was
+  /// being prepared. Nothing was sent; read the batch again.
+  changed,
 
   /// Any other shader refusal; [BeamAirdropException.message] has its text.
   shaderError,
@@ -104,6 +118,39 @@ class BeamAirdropException implements Exception {
 }
 
 enum AirdropAction { createBatch, redeem, cancelBatch, withdrawFees }
+
+/// Which airdrop contract a call, a code or a batch belongs to: the old
+/// (live since 2024) contract `8737e0d3…`, or Airdrop v3 `ac85d74b…`, where
+/// every new batch is made.
+enum AirdropContract { v2, v3 }
+
+/// One airdrop transaction at a time, across both contracts' services: a
+/// prepare claims it synchronously, before its first `await`, and the claim
+/// lasts until the prepared call is executed or discarded.
+class AirdropFlowLock {
+  /// The flow holding the lock: a token while preparing, then the prepared
+  /// call.
+  Object? owner;
+
+  bool get isBusy => owner != null;
+}
+
+/// A built, checked, not yet sent airdrop transaction, on either contract.
+/// Send it with the service that prepared it (`BeamAirdrops.execute`).
+abstract interface class AirdropPreparedCall {
+  AirdropContract get contract;
+  AirdropAction get action;
+
+  /// What it will do, read back from the built transaction.
+  AirdropSummary get summary;
+  bool get isExecuted;
+
+  /// The new codes (create only; empty otherwise). Secret.
+  List<String> get codes;
+
+  /// The saved record of a new batch (create only).
+  String? get savedLocalId;
+}
 
 /// What a prepared call will do, read back from the transaction the core
 /// built (never from the request), for the confirmation screen.
@@ -123,9 +170,24 @@ class AirdropSummary {
     this.voucherValues,
     this.creationFee,
     this.batchId,
+    this.contract = AirdropContract.v2,
+    this.gas,
+    this.gasPerVoucher,
   });
 
   final AirdropAction action;
+
+  /// The contract the call goes to.
+  final AirdropContract contract;
+
+  /// Airdrop v3: BEAM (groth) of prepaid claim fees this call moves. Create:
+  /// locked for every code (in [pays]); claim: released by the voucher to
+  /// pay this claim's fee (in [receives]); take back: returned with the
+  /// unclaimed codes (in [receives]). Null or 0: none.
+  final BigInt? gas;
+
+  /// Airdrop v3 create: the claim fee prepaid per code (0 or 0.022 BEAM).
+  final BigInt? gasPerVoucher;
 
   /// The asset the vouchers (or fees) are in.
   final int assetId;
@@ -156,6 +218,30 @@ class AirdropSummary {
   /// BEAM leaving the wallet, network fee included, in groth.
   BigInt get beamOut => (pays[0] ?? BigInt.zero) + networkFee;
 
+  /// Prepaid claim fees moved, in groth (0 when none).
+  BigInt get claimFees => gas ?? BigInt.zero;
+
+  /// Claim or take back: what arrives of [assetId] apart from prepaid claim
+  /// fees (for a BEAM voucher, both arrive as BEAM).
+  BigInt get assetAmount =>
+      (receives[assetId] ?? BigInt.zero) -
+      (assetId == 0 ? claimFees : BigInt.zero);
+
+  /// How the wallet's BEAM changes, network fee included: negative when it
+  /// goes down.
+  BigInt get beamChange => (receives[0] ?? BigInt.zero) - beamOut;
+
+  /// BEAM the wallet must already hold: what leaves beyond the BEAM the
+  /// call itself brings in (a prepaid claim fee, a BEAM voucher).
+  BigInt get beamNeeded => beamChange.isNegative ? -beamChange : BigInt.zero;
+
+  /// A claim whose code pays its own network fee (Airdrop v3 prepaid gas):
+  /// it can be claimed from a wallet holding no BEAM at all.
+  bool get codePaysFee =>
+      action == AirdropAction.redeem &&
+      claimFees > BigInt.zero &&
+      claimFees >= networkFee;
+
   /// A claim whose BEAM value does not cover its own network fee: the
   /// wallet ends up with less BEAM than before. Worth a warning.
   bool get claimCostsMoreThanItPays =>
@@ -169,7 +255,11 @@ class AirdropSummary {
     for (final p in pays.entries) 'You lock: ${format(p.key, p.value)}',
     if (creationFee != null)
       'Contract fee (1%, included above): ${format(assetId, creationFee!)}',
+    if (action == AirdropAction.createBatch && claimFees > BigInt.zero)
+      'Claim fees paid ahead (included above): ${format(0, claimFees)}',
     for (final r in receives.entries) 'You receive: ${format(r.key, r.value)}',
+    if (codePaysFee)
+      'The code pays the network fee: ${format(0, claimFees)} comes with it',
     'Network fee: ${format(0, networkFee)}',
     'Total BEAM out: ${format(0, beamOut)}',
     if (action == AirdropAction.createBatch)
@@ -216,7 +306,7 @@ class AirdropSummary {
 /// secret once the claim is sent: the network sees it before the claim is
 /// mined, so someone watching could claim the voucher first (issue #17; the
 /// claim screen says so). Never log it.
-class BeamPreparedAirdropCall {
+class BeamPreparedAirdropCall implements AirdropPreparedCall {
   BeamPreparedAirdropCall._({
     required this.action,
     required this.args,
@@ -226,10 +316,12 @@ class BeamPreparedAirdropCall {
     this.saved,
   });
 
+  @override
   final AirdropAction action;
   final String args;
   final List<int> rawData;
   final BeamInvokeData invoke;
+  @override
   final AirdropSummary summary;
 
   /// The record [BeamAirdropService.execute] saves before broadcasting.
@@ -237,9 +329,17 @@ class BeamPreparedAirdropCall {
 
   bool _executed = false;
 
+  @override
+  AirdropContract get contract => AirdropContract.v2;
+
+  @override
   bool get isExecuted => _executed;
 
+  @override
+  String? get savedLocalId => saved?.localId;
+
   /// The new codes, formatted (create only; empty otherwise).
+  @override
   List<String> get codes =>
       saved == null ? const [] : [for (final c in saved!.codes) c.code];
 
@@ -274,9 +374,11 @@ class BeamAirdropService {
     this.store,
     this.contractId = kAirdropContractId,
     this.timeout = const Duration(minutes: 2),
+    AirdropFlowLock? lock,
     Random? random,
     DateTime Function()? clock,
-  }) : _random = random ?? Random.secure(),
+  }) : lock = lock ?? AirdropFlowLock(),
+       _random = random ?? Random.secure(),
        _clock = clock ?? DateTime.now {
     AirdropArgs.checkContractId(contractId);
   }
@@ -293,11 +395,17 @@ class BeamAirdropService {
   /// Per `invoke_contract` / `process_invoke_data` call.
   final Duration timeout;
 
+  /// Shared with the Airdrop v3 service of the same wallet: one airdrop
+  /// transaction at a time across both contracts.
+  final AirdropFlowLock lock;
+
   final Random _random;
   final DateTime Function() _clock;
 
   Future<void> _tail = Future<void>.value();
-  Object? _flow;
+
+  Object? get _flow => lock.owner;
+  set _flow(Object? v) => lock.owner = v;
 
   /// An unconfirmed batch with no code on chain this long after it was
   /// built can no longer confirm: contract transactions are valid for a
@@ -488,10 +596,9 @@ class BeamAirdropService {
     required List<BigInt> values,
   }) => _flowed(() async {
     if (store == null) {
-      throw const BeamAirdropException(
+      throw BeamAirdropException(
         AirdropErrorCode.noCodeStore,
-        'This wallet has nowhere safe to keep the codes, so it cannot '
-        'create a batch.',
+        appL10n.airdropErrNoCodeStore,
       );
     }
     if (values.isEmpty || values.length > kAirdropMaxVouchersPerBatch) {
@@ -865,9 +972,9 @@ class BeamAirdropService {
   VoucherCodeStore _requireStore() {
     final s = store;
     if (s == null) {
-      throw const BeamAirdropException(
+      throw BeamAirdropException(
         AirdropErrorCode.noCodeStore,
-        'This wallet has no saved airdrop codes.',
+        appL10n.airdropErrNoSavedCodes,
       );
     }
     return s;

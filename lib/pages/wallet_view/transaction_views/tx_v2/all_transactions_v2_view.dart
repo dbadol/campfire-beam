@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:isar_community/isar.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../../models/isar/models/contact_entry.dart';
 import '../../../../models/isar/models/contract.dart';
@@ -285,7 +286,10 @@ class _AllTransactionsV2ViewState extends ConsumerState<AllTransactionsV2View> {
                     onPressed: Navigator.of(context).pop,
                   ),
                   const SizedBox(width: 12),
-                  Text("Transactions", style: STextStyles.desktopH3(context)),
+                  Text(
+                    context.l10n.walletViewTransactions,
+                    style: STextStyles.desktopH3(context),
+                  ),
                 ],
               ),
             )
@@ -307,7 +311,7 @@ class _AllTransactionsV2ViewState extends ConsumerState<AllTransactionsV2View> {
                 },
               ),
               title: Text(
-                "Transactions",
+                context.l10n.walletViewTransactions,
                 style: STextStyles.navBarTitle(context),
               ),
               actions: [
@@ -389,7 +393,7 @@ class _AllTransactionsV2ViewState extends ConsumerState<AllTransactionsV2View> {
                               : STextStyles.field(context),
                           decoration:
                               standardInputDecoration(
-                                "Search...",
+                                context.l10n.sharedSearchHint,
                                 searchFieldFocusNode,
                                 context,
                                 desktopMed: isDesktop,

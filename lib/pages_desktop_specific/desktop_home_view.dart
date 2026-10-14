@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/l10n.dart';
 import '../providers/desktop/current_desktop_menu_item.dart';
 import '../providers/desktop/desktop_open_wallet_request.dart';
 import '../providers/global/active_wallet_provider.dart';
@@ -24,6 +25,7 @@ import '../providers/ui/transaction_filter_provider.dart';
 import '../providers/ui/unread_notifications_provider.dart';
 import '../route_generator.dart';
 import '../themes/stack_colors.dart';
+import '../utilities/beam/secret_clipboard.dart';
 import '../utilities/enums/backup_frequency_type.dart';
 import '../utilities/idle_monitor.dart';
 import '../utilities/prefs.dart';
@@ -60,6 +62,8 @@ class _DesktopHomeViewState extends ConsumerState<DesktopHomeView> {
   IdleMonitor? _idleMonitor;
 
   void _onIdle() async {
+    // A voucher code copied before the lock leaves the clipboard now.
+    unawaited(SecretClipboard.onAppLocked());
     final context = myStackViewNavKey.currentContext;
     if (context != null) {
       await showDialog<void>(
@@ -308,7 +312,7 @@ class _DesktopHomeViewState extends ConsumerState<DesktopHomeView> {
     await showLoading(
       whileFuture: load,
       context: nav.context,
-      message: "Opening ${wallet.info.name}",
+      message: appL10n.walletListOpeningWallet(wallet.info.name),
       rootNavigator: true,
     );
     if (!nav.mounted) return;

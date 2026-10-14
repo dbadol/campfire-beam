@@ -37,6 +37,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
@@ -130,24 +131,27 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
   }
 
   String get _title => switch (p.action) {
-    BeamDexAction.swap => 'Confirm swap',
-    BeamDexAction.addLiquidity => 'Confirm deposit',
-    BeamDexAction.withdraw => 'Confirm withdrawal',
-    BeamDexAction.createPool => 'Confirm new pool',
+    BeamDexAction.swap => context.l10n.dexConfirmSwapTitle,
+    BeamDexAction.addLiquidity => context.l10n.dexConfirmDepositTitle,
+    BeamDexAction.withdraw => context.l10n.dexConfirmWithdrawalTitle,
+    BeamDexAction.createPool => context.l10n.dexConfirmNewPoolTitle,
   };
 
   String get _heading {
+    final l10n = context.l10n;
     switch (p.action) {
       case BeamDexAction.swap:
         // Trade args: aid1 = received, aid2 = paid.
-        return 'Swap ${deps.assetName(_aid2)} for '
-            '${deps.assetName(_aid1)}';
+        return l10n.dexConfirmSwapHeading(
+          deps.assetName(_aid2),
+          deps.assetName(_aid1),
+        );
       case BeamDexAction.addLiquidity:
-        return 'Add to the ${_pair()} pool';
+        return l10n.dexConfirmAddHeading(_pair());
       case BeamDexAction.withdraw:
-        return 'Withdraw from the ${_pair()} pool';
+        return l10n.dexConfirmWithdrawHeading(_pair());
       case BeamDexAction.createPool:
-        return 'Create the ${_pair()} pool';
+        return l10n.dexConfirmCreateHeading(_pair());
     }
   }
 
@@ -171,35 +175,34 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
         ? null
         : BeamAssetCatalog.verified[d.impersonates];
     final label = deps.assetLabel(assetId);
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: DexNotice(
         key: Key('dex-confirm-unverified-$assetId'),
         kind: DexNoticeKind.warning,
         title: copied == null
-            ? '$label is not verified'
-            : 'Not the verified ${copied.symbol} (#${copied.id})',
-        detail:
-            '${copied == null ? 'It' : 'This is $label. It'} is not one '
-            'Campfire vouches for: anyone can create an asset with any '
-            'name. Check the number ${d.idLabel} with whoever sent you '
-            'here before you confirm.',
+            ? l10n.dexConfirmUnverifiedTitle(label)
+            : l10n.beamAssetNotTheVerified(copied.symbol, '${copied.id}'),
+        detail: copied == null
+            ? l10n.dexConfirmUnverifiedDetail(d.idLabel)
+            : l10n.dexConfirmImpostorDetail(label, d.idLabel),
       ),
     );
   }
 
   String get _cta => switch (p.action) {
     BeamDexAction.swap => _swapLabel,
-    BeamDexAction.addLiquidity => 'Add liquidity',
-    BeamDexAction.withdraw => 'Withdraw',
-    BeamDexAction.createPool => 'Create pool',
+    BeamDexAction.addLiquidity => context.l10n.dexAddLiquidityCta,
+    BeamDexAction.withdraw => context.l10n.dexWithdrawCta,
+    BeamDexAction.createPool => context.l10n.dexCreatePoolCta,
   };
 
   String get _done => switch (p.action) {
-    BeamDexAction.swap => 'Swap sent',
-    BeamDexAction.addLiquidity => 'Deposit sent',
-    BeamDexAction.withdraw => 'Withdrawal sent',
-    BeamDexAction.createPool => 'New pool sent',
+    BeamDexAction.swap => context.l10n.dexSentSwap,
+    BeamDexAction.addLiquidity => context.l10n.dexSentDeposit,
+    BeamDexAction.withdraw => context.l10n.dexSentWithdrawal,
+    BeamDexAction.createPool => context.l10n.dexSentNewPool,
   };
 
   String _amount(int assetId, BigInt v) =>
@@ -207,9 +210,9 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
 
   /// "Swap 0.02 BEAM": what the swap spends, from the built transaction.
   String get _swapLabel {
-    if (p.pays.length != 1) return 'Swap';
+    if (p.pays.length != 1) return context.l10n.dexSwapCta;
     final paid = p.pays.entries.single;
-    return 'Swap ${_amount(paid.key, paid.value)}';
+    return context.l10n.dexSwapAmountCta(_amount(paid.key, paid.value));
   }
 
   /// What everything leaving the wallet is worth, when every part of it
@@ -249,8 +252,8 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
         _phase = _Phase.review;
         _gateMessage = ok == false
             ? (deps.desktop
-                  ? 'Wrong password. Nothing was sent.'
-                  : 'Wrong PIN. Nothing was sent.')
+                  ? context.l10n.dexWrongPassword
+                  : context.l10n.dexWrongPin)
             : null;
       });
       return;
@@ -258,9 +261,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
     if (!deps.canSpend) {
       setState(() {
         _phase = _Phase.review;
-        _gateMessage =
-            'The wallet fell behind the network. Nothing was '
-            'sent. Try again once it is up to date.';
+        _gateMessage = context.l10n.dexFellBehind;
       });
       return;
     }
@@ -279,10 +280,10 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
   }
 
   String get _authReason => switch (p.action) {
-    BeamDexAction.swap => 'Authenticate to swap',
-    BeamDexAction.addLiquidity => 'Authenticate to add liquidity',
-    BeamDexAction.withdraw => 'Authenticate to withdraw',
-    BeamDexAction.createPool => 'Authenticate to create the pool',
+    BeamDexAction.swap => context.l10n.dexAuthSwap,
+    BeamDexAction.addLiquidity => context.l10n.dexAuthAddLiquidity,
+    BeamDexAction.withdraw => context.l10n.dexAuthWithdraw,
+    BeamDexAction.createPool => context.l10n.dexAuthCreatePool,
   };
 
   void _close() => Navigator.of(context).pop(_txId);
@@ -314,18 +315,20 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
         return DexPrimaryAction(
           deps: deps,
           buttonKey: const Key('dex-confirm-done'),
-          label: _phase == _Phase.sent ? 'Done' : 'Back',
+          label: _phase == _Phase.sent
+              ? context.l10n.commonDone
+              : context.l10n.commonBack,
           onPressed: _close,
         );
       case _Phase.review:
       case _Phase.sending:
         final String? reason;
         if (_phase == _Phase.sending) {
-          reason = 'Sending…';
+          reason = context.l10n.dexSending;
         } else if (!deps.canSpend) {
-          reason = 'Paused until the wallet is up to date.';
+          reason = context.l10n.dexPausedUntilSynced;
         } else if (p.action == BeamDexAction.createPool && !_ackDeposit) {
-          reason = 'Tick the box above to continue.';
+          reason = context.l10n.dexTickBox;
         } else {
           reason = null;
         }
@@ -371,7 +374,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Total leaving your wallet', style: style),
+          Text(context.l10n.dexTotalLeaving, style: style),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -407,10 +410,11 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
     final quote = p.quote;
     final receivesNote =
         p.action == BeamDexAction.swap && p.invoke.entries.single.isDependent;
+    final l10n = context.l10n;
     final payLabel = switch (p.action) {
-      BeamDexAction.createPool => 'Deposit (locked)',
-      BeamDexAction.withdraw => 'You return',
-      _ => 'You pay',
+      BeamDexAction.createPool => l10n.dexDepositLocked,
+      BeamDexAction.withdraw => l10n.dexYouReturn,
+      _ => l10n.dexYouPay,
     };
     final pays = _order(p.pays.keys);
     final receives = _order(p.receives.keys);
@@ -444,7 +448,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
             for (var i = 0; i < receives.length; i++)
               _line(
                 context,
-                label: i == 0 ? 'You receive' : '',
+                label: i == 0 ? l10n.dexYouReceive : '',
                 id: 'receives-${receives[i]}',
                 text: _amount(receives[i], p.receives[receives[i]]!),
                 worth: deps.worth(receives[i], p.receives[receives[i]]!),
@@ -453,10 +457,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  'If someone else trades first, BEAM redoes your swap at '
-                  'most 1% lower, or cancels it and nothing is spent. '
-                  'Keep Campfire open until it is confirmed, usually under '
-                  'a minute.',
+                  l10n.dexSwapRedoNote,
                   style: STextStyles.label(context),
                 ),
               ),
@@ -469,24 +470,26 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
             if (quote is BeamSwapQuote)
               _line(
                 context,
-                label: 'Pool fee (${quote.kind.feePercent}), included',
+                label: l10n.dexPoolFeeIncluded(quote.kind.feePercent),
                 id: 'pool-fee',
                 text: _amount(quote.payAsset, quote.fee),
               ),
             _line(
               context,
-              label: 'Network fee',
+              label: l10n.beamNetworkFee,
               id: 'fee',
               text: _amount(0, p.fee),
               worth: deps.worthOfBeam(p.fee),
             ),
             _line(
               context,
-              label: 'Sent to',
+              label: l10n.dexSentTo,
               id: 'destination',
               text: p.contractId == kDexContractId
-                  ? 'BEAM DEX contract ${DexFormat.shortId(p.contractId)}'
-                  : 'Contract ${DexFormat.shortId(p.contractId)}',
+                  ? l10n.dexDestinationDex(DexFormat.shortId(p.contractId))
+                  : l10n.dexDestinationContract(
+                      DexFormat.shortId(p.contractId),
+                    ),
             ),
           ],
         ),
@@ -494,12 +497,10 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
           const SizedBox(height: 12),
           DexNotice(
             kind: DexNoticeKind.info,
-            title:
-                'The price moved ${DexFormat.percent(widget.priceMoved!)} '
-                'since your quote',
-            detail:
-                'That is within your price protection. The amounts '
-                'above are the new ones.',
+            title: l10n.dexPriceMovedTitle(
+              DexFormat.percent(widget.priceMoved!),
+            ),
+            detail: l10n.dexPriceMovedWithin,
           ),
         ],
       ],
@@ -508,7 +509,9 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
 
   Widget _depositWarning(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
-    final deposit = p.pays[0] ?? kDexPoolCreateDeposit;
+    final deposit =
+        '${DexFormat.exact(p.pays[0] ?? kDexPoolCreateDeposit)} BEAM';
+    final l10n = context.l10n;
     return RoundedContainer(
       color: colors.warningBackground,
       child: Column(
@@ -525,9 +528,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Creating a pool locks a ${DexFormat.exact(deposit)} BEAM '
-                  'deposit, returned only when the pool is empty and '
-                  'destroyed.',
+                  l10n.dexConfirmDepositWarning(deposit),
                   key: const Key('dex-create-warning'),
                   style: STextStyles.smallMed14(context)
                       .copyWith(color: colors.warningForeground),
@@ -537,8 +538,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
           ),
           const SizedBox(height: 6),
           Text(
-            'The new pool starts empty. Once it is confirmed, add the first '
-            'coins: your amounts set its starting price.',
+            l10n.dexConfirmNewPoolEmpty,
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.warningForeground),
           ),
@@ -556,8 +556,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
                 ),
                 Expanded(
                   child: Text(
-                    'I understand the ${DexFormat.exact(deposit)} BEAM stays '
-                    'locked until the pool is empty',
+                    l10n.dexConfirmDepositAck(deposit),
                     style: STextStyles.smallMed12(context)
                         .copyWith(color: colors.warningForeground),
                   ),
@@ -635,10 +634,13 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
 
   Widget _sentBody(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
+    // "0.5 BEAM and 0.0001 bETH": each further amount joins the list the
+    // same way.
     final arriving = p.receives.isEmpty
         ? null
         : [for (final a in _order(p.receives.keys)) _amount(a, p.receives[a]!)]
-              .join(' and ');
+              .reduce(l10n.dexAmountsAnd);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -668,12 +670,10 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
         const SizedBox(height: 8),
         Text(
           p.action == BeamDexAction.createPool
-              ? 'It usually confirms within a minute. Then open the pool and '
-                    'add the first coins.'
+              ? l10n.dexDoneCreatePool
               : arriving == null
-              ? 'It usually confirms within a minute.'
-              : '$arriving will arrive once the network confirms it, '
-                    'usually within a minute.',
+              ? l10n.dexDoneConfirms
+              : l10n.dexDoneArriving(arriving),
           textAlign: TextAlign.center,
           style: STextStyles.smallMed14(context),
         ),
@@ -687,7 +687,7 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Transaction ID',
+                    l10n.dexTransactionId,
                     style: STextStyles.smallMed12(context),
                   ),
                   SimpleCopyButton(data: _txId ?? ''),
@@ -707,18 +707,15 @@ class _BeamDexConfirmViewState extends State<BeamDexConfirmView> {
   }
 
   Widget _unknownBody(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         DexNotice(
-          key: Key('dex-send-unknown'),
+          key: const Key('dex-send-unknown'),
           kind: DexNoticeKind.warning,
-          title: "We couldn't confirm it went out",
-          detail:
-              "The wallet didn't answer in time. It may still go through, "
-              'so check your transaction history before trying again. '
-              'Nothing more will be sent from this screen.',
+          title: context.l10n.dexSendUnknownTitle,
+          detail: context.l10n.dexSendUnknownDetail,
         ),
       ],
     );

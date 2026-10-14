@@ -31,6 +31,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../pages/receive_view/addresses/wallet_addresses_view.dart';
 import '../../../themes/stack_colors.dart';
@@ -75,9 +76,7 @@ class _BeamReceivePanelState extends ConsumerState<BeamReceivePanel> {
   @override
   void initState() {
     super.initState();
-    _model = BeamReceiveModel(
-      ref.read(pBeamReceiveBackend(widget.walletId))!,
-    );
+    _model = BeamReceiveModel(ref.read(pBeamReceiveBackend(widget.walletId))!);
     unawaited(_model.start());
   }
 
@@ -114,10 +113,9 @@ class _BeamReceivePanelState extends ConsumerState<BeamReceivePanel> {
   void _openAddresses() {
     if (!widget.desktop) {
       unawaited(
-        Navigator.of(context).pushNamed(
-          WalletAddressesView.routeName,
-          arguments: widget.walletId,
-        ),
+        Navigator.of(
+          context,
+        ).pushNamed(WalletAddressesView.routeName, arguments: widget.walletId),
       );
       return;
     }
@@ -136,7 +134,7 @@ class _BeamReceivePanelState extends ConsumerState<BeamReceivePanel> {
                   Padding(
                     padding: const EdgeInsets.only(left: 32),
                     child: Text(
-                      'Your addresses',
+                      context.l10n.receiveAddressesTitle,
                       style: STextStyles.desktopH3(context),
                     ),
                   ),
@@ -302,9 +300,8 @@ class _AddressCard extends StatelessWidget {
                     child: Text(
                       BeamReceiveText.yourAddress,
                       style: desktop
-                          ? STextStyles.desktopTextExtraSmall(
-                              context,
-                            ).copyWith(color: colors.textDark3)
+                          ? STextStyles.desktopTextExtraSmall(context)
+                                .copyWith(color: colors.textDark3)
                           : STextStyles.itemSubtitle(context),
                     ),
                   ),
@@ -352,13 +349,13 @@ class _AddressCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const BeamNote(
+                BeamNote(
                   BeamReceiveText.regularExplainer,
                   key: BeamReceiveKeys.explainer,
                 ),
                 if (model.offline) ...[
                   const SizedBox(height: 6),
-                  const BeamNote(BeamReceiveText.offlineWarning, warning: true),
+                  BeamNote(BeamReceiveText.offlineWarning, warning: true),
                 ],
               ] else if (address != null) ...[
                 Center(
@@ -374,19 +371,18 @@ class _AddressCard extends StatelessWidget {
                   key: BeamReceiveKeys.address,
                   textAlign: TextAlign.center,
                   style: desktop
-                      ? STextStyles.desktopTextExtraExtraSmall(
-                          context,
-                        ).copyWith(color: colors.textDark)
+                      ? STextStyles.desktopTextExtraExtraSmall(context)
+                            .copyWith(color: colors.textDark)
                       : STextStyles.itemSubtitle12(context),
                 ),
                 const SizedBox(height: 10),
-                const BeamNote(
+                BeamNote(
                   BeamReceiveText.regularExplainer,
                   key: BeamReceiveKeys.explainer,
                 ),
                 if (model.offline) ...[
                   const SizedBox(height: 6),
-                  const BeamNote(BeamReceiveText.offlineWarning, warning: true),
+                  BeamNote(BeamReceiveText.offlineWarning, warning: true),
                 ],
               ] else if (model.problem != null)
                 _Problem(model: model, size: qr)
@@ -509,7 +505,7 @@ class _NameCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '${BeamReceiveText.yourName}: ',
+                  '${BeamReceiveText.yourName} ',
                   style: STextStyles.itemSubtitle(context),
                 ),
                 Expanded(
@@ -521,7 +517,7 @@ class _NameCard extends StatelessWidget {
                 ),
                 IconButton(
                   key: BeamReceiveKeys.nameCopy(name),
-                  tooltip: 'Copy $name',
+                  tooltip: context.l10n.receiveCopyName(name),
                   visualDensity: VisualDensity.compact,
                   onPressed: () => beamCopy(
                     context,

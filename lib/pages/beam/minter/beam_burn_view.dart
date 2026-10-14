@@ -23,6 +23,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/burn/burn.dart';
@@ -52,7 +53,7 @@ class BeamBurnView extends StatefulWidget {
   });
 
   static const routeName = '/beamBurn';
-  static const title = 'Burn tokens';
+  static String get title => appL10n.minterBurnTitle;
 
   final BeamBurnService service;
   final ValueListenable<BeamSyncAssessment> sync;
@@ -128,7 +129,9 @@ class _BeamBurnViewState extends State<BeamBurnView> {
     if (p != null) return p;
     final v = BeamUnits.parse(_amount.text);
     if (v != null && _assetId != null && v > _available) {
-      return 'You have ${_names.amount(_assetId!, _available)}';
+      return context.l10n.minterBurnAmountTooMuch(
+        _names.amount(_assetId!, _available),
+      );
     }
     return null;
   }
@@ -138,7 +141,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
       context: context,
       assets: _tokens,
       names: _names,
-      title: 'Which token to burn',
+      title: context.l10n.minterBurnPickTitle,
     );
     if (picked != null && picked != 0 && mounted) {
       setState(() => _assetId = picked);
@@ -193,19 +196,17 @@ class _BeamBurnViewState extends State<BeamBurnView> {
         final v = BeamUnits.parse(_amount.text);
         final ok = aid != null && v != null && _amountProblem == null;
         final nothing = _balances != null && _tokens.isEmpty;
+        final l10n = context.l10n;
         return BeamPageScaffold(
           title: BeamBurnView.title,
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const BeamNotice(
-                key: ValueKey('burn-intro'),
+              BeamNotice(
+                key: const ValueKey('burn-intro'),
                 kind: BeamNoticeKind.warning,
-                title: 'Burning cannot be undone',
-                message:
-                    'Burned tokens are destroyed for good: nobody, you '
-                    'included, can ever get them back. BEAM itself can '
-                    'never be burned here.',
+                title: l10n.minterBurnIntroTitle,
+                message: l10n.minterBurnIntroMessage,
               ),
               const BeamGap(16),
               if (_loadProblem != null) ...[
@@ -213,22 +214,19 @@ class _BeamBurnViewState extends State<BeamBurnView> {
                   kind: BeamNoticeKind.danger,
                   title: _loadProblem!.title,
                   message: _loadProblem!.message,
-                  actionLabel: 'Try again',
+                  actionLabel: l10n.commonTryAgain,
                   onAction: _load,
                 ),
                 const BeamGap(),
               ],
               if (_balances == null && _loadProblem == null)
-                const BeamWorking('Reading your tokens…'),
+                BeamWorking(l10n.minterBurnReading),
               if (nothing)
-                const BeamEmptyState(
-                  key: ValueKey('burn-empty'),
+                BeamEmptyState(
+                  key: const ValueKey('burn-empty'),
                   icon: Icons.local_fire_department_outlined,
-                  title: 'No tokens to burn',
-                  message:
-                      'This wallet holds no tokens other than BEAM, and BEAM '
-                      'cannot be burned. Tokens you receive or mint show up '
-                      'here.',
+                  title: l10n.minterBurnEmptyTitle,
+                  message: l10n.minterBurnEmptyMessage,
                 ),
               if (aid != null) ..._form(context, aid),
               if (_problem != null) ...[
@@ -245,18 +243,20 @@ class _BeamBurnViewState extends State<BeamBurnView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              BeamSyncNotice(sync: sync, what: 'Burning'),
+              BeamSyncNotice(sync: sync, action: BeamPausedAction.burning),
               if (nothing)
                 BeamCtaBar(
-                  label: 'Back',
+                  label: l10n.commonBack,
                   onPressed: () => Navigator.of(context).maybePop(),
                 )
               else
                 BeamCtaBar(
                   primaryKey: const ValueKey('burn-cta'),
-                  label: ok ? 'Burn ${_names.amount(aid, v)}' : 'Burn tokens',
+                  label: ok
+                      ? l10n.minterBurnCta(_names.amount(aid, v))
+                      : l10n.minterBurnCtaDefault,
                   busy: _preparing,
-                  busyLabel: 'Preparing…',
+                  busyLabel: l10n.minterPreparing,
                   onPressed: ok && sync.canSpend ? _burn : null,
                 ),
             ],
@@ -267,13 +267,13 @@ class _BeamBurnViewState extends State<BeamBurnView> {
   }
 
   List<Widget> _form(BuildContext context, int aid) => [
-    const BeamLabel('Token'),
+    BeamLabel(context.l10n.minterBurnTokenLabel),
     RoundedWhiteContainer(
       key: const ValueKey('burn-asset'),
       onPressed: _tokens.length > 1 ? _pick : null,
       child: BeamAssetTitle(
         display: _names.display(aid),
-        subtitle: 'You have ${_names.amount(aid, _available)}',
+        subtitle: context.l10n.beamAssetYouHave(_names.amount(aid, _available)),
         trailing: _tokens.length > 1
             ? Icon(
                 Icons.expand_more_rounded,
@@ -288,7 +288,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
     BeamTextField(
       fieldKey: const ValueKey('burn-amount'),
       controller: _amount,
-      label: 'How many to burn',
+      label: context.l10n.minterBurnHowMany,
       hint: '0',
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       error: _amountProblem,
@@ -305,10 +305,8 @@ class _BeamBurnViewState extends State<BeamBurnView> {
     Align(
       alignment: Alignment.centerRight,
       child: CustomTextButton(
-        text: 'All of it',
-        onTap: () => setState(
-          () => _amount.text = BeamUnits.format(_available).replaceAll(',', ''),
-        ),
+        text: context.l10n.minterBurnAllOfIt,
+        onTap: () => setState(() => _amount.text = BeamUnits.plain(_available)),
       ),
     ),
   ];
@@ -316,6 +314,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
   Widget _done(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final desktop = BeamLayoutScope.isDesktop(context);
+    final l10n = context.l10n;
     return BeamPageScaffold(
       title: BeamBurnView.title,
       body: Padding(
@@ -329,7 +328,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
             ),
             const BeamGap(16),
             Text(
-              '$_burnedText sent to be burned',
+              l10n.minterBurnDoneTitle(_burnedText!),
               key: const ValueKey('burn-done'),
               textAlign: TextAlign.center,
               style: desktop
@@ -338,8 +337,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
             ),
             const BeamGap(8),
             Text(
-              'They are gone for good once the network confirms it, usually '
-              'within a few minutes.',
+              l10n.minterBurnDoneMessage,
               textAlign: TextAlign.center,
               style: STextStyles.itemSubtitle(context),
             ),
@@ -347,7 +345,7 @@ class _BeamBurnViewState extends State<BeamBurnView> {
         ),
       ),
       bottom: BeamCtaBar(
-        label: 'Done',
+        label: l10n.commonDone,
         onPressed: () => Navigator.of(context).maybePop(),
       ),
     );

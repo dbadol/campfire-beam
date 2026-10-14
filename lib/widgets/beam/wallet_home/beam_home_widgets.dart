@@ -40,6 +40,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../custom_buttons/blue_text_button.dart';
@@ -55,7 +56,7 @@ StackColors _colors(BuildContext context) =>
 class BeamBalanceLines {
   const BeamBalanceLines({
     required this.spendable,
-    this.title = 'Available balance',
+    this.title,
     this.fiat,
     this.reserveFiat = false,
     this.foundSoFar,
@@ -64,7 +65,8 @@ class BeamBalanceLines {
     this.reservePortfolio = false,
   });
 
-  final String title;
+  /// The card's title; "Available balance" when null.
+  final String? title;
 
   /// "12.5 BEAM", Campfire's formatter; "Scanning… 43%" while a restored
   /// wallet has found nothing yet (never a bare 0).
@@ -117,7 +119,7 @@ class BeamNodeChip extends StatelessWidget {
     final dot = isPrivate ? c.accentColorGreen : fg.withValues(alpha: 0.6);
     return Semantics(
       button: onTap != null,
-      label: '$label. Opens network settings.',
+      label: context.l10n.homeNodeChipSemantics(label),
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
@@ -199,7 +201,7 @@ class BeamBalanceCardContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  lines.title,
+                  lines.title ?? context.l10n.homeAvailableBalance,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: STextStyles.subtitle500(context)
@@ -355,7 +357,7 @@ class BeamNamePaymentsLine extends StatelessWidget {
             child: Text.rich(
               TextSpan(
                 children: [
-                  TextSpan(text: '${text.lead}: '),
+                  TextSpan(text: text.label),
                   TextSpan(
                     text: text.amounts,
                     style: STextStyles.desktopTextExtraExtraSmall600(context),
@@ -372,7 +374,7 @@ class BeamNamePaymentsLine extends StatelessWidget {
           const SizedBox(width: 4),
           CustomTextButton(
             key: const Key('beamHomeClaim'),
-            text: 'Claim',
+            text: context.l10n.homeClaim,
             textSize: 14,
             onTap: onClaim,
           ),
@@ -381,7 +383,7 @@ class BeamNamePaymentsLine extends StatelessWidget {
     }
     return Semantics(
       button: true,
-      label: '${text.line}. Claim.',
+      label: context.l10n.homeNamePaymentsSemantics(text.line),
       excludeSemantics: true,
       child: RoundedContainer(
         key: const Key('beamHomeClaim'),
@@ -395,7 +397,7 @@ class BeamNamePaymentsLine extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: '${text.lead}: ',
+                      text: text.label,
                       style: STextStyles.w500_12(context)
                           .copyWith(color: c.textDark3),
                     ),
@@ -412,7 +414,7 @@ class BeamNamePaymentsLine extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text('Claim', style: STextStyles.link2(context)),
+            Text(context.l10n.homeClaim, style: STextStyles.link2(context)),
           ],
         ),
       ),
@@ -636,7 +638,7 @@ class BeamSendNavLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-    'Send',
+    context.l10n.homeSend,
     key: Key(enabled ? 'beamSendEnabled' : 'beamSendDisabled'),
     style: STextStyles.buttonSmall(context).copyWith(
       color: _colors(context).bottomNavText

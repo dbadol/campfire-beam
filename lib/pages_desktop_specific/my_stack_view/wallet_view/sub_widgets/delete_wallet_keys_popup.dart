@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../notifications/show_flush_bar.dart';
 import '../../../../pages/add_wallet_views/new_wallet_recovery_phrase_view/sub_widgets/mnemonic_table.dart';
 import '../../../../providers/global/secure_store_provider.dart';
@@ -54,11 +55,6 @@ class _DeleteWalletKeysPopup extends ConsumerState<DeleteWalletKeysPopup> {
   late final List<String> _words;
   late final ClipboardInterface _clipboardInterface;
 
-  static const _recoveryPhraseInfo =
-      "Please write down your recovery phrase in the correct order and save it "
-      "to keep your funds secure. "
-      "You will be shown your recovery phrase on the next screen.";
-
   @override
   void initState() {
     _walletId = widget.walletId;
@@ -81,7 +77,7 @@ class _DeleteWalletKeysPopup extends ConsumerState<DeleteWalletKeysPopup> {
               Padding(
                 padding: const EdgeInsets.only(left: 32),
                 child: Text(
-                  "Wallet keys",
+                  context.l10n.walletViewWalletKeys,
                   style: STextStyles.desktopH3(context),
                 ),
               ),
@@ -94,7 +90,7 @@ class _DeleteWalletKeysPopup extends ConsumerState<DeleteWalletKeysPopup> {
           ),
           const SizedBox(height: 28),
           Text(
-            "Recovery phrase",
+            context.l10n.walletViewRecoveryPhrase,
             style: STextStyles.desktopTextMedium(context),
           ),
           const SizedBox(height: 8),
@@ -102,7 +98,7 @@ class _DeleteWalletKeysPopup extends ConsumerState<DeleteWalletKeysPopup> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
-                _recoveryPhraseInfo,
+                context.l10n.walletViewRecoveryPhraseDeleteInfo,
                 style: STextStyles.desktopTextExtraExtraSmall(context),
                 textAlign: TextAlign.center,
               ),
@@ -121,7 +117,7 @@ class _DeleteWalletKeysPopup extends ConsumerState<DeleteWalletKeysPopup> {
                   unawaited(
                     showFloatingFlushBar(
                       type: FlushBarType.info,
-                      message: "Copied to clipboard",
+                      message: context.l10n.sharedCopiedToClipboard,
                       iconAsset: Assets.svg.copy,
                       context: context,
                     ),
@@ -144,7 +140,7 @@ class _DeleteWalletKeysPopup extends ConsumerState<DeleteWalletKeysPopup> {
               children: [
                 Expanded(
                   child: PrimaryButton(
-                    label: "Continue",
+                    label: context.l10n.commonContinue,
                     onPressed: () async {
                       await Navigator.of(context).push(
                         RouteGenerator.getRoute(
@@ -193,8 +189,7 @@ class _ConfirmDeleteState extends ConsumerState<ConfirmDelete> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                "Thanks! "
-                "\n\nYour wallet will be deleted.",
+                context.l10n.walletViewDeleteThanks,
                 style: STextStyles.desktopH2(context),
                 textAlign: TextAlign.center,
               ),
@@ -205,7 +200,7 @@ class _ConfirmDeleteState extends ConsumerState<ConfirmDelete> {
                   SecondaryButton(
                     width: 250,
                     buttonHeight: ButtonHeight.xl,
-                    label: "Cancel",
+                    label: context.l10n.commonCancel,
                     onPressed: () {
                       Navigator.of(context, rootNavigator: true).pop();
                     },
@@ -214,7 +209,7 @@ class _ConfirmDeleteState extends ConsumerState<ConfirmDelete> {
                   PrimaryButton(
                     width: 250,
                     buttonHeight: ButtonHeight.xl,
-                    label: "Continue",
+                    label: context.l10n.commonContinue,
                     onPressed: () async {
                       try {
                         await ref

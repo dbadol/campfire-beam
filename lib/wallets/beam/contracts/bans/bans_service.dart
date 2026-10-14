@@ -26,6 +26,7 @@ import 'bans_constants.dart';
 import 'bans_exceptions.dart';
 import 'bans_models.dart';
 import 'bans_name.dart';
+import 'bans_owner_pins.dart';
 import 'bans_timeline.dart';
 
 /// What a prepared BANS transaction does.
@@ -255,6 +256,7 @@ class BansPrepared {
     required this.rawData,
     required this.invokeData,
     required this.summary,
+    this.pinnedOwnerKey,
   });
 
   final BansAction action;
@@ -266,6 +268,13 @@ class BansPrepared {
   final List<int> rawData;
   final BeamInvokeData invokeData;
   final BansSummary summary;
+
+  /// A payment to a name: the owner key this wallet's record held for the
+  /// name when the payment was prepared (null: none), read once, here. The
+  /// owner it pays is recorded afterwards only if the record still holds
+  /// this ([BansOwnerPins.pin]), so a payment prepared before another one
+  /// was recorded never overwrites it (release audit 1.3.0).
+  final String? pinnedOwnerKey;
 }
 
 /// BANS for one BEAM wallet: resolve names, list mine, and build every
@@ -283,13 +292,18 @@ class BeamBansService {
     this._api,
     this._explorer, {
     PinnedShader? shader,
+    PinnedShader? vaultShader,
     this.args = BansArgs.mainnet,
     this.callTimeout = const Duration(seconds: 90),
-  }) : _shader = shader ?? bansAppShader(AssetShaderSource());
+  }) : _shader = shader ?? bansAppShader(AssetShaderSource()),
+       _vaultShader = vaultShader ?? vaultAnonAppShader(AssetShaderSource());
 
   final BeamApi _api;
   final BeamExplorerClient? _explorer;
   final PinnedShader _shader;
+
+  /// BEAM's Anon-Vault app shader: builds payments to a name (audit D-1).
+  final PinnedShader _vaultShader;
   final BansArgs args;
 
   /// Per shader call. `view_domain` over every name returns about 58 KB.
@@ -303,9 +317,14 @@ class BeamBansService {
   Future<String> myKey() async =>
       _myKey ??= BansOutput.myKey(await _read(args.myKey()));
 
-  /// Contract settings and the current oracle median.
-  Future<BansParams> params() async =>
-      BansOutput.viewParams(await _read(args.viewParams()));
+  /// Contract settings and the current oracle median. The node answers
+  /// without proof, and the vault is where every payment to a name goes: one
+  /// that is not BEAM's own ([kBansVaultCid]) is refused (audit D-1).
+  Future<BansParams> params() async {
+    final p = BansOutput.viewParams(await _read(args.viewParams()));
+    if (p.vaultCid != kBansVaultCid) throw BansWrongVault(p.vaultCid);
+    return p;
+  }
 
   /// Looks [name] up on the wallet's own node. Authoritative.
   Future<BansResolution> resolve(BansName name) async {
@@ -519,11 +538,28 @@ class BeamBansService {
   /// after the core builds the payment; if the owner differs between the
   /// two, or from [expectedOwnerKey] (the key the user was shown), it
   /// throws [BansOwnerChanged]. [execute] checks once more before signing.
+  ///
+  /// The payment is built by BEAM's Anon-Vault app shader for exactly that
+  /// owner key ([BansArgs.sendAnon]), not by BANS's `pay`, which re-reads the
+  /// vault and the owner from the node while it builds: a node lying then
+  /// could aim the payment anywhere (audit D-1). The one-time key in the
+  /// kernel is the owner key plus a point from the shader's own random
+  /// scalar; that it belongs to the key rests on the pinned shader, which
+  /// takes the key as its argument and reads no chain state.
+  ///
+  /// [pinnedOwnerKey] is the owner key this wallet paid [name] before (null:
+  /// never). Another owner now is refused ([BansOwnerChangedSincePaid])
+  /// unless it is [acceptedOwnerKey], the new key the person saw next to the
+  /// old one and chose to pay ([bansPinVerdict]). It travels with the
+  /// result ([BansPrepared.pinnedOwnerKey]): the owner paid is recorded only
+  /// if the record still holds it then.
   Future<BansPrepared> preparePay(
     BansName name,
     int assetId,
     BigInt amount, {
     String? expectedOwnerKey,
+    String? pinnedOwnerKey,
+    String? acceptedOwnerKey,
   }) async {
     final p = await params();
     final before = await resolve(name);
@@ -531,13 +567,35 @@ class BeamBansService {
     if (expectedOwnerKey != null && key != expectedOwnerKey) {
       throw BansOwnerChanged(name.value, expectedOwnerKey, key);
     }
-    final a = args.pay(name, assetId, amount);
-    final built = await _build(a);
+    if (key == null) throw BansShaderRefused(BansRefusal.notRegistered.wire);
+    final verdict = bansPinVerdict(
+      pinned: pinnedOwnerKey,
+      now: key,
+      accepted: acceptedOwnerKey,
+    );
+    if (verdict == BansPinVerdict.changed) {
+      throw BansOwnerChangedSincePaid(name.value, pinnedOwnerKey!, key);
+    }
+    if (!before.status.canReceivePayments) {
+      throw BansShaderRefused(BansRefusal.domainExpired.wire);
+    }
+    final a = args.sendAnon(key, name, assetId, amount);
+    final built = await _build(a, shader: _vaultShader);
     final after = await resolve(name);
-    if (key == null || after.ownerKey != key) {
-      throw BansOwnerChanged(name.value, key ?? '', after.ownerKey);
+    if (after.ownerKey != key) {
+      throw BansOwnerChanged(name.value, key, after.ownerKey);
     }
     final e = _single(built, p.vaultCid, BansMethod.vaultDeposit);
+    // Exactly what BEAM's Anon-Vault writes for send_anon: a plain call, no
+    // co-signers, nothing the wallet would rebuild later (audit D-1 review).
+    _expect(e.flags == 0 && e.signatureCount == 0, 'a plain call');
+    _expect(e.comment == BansKernelComment.pay, 'the vault deposit comment');
+    _expect(
+      !built.data.isRebuildable &&
+          built.data.appArgs == null &&
+          built.data.appPrivilege == null,
+      'nothing rebuilt later',
+    );
     final r = BeamArgsReader(e.args);
     _expect(r.u64() == amount, 'amount');
     final custom = r.u32();
@@ -550,7 +608,7 @@ class BeamBansService {
       pays.length == 1 && pays.single == BansAmount(assetId, amount),
       'the kernel pays exactly the amount',
     );
-    return _prepared(BansAction.pay, a, built, BansSummary(
+    final summary = BansSummary(
       action: BansAction.pay,
       name: name,
       youPay: pays,
@@ -562,7 +620,14 @@ class BeamBansService {
       comments: built.data.comments,
       ownerKey: key,
       expireHeight: after.domain?.expireHeight,
-    ));
+    );
+    return _prepared(
+      BansAction.pay,
+      a,
+      built,
+      summary,
+      pinnedOwnerKey: pinnedOwnerKey,
+    );
   }
 
   /// Builds a claim of up to 30 waiting payments and sale proceeds. Throws
@@ -659,10 +724,10 @@ class BeamBansService {
     return text.contains('get_PkEx') || text.contains('get_BlindSk');
   }
 
-  Future<BeamInvokeResult> _invoke(String a) async {
-    final Uint8List shader;
+  Future<BeamInvokeResult> _invoke(String a, {PinnedShader? shader}) async {
+    final Uint8List bytes;
     try {
-      shader = await _shader.load();
+      bytes = await (shader ?? _shader).load();
     } on PinnedShaderException catch (e) {
       throw BansShaderMismatch(e.actualSha256 ?? '', e.actualSize ?? 0);
     }
@@ -670,7 +735,7 @@ class BeamBansService {
       return await _api.invokeContract(
         createTx: false,
         args: a,
-        contractBytes: shader,
+        contractBytes: bytes,
         timeout: callTimeout,
       );
     } on BeamRpcException catch (e) {
@@ -685,8 +750,12 @@ class BeamBansService {
   /// advanced entries: claims withdraw from the Anon-Vault with kernels the
   /// shader co-signs (`vault_anon/app_impl.h:430-440`); nothing else BANS
   /// builds is one, so anywhere else an advanced entry is refused.
-  Future<_Built> _build(String a, {bool claim = false}) async {
-    final r = await _invoke(a);
+  Future<_Built> _build(
+    String a, {
+    bool claim = false,
+    PinnedShader? shader,
+  }) async {
+    final r = await _invoke(a, shader: shader);
     BansOutput.decode(r.output); // throws BansShaderRefused
     final raw = r.rawData;
     if (raw == null || raw.isEmpty) {
@@ -705,13 +774,15 @@ class BeamBansService {
     BansAction action,
     String a,
     _Built built,
-    BansSummary summary,
-  ) => BansPrepared(
+    BansSummary summary, {
+    String? pinnedOwnerKey,
+  }) => BansPrepared(
     action: action,
     args: a,
     rawData: built.raw,
     invokeData: built.data,
     summary: summary,
+    pinnedOwnerKey: pinnedOwnerKey,
   );
 
   BansPrepared _claim(BansAction action, String a, _Built built, String vault) {

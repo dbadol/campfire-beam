@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 
+import '../l10n/l10n.dart';
 import '../themes/stack_colors.dart';
 import '../utilities/if_not_already.dart';
 import '../utilities/text_styles.dart';
@@ -66,7 +67,10 @@ class _QrScannerState extends State<QrScanner> {
             context,
           ).extension<StackColors>()!.backgroundAppBar,
           leading: const AppBarBackButton(),
-          title: Text("Scan QR code", style: STextStyles.navBarTitle(context)),
+          title: Text(
+            context.l10n.sharedQrScanTitle,
+            style: STextStyles.navBarTitle(context),
+          ),
         ),
         body: QRView(
           key: qrKey,

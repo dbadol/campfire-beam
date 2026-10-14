@@ -10,6 +10,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import '../../../l10n/l10n.dart';
 import '../host/beam_host_exception.dart';
 import '../rpc/beam_connection_exception.dart';
 import '../rpc/beam_transport.dart';
@@ -101,28 +102,18 @@ class BeamWalletException implements Exception {
   String toString() => message;
 }
 
-/// Plain-language messages, kept in one place.
+/// Plain-language messages, kept in one place (their text is in
+/// lib/l10n/app_en.arb, in the language the app speaks).
 abstract final class BeamWalletMessages {
-  static const coreNotInstalled =
-      'BEAM core not installed. This copy of Campfire is missing the BEAM '
-      "wallet engine for this computer, so it can't create or open BEAM "
-      'wallets yet. Nothing was lost. Install a Campfire build that includes '
-      'the BEAM core.';
+  static String get coreNotInstalled => appL10n.walletCoreNotInstalled;
 
-  static const coreUntrusted =
-      "The BEAM wallet engine on this computer failed Campfire's safety "
-      "check, so it won't be run. Reinstall Campfire.";
+  static String get coreUntrusted => appL10n.walletCoreUntrusted;
 
   /// [coreNotInstalled] and [coreUntrusted] as a phone says them.
-  static const coreNotInstalledOnPhone =
-      'BEAM core not installed. This copy of Campfire is missing the BEAM '
-      "wallet engine for this device, so it can't create or open BEAM "
-      'wallets yet. Nothing was lost. Install a Campfire build that includes '
-      'the BEAM core.';
+  static String get coreNotInstalledOnPhone =>
+      appL10n.walletCoreNotInstalledOnPhone;
 
-  static const coreUntrustedOnPhone =
-      "The BEAM wallet engine on this device failed Campfire's safety "
-      "check, so it won't be run. Reinstall Campfire.";
+  static String get coreUntrustedOnPhone => appL10n.walletCoreUntrustedOnPhone;
 
   static bool get _onPhone => Platform.isAndroid || Platform.isIOS;
 
@@ -134,65 +125,50 @@ abstract final class BeamWalletMessages {
   static String get coreUntrustedHere =>
       _onPhone ? coreUntrustedOnPhone : coreUntrusted;
 
-  static const passwordMissing =
-      "This wallet's file can't be unlocked because its key is missing from "
-      "Campfire's secure storage. Restore the wallet from its recovery "
-      'phrase.';
+  static String get passwordMissing => appL10n.walletPasswordMissing;
 
-  static const wrongPassword =
-      "This wallet's file can't be unlocked with the key Campfire stored for "
-      'it. Restore the wallet from its recovery phrase.';
+  static String get wrongPassword => appL10n.walletWrongPassword;
 
-  static const walletFileMissing =
-      "This wallet's data file is missing. Restore the wallet from its "
-      'recovery phrase.';
+  static String get walletFileMissing => appL10n.walletFileMissing;
 
-  static const walletInUse =
-      'This wallet is already open in another Campfire window or app. Close '
-      'it there, then try again.';
+  static String get walletInUse => appL10n.walletInUse;
 
-  static const notOpen =
-      'The wallet is still connecting to the BEAM network. Try again in a '
-      'few seconds.';
+  static String get notOpen => appL10n.walletNotOpen;
 
-  static const rescanWhileBusy =
-      'A payment, swap or dApp approval is open in this wallet. Finish or '
-      'close it, then rescan.';
+  static String get rescanWhileBusy => appL10n.walletRescanWhileBusy;
 
-  static const rescanWithTxInFlight =
-      'Some transactions of this wallet are still being sent, received or '
-      'confirmed. Rescanning now would lose them; rescan once they have '
-      'completed or been canceled.';
+  static String get rescanWithTxInFlight => appL10n.walletRescanWithTxInFlight;
 
-  static const rescanCoreStillOpen =
-      "The wallet engine hasn't finished closing this wallet, so it can't "
-      'be rebuilt yet. Nothing was changed. Try again in a minute.';
+  static String get rescanCoreStillOpen => appL10n.walletRescanCoreStillOpen;
 
-  static const importedNoRescan =
-      'This wallet was imported from its wallet.db file and has no recovery '
-      'phrase here, so it cannot be rebuilt. Import the original file again '
-      'if you need a fresh copy.';
+  static String get importedNoRescan => appL10n.walletImportedNoRescan;
 
-  static const waitingForTor =
-      'Waiting for Tor. BEAM Campfire connects only through Tor while it is '
-      'on, so nothing reveals your IP address.';
+  static String get waitingForTor => appL10n.walletWaitingForTor;
 
-  static const torUnsupported =
-      "This version can't reach BEAM through Tor yet, so with Tor on it stays "
-      'offline. Turn Tor off in Settings to connect without it.';
+  static String get torUnsupported => appL10n.walletTorUnsupported;
 
-  static String nodeUnreachable(String node) =>
-      "Couldn't reach the BEAM node $node. Check the node in Settings, or "
-      'pick another one.';
+  /// [node] is the node's address as the person entered it; null when the
+  /// wallet does not know which node was picked.
+  static String nodeUnreachable(String? node) => node == null
+      ? appL10n.walletNodeUnreachablePicked
+      : appL10n.walletNodeUnreachable(node);
 
-  static const coreDidNotStart =
-      "The BEAM wallet engine didn't start. Try again. If it keeps "
-      'happening, restart Campfire.';
+  static String get coreDidNotStart => appL10n.walletCoreDidNotStart;
 
-  static const invalidPhrase =
-      "That recovery phrase isn't valid. Check each of the 12 words and their "
-      'order.';
+  static String get invalidPhrase => appL10n.walletInvalidPhrase;
+
+  /// The core's own refusal ([reason], in English: it comes from the BEAM
+  /// core) wrapped in a sentence.
+  static String rpcRefused(String reason) => appL10n.walletRpcRefused(reason);
 }
+
+/// Whether [error], thrown while sending, leaves it open whether the
+/// payment went out: the connection dropped or the call timed out.
+bool beamSendOutcomeUnknown(Object error) =>
+    (error is BeamWalletException &&
+        error.problem == BeamWalletProblem.sendOutcomeUnknown) ||
+    error is BeamConnectionException ||
+    error is TimeoutException;
 
 /// Maps a failure from the host, transport or core to a
 /// [BeamWalletException]. A [BeamWalletException] passes through unchanged.
@@ -210,27 +186,27 @@ BeamWalletException beamWalletExceptionFrom(Object error, {String? node}) {
         BeamWalletProblem.coreUntrusted,
         BeamWalletMessages.coreUntrustedHere,
       ),
-      BeamHostError.wrongPassword => const BeamWalletException(
+      BeamHostError.wrongPassword => BeamWalletException(
         BeamWalletProblem.wrongPassword,
         BeamWalletMessages.wrongPassword,
       ),
-      BeamHostError.walletNotFound => const BeamWalletException(
+      BeamHostError.walletNotFound => BeamWalletException(
         BeamWalletProblem.walletFileMissing,
         BeamWalletMessages.walletFileMissing,
       ),
-      BeamHostError.walletInUse => const BeamWalletException(
+      BeamHostError.walletInUse => BeamWalletException(
         BeamWalletProblem.walletInUse,
         BeamWalletMessages.walletInUse,
       ),
       BeamHostError.badNode => BeamWalletException(
         BeamWalletProblem.nodeUnreachable,
-        BeamWalletMessages.nodeUnreachable(node ?? 'you picked'),
+        BeamWalletMessages.nodeUnreachable(node),
       ),
-      BeamHostError.torNotReady => const BeamWalletException(
+      BeamHostError.torNotReady => BeamWalletException(
         BeamWalletProblem.waitingForTor,
         BeamWalletMessages.waitingForTor,
       ),
-      BeamHostError.torUnsupported => const BeamWalletException(
+      BeamHostError.torUnsupported => BeamWalletException(
         BeamWalletProblem.torUnsupported,
         BeamWalletMessages.torUnsupported,
       ),
@@ -243,14 +219,14 @@ BeamWalletException beamWalletExceptionFrom(Object error, {String? node}) {
       BeamHostError.insecurePath ||
       BeamHostError.notOwnedNode ||
       BeamHostError.timeout ||
-      BeamHostError.processFailed => const BeamWalletException(
+      BeamHostError.processFailed => BeamWalletException(
         BeamWalletProblem.other,
         BeamWalletMessages.coreDidNotStart,
       ),
     };
   }
   if (error is BeamConnectionException || error is TimeoutException) {
-    return const BeamWalletException(
+    return BeamWalletException(
       BeamWalletProblem.notOpen,
       BeamWalletMessages.notOpen,
     );
@@ -258,7 +234,7 @@ BeamWalletException beamWalletExceptionFrom(Object error, {String? node}) {
   if (error is BeamRpcException) {
     return BeamWalletException(
       BeamWalletProblem.other,
-      'The BEAM wallet refused the request: ${error.message}',
+      BeamWalletMessages.rpcRefused(error.message),
     );
   }
   // `libBeam.createHost` throws a plain Exception when the BEAM flag is off.

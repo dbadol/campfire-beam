@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../providers/global/base_currencies_provider.dart';
 import '../../../providers/providers.dart';
 import '../../../themes/stack_colors.dart';
@@ -153,7 +154,7 @@ class _CurrencyViewState extends ConsumerState<BaseCurrencySettingsView> {
                   }
                 },
               ),
-              title: Text("Currency", style: STextStyles.navBarTitle(context)),
+              title: Text(context.l10n.settingsCurrency, style: STextStyles.navBarTitle(context)),
             ),
             body: SafeArea(
               child: Padding(
@@ -190,7 +191,7 @@ class _CurrencyViewState extends ConsumerState<BaseCurrencySettingsView> {
                   children: [
                     Expanded(
                       child: SecondaryButton(
-                        label: "Cancel",
+                        label: context.l10n.commonCancel,
                         buttonHeight: ButtonHeight.l,
                         onPressed: Navigator.of(context).pop,
                       ),
@@ -198,7 +199,7 @@ class _CurrencyViewState extends ConsumerState<BaseCurrencySettingsView> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: PrimaryButton(
-                        label: "Save changes",
+                        label: context.l10n.settingsSaveChanges,
                         buttonHeight: ButtonHeight.l,
                         onPressed: () {
                           ref.read(prefsChangeNotifierProvider).currency =
@@ -247,7 +248,7 @@ class _CurrencyViewState extends ConsumerState<BaseCurrencySettingsView> {
                         },
                         style: STextStyles.field(context),
                         decoration: standardInputDecoration(
-                          "Search",
+                          context.l10n.settingsSearch,
                           _searchFocusNode,
                           context,
                         ).copyWith(

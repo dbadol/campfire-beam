@@ -7,46 +7,44 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/utxo/beam_coins.dart';
 import '../airdrop/beam_units.dart';
 
 /// Everything the Split coins screens say, in plain words: no widget code,
 /// so each sentence can be tested on its own. "Coins" is BEAM's own word
-/// for what a balance is made of; the technical name stays out.
+/// for what a balance is made of; the technical name stays out. The text is
+/// in lib/l10n/app_en.arb (split* keys), in the language the app speaks.
 abstract final class BeamSplitText {
-  static const title = 'Split coins';
-  static const reviewTitle = 'Review split';
+  static String get title => appL10n.splitTitle;
+  static String get reviewTitle => appL10n.splitReviewTitle;
 
-  static const headline = 'Send several payments at once';
+  static String get headline => appL10n.splitHeadline;
 
   /// The why, in one breath, with the reassurance that matters most.
-  static const intro =
-      'Each payment ties up a coin for about a minute. With more coins, '
-      'several can go at once. Nothing leaves your wallet.';
+  static String get intro => appL10n.splitIntro;
 
   /// "1.2345 BEAM in 1 coin: one payment at a time".
   static String now(BeamCoinSummary coins, String symbol) {
     final n = coins.available.length;
     final total = BeamUnits.withSymbol(coins.availableTotal, symbol);
-    if (n == 0) return 'Nothing to split yet';
-    if (n == 1) return '$total in 1 coin: one payment at a time';
+    if (n == 0) return appL10n.splitNowNothing;
+    if (n == 1) return appL10n.splitNowOneCoin(total);
     final share = (coins.largestShare * 100).round();
-    return '$total in $n coins; the largest holds $share%';
+    return appL10n.splitNowCoins(n, total, share);
   }
 
   /// When the coins are already spread out.
-  static String spreadWell(int coins) =>
-      'Your coins are already spread out: up to $coins payments can go at '
-      'once. You can still split for more.';
+  static String spreadWell(int coins) => appL10n.splitSpreadWell(coins);
 
-  static const countLabel = 'Split into';
+  static String get countLabel => appL10n.splitCountLabel;
 
   /// "5 coins of 0.17 BEAM".
-  static String newCoins(BeamSplitPlan plan, String symbol) =>
-      '${plan.count} coins of ${BeamUnits.withSymbol(plan.size, symbol)}';
+  static String newCoins(BeamSplitPlan plan, String symbol) => appL10n
+      .splitNewCoins(plan.count, BeamUnits.withSymbol(plan.size, symbol));
 
   /// The primary button, the outcome: "Split into 5 coins".
-  static String cta(int count) => 'Split into $count coins';
+  static String cta(int count) => appL10n.splitCta(count);
 
   static String fee(BeamSplitPlan plan) =>
       BeamUnits.withSymbol(plan.fee, 'BEAM');
@@ -55,33 +53,25 @@ abstract final class BeamSplitText {
   static String leaves(BeamSplitPlan plan) => fee(plan);
 
   /// "Nothing leaves your wallet" in full, for the review.
-  static String reviewNote(String symbol, {required bool asset}) =>
-      'Your $symbol is split into new coins in this same wallet. You pay '
-      'only the network fee${asset ? ', in BEAM' : ''}.';
+  static String reviewNote(String symbol, {required bool asset}) => asset
+      ? appL10n.splitReviewNoteAsset(symbol)
+      : appL10n.splitReviewNote(symbol);
 
-  static String noCoins(String symbol) =>
-      'This wallet has no $symbol it can spend right now. Coins that arrive '
-      'or come back from a payment show up here.';
+  static String noCoins(String symbol) => appL10n.splitNoCoins(symbol);
 
-  static const tooLittle =
-      'There is too little here to split: each new coin has to be worth more '
-      'than the 0.001 BEAM a payment costs.';
+  static String get tooLittle => appL10n.splitTooLittle;
 
   /// An asset split when the BEAM balance cannot pay its fee.
-  static String needBeam(BigInt fee, BigInt beam) =>
-      'Splitting costs a ${BeamUnits.withSymbol(fee, 'BEAM')} network fee, '
-      'paid in BEAM, and this wallet has '
-      '${BeamUnits.withSymbol(beam, 'BEAM')} available. Add BEAM first.';
+  static String needBeam(BigInt fee, BigInt beam) => appL10n.splitNeedBeam(
+    BeamUnits.withSymbol(fee, 'BEAM'),
+    BeamUnits.withSymbol(beam, 'BEAM'),
+  );
 
   /// The biometric prompt's reason.
-  static String authReason(BeamSplitPlan plan, String symbol) =>
-      'Split ${BeamUnits.withSymbol(plan.total, symbol)} into '
-      '${plan.count} coins';
+  static String authReason(BeamSplitPlan plan, String symbol) => appL10n
+      .splitAuthReason(plan.count, BeamUnits.withSymbol(plan.total, symbol));
 
-  static String doneTitle(int count) => 'Splitting into $count coins';
+  static String doneTitle(int count) => appL10n.splitDoneTitle(count);
 
-  static const doneMessage =
-      'The new coins are ready in about a minute, once the network confirms '
-      'the split. Until then the coins being split are busy. Your history '
-      'shows it as "Splitting coins".';
+  static String get doneMessage => appL10n.splitDoneMessage;
 }

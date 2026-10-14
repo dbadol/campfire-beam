@@ -14,6 +14,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../providers/global/prefs_provider.dart';
 import '../../providers/global/secure_store_provider.dart';
@@ -121,10 +122,10 @@ class _CreatePinViewState extends ConsumerState<CreatePinView> {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Create a PIN", style: STextStyles.pageTitleH1(context)),
+                  Text(context.l10n.pinCreateTitle, style: STextStyles.pageTitleH1(context)),
                   const SizedBox(height: 8),
                   Text(
-                    "This PIN protects access to your wallet.",
+                    context.l10n.pinCreateSubtitle,
                     style: STextStyles.subtitle(context),
                   ),
                   const SizedBox(height: 36),
@@ -164,7 +165,7 @@ class _CreatePinViewState extends ConsumerState<CreatePinView> {
                       if (pin.length < 4) {
                         showFloatingFlushBar(
                           type: FlushBarType.warning,
-                          message: "PIN not long enough!",
+                          message: context.l10n.pinTooShort,
                           iconAsset: Assets.svg.alertCircle,
                           context: context,
                         );
@@ -183,10 +184,10 @@ class _CreatePinViewState extends ConsumerState<CreatePinView> {
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Confirm PIN", style: STextStyles.pageTitleH1(context)),
+                  Text(context.l10n.pinConfirmTitle, style: STextStyles.pageTitleH1(context)),
                   const SizedBox(height: 8),
                   Text(
-                    "This PIN protects access to your wallet.",
+                    context.l10n.pinCreateSubtitle,
                     style: STextStyles.subtitle(context),
                   ),
                   const SizedBox(height: 36),
@@ -245,10 +246,10 @@ class _CreatePinViewState extends ConsumerState<CreatePinView> {
                             (Platform.isLinux)
                                 ? false
                                 : await biometrics.authenticate(
-                                  cancelButtonText: "SKIP",
+                                  cancelButtonText: context.l10n.pinBiometricsSkip,
                                   localizedReason:
-                                      "You can use your fingerprint to unlock the wallet and confirm transactions.",
-                                  title: "Enable fingerprint authentication",
+                                      context.l10n.pinBiometricsReason,
+                                  title: context.l10n.pinBiometricsTitle,
                                 );
 
                         //TODO investigate why this crashes IOS, maybe ios persists securestorage even after an uninstall?
@@ -298,7 +299,7 @@ class _CreatePinViewState extends ConsumerState<CreatePinView> {
                         unawaited(
                           showFloatingFlushBar(
                             type: FlushBarType.warning,
-                            message: "PIN codes do not match. Try again.",
+                            message: context.l10n.pinMismatch,
                             context: context,
                             iconAsset: Assets.svg.alertCircle,
                           ),

@@ -14,6 +14,7 @@ import 'package:meta/meta.dart';
 import '../../../models/isar/models/blockchain_data/transaction.dart';
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../wallets/beam/contracts/airdrop/airdrop_constants.dart';
+import '../../../wallets/beam/contracts/airdrop/airdrop_v3_constants.dart';
 import '../../../wallets/beam/contracts/bans/bans_constants.dart';
 import '../../../wallets/beam/contracts/burn/blackhole_constants.dart';
 import '../../../wallets/beam/contracts/dex/dex_constants.dart';
@@ -39,6 +40,7 @@ enum BeamContractKind {
         case kBansCid:
           return names;
         case kAirdropContractId:
+        case kAirdropV3ContractId:
           return airdrop;
         case kMinterContractId:
           return minter;

@@ -154,6 +154,34 @@ void main() {
       await expectScreen(tester, 'mint_done');
     });
 
+    testWidgets('the maximum supply takes whole digits: a comma is refused, '
+        'never dropped ("1,5" became 15)', (tester) async {
+      init();
+      await pumpBeamPage(tester, mintView());
+      await tester.pumpAndSettle();
+      const problem = 'Enter a whole number above zero, like 1000000';
+      for (final bad in ['1,5', '1,000', '1,000,000', '1.5', '0x10', '0']) {
+        await fill(tester, name: 'Ember Token', ticker: 'emb', supply: bad);
+        expect(find.text(problem), findsOneWidget, reason: bad);
+        expect(_enabled(tester, 'mint-cta'), isFalse, reason: bad);
+      }
+      // Grouped with spaces (a Russian "1 000 000" too): a million.
+      await fill(
+        tester,
+        name: 'Ember Token',
+        ticker: 'emb',
+        supply: '1\u202F000 000',
+      );
+      expect(find.text(problem), findsNothing);
+      expect(_enabled(tester, 'mint-cta'), isTrue);
+      await tester.tap(_field('mint-cta'));
+      await tester.pumpAndSettle();
+      final create = minter.seen.lastWhere(
+        (a) => a.contains('action=create_token'),
+      );
+      expect(create, contains('limit=${1000000 * 100000000},'));
+    });
+
     testWidgets('a name that copies a verified asset is warned about', (
       tester,
     ) async {

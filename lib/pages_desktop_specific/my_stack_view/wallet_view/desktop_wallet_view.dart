@@ -20,6 +20,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:isar_community/isar.dart';
 
 import '../../../db/sqlite/firo_cache.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../models/isar/models/isar_models.dart';
 import '../../../models/keys/view_only_wallet_data.dart';
@@ -384,6 +385,11 @@ class _DesktopWalletViewState extends ConsumerState<DesktopWalletView> {
     );
   }
 
+  /// BEAM's "Assets" heading in the app's language; the other coins'
+  /// headings as they are.
+  String _columnTitle(BuildContext context, String title) =>
+      title == "Assets" ? context.l10n.walletViewAssets : title;
+
   /// "My wallet" over the Send/Receive column, and the title (with its
   /// button) over the column beside it.
   Widget _columnTitles(BuildContext context, Wallet wallet) => Row(
@@ -391,7 +397,7 @@ class _DesktopWalletViewState extends ConsumerState<DesktopWalletView> {
                 SizedBox(
                   width: sendReceiveColumnWidth,
                   child: Text(
-                    "My wallet",
+                    context.l10n.walletViewMyWallet,
                     style: STextStyles.desktopTextExtraSmall(context).copyWith(
                       color:
                           Theme.of(context)
@@ -408,11 +414,14 @@ class _DesktopWalletViewState extends ConsumerState<DesktopWalletView> {
                       Text(
                         // BEAM: its Confidential Assets sit here; the
                         // history is the "Transactions" tab beside Send.
-                        wallet is BeamWallet
-                            ? "Assets"
-                            : wallet.cryptoCurrency.hasTokenSupport
-                            ? "Tokens"
-                            : "Recent activity",
+                        _columnTitle(
+                          context,
+                          wallet is BeamWallet
+                              ? "Assets"
+                              : wallet.cryptoCurrency.hasTokenSupport
+                              ? "Tokens"
+                              : "Recent activity",
+                        ),
                         style: STextStyles.desktopTextExtraSmall(
                           context,
                         ).copyWith(

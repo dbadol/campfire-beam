@@ -23,6 +23,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/bans/bans_name.dart';
@@ -72,16 +73,16 @@ class _BeamNameKeyViewState extends State<BeamNameKeyView> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final key = _key;
     return NamesPage(
       deps: widget.deps,
-      title: 'Receive a name',
+      title: l10n.namesReceiveTitle,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'To move a name into this wallet, give its current owner this '
-            'key. They paste it under Transfer.',
+            l10n.namesKeyIntro,
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.textDark3),
           ),
@@ -89,9 +90,9 @@ class _BeamNameKeyViewState extends State<BeamNameKeyView> {
           if (_error != null)
             NamesNotice(
               kind: NamesNoticeKind.error,
-              title: "Can't read your name key right now",
+              title: l10n.namesCantReadKey,
               detail: namesErrorText(_error!),
-              actionLabel: 'Try again',
+              actionLabel: l10n.commonTryAgain,
               onAction: _load,
             )
           else if (key == null)
@@ -116,9 +117,7 @@ class _BeamNameKeyViewState extends State<BeamNameKeyView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Whoever gives you a name reads out '
-                    '${BansKey.checkCodeLength} characters. They must match '
-                    'these, every one.',
+                    l10n.namesKeyCheckHint(BansKey.checkCodeLength),
                     key: const Key('names-key-check-hint'),
                     textAlign: TextAlign.center,
                     style: STextStyles.smallMed12(context)
@@ -136,8 +135,7 @@ class _BeamNameKeyViewState extends State<BeamNameKeyView> {
             ),
           const SizedBox(height: 12),
           Text(
-            'Sharing it is safe: it cannot move money. Anyone who has it can '
-            'see which names belong to this wallet.',
+            l10n.namesKeySafe,
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.textSubtitle1),
           ),
@@ -146,7 +144,7 @@ class _BeamNameKeyViewState extends State<BeamNameKeyView> {
       bottom: NamesPrimaryAction(
         deps: widget.deps,
         buttonKey: const Key('names-key-copy'),
-        label: _copied ? 'Copied' : 'Copy my name key',
+        label: _copied ? l10n.commonCopied : l10n.namesCopyMyKey,
         onPressed: key == null ? null : _copy,
       ),
     );

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tuple/tuple.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages_desktop_specific/my_stack_view/exit_to_my_stack_button.dart';
 import '../../../providers/ui/verify_recovery_phrase/mnemonic_word_count_state_provider.dart';
 import '../../../themes/stack_colors.dart';
@@ -106,7 +107,7 @@ class _NewWalletOptionsViewState extends ConsumerState<NewWalletOptionsView> {
             appBar: AppBar(
               leading: const AppBarBackButton(),
               title: Text(
-                "Wallet Options",
+                context.l10n.addWalletOptionsTitle,
                 style: STextStyles.navBarTitle(context),
               ),
             ),
@@ -139,7 +140,7 @@ class _NewWalletOptionsViewState extends ConsumerState<NewWalletOptionsView> {
               CoinImage(coin: widget.coin, height: 100, width: 100),
             if (Util.isDesktop)
               Text(
-                "Wallet options",
+                context.l10n.addWalletOptionsTitleDesktop,
                 textAlign: TextAlign.center,
                 style: Util.isDesktop
                     ? STextStyles.desktopH2(context)
@@ -154,7 +155,12 @@ class _NewWalletOptionsViewState extends ConsumerState<NewWalletOptionsView> {
                     (e) => DropdownMenuItem(
                       value: e,
                       child: Text(
-                        e.name,
+                        switch (e) {
+                          NewWalletOptions.Default =>
+                            context.l10n.addWalletOptionsDefault,
+                          NewWalletOptions.Advanced =>
+                            context.l10n.addWalletOptionsAdvanced,
+                        },
                         style: STextStyles.desktopTextMedium(context),
                       ),
                     ),
@@ -210,7 +216,7 @@ class _NewWalletOptionsViewState extends ConsumerState<NewWalletOptionsView> {
                             (e) => DropdownMenuItem(
                               value: e,
                               child: Text(
-                                "$e word seed",
+                                context.l10n.addWalletOptionsWordSeed(e),
                                 style: STextStyles.desktopTextMedium(context),
                               ),
                             ),
@@ -280,9 +286,7 @@ class _NewWalletOptionsViewState extends ConsumerState<NewWalletOptionsView> {
                     RoundedWhiteContainer(
                       child: Center(
                         child: Text(
-                          "You may add a BIP39 passphrase. This is optional. "
-                          "You will need BOTH your seed and your passphrase to "
-                          "recover the wallet.",
+                          context.l10n.addWalletOptionsPassphraseInfo,
                           style: Util.isDesktop
                               ? STextStyles.desktopTextExtraSmall(
                                   context,
@@ -316,7 +320,7 @@ class _NewWalletOptionsViewState extends ConsumerState<NewWalletOptionsView> {
                         autocorrect: false,
                         decoration:
                             standardInputDecoration(
-                              "BIP39 passphrase",
+                              context.l10n.addWalletBip39Passphrase,
                               passwordFocusNode,
                               context,
                             ).copyWith(
@@ -412,7 +416,7 @@ class _NewWalletOptionsViewState extends ConsumerState<NewWalletOptionsView> {
             if (!Util.isDesktop) const Spacer(),
             SizedBox(height: Util.isDesktop ? 32 : 16),
             PrimaryButton(
-              label: "Continue",
+              label: context.l10n.commonContinue,
               onPressed: () {
                 if (_selectedOptions == NewWalletOptions.Advanced) {
                   ref.read(pNewWalletOptions.notifier).state = (

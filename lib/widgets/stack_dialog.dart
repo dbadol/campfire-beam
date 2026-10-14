@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../themes/stack_colors.dart';
 import '../utilities/text_styles.dart';
 import '../utilities/util.dart';
@@ -233,7 +234,10 @@ class StackOkDialog extends StatelessWidget {
                     style: Theme.of(context)
                         .extension<StackColors>()!
                         .getPrimaryEnabledButtonStyle(context),
-                    child: Text("OK", style: STextStyles.button(context)),
+                    child: Text(
+                      context.l10n.commonOk,
+                      style: STextStyles.button(context),
+                    ),
                   ),
                 ),
               ],

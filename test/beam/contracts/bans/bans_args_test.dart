@@ -55,9 +55,12 @@ void main() {
       'role=user,action=domain_set_price,cid=$cid,name=alice,aid=7,amount=0',
     );
     expect(a.buy(alice), 'role=user,action=domain_buy,cid=$cid,name=alice');
+    // A payment to a name: BEAM's Anon-Vault shader, for exactly the owner key,
+    // the name zero-padded to 64 bytes as its message (audit D-1).
     expect(
-      a.pay(alice, 174, BigInt.from(12345)),
-      'role=manager,action=pay,cid=$cid,name=alice,aid=174,amount=12345',
+      a.sendAnon(key, alice, 174, BigInt.from(12345)),
+      'role=user,action=send_anon,cid=$kBansVaultCid,pkOwner=$key,aid=174,'
+      'amount=12345,msg=616c696365${'00' * 59}',
     );
   });
 
@@ -85,16 +88,28 @@ void main() {
     expect(() => a.register(alice, 0), throwsRangeError);
     expect(() => a.register(alice, 51), throwsRangeError);
     expect(() => a.extend(alice, -1), throwsRangeError);
-    expect(() => a.pay(alice, 0, BigInt.zero), throwsArgumentError);
-    expect(() => a.pay(alice, -1, BigInt.one), throwsRangeError);
-    expect(() => a.pay(alice, 0x100000000, BigInt.one), throwsRangeError);
+    expect(() => a.sendAnon(key, alice, 0, BigInt.zero), throwsArgumentError);
+    expect(() => a.sendAnon(key, alice, -1, BigInt.one), throwsRangeError);
     expect(
-      () => a.pay(alice, 0, BigInt.parse('18446744073709551616')),
+      () => a.sendAnon(key, alice, 0x100000000, BigInt.one),
+      throwsRangeError,
+    );
+    expect(
+      () => a.sendAnon(key, alice, 0, BigInt.parse('18446744073709551616')),
       throwsArgumentError,
     );
     expect(
-      a.pay(alice, 0, BigInt.parse('18446744073709551615')),
-      endsWith('amount=18446744073709551615'),
+      a.sendAnon(key, alice, 0, BigInt.parse('18446744073709551615')),
+      contains('amount=18446744073709551615,'),
+    );
+    // No payment without a real owner key.
+    expect(
+      () => a.sendAnon(zero, alice, 0, BigInt.one),
+      throwsA(isA<BansInvalidKey>()),
+    );
+    expect(
+      () => a.sendAnon('x$key', alice, 0, BigInt.one),
+      throwsA(isA<BansInvalidKey>()),
     );
     expect(() => a.setOwner(alice, 'x$key'), throwsA(isA<BansInvalidKey>()));
     expect(() => a.setOwner(alice, zero), throwsA(isA<BansInvalidKey>()));

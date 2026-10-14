@@ -9,6 +9,7 @@
 
 import 'dart:typed_data';
 
+import '../../../../l10n/l10n.dart';
 import '../../../bridge/bridge_routes.dart';
 import '../../../bridge/bridge_sides.dart';
 import '../common/shader_output.dart';
@@ -42,7 +43,7 @@ abstract final class PipeOutput {
     if (v is! String) {
       throw BridgeException(
         BridgeErrorCode.badPipe,
-        'get_pk printed no "$name"',
+        appL10n.bridgePipeNoKeyField(name),
       );
     }
     final key = _hex(v, 33, 'get_pk $name');
@@ -58,13 +59,13 @@ abstract final class PipeOutput {
     if (key.length != 33) {
       throw BridgeException(
         BridgeErrorCode.badPipe,
-        'a receive key is 33 bytes, not ${key.length}',
+        appL10n.bridgePipeKeyLength('${key.length}'),
       );
     }
     if (key[32] > 1) {
       throw BridgeException(
         BridgeErrorCode.badPipe,
-        'receive key parity byte ${key[32]}, expected 0 or 1',
+        appL10n.bridgePipeKeyParity('${key[32]}'),
       );
     }
     var x = BigInt.zero;
@@ -72,18 +73,18 @@ abstract final class PipeOutput {
       x = (x << 8) | BigInt.from(key[i]);
     }
     if (x == BigInt.zero || x >= _p) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.badPipe,
-        'receive key X is not a field element',
+        appL10n.bridgePipeKeyNotField,
       );
     }
     // On the curve y² = x³ + 7 exactly when x³ + 7 is a square mod p
     // (Euler's criterion); it is never 0 on secp256k1.
     final rhs = (x.modPow(BigInt.from(3), _p) + BigInt.from(7)) % _p;
     if (rhs.modPow((_p - BigInt.one) >> 1, _p) != BigInt.one) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.badPipe,
-        'receive key is not a secp256k1 point',
+        appL10n.bridgePipeKeyNotPoint,
       );
     }
   }
@@ -129,9 +130,9 @@ abstract final class PipeOutput {
     final json = _decode(output, 'view_incoming');
     final Object? list = json['incoming'];
     if (list is! List<Object?>) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.badPipe,
-        'view_incoming printed no "incoming" list',
+        appL10n.bridgePipeNoIncoming,
       );
     }
     return List.unmodifiable([for (final item in list) _incomingEntry(item)]);
@@ -139,9 +140,9 @@ abstract final class PipeOutput {
 
   static BeamPipeIncoming _incomingEntry(Object? item) {
     if (item is! Map<String, Object?>) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.badPipe,
-        'view_incoming: an entry is not an object',
+        appL10n.bridgePipeEntryNotObject,
       );
     }
     int? id;
@@ -149,17 +150,17 @@ abstract final class PipeOutput {
       if (!item.containsKey(name)) continue;
       final v = _int(item, name);
       if (id != null && id != v) {
-        throw const BridgeException(
+        throw BridgeException(
           BridgeErrorCode.badPipe,
-          'view_incoming: an entry has two different ids',
+          appL10n.bridgePipeEntryTwoIds,
         );
       }
       id = v;
     }
     if (id == null) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.badPipe,
-        'view_incoming: an entry has no MsgId',
+        appL10n.bridgePipeEntryNoId,
       );
     }
     return BeamPipeIncoming(id, _amount(item, 'amount'));
@@ -173,7 +174,7 @@ abstract final class PipeOutput {
     } on BeamShaderException catch (e) {
       throw BridgeException(
         BridgeErrorCode.badPipe,
-        '$what: the pipe said "${e.message}"',
+        appL10n.bridgePipeActionSaid(what, e.message),
       );
     } on FormatException catch (e) {
       throw BridgeException(BridgeErrorCode.badPipe, '$what: ${e.message}');
@@ -188,7 +189,7 @@ abstract final class PipeOutput {
       if (e.message == absentError) return null;
       throw BridgeException(
         BridgeErrorCode.badPipe,
-        '$what: the pipe said "${e.message}"',
+        appL10n.bridgePipeActionSaid(what, e.message),
       );
     } on FormatException catch (e) {
       throw BridgeException(BridgeErrorCode.badPipe, '$what: ${e.message}');
@@ -208,7 +209,10 @@ abstract final class PipeOutput {
   static int _int(Map<String, Object?> json, String key) {
     final v = _amount(json, key);
     if (v.bitLength > 53) {
-      throw BridgeException(BridgeErrorCode.badPipe, '$key: $v is too large');
+      throw BridgeException(
+        BridgeErrorCode.badPipe,
+        appL10n.bridgePipeValueTooLarge(key, '$v'),
+      );
     }
     return v.toInt();
   }
@@ -216,14 +220,17 @@ abstract final class PipeOutput {
   static String _string(Map<String, Object?> json, String key) {
     final v = json[key];
     if (v is String) return v;
-    throw BridgeException(BridgeErrorCode.badPipe, '$key: expected a string');
+    throw BridgeException(
+      BridgeErrorCode.badPipe,
+      appL10n.bridgePipeNotString(key),
+    );
   }
 
   static String _hexString(String hex, int bytes, String what) {
     if (!RegExp('^[0-9a-f]{${2 * bytes}}\$').hasMatch(hex)) {
       throw BridgeException(
         BridgeErrorCode.badPipe,
-        '$what: expected ${2 * bytes} lowercase hex characters',
+        appL10n.bridgePipeNotHex(what, 2 * bytes),
       );
     }
     return hex;

@@ -17,6 +17,7 @@ import 'package:flutter_svg/svg.dart';
 import '../../app_config.dart';
 import '../../db/db_version_migration.dart';
 import '../../db/hive/db.dart';
+import '../../l10n/l10n.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../providers/desktop/storage_crypto_handler_provider.dart';
 import '../../providers/global/secure_store_provider.dart';
@@ -209,7 +210,9 @@ class _DesktopLoginViewState extends ConsumerState<DesktopLoginView> {
                 SizedBox(
                   width: 350,
                   child: Text(
-                    AppConfig.shortDescriptionText,
+                    BeamAppIdentity.isActive
+                        ? context.l10n.introTagline
+                        : AppConfig.shortDescriptionText,
                     textAlign: TextAlign.center,
                     style: STextStyles.desktopSubtitleH1(context),
                   ),
@@ -245,7 +248,7 @@ class _DesktopLoginViewState extends ConsumerState<DesktopLoginView> {
                           }
                         },
                         decoration: standardInputDecoration(
-                          "Enter password",
+                          context.l10n.loginEnterPasswordHint,
                           passwordFocusNode,
                           context,
                         ).copyWith(
@@ -326,7 +329,7 @@ class _DesktopLoginViewState extends ConsumerState<DesktopLoginView> {
                   height: 24,
                 ),
                 PrimaryButton(
-                  label: "Continue",
+                  label: context.l10n.commonContinue,
                   enabled: _continueEnabled,
                   onPressed: login,
                 ),
@@ -334,7 +337,7 @@ class _DesktopLoginViewState extends ConsumerState<DesktopLoginView> {
                   height: 60,
                 ),
                 CustomTextButton(
-                  text: "Forgot password?",
+                  text: context.l10n.loginForgotPassword,
                   textSize: 20,
                   onTap: () {
                     Navigator.of(context).pushNamed(

@@ -13,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
@@ -148,30 +149,20 @@ List<BuyStep> buyBeamSteps(BuyBeamState? state, {bool arrived = false}) {
     BuyBeamState.attention,
   }.contains(s);
   final bought = s == BuyBeamState.sending || s == BuyBeamState.delivered;
+  final l = appL10n;
   return [
     switch (s) {
-      BuyBeamState.awaitingDeposit => const BuyStep(
-        'Waiting for your payment',
-        active,
-      ),
-      BuyBeamState.expired => const BuyStep(
-        'No payment arrived in time',
-        failed,
-      ),
-      BuyBeamState.failed => const BuyStep(
-        "The payment couldn't be processed",
-        failed,
-      ),
+      BuyBeamState.awaitingDeposit => BuyStep(l.buyStateWaiting, active),
+      BuyBeamState.expired => BuyStep(l.buyStateExpired, failed),
+      BuyBeamState.failed => BuyStep(l.buyStateFailed, failed),
       _ => BuyStep(
-        'Payment received',
+        l.buyStateReceived,
         done,
-        s == BuyBeamState.depositDetected ? 'being confirmed' : null,
+        s == BuyBeamState.depositDetected ? l.buyStepBeingConfirmed : null,
       ),
     },
     BuyStep(
-      s == BuyBeamState.refunded
-          ? "Your BEAM couldn't be bought"
-          : 'Buying your BEAM',
+      s == BuyBeamState.refunded ? l.buyStepNotBought : l.buyStateBuying,
       s == BuyBeamState.refunded
           ? failed
           : bought
@@ -181,7 +172,7 @@ List<BuyStep> buyBeamSteps(BuyBeamState? state, {bool arrived = false}) {
           : waiting,
     ),
     BuyStep(
-      'Sending BEAM to your wallet',
+      l.buyStateSending,
       s == BuyBeamState.delivered
           ? done
           : s == BuyBeamState.sending
@@ -189,12 +180,9 @@ List<BuyStep> buyBeamSteps(BuyBeamState? state, {bool arrived = false}) {
           : waiting,
     ),
     if (s == BuyBeamState.delivered && !arrived)
-      const BuyStep('Arriving in your wallet', active)
+      BuyStep(l.buyStepArriving, active)
     else
-      BuyStep(
-        'Your BEAM has arrived',
-        s == BuyBeamState.delivered ? done : waiting,
-      ),
+      BuyStep(l.buyArrived, s == BuyBeamState.delivered ? done : waiting),
   ];
 }
 

@@ -9,6 +9,7 @@
 
 import 'package:meta/meta.dart';
 
+import 'airdrop_v3_constants.dart';
 import 'voucher_code.dart';
 
 /// Where a created batch's codes live. The app implements it on Campfire's
@@ -80,6 +81,7 @@ class AirdropSavedCode {
     required this.hashHex,
     required this.value,
     this.status = AirdropCodeStatus.unknown,
+    this.key,
   });
 
   factory AirdropSavedCode.fromJson(Map<String, Object?> json) {
@@ -87,8 +89,14 @@ class AirdropSavedCode {
     final hash = json['hash'];
     final value = json['value'];
     final status = json['status'];
+    final key = json['key'];
     if (code is! String || hash is! String || value is! String) {
       throw const FormatException('saved code: missing field');
+    }
+    // A v3 voucher key that is not a key: the record is unreadable (kept,
+    // never shown as if it were fine).
+    if (key != null && (key is! String || !_pubKey.hasMatch(key))) {
+      throw const FormatException('saved code: bad voucher key');
     }
     final parsed = BigInt.tryParse(value);
     if (parsed == null || parsed <= BigInt.zero) {
@@ -106,17 +114,30 @@ class AirdropSavedCode {
         (s) => s.name == status,
         orElse: () => AirdropCodeStatus.unknown,
       ),
+      key: key as String?,
     );
   }
 
   /// Formatted, `XXXX-XXXX-XXXX-XXXX`. Secret.
   final String code;
+
+  /// SHA-256 of the normalised code: the old contract's key for it, and
+  /// this record's identifier for every code.
   final String hashHex;
   final BigInt value;
   final AirdropCodeStatus status;
 
-  AirdropSavedCode withStatus(AirdropCodeStatus s) =>
-      AirdropSavedCode(code: code, hashHex: hashHex, value: value, status: s);
+  /// Airdrop v3 only: the voucher's public key, derived on this device when
+  /// the batch was built (`AirdropV3Code.voucherKey`). Public on chain.
+  final String? key;
+
+  AirdropSavedCode withStatus(AirdropCodeStatus s) => AirdropSavedCode(
+    code: code,
+    hashHex: hashHex,
+    value: value,
+    status: s,
+    key: key,
+  );
 
   /// Amounts as decimal strings: JSON numbers lose precision above 2^53.
   Map<String, Object?> toJson() => {
@@ -124,6 +145,7 @@ class AirdropSavedCode {
     'hash': hashHex,
     'value': value.toString(),
     'status': status.name,
+    'key': ?key,
   };
 
   @override
@@ -141,6 +163,10 @@ class AirdropSavedBatch {
     required this.createdAt,
     this.txId,
     this.txStatus = AirdropBatchTxStatus.unconfirmed,
+    this.gasPerVoucher,
+    this.creatorKey,
+    this.batchId,
+    this.check,
   }) : codes = List.unmodifiable(codes) {
     if (codes.isEmpty) throw ArgumentError.value(codes, 'codes', 'empty');
   }
@@ -153,12 +179,27 @@ class AirdropSavedBatch {
     final tx = json['txId'];
     final status = json['txStatus'];
     final codes = json['codes'];
+    final gas = json['gasPerVoucher'];
+    final creator = json['creatorKey'];
+    final batchId = json['batchId'];
     if (id is! String ||
         cid is! String ||
         aid is! int ||
         created is! String ||
         codes is! List) {
       throw const FormatException('saved batch: missing field');
+    }
+    BigInt? amount(Object? v, String what) {
+      if (v == null) return null;
+      final b = v is String ? BigInt.tryParse(v) : null;
+      if (b == null || b.isNegative) {
+        throw FormatException('saved batch: bad $what');
+      }
+      return b;
+    }
+
+    if (creator != null && (creator is! String || !_pubKey.hasMatch(creator))) {
+      throw const FormatException('saved batch: bad creator key');
     }
     return AirdropSavedBatch(
       localId: id,
@@ -177,6 +218,10 @@ class AirdropSavedBatch {
             c is Map ? c.cast<String, Object?>() : const {},
           ),
       ],
+      gasPerVoucher: amount(gas, 'prepaid claim fee'),
+      creatorKey: creator as String?,
+      batchId: amount(batchId, 'batch id'),
+      check: AirdropCodeCheck.tryFromJson(json['check']),
     );
   }
 
@@ -190,6 +235,25 @@ class AirdropSavedBatch {
   final String? txId;
   final AirdropBatchTxStatus txStatus;
 
+  /// Airdrop v3 only: BEAM (groth) prepaid per code for its claim's network
+  /// fee: 0, or 0.022 BEAM.
+  final BigInt? gasPerVoucher;
+
+  /// Airdrop v3 only: the creator key the built batch named (this wallet's
+  /// `CreatorID`), saved before signing. Public on chain.
+  final String? creatorKey;
+
+  /// Airdrop v3 only: the on-chain batch id, known once the check before
+  /// sharing found every code in it.
+  final BigInt? batchId;
+
+  /// Airdrop v3 only: the check before sharing, once it has a verdict.
+  /// Null until then: the codes are not ready to share.
+  final AirdropCodeCheck? check;
+
+  /// A batch on the Airdrop v3 contract.
+  bool get isV3 => contractId == kAirdropV3ContractId;
+
   int get count => codes.length;
 
   BigInt get total => codes.fold(BigInt.zero, (s, c) => s + c.value);
@@ -198,6 +262,9 @@ class AirdropSavedBatch {
     String? txId,
     AirdropBatchTxStatus? txStatus,
     List<AirdropSavedCode>? codes,
+    String? creatorKey,
+    BigInt? batchId,
+    AirdropCodeCheck? check,
   }) => AirdropSavedBatch(
     localId: localId,
     contractId: contractId,
@@ -206,6 +273,10 @@ class AirdropSavedBatch {
     createdAt: createdAt,
     txId: txId ?? this.txId,
     txStatus: txStatus ?? this.txStatus,
+    gasPerVoucher: gasPerVoucher,
+    creatorKey: creatorKey ?? this.creatorKey,
+    batchId: batchId ?? this.batchId,
+    check: check ?? this.check,
   );
 
   Map<String, Object?> toJson() => {
@@ -216,6 +287,10 @@ class AirdropSavedBatch {
     'txId': txId,
     'txStatus': txStatus.name,
     'codes': [for (final c in codes) c.toJson()],
+    if (gasPerVoucher != null) 'gasPerVoucher': gasPerVoucher.toString(),
+    'creatorKey': ?creatorKey,
+    if (batchId != null) 'batchId': batchId.toString(),
+    if (check != null) 'check': check!.toJson(),
   };
 
   @override
@@ -223,6 +298,81 @@ class AirdropSavedBatch {
       'AirdropSavedBatch($localId, asset $assetId, $count codes, '
       '${txStatus.name})';
 }
+
+/// The check before a new v3 batch's codes are shared (README "Checklist
+/// for wallets" 11): passed, or failed with why.
+enum AirdropCheckState { ok, failed }
+
+/// Why a v3 batch's codes failed the check before sharing.
+enum AirdropCheckProblem {
+  /// A code is not on the network.
+  notFound,
+
+  /// A code's voucher has another key than the one derived here.
+  otherKey,
+
+  /// A code holds another asset, amount or prepaid fee than was locked.
+  otherValue,
+
+  /// A code belongs to another batch than the one this wallet made.
+  otherBatch,
+
+  /// The codes' batch was made by another wallet.
+  notMine,
+}
+
+/// A saved verdict of the check before sharing.
+@immutable
+class AirdropCodeCheck {
+  const AirdropCodeCheck({
+    required this.state,
+    required this.at,
+    this.problem,
+    this.index,
+  });
+
+  /// A verdict that does not read is no verdict: the batch is checked
+  /// again, never shown as ready.
+  static AirdropCodeCheck? tryFromJson(Object? json) {
+    if (json is! Map) return null;
+    final state = AirdropCheckState.values
+        .where((s) => s.name == json['state'])
+        .firstOrNull;
+    final at = json['at'] is String
+        ? DateTime.tryParse(json['at'] as String)
+        : null;
+    if (state == null || at == null) return null;
+    final problem = AirdropCheckProblem.values
+        .where((p) => p.name == json['problem'])
+        .firstOrNull;
+    if (state == AirdropCheckState.failed && problem == null) return null;
+    final index = json['index'];
+    return AirdropCodeCheck(
+      state: state,
+      at: at.toUtc(),
+      problem: state == AirdropCheckState.ok ? null : problem,
+      index: index is int ? index : null,
+    );
+  }
+
+  final AirdropCheckState state;
+  final DateTime at;
+  final AirdropCheckProblem? problem;
+
+  /// The code (0-based) the check stopped at, when it was one code.
+  final int? index;
+
+  bool get ok => state == AirdropCheckState.ok;
+
+  Map<String, Object?> toJson() => {
+    'state': state.name,
+    'at': at.toUtc().toIso8601String(),
+    'problem': ?problem?.name,
+    'index': ?index,
+  };
+}
+
+final _pubKey = RegExp(r'^[0-9a-f]{64}0[01]$');
 
 /// CSV export of a batch's codes, columns `Number,Code,Value,Asset,Status`
 /// as in LightWallet.

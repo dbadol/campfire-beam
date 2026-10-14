@@ -32,6 +32,8 @@ import 'db/hive/db.dart';
 import 'db/isar/main_db.dart';
 import 'db/special_migrations.dart';
 import 'db/sqlite/firo_cache.dart';
+import 'l10n/app_language.dart';
+import 'l10n/l10n.dart';
 import 'models/epicbox_server_model.dart';
 import 'models/exchange/change_now/exchange_transaction.dart';
 import 'models/exchange/change_now/exchange_transaction_status.dart';
@@ -361,6 +363,14 @@ void main(List<String> args) async {
     themeId: Prefs.instance.systemBrightnessDarkThemeId,
   ))) {
     Prefs.instance.systemBrightnessDarkThemeId = "dark";
+  }
+  // Campfire ships no "dark" theme: following the device needs a dark theme
+  // that is installed (BEAM's, lib/themes/beam/beam_themes.dart), or it is off.
+  if (Prefs.instance.enableSystemBrightness &&
+      !(await ThemeService.instance.verifyInstalled(
+        themeId: Prefs.instance.systemBrightnessDarkThemeId,
+      ))) {
+    Prefs.instance.enableSystemBrightness = false;
   }
 
   runApp(const ProviderScope(child: MyApp()));
@@ -765,11 +775,12 @@ class _MaterialAppWithThemeState extends ConsumerState<MaterialAppWithTheme>
               showBackButton: true,
               routeOnSuccess: RestoreFromEncryptedStringView.routeName,
               routeOnSuccessArguments: encrypted,
-              biometricsCancelButtonString: "CANCEL",
-              biometricsLocalizedReason:
-                  "Authenticate to restore ${AppConfig.appName} backup",
-              biometricsAuthenticationTitle:
-                  "Restore ${AppConfig.prefix} backup",
+              biometricsCancelButtonString: appL10n.beamAuthCancel,
+              biometricsLocalizedReason: appL10n.appStartRestoreBackupReason(
+                AppConfig.appName,
+              ),
+              biometricsAuthenticationTitle: appL10n
+                  .appStartRestoreBackupTitle(AppConfig.prefix),
             ),
             settings: const RouteSettings(name: "/swbrestorelockscreen"),
           ),
@@ -807,11 +818,17 @@ class _MaterialAppWithThemeState extends ConsumerState<MaterialAppWithTheme>
       navigatorKey: ref.read(pNavKey),
       title: BeamAppIdentity.displayName,
       onGenerateRoute: RouteGenerator.generateRoute,
+      // The device's language (or the one chosen in Settings → Language,
+      // applied by AppLocaleScope below); see lib/l10n/l10n.dart.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: resolveAppLocale,
       // Above the navigator, so no navigation can remove it: wrapping the
       // first route, it was disposed by the desktop login's
       // pushNamedAndRemoveUntil, and no payment notice reached the app.
-      builder: (context, child) =>
-          CryptoNotifications(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => AppLocaleScope(
+        child: CryptoNotifications(child: child ?? const SizedBox.shrink()),
+      ),
       theme: ThemeData(
         extensions: [colorScheme],
         highlightColor: colorScheme.highlight,
@@ -954,11 +971,11 @@ class _MaterialAppWithThemeState extends ConsumerState<MaterialAppWithTheme>
                       isInitialAppLogin: true,
                       routeOnSuccess: HomeView.routeName,
                       routeOnSuccessArguments: startupWalletId,
-                      biometricsAuthenticationTitle:
-                          "Unlock ${AppConfig.prefix}",
-                      biometricsLocalizedReason:
-                          "Unlock your ${AppConfig.appName} using biometrics",
-                      biometricsCancelButtonString: "Cancel",
+                      biometricsAuthenticationTitle: context.l10n
+                          .appStartUnlockTitle(AppConfig.prefix),
+                      biometricsLocalizedReason: context.l10n
+                          .appStartUnlockReason(AppConfig.appName),
+                      biometricsCancelButtonString: context.l10n.commonCancel,
                     );
                   } else {
                     if (AppConfig.appName == "Campfire" &&

@@ -37,6 +37,27 @@ const _send = Key('beamSendReviewButton');
 const _to = Key('beamSendRecipientField');
 const _amount = Key('beamSendAmountField');
 
+/// The owner of the `listed` fixture name.
+const _listedOwner =
+    '18b1c34dbb1bb96ae29cb40290fb2e347c46abeb09a3cfbbe8ecd1a01589096200';
+
+/// Same first 4 and last 4 characters as beamOwnerKey, another key: the
+/// 32-bit fingerprint cannot tell them apart (audit D-1 review M-1).
+final _collider = '72e3${'ab' * 28}51ef01';
+
+/// A pin store whose record cannot be read.
+class _UnreadablePins implements BansOwnerPins {
+  @override
+  Future<String?> pinned(BansName name) async => throw const BansPinsUnreadable();
+
+  @override
+  Future<bool> pin(
+    BansName name,
+    String ownerKey, {
+    required String? expected,
+  }) async => throw const BansPinsUnreadable();
+}
+
 Widget _page(
   ScriptedBackend b, {
   Duration nameDebounce = const Duration(milliseconds: 400),
@@ -47,7 +68,6 @@ Widget _page(
   coin: Beam(CryptoCurrencyNetwork.main),
   walletId: 'beam-test-wallet',
   walletName: 'My BEAM',
-  locale: 'en_US',
   clipboard: FakeClipboard(),
   minimumBuildTime: Duration.zero,
   routeOnSuccessName: '/',
@@ -228,7 +248,7 @@ void main() {
       expect(find.text('Registered name'), findsOneWidget);
       expect(
         find.textContaining(
-          'Owner key ${BansKey.fingerprint(beamOwnerKey)} · active until',
+          'Owner key ${BansKey.checkCode(beamOwnerKey)} · active until',
         ),
         findsOneWidget,
       );
@@ -305,6 +325,85 @@ void main() {
       expect(find.text('Registered name'), findsOneWidget);
     });
 
+    testWidgets('a name this wallet paid before has a new owner (audit D-1): '
+        'both keys shown, Send off until the person chooses to pay the new '
+        'owner', (tester) async {
+      final b = ScriptedBackend();
+      // This wallet paid `beam` before, when another key owned it.
+      await b.pins.pin(BansName('beam'), fakeMyKey, expected: null);
+      await _open(tester, desktop: false, backend: b);
+      await _type(tester, _to, 'beam');
+      await settleLookup(tester);
+      await _type(tester, _amount, '0.00012345');
+      await tester.pump();
+      expect(find.byKey(const Key('beamNameNewOwner')), findsOneWidget);
+      expect(find.text('New owner since you last paid it'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'You paid owner key ${BansKey.checkCode(fakeMyKey)} before; it is '
+          '${BansKey.checkCode(beamOwnerKey)} now.',
+        ),
+        findsOneWidget,
+      );
+      expect(_sendEnabled(tester), isFalse, reason: 'not before the person chooses');
+      await _golden(tester, 'phone_09b_name_new_owner');
+      await tester.tap(find.byKey(const Key('beamNameAcceptNewOwner')));
+      await tester.pump();
+      expect(find.text('You chose to pay the new owner'), findsOneWidget);
+      expect(find.byKey(const Key('beamNameAcceptNewOwner')), findsNothing);
+      expect(_sendEnabled(tester), isTrue);
+      await _toConfirm(tester);
+      expect(b.core.actions, contains('send_anon'));
+      expect(b.core.broadcasts, 0);
+    });
+
+    testWidgets('a key made to share the old owner\'s fingerprint is shown as '
+        'a different check code (audit D-1 review M-1)', (tester) async {
+      expect(BansKey.fingerprint(_collider), BansKey.fingerprint(beamOwnerKey));
+      final b = ScriptedBackend();
+      await b.pins.pin(BansName('beam'), _collider, expected: null);
+      await _open(tester, desktop: false, backend: b);
+      await _type(tester, _to, 'beam');
+      await settleLookup(tester);
+      expect(
+        find.textContaining(
+          'You paid owner key ${BansKey.checkCode(_collider)} before; it is '
+          '${BansKey.checkCode(beamOwnerKey)} now.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        BansKey.checkCode(_collider),
+        isNot(BansKey.checkCode(beamOwnerKey)),
+      );
+    });
+
+    testWidgets('this wallet\'s record of whom it paid cannot be read: compare '
+        'the owner first, Send off until then (audit D-1 review L-1)', (
+      tester,
+    ) async {
+      final b = ScriptedBackend()..pins = _UnreadablePins();
+      await _open(tester, desktop: false, backend: b);
+      await _type(tester, _to, 'beam');
+      await settleLookup(tester);
+      await _type(tester, _amount, '0.00012345');
+      await tester.pump();
+      expect(find.text('Check the owner before paying'), findsOneWidget);
+      expect(
+        find.textContaining('Compare the owner key '
+            '${BansKey.checkCode(beamOwnerKey)} with the person'),
+        findsOneWidget,
+      );
+      expect(_sendEnabled(tester), isFalse);
+      await _golden(tester, 'phone_09c_name_record_unreadable');
+      await tester.tap(find.byKey(const Key('beamNameAcceptNewOwner')));
+      await tester.pump();
+      expect(find.text('You checked this owner'), findsOneWidget);
+      expect(_sendEnabled(tester), isTrue);
+      await _toConfirm(tester);
+      expect(b.core.actions, contains('send_anon'));
+    });
+
     testWidgets('name payment confirm: amount and fee come from the decoded '
         'transaction; nothing broadcast', (tester) async {
       final b = await _open(tester, desktop: false);
@@ -320,7 +419,7 @@ void main() {
         tester
             .widget<SelectableText>(find.byKey(const Key('beamConfirmOwner')))
             .data,
-        'Owner key ${BansKey.fingerprint(beamOwnerKey)}',
+        'Owner key ${BansKey.checkCode(beamOwnerKey)}',
       );
       // pay_beam: 12345 groth to `beam`, kernel fee 1,100,000 groth.
       expect(
@@ -348,7 +447,7 @@ void main() {
         'view_name',
         'view_params',
         'view_name',
-        'pay',
+        'send_anon',
         'view_name',
       ]);
       expect(b.core.broadcasts, 0);
@@ -846,7 +945,7 @@ void main() {
       await settleLookup(tester);
       expect(find.text('Confirm BEAM transaction'), findsNothing);
       expect(
-        find.textContaining('Owner key 18b1…0962'),
+        find.textContaining('Owner key ${BansKey.checkCode(_listedOwner)}'),
         findsOneWidget,
         reason: 'the form looked the name up again',
       );

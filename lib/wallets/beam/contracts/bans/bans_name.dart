@@ -9,6 +9,7 @@
 
 import 'package:meta/meta.dart';
 
+import '../../../../l10n/l10n.dart';
 import 'bans_constants.dart';
 import 'bans_exceptions.dart';
 
@@ -91,13 +92,13 @@ final class BansName {
     return s;
   }
 
-  /// Plain wording for [problem], for an inline hint under the field.
+  /// Plain wording for [problem], for an inline hint under the field, in
+  /// the app's language.
   static String describe(BansNameProblem problem) => switch (problem) {
-    BansNameProblem.empty => 'Type a name.',
-    BansNameProblem.tooShort => 'Names need at least 3 characters.',
-    BansNameProblem.tooLong => 'Names can be at most 64 characters.',
-    BansNameProblem.invalidCharacter =>
-      'Use only lowercase letters, numbers, - _ and ~.',
+    BansNameProblem.empty => appL10n.namesProblemEmpty,
+    BansNameProblem.tooShort => appL10n.namesProblemTooShort,
+    BansNameProblem.tooLong => appL10n.namesProblemTooLong,
+    BansNameProblem.invalidCharacter => appL10n.namesProblemInvalidCharacter,
   };
 
   @override

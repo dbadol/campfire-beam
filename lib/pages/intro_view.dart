@@ -17,6 +17,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_config.dart';
+import '../l10n/l10n.dart';
 import '../pages_desktop_specific/password/create_password_view.dart';
 import '../themes/stack_colors.dart';
 import '../themes/theme_providers.dart';
@@ -129,7 +130,7 @@ class _IntroViewState extends ConsumerState<IntroView> {
                           if (isDesktop) const SizedBox(height: 20),
                           if (isDesktop)
                             SecondaryButton(
-                              label: "Restore from ${AppConfig.prefix} backup",
+                              label: context.l10n.introRestoreFromBackup(AppConfig.prefix),
                               onPressed: () {
                                 Navigator.of(context).pushNamed(
                                   CreatePasswordView.routeName,
@@ -175,7 +176,9 @@ class IntroAboutText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      AppConfig.shortDescriptionText,
+      BeamAppIdentity.isActive
+          ? context.l10n.introTagline
+          : AppConfig.shortDescriptionText,
       textAlign: TextAlign.center,
       style:
           !isDesktop
@@ -201,10 +204,10 @@ class PrivacyAndTOSText extends StatelessWidget {
           // This app has no terms of service of its own; Stack Wallet's did not
           // apply to it.
           TextSpan(
-            text: "${BeamAppIdentity.displayName} is free and open source. ",
+            text: "${context.l10n.introOpenSource(BeamAppIdentity.displayName)} ",
           ),
           TextSpan(
-            text: "Source code",
+            text: context.l10n.introSourceCode,
             style: STextStyles.richLink(context).copyWith(fontSize: fontSize),
             recognizer: TapGestureRecognizer()
               ..onTap = () {
@@ -238,7 +241,7 @@ class GetStartedButton extends StatelessWidget {
               context,
             ).pushNamed(StackPrivacyCalls.routeName, arguments: false);
           },
-          child: Text("Get started", style: STextStyles.button(context)),
+          child: Text(context.l10n.introGetStarted, style: STextStyles.button(context)),
         )
         : SizedBox(
           width: double.infinity,
@@ -253,7 +256,7 @@ class GetStartedButton extends StatelessWidget {
               ).pushNamed(StackPrivacyCalls.routeName, arguments: false);
             },
             child: Text(
-              "Create new ${AppConfig.prefix}",
+              context.l10n.introCreateNew(AppConfig.prefix),
               style: STextStyles.button(context).copyWith(fontSize: 20),
             ),
           ),

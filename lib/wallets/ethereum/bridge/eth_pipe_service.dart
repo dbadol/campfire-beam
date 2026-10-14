@@ -27,6 +27,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import '../../../l10n/l10n.dart';
 import '../../bridge/bridge_fees.dart';
 import '../../bridge/bridge_routes.dart';
 import '../../bridge/bridge_sides.dart';
@@ -102,16 +103,14 @@ class EthPipeService implements EthPipeSide {
         if (!r.success || r.data.length != 32) {
           throw BridgeException(
             BridgeErrorCode.frozen,
-            'Could not tell whether ${checks[i].token} is frozen, so it '
-            'is not bridged for now.',
+            appL10n.bridgeEthFrozenUnknown(checks[i].token),
           );
         }
         final word = bytesToBigInt(r.data);
         if (checks[i].isFlag && word > BigInt.one) {
           throw BridgeException(
             BridgeErrorCode.frozen,
-            '${checks[i].token} gave an answer it never gives, so it is '
-            'not bridged for now.',
+            appL10n.bridgeEthFrozenOddAnswer(checks[i].token),
           );
         }
         if (word != BigInt.zero) found.add(BridgeFreeze(checks[i].reason));
@@ -124,7 +123,7 @@ class EthPipeService implements EthPipeSide {
     } on Exception catch (e) {
       failure = BridgeException(
         BridgeErrorCode.network,
-        'Could not reach Ethereum to check ${route.ethSymbol} ($e).',
+        appL10n.bridgeEthFreezeCheckFailed(route.ethSymbol, '$e'),
       );
     }
     // An RPC that flaps does not stop the bridge for an hour; after that
@@ -139,36 +138,33 @@ class EthPipeService implements EthPipeSide {
     final token = route.ethToken;
     if (token == null) return const [];
     final paused = selector('paused()');
+    final l = appL10n;
     return switch (route.id) {
       // WBEAM: one key holds its pause (and its minting).
       'beam' => [
         _FreezeCheck(
           EthCall(token, paused),
           'WBEAM',
-          'WBEAM is paused by its issuer',
+          l.bridgeFreezeWbeamPaused,
         ),
       ],
       'wbtc' => [
-        _FreezeCheck(
-          EthCall(token, paused),
-          'WBTC',
-          'WBTC is paused by its issuer',
-        ),
+        _FreezeCheck(EthCall(token, paused), 'WBTC', l.bridgeFreezeWbtcPaused),
       ],
       // Tether can pause USDT, blacklist the pipe (every USDT in it then
       // stays there for good), or switch on a transfer fee (the pipe would
       // get less than the message says).
       'usdt' => [
-        _FreezeCheck(EthCall(token, paused), 'USDT', 'Tether has paused USDT'),
+        _FreezeCheck(EthCall(token, paused), 'USDT', l.bridgeFreezeUsdtPaused),
         _FreezeCheck(
           EthCall(token, encodeCall('isBlackListed(address)', [route.ethPipe])),
           'USDT',
-          "Tether has frozen the bridge's USDT",
+          l.bridgeFreezeUsdtBlacklisted,
         ),
         _FreezeCheck(
           EthCall(token, selector('basisPointsRate()')),
           'USDT',
-          'USDT now charges a transfer fee',
+          l.bridgeFreezeUsdtFee,
           isFlag: false,
         ),
       ],
@@ -195,7 +191,7 @@ class EthPipeService implements EthPipeSide {
       // gas price, so no quote.
       throw BridgeException(
         BridgeErrorCode.noPrice,
-        'Could not read the Ethereum gas price ($e).',
+        appL10n.bridgeEthGasPriceFailed('$e'),
       );
     }
   }
@@ -210,32 +206,39 @@ class EthPipeService implements EthPipeSide {
   Future<BigInt> balance(BridgeRoute route) {
     final token = route.ethToken;
     if (token == null) return ethBalance();
-    return _read('your ${route.ethSymbol} balance', () async {
-      final r = await rpc.ethCall(
-        token,
-        encodeCall('balanceOf(address)', [owner]),
-      );
-      return abiDecode('uint256', r)[0] as BigInt;
-    });
+    return _read(
+      (e) => appL10n.bridgeEthReadBalanceFailed(route.ethSymbol, e),
+      () async {
+        final r = await rpc.ethCall(
+          token,
+          encodeCall('balanceOf(address)', [owner]),
+        );
+        return abiDecode('uint256', r)[0] as BigInt;
+      },
+    );
   }
 
   @override
-  Future<BigInt> ethBalance() => _read('your ETH balance', () async {
-    final r = await rpc.call('eth_getBalance', [owner, 'latest']);
-    return _hex(r! as String);
-  });
+  Future<BigInt> ethBalance() =>
+      _read((e) => appL10n.bridgeEthReadBalanceFailed('ETH', e), () async {
+        final r = await rpc.call('eth_getBalance', [owner, 'latest']);
+        return _hex(r! as String);
+      });
 
   /// [route]'s token the pipe may take from the wallet now.
   Future<BigInt> allowance(BridgeRoute route) {
     final token = route.ethToken;
     if (token == null) throw ArgumentError('ETH needs no approval');
-    return _read('your ${route.ethSymbol} approval', () async {
-      final r = await rpc.ethCall(
-        token,
-        encodeCall('allowance(address,address)', [owner, route.ethPipe]),
-      );
-      return abiDecode('uint256', r)[0] as BigInt;
-    });
+    return _read(
+      (e) => appL10n.bridgeEthReadApprovalFailed(route.ethSymbol, e),
+      () async {
+        final r = await rpc.ethCall(
+          token,
+          encodeCall('allowance(address,address)', [owner, route.ethPipe]),
+        );
+        return abiDecode('uint256', r)[0] as BigInt;
+      },
+    );
   }
 
   // ------------------------------------------------------------- the lock
@@ -249,7 +252,10 @@ class EthPipeService implements EthPipeSide {
   }) async {
     checkLockAmounts(route, value: value, fee: fee, receiverKey: receiverKey);
     final total = value + fee;
-    final fees = await _read('Ethereum fees', () => walletFees(rpc));
+    final fees = await _read(
+      appL10n.bridgeEthReadFeesFailed,
+      () => walletFees(rpc),
+    );
     final steps = <UniTxRequest>[];
 
     final token = route.ethToken;
@@ -261,16 +267,16 @@ class EthPipeService implements EthPipeSide {
         if (current > BigInt.zero && !await _changesAllowance(route, total)) {
           // USDT refuses to change an allowance that is not zero.
           steps.add(
-            (await _approvalTx(route, BigInt.zero, fees)).withNote(
-              'Reset the ${route.ethSymbol} permission of the '
-              'BEAM bridge to 0',
-            ),
+            (await _approvalTx(
+              route,
+              BigInt.zero,
+              fees,
+            )).withNote(appL10n.bridgeEthNoteReset(route.ethSymbol)),
           );
         }
         steps.add(
           (await _approvalTx(route, total, fees)).withNote(
-            'Approve ${_units(total, route)} ${route.ethSymbol} for the '
-            'BEAM bridge',
+            appL10n.bridgeEthNoteApprove(_units(total, route), route.ethSymbol),
           ),
         );
       }
@@ -297,7 +303,7 @@ class EthPipeService implements EthPipeSide {
       } on Exception catch (e) {
         throw BridgeException(
           BridgeErrorCode.network,
-          'Could not reach Ethereum to price the lock ($e).',
+          appL10n.bridgeEthPriceLockFailed('$e'),
         );
       }
     }
@@ -309,9 +315,7 @@ class EthPipeService implements EthPipeSide {
         value: msgValue,
         gasLimit: gas,
         fees: fees,
-        note:
-            'Bridge: move ${_units(value, route)} ${route.ethSymbol} '
-            'to BEAM',
+        note: appL10n.bridgeEthNoteLock(_units(value, route), route.ethSymbol),
       ),
     );
     return EthPipeLockPlan(
@@ -339,26 +343,21 @@ class EthPipeService implements EthPipeSide {
   }) {
     Never bad(String why) =>
         throw BridgeException(BridgeErrorCode.badAmount, why);
-    if (value <= BigInt.zero) bad('Nothing to move.');
-    if (fee < BigInt.zero) bad('The bridge fee cannot be negative.');
+    final l = appL10n;
+    if (value <= BigInt.zero) bad(l.bridgeEthNothingToMove);
+    if (fee < BigInt.zero) bad(l.bridgeEthNegativeFee);
     final grid = route.ethGrid;
     if (value % grid != BigInt.zero || fee % grid != BigInt.zero) {
-      bad(
-        '${route.ethSymbol} moves to BEAM in steps of '
-        '${_units(grid, route)}; the rest would stay in the bridge.',
-      );
+      bad(l.bridgeEthGrid(route.ethSymbol, _units(grid, route)));
     }
-    if (value + fee >= kUint256Limit) bad('This amount is too large.');
+    if (value + fee >= kUint256Limit) bad(l.bridgeEthTooLarge);
     if (route.ethToGroth(value) + route.ethToGroth(fee) >= kBeamAmountLimit) {
-      bad('This amount is too large for BEAM.');
+      bad(l.bridgeEthTooLargeForBeam);
     }
     if (!isBeamReceiverKey(receiverKey)) {
       // It comes from the BEAM pipe's `get_pk`: a shader error or the
       // wrong contract, and coins sent to it could never be claimed.
-      throw const BridgeException(
-        BridgeErrorCode.badPipe,
-        'The BEAM wallet gave a receive key nobody could claim with.',
-      );
+      throw BridgeException(BridgeErrorCode.badPipe, l.bridgeEthBadReceiveKey);
     }
   }
 
@@ -378,12 +377,12 @@ class EthPipeService implements EthPipeSide {
       }
       throw BridgeException(
         BridgeErrorCode.network,
-        'Could not reach Ethereum to check the approval ($e).',
+        appL10n.bridgeEthCheckApprovalFailed('$e'),
       );
     } on Exception catch (e) {
       throw BridgeException(
         BridgeErrorCode.network,
-        'Could not reach Ethereum to check the approval ($e).',
+        appL10n.bridgeEthCheckApprovalFailed('$e'),
       );
     }
   }
@@ -405,7 +404,7 @@ class EthPipeService implements EthPipeSide {
     } on Exception catch (e) {
       throw BridgeException(
         BridgeErrorCode.network,
-        'Could not reach Ethereum to price the approval ($e).',
+        appL10n.bridgeEthPriceApprovalFailed('$e'),
       );
     }
     return UniTxRequest(
@@ -429,9 +428,9 @@ class EthPipeService implements EthPipeSide {
   Future<String> send(UniTxRequest tx) async {
     checkBridgeTx(tx);
     if (_sent[tx] == true) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.alreadySent,
-        'This transaction was already handed to the wallet once.',
+        appL10n.bridgeEthAlreadySent,
       );
     }
     _sent[tx] = true;
@@ -441,9 +440,9 @@ class EthPipeService implements EthPipeSide {
   /// Throws unless [tx] is an `approve(pipe, amount)` of a route's token
   /// or a `sendFunds` to a route's pipe, as [planLock] builds them.
   static void checkBridgeTx(UniTxRequest tx) {
-    Never refuse() => throw const BridgeException(
+    Never refuse() => throw BridgeException(
       BridgeErrorCode.unexpectedTransaction,
-      'This is not a bridge transaction; it was not sent.',
+      appL10n.bridgeEthNotBridgeTx,
     );
     final to = tx.to.toLowerCase();
     final data = tx.data;
@@ -510,9 +509,9 @@ class EthPipeService implements EthPipeSide {
       receiverKey: receiverKey,
     );
     if (lock.hash.toLowerCase() != hash.toLowerCase()) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.unexpectedTransaction,
-        'The node answered with another transaction.',
+        appL10n.bridgeEthOtherTx,
       );
     }
     return lock;
@@ -520,7 +519,7 @@ class EthPipeService implements EthPipeSide {
 
   @override
   Future<bool> isPaid(BridgeRoute route, int beamMsgId) async {
-    final word = await _read('the bridge payout', () async {
+    final word = await _read(appL10n.bridgeEthReadPayoutFailed, () async {
       final r = await rpc.call('eth_getStorageAt', [
         route.ethPipe,
         processedKey(beamMsgId, route.processedSlot),
@@ -531,7 +530,7 @@ class EthPipeService implements EthPipeSide {
     if (word > BigInt.one) {
       throw BridgeException(
         BridgeErrorCode.badPipe,
-        'The ${route.ethSymbol} pipe gave an answer it never gives.',
+        appL10n.bridgeEthPipeOddAnswer(route.ethSymbol),
       );
     }
     return word == BigInt.one;
@@ -541,24 +540,24 @@ class EthPipeService implements EthPipeSide {
 
   /// The mined receipt of [hash], or null while it is pending.
   Future<Map<String, dynamic>?> _receipt(String hash) =>
-      _read('the transaction', () async {
+      _read(appL10n.bridgeEthReadTxFailed, () async {
         final r = await rpc.call('eth_getTransactionReceipt', [hash]);
         if (r is! Map || r['blockNumber'] == null) return null;
         return r.cast<String, dynamic>();
       });
 
   /// [f], with any failure to reach the RPC as a [BridgeException]
-  /// (network) saying what could not be read.
-  static Future<T> _read<T>(String what, Future<T> Function() f) async {
+  /// (network) saying what could not be read: [message] of the error.
+  static Future<T> _read<T>(
+    String Function(String error) message,
+    Future<T> Function() f,
+  ) async {
     try {
       return await f();
     } on BridgeException {
       rethrow;
     } on Exception catch (e) {
-      throw BridgeException(
-        BridgeErrorCode.network,
-        'Could not read $what from Ethereum ($e).',
-      );
+      throw BridgeException(BridgeErrorCode.network, message('$e'));
     }
   }
 

@@ -9,6 +9,7 @@
  */
 
 import 'package:flutter/material.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../utilities/text_styles.dart';
 import '../../../../wallets/crypto_currency/crypto_currency.dart';
 
@@ -25,7 +26,7 @@ class CreateRestoreWalletTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      "Add ${coin.prettyName} wallet",
+      context.l10n.addWalletCreateOrRestoreTitle(coin.prettyName),
       textAlign: TextAlign.center,
       style: isDesktop
           ? STextStyles.desktopH2(context)

@@ -9,6 +9,7 @@
 
 import 'dart:async';
 
+import '../../../../l10n/l10n.dart';
 import '../../api/beam_api.dart';
 import '../../models/beam_call_results.dart';
 import '../common/invoke_data.dart';
@@ -182,6 +183,12 @@ class BeamDexService {
   /// [receiveAsset]: every non-empty pool of the pair (or only [kind]) is
   /// asked, and the one that delivers the most wins.
   ///
+  /// A pool whose shader answers "no liquidity" or "no such pool" is
+  /// skipped: BEAM/bUSDT has a dust pool (5 groth / 1 unit) that refuses
+  /// every trade beside a real one, and the first refusal must not hide
+  /// the pool that can quote. The pair reads empty (or missing) only when
+  /// no pool quotes; any other error still stops the quote.
+  ///
   /// [pools] reuses a recent [listPools] result.
   Future<BeamSwapQuote> quote({
     required int payAsset,
@@ -212,19 +219,27 @@ class BeamDexService {
       );
     }
     BeamSwapQuote? best;
+    BeamDexException? skipped;
     for (final p in live) {
-      final q = await quotePool(
-        pool: p,
-        payAsset: payAsset,
-        payAmount: payAmount,
-      );
+      final BeamSwapQuote q;
+      try {
+        q = await quotePool(pool: p, payAsset: payAsset, payAmount: payAmount);
+      } on BeamDexException catch (e) {
+        if (e.code == BeamDexErrorCode.poolEmpty ||
+            e.code == BeamDexErrorCode.noPool) {
+          skipped ??= e;
+          continue;
+        }
+        rethrow;
+      }
       if (best == null ||
           q.receive > best.receive ||
           (q.receive == best.receive && q.pay < best.pay)) {
         best = q;
       }
     }
-    if (best!.receivesNothing) {
+    if (best == null) throw skipped!;
+    if (best.receivesNothing) {
       throw const BeamDexException(
         BeamDexErrorCode.amountTooSmall,
         'the amount is too small to receive anything',
@@ -259,7 +274,7 @@ class BeamDexService {
     if (q.pay > payAmount) {
       throw BeamDexException(
         BeamDexErrorCode.unexpectedTransaction,
-        'predicted pay ${q.pay} exceeds the requested $payAmount',
+        appL10n.dexErrPredictedPayTooHigh('${q.pay}', '$payAmount'),
       );
     }
     return q;
@@ -458,11 +473,11 @@ class BeamDexService {
     return _prepare(BeamDexAction.createPool, args, null, (d) {
       _expect(
         d.pays.length == 1 && d.pays[0] == kDexPoolCreateDeposit,
-        'pool creation pays ${d.pays}, expected the 10 BEAM deposit',
+        appL10n.dexErrCreatePays('${d.pays}'),
       );
       _expect(
         d.receives.isEmpty,
-        'pool creation receives ${d.receives}, expected nothing',
+        appL10n.dexErrCreateReceives('${d.receives}'),
       );
       return DexMethod.poolCreate;
     });
@@ -512,9 +527,9 @@ class BeamDexService {
     final r = await _invoke(args);
     final out = _decodeOutput(r.output);
     if (r.rawData != null) {
-      throw const BeamDexException(
+      throw BeamDexException(
         BeamDexErrorCode.unexpectedTransaction,
-        'a read-only DEX call produced a transaction',
+        appL10n.dexErrReadOnlyMadeTx,
       );
     }
     return out;
@@ -530,9 +545,9 @@ class BeamDexService {
     if (r.output.trim().isNotEmpty) _decodeOutput(r.output);
     final raw = r.rawData;
     if (raw == null || raw.isEmpty) {
-      throw const BeamDexException(
+      throw BeamDexException(
         BeamDexErrorCode.unexpectedTransaction,
-        'the shader built no transaction',
+        appL10n.dexErrNoTransaction,
       );
     }
     final BeamInvokeData data;
@@ -541,19 +556,19 @@ class BeamDexService {
     } on FormatException catch (e) {
       throw BeamDexException(
         BeamDexErrorCode.unexpectedTransaction,
-        'cannot read the prepared transaction: ${e.message}',
+        appL10n.dexErrUnreadableTx(e.message),
       );
     }
-    _expect(data.entries.length == 1, 'expected one contract call');
+    _expect(data.entries.length == 1, appL10n.dexErrNotOneCall);
     final entry = data.entries.single;
     _expect(
       entry.contractId == contractId,
-      'the call targets ${entry.contractId}, not the DEX',
+      appL10n.dexErrWrongContract('${entry.contractId}'),
     );
     final method = check(data);
     _expect(
       entry.method == method,
-      'contract method ${entry.method}, expected $method',
+      appL10n.dexErrWrongMethod('${entry.method}', '$method'),
     );
     final stored = data.appArgs;
     if (stored != null) {
@@ -562,7 +577,7 @@ class BeamDexService {
         final key = kv.substring(0, i);
         _expect(
           stored[key] == kv.substring(i + 1),
-          'stored shader arg $key differs from the request',
+          appL10n.dexErrArgDiffers(key),
         );
       }
     }

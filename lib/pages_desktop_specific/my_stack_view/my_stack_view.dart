@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../../pages/settings_views/global_settings_view/hidden_settings.dart';
 import '../../pages/wallets_view/sub_widgets/empty_wallets.dart';
 import '../../utilities/text_styles.dart';
@@ -122,7 +123,7 @@ class _DesktopMyStackTitleState extends ConsumerState<DesktopMyStackTitle> {
           width: 12,
         ),
         Text(
-          "My ${AppConfig.prefix}",
+          context.l10n.walletListTitle(AppConfig.prefix),
           style: STextStyles.desktopH3(context),
         ),
       ],

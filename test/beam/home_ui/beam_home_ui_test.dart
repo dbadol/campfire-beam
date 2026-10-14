@@ -325,7 +325,7 @@ void main() {
       final source = FakeHomeSource(
         assessment: connecting,
         isOpen: false,
-        coreProblem: const BeamWalletException(
+        coreProblem: BeamWalletException(
           BeamWalletProblem.coreNotInstalled,
           BeamWalletMessages.coreNotInstalled,
         ),

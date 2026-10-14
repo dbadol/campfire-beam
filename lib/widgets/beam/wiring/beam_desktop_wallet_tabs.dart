@@ -18,14 +18,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../send/beam_send_fill.dart';
 import '../wallet_home/beam_wallet_home.dart';
 
-/// [titles] and [children] as in CustomTabView; the tab titled "Send"
-/// follows the wallet's `sendPausedReason`.
+/// [titles] and [children] as in CustomTabView; the Send tab (titled
+/// walletViewSend, in the app's language) follows the wallet's
+/// `sendPausedReason`.
 /// Bumped to bring a wallet's desktop tabs to "Transactions" (the sent
 /// sheet's "View in history"). A counter, so asking twice works.
 final pBeamShowHistoryRequest = StateProvider.family<int, String>(
@@ -92,12 +94,12 @@ class _BeamDesktopWalletTabsState extends ConsumerState<BeamDesktopWalletTabs> {
   Widget build(BuildContext context) {
     ref.listen<int>(
       pBeamShowHistoryRequest(widget.walletId),
-      (_, _) => _show('Transactions'),
+      (_, _) => _show(context.l10n.walletViewTransactions),
     );
     // The home's Scan: Send comes forward with the scanned recipient (the
     // Send screen fills itself in).
     ref.listen<BeamSendFill?>(pBeamSendFill(widget.walletId), (_, next) {
-      if (next != null) _show('Send');
+      if (next != null) _show(context.l10n.walletViewSend);
     });
     final colors = Theme.of(context).extension<StackColors>()!;
     final paused = ref.watch(pBeamHome(widget.walletId)).sendPausedReason;
@@ -147,7 +149,7 @@ class _BeamDesktopWalletTabsState extends ConsumerState<BeamDesktopWalletTabs> {
 
   Widget _tab(BuildContext context, StackColors colors, int i, String? paused) {
     final title = widget.titles[i];
-    final isSend = title == 'Send';
+    final isSend = title == context.l10n.walletViewSend;
     final reason = isSend ? paused : null;
     final alpha = reason == null ? 1.0 : _dimmed;
     Text text(Color color) => Text(

@@ -12,6 +12,7 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import '../../../l10n/l10n.dart';
 import '../contracts/common/invoke_data.dart';
 import '../rpc/beam_connection_exception.dart';
 import '../rpc/beam_transport.dart';
@@ -418,10 +419,7 @@ class DappSession {
       // A sheet must not summarise what it cannot fully read. The user
       // hears about it too: a dApp that simply stops would look like a
       // wallet that ignored them.
-      _refused(
-        "Campfire refused this request: it can't read all of it, so it "
-        "can't show you what would be signed. Nothing was sent.",
-      );
+      _refused(appL10n.dappsRefusedUnreadable);
       throw DappRpcErrors.error(
         DappRpcErrors.notAllowed,
         'Campfire cannot show this contract call: ${e.message}',
@@ -479,11 +477,9 @@ class DappSession {
       for (var i = 0; i < key.length; i += 2)
         int.parse(key.substring(i, i + 2), radix: 16),
     ];
-    final use = DappWalletKeys.reservedUseOfMaterial(keyBytes);
+    final use = DappWalletKeys.reservedKindOfMaterial(keyBytes);
     if (use != null) {
-      final why =
-          'Campfire refused to sign: the key asked for controls $use. '
-          'Nothing was signed.';
+      final why = appL10n.dappsRefusedSignReservedKey(use);
       _refused(why);
       throw DappRpcErrors.error(DappRpcErrors.notAllowed, why);
     }

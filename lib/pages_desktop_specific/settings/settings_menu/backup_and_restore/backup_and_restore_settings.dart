@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../pages/settings_views/global_settings_view/stack_backup_views/create_backup_view.dart';
 import '../../../../pages/settings_views/global_settings_view/stack_backup_views/edit_auto_backup_view.dart';
 import '../../../../pages/settings_views/global_settings_view/stack_backup_views/restore_from_file_view.dart';
@@ -87,11 +88,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
       ).format(time);
     }
 
-    if (value == 1) {
-      postfix = postfix.substring(0, postfix.length - 1);
-    }
-
-    return "$value $postfix ago";
+    return context.l10n.appBackupTimeAgo(value, postfix);
   }
 
   Future<void> enableAutoBackup(BuildContext context) async {
@@ -133,7 +130,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                 Padding(
                   padding: const EdgeInsets.only(left: 32),
                   child: Text(
-                    "Edit auto backup",
+                    context.l10n.appBackupEditAuto,
                     style: STextStyles.desktopH3(context),
                   ),
                 ),
@@ -162,15 +159,15 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
       builder: (context) {
         return !Util.isDesktop
             ? StackDialog(
-                title: "Disable Auto Backup",
+                title: context.l10n.appBackupDisableTitle,
                 message:
-                    "You are turning off Auto Backup. You can turn it back on at any time. Your previous Auto Backup file will not be deleted. Remember to backup your wallets manually so you don't lose important information.",
+                    context.l10n.appBackupDisableBody,
                 leftButton: TextButton(
                   style: Theme.of(context)
                       .extension<StackColors>()!
                       .getSecondaryEnabledButtonStyle(context),
                   child: Text(
-                    "Back",
+                    context.l10n.commonBack,
                     style: STextStyles.button(context).copyWith(
                       color: Theme.of(context)
                           .extension<StackColors>()!
@@ -186,7 +183,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                       .extension<StackColors>()!
                       .getPrimaryEnabledButtonStyle(context),
                   child: Text(
-                    "Disable",
+                    context.l10n.appBackupDisable,
                     style: STextStyles.button(context),
                   ),
                   onPressed: () {
@@ -213,7 +210,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                             left: 32,
                           ),
                           child: Text(
-                            "Disable Auto Backup",
+                            context.l10n.appBackupDisableTitle,
                             style: STextStyles.desktopH3(context),
                           ),
                         ),
@@ -233,7 +230,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                           SizedBox(
                             width: 600,
                             child: Text(
-                              "You are turning off Auto Backup. You can turn it back on at any time. Your previous Auto Backup file will not be deleted. Remember to backup your wallets manually so you don't lose important information.",
+                              context.l10n.appBackupDisableBody,
                               style: STextStyles.desktopTextSmall(context)
                                   .copyWith(
                                 color: Theme.of(context)
@@ -251,7 +248,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                               Expanded(
                                 child: SecondaryButton(
                                   buttonHeight: ButtonHeight.l,
-                                  label: "Cancel",
+                                  label: context.l10n.commonCancel,
                                   onPressed: Navigator.of(context).pop,
                                 ),
                               ),
@@ -259,7 +256,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                               Expanded(
                                 child: PrimaryButton(
                                   buttonHeight: ButtonHeight.l,
-                                  label: "Disable",
+                                  label: context.l10n.appBackupDisable,
                                   onPressed: () {
                                     ref
                                         .read(prefsChangeNotifierProvider)
@@ -386,16 +383,14 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: "Auto Backup",
+                                            text: context.l10n.appBackupAutoTitle,
                                             style: STextStyles.desktopTextSmall(
                                               context,
                                             ),
                                           ),
                                           TextSpan(
                                             text:
-                                                "\n\nAuto backup is a custom ${AppConfig.appName} feature that offers a convenient backup of your data. "
-                                                "To ensure maximum security, we recommend using a unique password that you haven't used anywhere "
-                                                "else on the internet before. Your password is not stored.",
+                                                "\n\n${context.l10n.appBackupAutoBody(AppConfig.appName)}",
                                             style: STextStyles
                                                 .desktopTextExtraExtraSmall(
                                               context,
@@ -418,7 +413,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                     ? PrimaryButton(
                                         buttonHeight: ButtonHeight.m,
                                         width: 200,
-                                        label: "Enable auto backup",
+                                        label: context.l10n.appBackupEnableAuto,
                                         onPressed: () {
                                           enableAutoBackup(context);
                                         },
@@ -438,14 +433,14 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                                       .spaceBetween,
                                               children: [
                                                 Text(
-                                                  "Backed up ${prettySinceLastBackupString(ref.watch(prefsChangeNotifierProvider.select((value) => value.lastAutoBackup)))}",
+                                                  context.l10n.appBackupBackedUp(prettySinceLastBackupString(ref.watch(prefsChangeNotifierProvider.select((value) => value.lastAutoBackup)))),
                                                   style:
                                                       STextStyles.itemSubtitle(
                                                     context,
                                                   ),
                                                 ),
                                                 CustomTextButton(
-                                                  text: "Back up now",
+                                                  text: context.l10n.appBackupBackUpNow,
                                                   onTap: () {
                                                     ref
                                                         .read(
@@ -465,7 +460,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                               PrimaryButton(
                                                 buttonHeight: ButtonHeight.m,
                                                 width: 190,
-                                                label: "Disable auto backup",
+                                                label: context.l10n.appBackupDisableAuto,
                                                 onPressed: () {
                                                   attemptDisable();
                                                 },
@@ -474,7 +469,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                               SecondaryButton(
                                                 buttonHeight: ButtonHeight.m,
                                                 width: 190,
-                                                label: "Edit auto backup",
+                                                label: context.l10n.appBackupEditAuto,
                                                 onPressed: () {
                                                   editAutoBackup();
                                                 },
@@ -522,16 +517,14 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: "Manual Backup",
+                                            text: context.l10n.appBackupManualTitle,
                                             style: STextStyles.desktopTextSmall(
                                               context,
                                             ),
                                           ),
                                           TextSpan(
                                             text:
-                                                "\n\nCreate manual backup to easily transfer your data between devices. "
-                                                "You will create a backup file that can be later used in the Restore option. "
-                                                "Use a strong password to encrypt your data.",
+                                                "\n\n${context.l10n.appBackupManualBody}",
                                             style: STextStyles
                                                 .desktopTextExtraExtraSmall(
                                               context,
@@ -560,7 +553,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                     : PrimaryButton(
                                         buttonHeight: ButtonHeight.m,
                                         width: 200,
-                                        label: "Create manual backup",
+                                        label: context.l10n.appBackupCreateManual,
                                         onPressed: () {
                                           setState(() {
                                             createBackup = true;
@@ -607,15 +600,14 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: "Restore Backup",
+                                            text: context.l10n.appBackupRestoreTitle,
                                             style: STextStyles.desktopTextSmall(
                                               context,
                                             ),
                                           ),
                                           TextSpan(
                                             text:
-                                                "\n\nUse your ${AppConfig.appName} backup file to restore your wallets, address book "
-                                                "and wallet preferences.",
+                                                "\n\n${context.l10n.appBackupRestoreBody(AppConfig.appName)}",
                                             style: STextStyles
                                                 .desktopTextExtraExtraSmall(
                                               context,
@@ -644,7 +636,7 @@ class _BackupRestoreSettings extends ConsumerState<BackupRestoreSettings> {
                                     : PrimaryButton(
                                         buttonHeight: ButtonHeight.m,
                                         width: 200,
-                                        label: "Restore backup",
+                                        label: context.l10n.appBackupRestoreBackup,
                                         onPressed: () {
                                           setState(() {
                                             restoreBackup = true;

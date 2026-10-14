@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
@@ -117,7 +118,7 @@ class DexImpersonationWarning extends StatelessWidget {
         const SizedBox(width: 4),
         Flexible(
           child: Text(
-            'Not the verified ${real.symbol} (#${real.id})',
+            context.l10n.beamAssetNotTheVerified(real.symbol, '${real.id}'),
             style: STextStyles.label(context)
                 .copyWith(color: colors.accentColorRed),
             maxLines: 1,

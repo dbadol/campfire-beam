@@ -31,6 +31,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
@@ -231,7 +232,7 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
     if (proof == null) {
       await showBeamNotice(
         context,
-        title: 'No payment proof',
+        title: context.l10n.txNoProofTitle,
         message: problem,
         isDesktop: _isDesktop,
       );
@@ -269,11 +270,12 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
       fiat: ref.watch(pBeamTxFiat(widget.walletId)),
     );
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
 
     final rows = <Widget>[
       _Header(view: v, text: text, isDesktop: isDesktop),
       _Row(
-        label: 'Status',
+        label: l10n.txDetailStatus,
         isDesktop: isDesktop,
         vertical: true,
         value: Text(
@@ -287,13 +289,13 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
         below: BeamTxText.technical(v) == null || !v.isFailed
             ? null
             : CustomTextButton(
-                text: 'Copy technical details',
+                text: l10n.txCopyTechnical,
                 onTap: () => copyWithToast(context, BeamTxText.technical(v)!),
               ),
       ),
       if (!v.isContract)
         _Row(
-          label: 'Asset',
+          label: l10n.txDetailAsset,
           isDesktop: isDesktop,
           value: Text(
             BeamTxText.assetName(
@@ -306,17 +308,18 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
         ),
       if (v.isContract)
         _Row(
-          label: 'With',
+          label: l10n.txDetailWith,
           isDesktop: isDesktop,
           vertical: true,
           copy: v.contractIds.isEmpty ? null : v.contractIds.first,
-          copyLabel: 'Copy contract ID',
+          copyLabel: l10n.txCopyContractId,
           value: Text(
             [
               BeamTxText.contractParty(v.contractKind),
               if (v.appName != null)
-                'App: ${BeamTxText.short(v.appName!, head: 24, tail: 0)} '
-                    '(the name it gave itself)',
+                l10n.txDetailApp(
+                  BeamTxText.short(v.appName!, head: 24, tail: 0),
+                ),
             ].join('\n'),
             style: _detail(context, isDesktop),
           ),
@@ -324,10 +327,10 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
       else if (v.counterparty != null)
         _Row(
           label: v.isIncoming
-              ? 'From'
+              ? l10n.txDetailFrom
               : v.isToSelf
-              ? 'Sent to (this wallet)'
-              : 'Sent to',
+              ? l10n.txDetailSentToSelf
+              : l10n.txDetailSentTo,
           isDesktop: isDesktop,
           vertical: true,
           copy: v.counterparty,
@@ -339,13 +342,13 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
         ),
       if (v.comment != null)
         _Row(
-          label: 'Comment',
+          label: l10n.txDetailComment,
           isDesktop: isDesktop,
           vertical: true,
           value: SelectableText(v.comment!, style: _detail(context, isDesktop)),
         ),
       _Row(
-        label: 'Date',
+        label: l10n.txDetailDate,
         isDesktop: isDesktop,
         value: Text(
           Format.extractDateFrom(v.timestamp),
@@ -353,7 +356,7 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
         ),
       ),
       _Row(
-        label: 'Network fee',
+        label: l10n.beamNetworkFee,
         isDesktop: isDesktop,
         value: Text(
           BeamTxText.fee(v, formatter),
@@ -362,12 +365,12 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
       ),
       if (v.isCompleted) ...[
         _Row(
-          label: 'Block height',
+          label: l10n.txDetailBlockHeight,
           isDesktop: isDesktop,
           value: Text('${v.height ?? '—'}', style: _detail(context, isDesktop)),
         ),
         _Row(
-          label: 'Confirmations',
+          label: l10n.txDetailConfirmations,
           isDesktop: isDesktop,
           value: Text(
             '${confirmations ?? '—'}',
@@ -376,18 +379,21 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
         ),
       ] else if (v.isInFlight)
         _Row(
-          label: 'Block height',
+          label: l10n.txDetailBlockHeight,
           isDesktop: isDesktop,
-          value: Text('Not in a block yet', style: _detail(context, isDesktop)),
+          value: Text(
+            l10n.txDetailNotInBlock,
+            style: _detail(context, isDesktop),
+          ),
         ),
       _KernelRow(view: v, isDesktop: isDesktop, walletId: widget.walletId),
       if (v.canExportProof)
         _Row(
-          label: 'Payment proof',
+          label: l10n.txPaymentProof,
           isDesktop: isDesktop,
           vertical: true,
           value: Text(
-            'Shows the receiver, or anyone you choose, that you paid.',
+            l10n.txProofExportHint,
             style: _detail(context, isDesktop),
           ),
           below: Padding(
@@ -395,8 +401,8 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
             child: SecondaryButton(
               key: const Key('beamTxGetProof'),
               label: _busy == _Busy.proof
-                  ? 'Getting proof…'
-                  : 'Get payment proof',
+                  ? l10n.txProofGetting
+                  : l10n.txProofGet,
               enabled: _busy == _Busy.none,
               onPressed: _exportProof,
             ),
@@ -404,18 +410,18 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
         ),
       if (v.canCheckProof)
         _Row(
-          label: 'Payment proof',
+          label: l10n.txPaymentProof,
           isDesktop: isDesktop,
           vertical: true,
           value: Text(
-            'Did someone send you a proof that they paid? Check it here.',
+            l10n.txProofCheckHint,
             style: _detail(context, isDesktop),
           ),
           below: Padding(
             padding: const EdgeInsets.only(top: 8),
             child: CustomTextButton(
               key: const Key('beamTxCheckProof'),
-              text: 'Check a payment proof',
+              text: l10n.txProofCheckLink,
               onTap: () => _checkProof(formatter),
             ),
           ),
@@ -424,12 +430,11 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
       // quiet link, with the confirmation doing the explaining.
       if (v.canDelete)
         _Row(
-          label: 'This record',
+          label: l10n.txDetailThisRecord,
           isDesktop: isDesktop,
           vertical: true,
           value: Text(
-            'Only in this wallet. Removing it changes nothing on the '
-            'blockchain.',
+            l10n.txDetailRecordNote,
             style: _detail(context, isDesktop),
           ),
           below: Padding(
@@ -462,7 +467,9 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
               ),
               onPressed: _busy == _Busy.none ? _cancel : null,
               child: Text(
-                _busy == _Busy.cancel ? 'Cancelling…' : 'Cancel payment',
+                _busy == _Busy.cancel
+                    ? l10n.txCancelling
+                    : l10n.txCancelConfirm,
                 style: STextStyles.button(context),
               ),
             ),
@@ -478,7 +485,7 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Transaction details',
+                  l10n.txDetailsTitle,
                   style: STextStyles.desktopH3(context),
                 ),
                 const DesktopDialogCloseButton(),
@@ -527,7 +534,7 @@ class _BeamTxDetailsState extends ConsumerState<BeamTxDetails> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Text(
-            'Transaction details',
+            l10n.txDetailsTitle,
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -595,7 +602,7 @@ class _Row extends StatelessWidget {
     required this.isDesktop,
     this.vertical = false,
     this.copy,
-    this.copyLabel = 'Copy',
+    this.copyLabel,
     this.below,
   });
 
@@ -604,7 +611,9 @@ class _Row extends StatelessWidget {
   final bool isDesktop;
   final bool vertical;
   final String? copy;
-  final String copyLabel;
+
+  /// The phone's copy link; "Copy" when null.
+  final String? copyLabel;
   final Widget? below;
 
   @override
@@ -619,7 +628,10 @@ class _Row extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: labelText),
-                _CopyLink(data: copy!, label: copyLabel),
+                _CopyLink(
+                  data: copy!,
+                  label: copyLabel ?? context.l10n.commonCopy,
+                ),
               ],
             )
           else
@@ -743,7 +755,7 @@ class _RemoveLink extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              busy ? 'Removing…' : 'Remove record',
+              busy ? context.l10n.txRemoving : context.l10n.txDeleteConfirm,
               style: STextStyles.link2(context).copyWith(color: color),
             ),
           ],
@@ -862,7 +874,7 @@ class _KernelRow extends ConsumerWidget {
       key: const Key('beamTxKernelInfo'),
       onTap: () => showBeamNotice(
         context,
-        title: 'About this ID',
+        title: context.l10n.txAboutIdTitle,
         message: BeamTxText.explorerInfo,
         isDesktop: isDesktop,
       ),
@@ -877,7 +889,7 @@ class _KernelRow extends ConsumerWidget {
       ),
     );
     return _Row(
-      label: 'Transaction ID',
+      label: context.l10n.txDetailTransactionId,
       isDesktop: isDesktop,
       vertical: true,
       copy: kernel,
@@ -888,8 +900,8 @@ class _KernelRow extends ConsumerWidget {
             child: SelectableText(
               kernel ??
                   (view.isFailed || view.isCancelled
-                      ? 'None: it never reached the network'
-                      : 'Appears once the network has it'),
+                      ? context.l10n.txKernelNone
+                      : context.l10n.txKernelPending),
               key: const Key('beamTxKernel'),
               style: _detail(context, isDesktop),
             ),
@@ -903,7 +915,7 @@ class _KernelRow extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 8),
               child: CustomTextButton(
                 key: const Key('beamTxExplorer'),
-                text: 'Open in block explorer',
+                text: context.l10n.txOpenExplorer,
                 onTap: () => openBeamExplorer(
                   context,
                   backend: ref.read(pBeamTxBackend(walletId)),

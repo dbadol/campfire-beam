@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../pages/pinpad_views/pinpad_dialog.dart';
 import '../../../../pages/settings_views/wallet_settings_view/frost_ms/frost_ms_options_view.dart';
 import '../../../../pages/settings_views/wallet_settings_view/wallet_settings_wallet_settings/change_representative_view.dart';
@@ -56,9 +57,9 @@ enum _WalletOptions {
   String get prettyName {
     switch (this) {
       case _WalletOptions.addressList:
-        return "Address list";
+        return appL10n.walletViewAddressList;
       case _WalletOptions.deleteWallet:
-        return "Delete wallet";
+        return appL10n.walletViewDeleteWallet;
       case _WalletOptions.changeRepresentative:
         return "Change representative";
       case _WalletOptions.showXpub:

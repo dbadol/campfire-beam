@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
 import '../../pages/add_wallet_views/add_wallet_view/add_wallet_view.dart';
 import '../../pages/add_wallet_views/create_or_restore_wallet_view/create_or_restore_wallet_view.dart';
@@ -63,7 +64,7 @@ class _MyWalletsState extends ConsumerState<MyWallets> {
             child: Row(
               children: [
                 Text(
-                  "All wallets",
+                  context.l10n.walletListAllWallets,
                   style: STextStyles.desktopTextExtraSmall(context).copyWith(
                     color: Theme.of(context)
                         .extension<StackColors>()!
@@ -81,7 +82,7 @@ class _MyWalletsState extends ConsumerState<MyWallets> {
                   const SizedBox(width: 20),
                 ],
                 CustomTextButton(
-                  text: "Add new wallet",
+                  text: context.l10n.walletListAddNewWallet,
                   onTap: () {
                     final String route;
                     final Object? args;

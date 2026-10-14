@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../models/isar/models/contract.dart';
 import '../../providers/providers.dart';
 import '../../themes/stack_colors.dart';
@@ -127,7 +128,7 @@ class WalletInfoRow extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     CustomTextButton(
-                      text: "Open wallet",
+                      text: context.l10n.walletListOpenWallet,
                       onTap: onPressedDesktop,
                     ),
                   ],

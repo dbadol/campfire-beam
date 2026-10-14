@@ -33,6 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
@@ -84,7 +85,7 @@ class DappStoreView extends ConsumerStatefulWidget {
   });
 
   static const String routeName = "/beamDappStore";
-  static const String title = "dApps";
+  static String get title => appL10n.dappsStoreTitle;
 
   final DappHost host;
 
@@ -173,7 +174,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.success,
-            message: "${item.name} is installed",
+            message: context.l10n.dappsStoreInstalledToast(item.name),
             context: context,
           ),
         );
@@ -190,7 +191,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
       phone: Platform.isAndroid || Platform.isIOS,
     );
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: "Choose a .dapp file",
+      dialogTitle: context.l10n.dappsStorePickFileTitle,
       type: filter.type,
       allowedExtensions: filter.allowedExtensions,
       lockParentWindow: true,
@@ -215,7 +216,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
     try {
       package = await c.readFile(path);
     } catch (e) {
-      if (mounted) _problem(dappInstallErrorText(e, name: "this dApp"));
+      if (mounted) _problem(dappInstallErrorText(e));
       return;
     }
     if (!mounted) return;
@@ -242,7 +243,9 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.success,
-            message: "${package.manifest.name} is installed",
+            message: context.l10n.dappsStoreInstalledToast(
+              package.manifest.name,
+            ),
             context: context,
           ),
         );
@@ -257,22 +260,18 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
   Future<void> _remove(DappStoreItem item) async {
     final c = _controller;
     if (c == null) return;
+    final l10n = context.l10n;
     final ok = await _confirm(
-      title: "Remove ${item.name}?",
-      message:
-          "Its files and the data it saved on this device are deleted. "
-          "Your funds and transactions are not affected.",
-      confirm: "Remove",
+      title: l10n.dappsStoreRemoveTitle(item.name),
+      message: l10n.dappsStoreRemoveMessage,
+      confirm: l10n.dappsStoreRemove,
     );
     if (ok != true) return;
     try {
       await c.uninstall(item.guid);
     } catch (_) {
       if (mounted) {
-        _problem(
-          "Campfire couldn't remove ${item.name}. Nothing was changed. "
-          "Try again.",
-        );
+        _problem(context.l10n.dappsStoreRemoveFailed(item.name));
       }
     }
   }
@@ -291,30 +290,39 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
     String? copies,
     List<String> keeps = const [],
   }) {
+    final l10n = context.l10n;
     final m = package.manifest;
-    final kept = keeps.isEmpty
-        ? ""
-        : " It keeps the servers you let it reach: "
-              "${keeps.map(dappOriginHost).join(", ")}.";
+    final version = m.version;
+    final publisher = m.publisher;
+    final installedVersion = existing?.manifest.version;
     final lines = [
-      "Version ${m.version ?? "not given"} · "
-          "${m.publisher == null ? "unknown publisher" : "by ${m.publisher}"}",
+      if (version == null)
+        publisher == null
+            ? l10n.dappsFromFileNoVersionUnknownPublisher
+            : l10n.dappsFromFileNoVersionBy(publisher)
+      else
+        publisher == null
+            ? l10n.dappsFromFileVersionUnknownPublisher(version)
+            : l10n.dappsFromFileVersionBy(version, publisher),
       if (existing != null)
-        "Replaces the installed version "
-            "${existing.manifest.version ?? "(no version)"}.$kept",
-      if (copies != null)
-        "Its name matches $copies, one of the dApps Campfire checks, but it "
-            "is a different app.",
-      "Campfire did not check this dApp: it is not one of the bundled "
-          "dApps. Install it only if you trust where it came from. Payments, "
-          "contract calls and signatures it asks for still come to Campfire "
-          "for your approval, but it can read some wallet details without "
-          "asking, and what you approve can't be undone.",
+        joinSentences([
+          installedVersion == null
+              ? l10n.dappsFromFileReplacesNoVersion
+              : l10n.dappsFromFileReplaces(installedVersion),
+          if (keeps.isNotEmpty)
+            l10n.dappsFromFileKeepsServers(
+              keeps.map(dappOriginHost).join(", "),
+            ),
+        ], l10n),
+      if (copies != null) l10n.dappsFromFileNameCopies(copies),
+      l10n.dappsFromFileNotChecked,
     ];
     return _confirm(
-      title: "Install ${m.name}?",
+      title: l10n.dappsFromFileInstallTitle(m.name),
       message: lines.join("\n\n"),
-      confirm: existing == null ? "Install" : "Replace",
+      confirm: existing == null
+          ? l10n.dappsStoreInstall
+          : l10n.dappsFromFileReplace,
     );
   }
 
@@ -343,7 +351,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
                   children: [
                     Expanded(
                       child: SecondaryButton(
-                        label: "Cancel",
+                        label: context.l10n.commonCancel,
                         buttonHeight: ButtonHeight.l,
                         onPressed: () => Navigator.of(context).pop(false),
                       ),
@@ -374,7 +382,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
           style: colors.getSecondaryEnabledButtonStyle(context),
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(
-            "Cancel",
+            context.l10n.commonCancel,
             style: STextStyles.button(context)
                 .copyWith(color: colors.accentColorDark),
           ),
@@ -471,17 +479,16 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
     final c = _controller;
     final colors = Theme.of(context).extension<StackColors>()!;
     final pad = desktop ? 24.0 : 16.0;
+    final l10n = context.l10n;
 
     if (_setupFailed || c?.status == DappStoreStatus.failed) {
       return Padding(
         padding: EdgeInsets.all(pad),
         child: _Notice(
-          title: "Campfire couldn't read your installed dApps",
-          body:
-              "Nothing was changed. Try again; if it keeps happening, "
-              "restart Campfire.",
+          title: l10n.dappsStoreLoadFailedTitle,
+          body: l10n.dappsStoreLoadFailedBody,
           action: PrimaryButton(
-            label: "Try again",
+            label: l10n.commonTryAgain,
             buttonHeight: desktop ? ButtonHeight.l : null,
             height: desktop ? null : 46,
             onPressed: () {
@@ -503,7 +510,10 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
           children: [
             const LinearProgressIndicator(),
             const SizedBox(height: 12),
-            Text("Loading your dApps…", style: STextStyles.smallMed14(context)),
+            Text(
+              l10n.dappsStoreLoading,
+              style: STextStyles.smallMed14(context),
+            ),
           ],
         ),
       );
@@ -516,9 +526,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
       padding: EdgeInsets.all(pad),
       children: [
         Text(
-          "Apps that run on BEAM. A dApp can't move your money: every "
-          "payment or contract call comes to Campfire for your approval "
-          "first.",
+          l10n.dappsStoreIntro,
           style: STextStyles.smallMed14(context)
               .copyWith(color: colors.textDark),
         ),
@@ -527,23 +535,22 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
           RoundedContainer(
             color: colors.textFieldDefaultBG,
             child: Text(
-              "$dappWindowPlatformsSentence On this computer you can "
-              "install and manage them.",
+              joinSentences([
+                dappWindowPlatformsSentence,
+                l10n.dappsStoreManageHere,
+              ], l10n),
               style: STextStyles.smallMed12(context)
                   .copyWith(color: colors.textDark3),
             ),
           ),
         ],
         const SizedBox(height: 20),
-        const _SectionLabel(text: "Installed"),
+        _SectionLabel(text: l10n.dappsStoreInstalledSection),
         const SizedBox(height: 8),
         if (installed.isEmpty)
-          const _Notice(
-            title: "No dApps installed yet",
-            body:
-                "Pick one under Available to install it. It takes a few "
-                "seconds, and Campfire checks every byte against a pinned "
-                "fingerprint.",
+          _Notice(
+            title: l10n.dappsStoreNoneInstalledTitle,
+            body: l10n.dappsStoreNoneInstalledBody,
           ),
         for (final item in installed)
           _DappRow(
@@ -555,7 +562,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
               children: [
                 SecondaryButton(
                   key: Key("dappOpen_${item.guid}"),
-                  label: "Open",
+                  label: l10n.dappsStoreOpen,
                   width: 76,
                   buttonHeight: desktop ? ButtonHeight.s : ButtonHeight.l,
                   enabled: !c.isBusy(item.guid),
@@ -564,7 +571,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
                 const SizedBox(width: 4),
                 IconButton(
                   key: Key("dappRemove_${item.guid}"),
-                  tooltip: "Remove",
+                  tooltip: l10n.dappsStoreRemove,
                   onPressed: c.isBusy(item.guid) ? null : () => _remove(item),
                   icon: SvgPicture.asset(
                     Assets.svg.trash,
@@ -580,12 +587,12 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
             ),
           ),
         const SizedBox(height: 20),
-        const _SectionLabel(text: "Available"),
+        _SectionLabel(text: l10n.dappsStoreAvailableSection),
         const SizedBox(height: 8),
         if (available.isEmpty)
-          const _Notice(
-            title: "Every bundled dApp is installed",
-            body: "You can still add another one from a .dapp file below.",
+          _Notice(
+            title: l10n.dappsStoreAllInstalledTitle,
+            body: l10n.dappsStoreAllInstalledBody,
           ),
         for (final item in available)
           _DappRow(
@@ -593,7 +600,7 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
             busy: c.isBusy(item.guid),
             trailing: SecondaryButton(
               key: Key("dappInstall_${item.guid}"),
-              label: "Install",
+              label: l10n.dappsStoreInstall,
               width: 88,
               buttonHeight: desktop ? ButtonHeight.s : ButtonHeight.l,
               enabled: !c.isBusy(item.guid),
@@ -609,13 +616,13 @@ class _DappStoreViewState extends ConsumerState<DappStoreView> {
                 : CrossAxisAlignment.stretch,
             children: [
               Text(
-                "Have a .dapp file from a dApp's publisher?",
+                l10n.dappsStoreHaveFile,
                 style: STextStyles.smallMed12(context),
               ),
               if (desktop) const Spacer() else const SizedBox(height: 10),
               SecondaryButton(
                 key: const Key("dappInstallFromFile"),
-                label: "Install from file",
+                label: l10n.dappsStoreInstallFromFile,
                 width: desktop ? 200 : null,
                 buttonHeight: desktop ? ButtonHeight.s : null,
                 // 40 clipped the label by 2 px on phones; 46 as the other
@@ -686,19 +693,25 @@ class _DappRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final installed = item.installed;
+    final l10n = context.l10n;
     final String meta;
     if (busy) {
       meta = installed == null
-          ? "Downloading and checking the package…"
-          : "Working…";
+          ? l10n.dappsStoreRowDownloading
+          : l10n.beamWorking;
     } else if (installed == null) {
-      meta = "${item.downloadLabel} · checked against a pinned fingerprint";
+      meta = l10n.dappsStoreRowDownloadChecked('${item.downloadLabel}');
     } else {
       final v = installed.manifest.version;
-      final version = v == null ? "No version" : "Version $v";
-      meta = item.isPinned
-          ? "$version · the checked bundled package"
-          : "$version · installed from a file, not checked by Campfire";
+      if (item.isPinned) {
+        meta = v == null
+            ? l10n.dappsStoreRowPinnedNoVersion
+            : l10n.dappsStoreRowPinned(v);
+      } else {
+        meta = v == null
+            ? l10n.dappsStoreRowFromFileNoVersion
+            : l10n.dappsStoreRowFromFile(v);
+      }
     }
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),

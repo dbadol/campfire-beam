@@ -33,6 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/token_view/beam_asset_navigation.dart';
 import '../../../pages/token_view/beam_asset_receive_view.dart';
 import '../../../pages/token_view/beam_assets_view.dart';
@@ -86,29 +87,27 @@ class BeamSidebarAssetsTotal {
     final groth = beamSpendable + portfolio.valueGroth;
     final beam = format.formatBeam(Amount(rawValue: groth, fractionDigits: 8));
     final fiat = format.fiatOfGroth(groth);
-    final String note;
+    final l = appL10n;
+    final List<String> note;
     if (!holdsAssets) {
-      note = 'Your BEAM, ready to spend.';
+      note = [l.sidebarAssetsNoteBeamOnly];
     } else if (!portfolio.marketKnown) {
-      note =
-          'Your BEAM only for now: asset prices load once the wallet is '
-          'connected.';
+      note = [l.sidebarAssetsNoteNoPrices];
     } else if (portfolio.unpriced > 0) {
-      final n = portfolio.unpriced;
-      note =
-          'BEAM plus assets at today\'s DEX prices. $n '
-          '${n == 1 ? 'asset has' : 'assets have'} no price and '
-          '${n == 1 ? 'is' : 'are'} not counted.';
+      note = [
+        l.sidebarAssetsNoteDexPrices,
+        l.sidebarAssetsNoteUnpriced(portfolio.unpriced),
+      ];
     } else {
-      note = 'BEAM plus assets at today\'s DEX prices.';
+      note = [l.sidebarAssetsNoteDexPrices];
     }
-    final pricesOff = format.pricesOn
-        ? ''
-        : ' Price lookups are off in Settings, so values are in BEAM.';
     return BeamSidebarAssetsTotal(
       primary: fiat ?? '≈ $beam',
       secondary: fiat == null ? null : '≈ $beam',
-      note: '$note$pricesOff',
+      note: joinSentences([
+        ...note,
+        if (!format.pricesOn) l.sidebarAssetsNotePricesOff,
+      ], l),
     );
   }
 }
@@ -224,7 +223,7 @@ class _BeamSidebarAssetsPageState extends ConsumerState<BeamSidebarAssetsPage> {
     final others = model.rows.length - 1 + model.moreCount;
 
     return BeamSidebarScaffold(
-      title: 'Assets',
+      title: context.l10n.sidebarAssets,
       body: Padding(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         child: Column(
@@ -244,14 +243,17 @@ class _BeamSidebarAssetsPageState extends ConsumerState<BeamSidebarAssetsPage> {
                           height: 40,
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: Text('Total value', style: label),
+                            child: Text(
+                              context.l10n.sidebarAssetsTotalValue,
+                              style: label,
+                            ),
                           ),
                         ),
                         _TotalCard(total: total),
                         const SizedBox(height: 16),
                         SecondaryButton(
                           key: const Key('beamSidebarAssetsReceive'),
-                          label: 'Receive assets',
+                          label: context.l10n.sidebarAssetsReceive,
                           buttonHeight: ButtonHeight.l,
                           onPressed: () => unawaited(
                             showBeamAssetReceive(
@@ -273,13 +275,16 @@ class _BeamSidebarAssetsPageState extends ConsumerState<BeamSidebarAssetsPage> {
                           child: Row(
                             children: [
                               Expanded(
-                                child: Text('Your assets', style: label),
+                                child: Text(
+                                  context.l10n.sidebarAssetsYours,
+                                  style: label,
+                                ),
                               ),
                               CustomTextButton(
                                 key: const Key('beamSidebarAssetsSeeAll'),
                                 text: model.moreCount > 0
-                                    ? 'See all ($others)'
-                                    : 'Show or hide assets',
+                                    ? context.l10n.sidebarAssetsSeeAll(others)
+                                    : context.l10n.sidebarAssetsShowOrHide,
                                 onTap: _openAll,
                               ),
                             ],
@@ -316,12 +321,9 @@ class _BeamSidebarAssetsPageState extends ConsumerState<BeamSidebarAssetsPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 10),
                             child: Text(
-                              model.moreCount == 1
-                                  ? '1 more asset is hidden or has no '
-                                        'price. See all to show it.'
-                                  : '${model.moreCount} more assets are '
-                                        'hidden or have no price. See all '
-                                        'to show them.',
+                              context.l10n.sidebarAssetsMoreHidden(
+                                model.moreCount,
+                              ),
                               style: STextStyles.desktopTextExtraExtraSmall(
                                 context,
                               ),
@@ -495,7 +497,7 @@ class BeamSidebarAllAssetsPage extends ConsumerWidget {
       prefsChangeNotifierProvider.select((p) => p.externalCalls),
     );
     return BeamSidebarSubPage(
-      title: 'All assets',
+      title: context.l10n.sidebarAllAssets,
       body: Padding(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
         child: Align(
@@ -510,7 +512,7 @@ class BeamSidebarAllAssetsPage extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      'Values in BEAM: price lookups are off in Settings.',
+                      context.l10n.sidebarAllAssetsPricesOff,
                       style: STextStyles.desktopTextExtraExtraSmall(context),
                     ),
                   ),

@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../desktop_home_view.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
@@ -45,7 +46,7 @@ class ExitToMyStackButton extends StatelessWidget {
               horizontal: 30,
             ),
             child: Text(
-              "Exit to My ${AppConfig.prefix}",
+              context.l10n.walletListExitToApp(AppConfig.prefix),
               style: STextStyles.desktopButtonSmallSecondaryEnabled(context),
             ),
           ),

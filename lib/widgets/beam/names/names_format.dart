@@ -9,7 +9,10 @@
 
 import 'package:intl/intl.dart';
 
+import '../../../l10n/amount_text.dart';
+import '../../../l10n/l10n.dart';
 import '../../../wallets/beam/contracts/bans/bans_constants.dart';
+import '../airdrop/beam_units.dart';
 
 /// Number and date wording for the Names screens. Every BEAM asset uses the
 /// groth scale (10^8), so one formatter serves BEAM and tokens alike.
@@ -50,28 +53,16 @@ abstract final class NamesFormat {
   static String whole(BigInt units) =>
       _thousands((units + _groth ~/ BigInt.two) ~/ _groth);
 
-  static String _thousands(BigInt v) {
-    final s = v.toString();
-    final out = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) out.write(',');
-      out.write(s[i]);
-    }
-    return out.toString();
-  }
+  /// `1,162` (`1 162` in Russian: lib/l10n/amount_text.dart).
+  static String _thousands(BigInt v) => groupThousands(v.toString());
 
   /// Parses what a person typed as an amount ("1,000.5", "0.25") into
   /// groth-scale units. Null when it is not a positive amount with at most
-  /// eight decimals.
-  static BigInt? parse(String text) {
-    final t = text.trim().replaceAll(',', '');
-    final m = RegExp(r'^(\d*)(?:\.(\d{0,8}))?$').firstMatch(t);
-    if (m == null || t.isEmpty || t == '.') return null;
-    final w = m.group(1)!.isEmpty ? '0' : m.group(1)!;
-    final f = (m.group(2) ?? '').padRight(8, '0');
-    final v = BigInt.parse(w) * _groth + BigInt.parse(f);
-    return v > BigInt.zero ? v : null;
-  }
+  /// eight decimals. The Airdrop and Minter fields' rules ([BeamUnits.parse]):
+  /// commas only as thousands groups before a "." ("1,000.5"), a lone one
+  /// as the decimal point ("0,5" is 0.5, never 5), and "1,000" refused (a
+  /// thousand or one?). Stripping every comma read a Russian "0,5" as 5.
+  static BigInt? parse(String text) => BeamUnits.parse(text);
 
   /// `$10`, `$1,200`.
   static String usd(int dollars) => '\$${_thousands(BigInt.from(dollars))}';
@@ -80,19 +71,13 @@ abstract final class NamesFormat {
   static String date(DateTime d) => DateFormat('d MMM y').format(d.toLocal());
 
   /// `1 year`, `5 years`.
-  static String years(int n) => n == 1 ? '1 year' : '$n years';
+  static String years(int n) => appL10n.namesYears(n);
 
   /// Whole days from [tipHeight] to [height] at one block a minute.
   static int daysBetween(int tipHeight, int height) =>
       ((height - tipHeight) * kBeamTargetBlockTime.inSeconds) ~/ 86400;
 
-  /// `in 12 days`, `tomorrow`, `today`.
-  static String inDays(int days) => switch (days) {
-    <= 0 => 'today',
-    1 => 'tomorrow',
-    _ => 'in $days days',
-  };
-
   /// `block 4,918,184`, shown only on tap (heights are jargon).
-  static String block(int height) => 'block ${_thousands(BigInt.from(height))}';
+  static String block(int height) =>
+      appL10n.namesBlockHeight(_thousands(BigInt.from(height)));
 }

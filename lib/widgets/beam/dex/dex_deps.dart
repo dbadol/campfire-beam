@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/util.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/dex/beam_dex_service.dart';
@@ -223,7 +224,7 @@ class BeamDexDeps implements DexLayout {
     if (amount <= BigInt.zero) return null;
     if (assetId != 0 && pools.pricer == null) return null;
     final inBeam = valueInBeam(assetId, amount);
-    if (inBeam == null) return 'No price';
+    if (inBeam == null) return appL10n.dexNoPrice;
     return worthOfBeam(inBeam, inBeam: assetId != 0);
   }
 
@@ -238,9 +239,9 @@ class BeamDexDeps implements DexLayout {
     if (inBeam) {
       return groth > BigInt.zero
           ? '≈ ${DexFormat.compact(groth)} BEAM'
-          : 'under 0.00000001 BEAM';
+          : appL10n.dexWorthUnder('0.00000001 BEAM');
     }
-    return f == null ? null : 'No ${f.currency} price';
+    return f == null ? null : appL10n.dexNoFiatPrice(f.currency);
   }
 
   /// Both sides of [pool] valued in groth; null when a side has no price.

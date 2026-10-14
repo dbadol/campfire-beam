@@ -159,7 +159,7 @@ void main() {
 
     for (final desktop in [false, true]) {
       final name = desktop ? 'desktop' : 'phone';
-      const label = kBeamRestoredOpenWallet;
+      final label = kBeamRestoredOpenWallet;
       testWidgets('$name: "Wallet restored" says why it reads 0, and "$label" '
           'goes there', (tester) async {
         var actions = 0;

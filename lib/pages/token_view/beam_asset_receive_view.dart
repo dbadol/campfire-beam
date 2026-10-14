@@ -24,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../route_generator.dart';
@@ -65,7 +66,9 @@ Future<void> showBeamAssetReceive({
                 Padding(
                   padding: const EdgeInsets.only(left: 32),
                   child: Text(
-                    'Receive ${asset?.symbol ?? 'assets'}',
+                    asset == null
+                        ? context.l10n.assetsReceiveTitleAll
+                        : context.l10n.assetsReceiveTitle(asset.symbol),
                     style: STextStyles.desktopH3(context),
                   ),
                 ),
@@ -108,7 +111,9 @@ class BeamAssetReceiveView extends StatelessWidget {
           backgroundColor: colors.background,
           leading: const AppBarBackButton(),
           title: Text(
-            'Receive ${asset?.symbol ?? 'assets'}',
+            asset == null
+                ? context.l10n.assetsReceiveTitleAll
+                : context.l10n.assetsReceiveTitle(asset!.symbol),
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -144,7 +149,6 @@ class BeamAssetReceivePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final address = ref.watch(pWalletReceivingAddress(walletId));
-    final what = asset?.symbol ?? 'Every asset';
     final isDesktop = BeamAssetLayout.isDesktop(context);
 
     return Column(
@@ -152,7 +156,7 @@ class BeamAssetReceivePanel extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          BeamAssetText.receiveLine(what),
+          BeamAssetText.receiveLine(asset?.symbol),
           style: isDesktop
               ? STextStyles.desktopTextExtraExtraSmall(context)
               : STextStyles.itemSubtitle(context),
@@ -160,8 +164,7 @@ class BeamAssetReceivePanel extends ConsumerWidget {
         const SizedBox(height: 16),
         if (address.isEmpty)
           Text(
-            'Your address appears as soon as the wallet has connected to the '
-            'BEAM network.',
+            context.l10n.assetsAddressPending,
             style: STextStyles.itemSubtitle(context),
           )
         else ...[
@@ -179,14 +182,14 @@ class BeamAssetReceivePanel extends ConsumerWidget {
           const SizedBox(height: 16),
           PrimaryButton(
             key: const Key('beamAssetReceiveCopy'),
-            label: 'Copy address',
+            label: context.l10n.assetsCopyAddress,
             onPressed: () async {
               await clipboard.setData(ClipboardData(text: address));
               if (context.mounted) {
                 unawaited(
                   showFloatingFlushBar(
                     type: FlushBarType.info,
-                    message: 'Address copied',
+                    message: context.l10n.assetsAddressCopied,
                     context: context,
                   ),
                 );
@@ -198,7 +201,7 @@ class BeamAssetReceivePanel extends ConsumerWidget {
           const SizedBox(height: 12),
           Center(
             child: CustomTextButton(
-              text: 'Other address types',
+              text: context.l10n.assetsOtherAddressTypes,
               onTap: () =>
                   Navigator.of(context)
                       .pushNamed(ReceiveView.routeName, arguments: walletId),

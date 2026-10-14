@@ -73,18 +73,28 @@ final class BansRecipientResolving extends BansRecipientState {
 /// Payments to [name] are accepted. The card shows who will receive them;
 /// the payment re-resolves before it is built and again before signing.
 final class BansRecipientPayable extends BansRecipientState {
-  const BansRecipientPayable(super.name, this.resolution);
+  const BansRecipientPayable(super.name, this.resolution, {this.paidOwnerKey});
 
   final BansResolution resolution;
 
+  /// The owner key this wallet paid the name before; null when never.
+  final String? paidOwnerKey;
+
   String get ownerKey => resolution.ownerKey!;
 
-  /// Short, comparable form of the owner key for the card ("72e3…51ef").
-  String get ownerFingerprint {
-    final k = ownerKey;
-    if (k.length <= 12) return k;
-    return '${k.substring(0, 4)}…${k.substring(k.length - 4)}';
-  }
+  /// Paid before, to another owner than the one it has now (audit D-1): the
+  /// card shows both keys and nothing is sent until the person chooses.
+  /// Also when this wallet's record could not be read ([paidOwnerUnknown]).
+  bool get ownerChangedSincePaid =>
+      paidOwnerKey != null && paidOwnerKey != ownerKey;
+
+  /// This wallet's record of whom it paid could not be read: whether the
+  /// owner changed is unknown, so the person compares the key first.
+  bool get paidOwnerUnknown => paidOwnerKey == BansKey.zero;
+
+  /// The owner key's check code for the card ("72e3 68c0 … 570d 51ef"): 64
+  /// bits, which a made-up key cannot match (audit D-1 review M-1).
+  String get ownerFingerprint => BansKey.checkCode(ownerKey);
 
   /// Expired but in its 90-day hold: payments still reach the owner, who
   /// may not renew. The card warns before the user sends.
@@ -113,10 +123,14 @@ class BansRecipientResolver {
   BansRecipientResolver(
     this._resolve, {
     this.debounce = const Duration(milliseconds: 400),
-  });
+    Future<String?> Function(BansName name)? paidOwner,
+  }) : _paidOwner = paidOwner;
 
   /// Normally `BeamBansService.resolve`.
   final Future<BansResolution> Function(BansName name) _resolve;
+
+  /// The owner key this wallet paid a name before (`BansOwnerPins.pinned`).
+  final Future<String?> Function(BansName name)? _paidOwner;
   final Duration debounce;
 
   final _states = StreamController<BansRecipientState?>.broadcast();
@@ -146,7 +160,11 @@ class BansRecipientResolver {
     try {
       final r = await _resolve(name);
       state = r.status.canReceivePayments && r.ownerKey != null
-          ? BansRecipientPayable(name, r)
+          ? BansRecipientPayable(
+              name,
+              r,
+              paidOwnerKey: await _paidOwner?.call(name),
+            )
           : BansRecipientNotPayable(name, r.status);
     } catch (e) {
       state = BansRecipientFailed(name, e);

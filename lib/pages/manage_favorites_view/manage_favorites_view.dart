@@ -10,6 +10,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/l10n.dart';
 import '../../providers/db/main_db_provider.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/constants.dart';
@@ -43,14 +44,14 @@ class ManageFavoritesView extends StatelessWidget {
               ),
               center: Expanded(
                 child: Text(
-                  "Favorite wallets",
+                  context.l10n.favoritesTitle,
                   style: STextStyles.desktopH3(context),
                 ),
               ),
             )
           : AppBar(
               title: Text(
-                "Favorite wallets",
+                context.l10n.favoritesTitle,
                 style: STextStyles.navBarTitle(context),
               ),
               leading: AppBarBackButton(
@@ -87,7 +88,7 @@ class ManageFavoritesView extends StatelessWidget {
                               child: Padding(
                                 padding: const EdgeInsets.all(12.0),
                                 child: Text(
-                                  "Drag to change wallet order.",
+                                  context.l10n.favoritesDragToReorder,
                                   style:
                                       STextStyles.desktopTextExtraSmall(context)
                                           .copyWith(
@@ -189,7 +190,7 @@ class ManageFavoritesView extends StatelessWidget {
                               right: 24,
                             ),
                             child: Text(
-                              "Add to favorites",
+                              context.l10n.favoritesAddToFavorites,
                               style:
                                   STextStyles.itemSubtitle12(context).copyWith(
                                 color: Theme.of(context)
@@ -252,7 +253,7 @@ class ManageFavoritesView extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Text(
-                            "Drag to change wallet order.",
+                            context.l10n.favoritesDragToReorder,
                             style: STextStyles.label(context),
                           ),
                         ),
@@ -347,7 +348,7 @@ class ManageFavoritesView extends StatelessWidget {
                         right: 4,
                       ),
                       child: Text(
-                        "Add to favorites",
+                        context.l10n.favoritesAddToFavorites,
                         style: STextStyles.itemSubtitle12(context).copyWith(
                           color: Theme.of(context)
                               .extension<StackColors>()!

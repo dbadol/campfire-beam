@@ -28,12 +28,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/amount_text.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../providers/global/barcode_scanner_provider.dart';
-import '../../../providers/global/locale_provider.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/address_utils.dart';
 import '../../../utilities/amount/amount.dart';
+import '../../../utilities/amount/amount_input_formatter.dart';
 import '../../../utilities/amount/amount_unit.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/constants.dart';
@@ -47,6 +49,7 @@ import '../../../wallets/crypto_currency/crypto_currency.dart';
 import '../../../wallets/models/tx_data.dart';
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart';
+import '../../../widgets/beam/beam_decimal_input.dart';
 import '../../../widgets/custom_buttons/blue_text_button.dart';
 import '../../../widgets/desktop/primary_button.dart';
 import '../../../widgets/icon_widgets/clipboard_icon.dart';
@@ -118,14 +121,23 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
     super.dispose();
   }
 
-  String get _locale => ref.read(localeServiceChangeNotifierProvider).locale;
-
-  Amount? _parsedAmount() => AmountUnit.normal.tryParse(
-    _amount.text.trim(),
-    locale: _locale,
-    coin: _beam,
-    tokenContract: _asset,
-  );
+  /// What was typed, in this asset's units, read the app's way as BEAM
+  /// Send reads it (BeamSendFormat.parse; lib/l10n/amount_text.dart): "."
+  /// is the decimal point on every device and in every language, and a
+  /// comma is refused. The device's region never decides: on a Russian,
+  /// German or French phone its decimal comma made a pasted "1,000" one
+  /// token and refused "0.5", while "Available" and the confirm screen
+  /// write "." (release audit 1.3.0).
+  Amount? _parsedAmount() {
+    final text = _amount.text.trim();
+    if (text.isEmpty || text.contains(',')) return null;
+    return AmountUnit.normal.tryParse(
+      text,
+      locale: kAppAmountLocale,
+      coin: _beam,
+      tokenContract: _asset,
+    );
+  }
 
   Future<void> _paste() async {
     final data = await widget.clipboard.getData(Clipboard.kTextPlain);
@@ -149,10 +161,12 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
     }
   }
 
+  /// Fills in the whole balance, ungrouped with a "." ("1000.5"), as the
+  /// field takes it.
   void _sendAll(BigInt available) {
     _amount.text = AmountUnit.normal.formatEditable(
       amount: Amount(rawValue: available, fractionDigits: _asset.decimals),
-      locale: _locale,
+      locale: kAppAmountLocale,
     );
     setState(() {});
   }
@@ -164,7 +178,7 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
     final ({TxData? tx, Object? error})? outcome = await showLoading(
       context: context,
       rootNavigator: BeamAssetLayout.isDesktop(context),
-      message: 'Checking the payment',
+      message: context.l10n.assetsChecking,
       whileFuture: () async {
         try {
           final tx = await widget.assetWallet.prepareSend(
@@ -192,8 +206,8 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
       await showDialog<void>(
         context: context,
         builder: (_) => StackOkDialog(
-          title: 'Payment not ready',
-          message: '${outcome?.error ?? 'Something went wrong. Try again.'}',
+          title: context.l10n.assetsNotReadyTitle,
+          message: '${outcome?.error ?? context.l10n.assetsSomethingWrong}',
           desktopPopRootNavigator: BeamAssetLayout.isDesktop(context),
           maxWidth: BeamAssetLayout.isDesktop(context) ? 480 : null,
         ),
@@ -219,9 +233,8 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final isDesktop = BeamAssetLayout.isDesktop(context);
-    final locale = ref.watch(
-      localeServiceChangeNotifierProvider.select((s) => s.locale),
-    );
+    // Amounts are written the app's way, never the device region's.
+    const locale = kAppAmountLocale;
     final totals = ref.watch(pBeamAssetTotals(widget.walletId));
     final available = totals[_asset.assetId]?.available ?? BigInt.zero;
     final beamAvailable = totals[0]?.available ?? BigInt.zero;
@@ -229,6 +242,7 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
     final amount = _parsedAmount();
     final tooMuch = amount != null && amount.raw > available;
     final noBeam = beamAvailable < fee;
+    final l10n = context.l10n;
 
     final labelStyle = isDesktop
         ? STextStyles.desktopTextExtraSmall(context)
@@ -262,14 +276,15 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
                 key: const Key('beamAssetSendSyncNotice'),
                 text: () {
                   final m = BeamSyncMessages.describe(sync);
-                  return m.detail == null
-                      ? 'Sending is off: ${m.title}.'
-                      : 'Sending is off: ${m.title}. ${m.detail}';
+                  return joinSentences([
+                    l10n.assetsSendingOff(m.title),
+                    m.detail,
+                  ], l10n);
                 }(),
               ),
               const SizedBox(height: 16),
             ],
-            Text('Send to', style: labelStyle),
+            Text(l10n.assetsSendTo, style: labelStyle),
             const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(
@@ -292,7 +307,7 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
                       context,
                       desktopMed: isDesktop,
                     ).copyWith(
-                      hintText: 'Paste the ${_asset.symbol} address',
+                      hintText: l10n.assetsPasteHint(_asset.symbol),
                       contentPadding: const EdgeInsets.only(
                         left: 16,
                         top: 6,
@@ -306,20 +321,20 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
                             children: [
                               if (_address.text.isNotEmpty)
                                 TextFieldIconButton(
-                                  semanticsLabel: 'Clear the address',
+                                  semanticsLabel: l10n.assetsClearAddress,
                                   onTap: () => setState(() => _address.clear()),
                                   child: const XIcon(),
                                 )
                               else
                                 TextFieldIconButton(
                                   key: const Key('beamAssetSendPaste'),
-                                  semanticsLabel: 'Paste the address',
+                                  semanticsLabel: l10n.assetsPasteAddress,
                                   onTap: _paste,
                                   child: const ClipboardIcon(),
                                 ),
                               if (!isDesktop && _address.text.isEmpty)
                                 TextFieldIconButton(
-                                  semanticsLabel: 'Scan a QR code',
+                                  semanticsLabel: l10n.assetsScanQr,
                                   onTap: _scan,
                                   child: const QrCodeIcon(),
                                 ),
@@ -333,10 +348,10 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Text('Amount', style: labelStyle)),
+                Expanded(child: Text(l10n.assetsAmount, style: labelStyle)),
                 CustomTextButton(
                   key: const Key('beamAssetSendAll'),
-                  text: 'Send all',
+                  text: l10n.assetsSendAll,
                   onTap: available > BigInt.zero
                       ? () => _sendAll(available)
                       : null,
@@ -357,6 +372,18 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
                 ),
                 textAlign: TextAlign.right,
                 style: fieldStyle,
+                inputFormatters: [
+                  // The decimal key types ".", whatever the phone's region
+                  // offers (a Russian decimal pad has only ","), and a
+                  // pasted "1,000" or "0,5" is kept out, never read as 1
+                  // or 5: the main Send's field rules.
+                  BeamDecimalKeyFormatter('.'),
+                  AmountInputFormatter(
+                    controller: _amount,
+                    decimals: _asset.decimals,
+                    locale: kAppAmountLocale,
+                  ),
+                ],
                 onChanged: (_) => setState(() {}),
                 decoration:
                     standardInputDecoration(
@@ -387,12 +414,16 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
             ),
             const SizedBox(height: 6),
             Text(
-              '${tooMuch ? 'More than you have. ' : ''}Available: '
-              '${BeamAssetText.amount(
-                Amount(rawValue: available, fractionDigits: _asset.decimals),
-                _asset,
-                locale: locale,
-              )}',
+              () {
+                final text = BeamAssetText.amount(
+                  Amount(rawValue: available, fractionDigits: _asset.decimals),
+                  _asset,
+                  locale: locale,
+                );
+                return tooMuch
+                    ? l10n.assetsMoreThanYouHave(text)
+                    : l10n.assetsAvailable(text);
+              }(),
               key: const Key('beamAssetSendAvailable'),
               style: STextStyles.itemSubtitle(context)
                   .copyWith(color: tooMuch ? colors.textError : null),
@@ -411,8 +442,9 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'BEAM available for the fee: '
-                    '${BeamAssetText.beam(beamAvailable, locale: locale)}',
+                    l10n.assetsBeamForFee(
+                      BeamAssetText.beam(beamAvailable, locale: locale),
+                    ),
                     style: STextStyles.itemSubtitle(context),
                   ),
                 ],
@@ -428,7 +460,7 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
                   beamAvailable,
                   locale: locale,
                 ),
-                action: 'Receive BEAM',
+                action: l10n.assetsReceiveBeam,
                 onAction: () => unawaited(
                   showBeamAssetReceive(
                     context: context,
@@ -440,7 +472,7 @@ class _BeamAssetSendFormState extends ConsumerState<BeamAssetSendForm> {
             const SizedBox(height: 24),
             PrimaryButton(
               key: const Key('beamAssetSendReview'),
-              label: 'Review payment',
+              label: l10n.assetsReviewPayment,
               buttonHeight: isDesktop ? ButtonHeight.l : null,
               enabled: canReview,
               onPressed: canReview ? _review : null,

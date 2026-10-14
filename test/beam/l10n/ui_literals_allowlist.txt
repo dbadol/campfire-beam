@@ -1,0 +1,407 @@
+# Literals in the scanned BEAM files that look like prose but are not text
+# a person reads in the app. One per line:
+#   file | literal exactly as the guard prints it | why it stays
+# Keep it exact: an entry nothing matches fails the guard too.
+lib/widgets/beam/split/beam_split_backend.dart | Amm Liquidity Token | the AMM contract's own name for LP tokens, matched in asset metadata
+lib/wallets/beam/wallet/beam_wallet_errors.dart | BEAM not enabled | matched in the text of the plain Exception libBeam.createHost throws when the BEAM flag is off
+lib/pages/beam/airdrop/beam_airdrop_codes_view.dart | airdrop-codes-$day-${…}.csv | file name of the exported codes file
+lib/pages/beam/airdrop/beam_claim_voucher_view.dart | XXXX-XXXX-XXXX-XXXX | hint showing the shape of a voucher code; codes are never translated
+lib/pages/beam/airdrop/beam_airdrop_batches_view.dart | batch-cancel-v3-$batchId | ValueKey id of a v3 batch card's take-back link, never shown
+lib/pages/beam/airdrop/beam_airdrop_batches_view.dart | batch-cancel-$batchId | ValueKey id of an old-contract batch card's take-back link, never shown
+lib/pages/beam/buy/buy_beam_wiring.dart | ${…}${…}buybeam_orders.json | file name of the local buys store
+lib/pages/beam/dex/beam_dex_confirm_view.dart | pool-fee | row id used to build ValueKeys (dex-confirm-pool-fee)
+lib/pages/beam/import/beam_import_wallet_file_view.dart | BEAM Campfire | the app's name, passed as the {app} brand to filePickerFailureText
+lib/pages/beam/minter/beam_mint_token_view.dart | My Token | example token name in the hint; token names may only use English letters, digits and spaces, so it stays as written
+lib/pages_desktop_specific/beam/sidebar/beam_sidebar_section.dart | BEAM sidebar: could not start wallet ${…} | log line
+lib/widgets/beam/dex/dex_auth_gate.dart | Authenticate to  | matched against the reason text to pull out DesktopAuthSend's action
+lib/widgets/beam/wallet_home/beam_claim_sheet.dart | claim name payments | node-switch hold reason, an internal tag, never shown
+lib/widgets/beam/wallet_home/beam_home_controller.dart | BEAM home: this wallet core cannot read payments sent to BANS names (it lacks the Campfire core privilege); the name payments line stays hidden | log line through the controller's _log helper
+lib/widgets/beam/wallet_home/beam_home_controller.dart | BEAM home: asset prices unavailable for now: $e | log line through the controller's _log helper
+lib/wallets/beam/buy/buybeam_client.dart | user-agent | HTTP header name
+lib/wallets/beam/buy/buybeam_client.dart | content-type | HTTP header name
+lib/wallets/beam/buy/buybeam_client.dart | retry-after | HTTP header name
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | You lock: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Contract fee (1%, included above): ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | You receive: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Network fee: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Total BEAM out: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Claim fees paid ahead (included above): ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | The code pays the network fee: ${…} comes with it | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | The codes are the only key to these funds. They are saved in this wallet before anything is sent. | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | This voucher is worth less than the network fee to claim it. | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Cancel batch $batchId and take back its unclaimed vouchers | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Withdraw collected airdrop fees | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Create ${…} vouchers of ${…} each | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Create ${…} vouchers | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | $amount units of asset $assetId | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | A code has letters and digits, like ABCD-EFGH-JKLM-NPQR. | exception message for AirdropErrorCode.invalidCode; the screen shows airdropErrInvalidCode* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | The wallet is still catching up with the network. Try again once it is in sync. | exception message for AirdropErrorCode.walletNotSynced; the screen shows beamProblemNotSynced* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | These codes can still unlock funds, so they stay saved. Cancel the batch first, or wait until its transaction settles. | exception message for AirdropErrorCode.stillHoldsFunds; the screen shows airdropErrStillHoldsFunds* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | 1 to $kAirdropMaxVouchersPerBatch vouchers | developer error (ArgumentError.value) for a bad argument; never shown
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the batch arguments differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the batch | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | No voucher has this code. Check it letter by letter; codes never contain I, O, 0 or 1. | exception message for AirdropErrorCode.voucherNotFound; the screen shows airdropErrNotFound* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | This voucher was already claimed. | exception message for AirdropErrorCode.alreadyRedeemed; the screen shows airdropErrAlreadyClaimed* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the claim arguments differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the claim | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | This wallet has no batch $batchId with vouchers left. | exception message for AirdropErrorCode.batchNotFound; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Every voucher of this batch was already claimed. | exception message for AirdropErrorCode.nothingToCancel; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the batch changed while preparing; try again | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the cancel | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Only the contract owner can withdraw its fees. | exception message of prepareWithdrawFees (contract owner only), which no screen calls; logs only
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | No fees were collected in asset $assetId. | exception message of prepareWithdrawFees (contract owner only), which no screen calls; logs only
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | At most ${…} can be withdrawn. | exception message of prepareWithdrawFees (contract owner only), which no screen calls; logs only
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the withdrawal arguments differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the withdrawal | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | This transaction was already sent. | exception message for AirdropErrorCode.alreadyExecuted; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | This confirmation is no longer current. Prepare it again. | exception message for AirdropErrorCode.expired; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Another airdrop transaction is in progress. Finish or cancel it first. | exception message for AirdropErrorCode.busy; the screen shows airdropErrBusy* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | The codes could not be saved, so nothing was sent. ($e) | exception message for AirdropErrorCode.codesNotSaved; the screen shows airdropErrCodesNotSaved* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | a read-only airdrop call produced a transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the shader built no transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | cannot read the prepared transaction: ${…} | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | expected one contract call | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | the call targets ${…}, not the Airdrop | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | contract method ${…}, not $method | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | a dependent call | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | BVM charge ${…}, expected $charge | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | kernel comment "${…}" | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | ${…} signing keys | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | stored shader args differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | $what moves $s, expected exactly $expected | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Voucher not found | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Voucher already redeemed | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Batch not found | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Not batch creator | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | No unclaimed vouchers | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Not contract owner | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | No fees for this asset | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Insufficient fees | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Contract not found | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Missing or invalid code | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Empty code after normalization | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | AirdropSquatCheck.ok($batchId) | toString() of the check's result, for logs and tests
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | AirdropSquatCheck.failed(${…}, $index) | toString() of the check's result, for logs and tests
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This batch is not among the codes saved on this device. | exception message for AirdropErrorCode.batchNotFound; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | The wallet is still catching up with the network. Try again once it is in sync. | exception message for AirdropErrorCode.walletNotSynced; the screen shows beamProblemNotSynced* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | These codes can still unlock funds, so they stay saved. Take the batch back first, or wait until its transaction settles. | exception message for AirdropErrorCode.stillHoldsFunds; the screen shows airdropErrStillHoldsFunds* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | 1 to $kAirdropV3MaxVouchersPerBatch codes | developer error (ArgumentError.value) for a bad argument; never shown
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch carries a seed | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | no creator key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch arguments differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the shader reports another $k | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | a network fee of ${…} groth, expected ${…} | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | A code has letters and digits, like ABCD-EFGH-JKLM-NPQR. | exception message for AirdropErrorCode.invalidCode; the screen shows airdropErrInvalidCode* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | No voucher has this code. Check it letter by letter; codes never contain I, O, 0 or 1. | exception message for AirdropErrorCode.voucherNotFound; the screen shows airdropErrNotFound* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This code was already claimed. | exception message for AirdropErrorCode.alreadyRedeemed; the screen shows airdropErrAlreadyClaimed* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the network answered for another voucher than this code | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim arguments have the wrong size | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim names another voucher | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim has no receiving key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim asks the gas pool | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim carries the code | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim takes its fee from the gas pool | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This wallet has no batch with codes left under that number. | exception message for AirdropErrorCode.batchNotFound; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | Every code of this batch was already claimed or taken back. | exception message for AirdropErrorCode.nothingToCancel; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | Some codes were claimed while this was being prepared. Nothing was sent. Look at the batch again, then take back what is left. | exception message for AirdropErrorCode.changed; the screen shows airdropErrChanged* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | another creator key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | another batch | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch changed while preparing; try again | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | repeated or broken voucher keys | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | a voucher that is not one of this batch's codes | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the take-back | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This transaction was already sent. | exception message for AirdropErrorCode.alreadyExecuted; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This confirmation is no longer current. Prepare it again. | exception message for AirdropErrorCode.expired; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | Another airdrop transaction is in progress. Finish or cancel it first. | exception message for AirdropErrorCode.busy; the screen shows airdropErrBusy* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | The codes could not be saved, so nothing was sent. ($e) | exception message for AirdropErrorCode.codesNotSaved; the screen shows airdropErrCodesNotSaved* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | a read-only airdrop call produced a transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the shader built no transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the core started a transaction by itself | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | cannot read the prepared transaction: ${…} | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | expected one contract call | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the call targets ${…}, not Airdrop v3 | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | contract method ${…}, not $method | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | not a plain call (flags ${…}) | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | something the core would rebuild later | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | BVM charge ${…}, expected $charge | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | kernel comment "${…}" | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | not signed by exactly the expected key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | $what moves $s, expected exactly $expected | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | voucher not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | voucher already redeemed | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | batch not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | this wallet did not create the batch | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | no unclaimed vouchers in this batch | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | contract is paused: no new batches | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | code has no letters or digits | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | code is longer than 64 letters and digits | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | no Airdrop v3 contract at this cid | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | this cid is not derived from | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | contract settings not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | gas pool not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | New codes cannot be made right now: the airdrop contract is paused. Claims and take-backs still work. | exception message for AirdropErrorCode.paused; the screen shows airdropErrPaused* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrops.dart | must share the old service's store | developer error (ArgumentError.value) for a bad argument; never shown
+lib/wallets/beam/contracts/airdrop/beam_airdrops.dart | Another airdrop transaction is in progress. Finish or cancel it first. | exception message for AirdropErrorCode.busy; the screen shows airdropErrBusy* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrops.dart | A code has letters and digits, like ABCD-EFGH-JKLM-NPQR. | exception message for AirdropErrorCode.invalidCode; the screen shows airdropErrInvalidCode* for this code, never this text
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | name is invalid | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | name too short | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | name too long | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | name not specified | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | not registered | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | owned by other | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | already owned by me | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | validity period too long | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | price feed unavailable | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | domain expired | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | amount not specified | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | not for sale | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | no change | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | new owner not set | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | nothing to withdraw | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | no funds | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | insufficient funds | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | not detected | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | state not found | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/bans/bans_exceptions.dart | invalid account key | BANS shader's error text, matched by BansRefusal.fromWire
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | no pool for $payAsset/$receiveAsset | never shown: the swap screen shows its own text for code noPool
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | the $payAsset/$receiveAsset pool has no liquidity | never shown: own text for code poolEmpty
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | the amount is too small to receive anything | never shown: own text for code amountTooSmall
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | the pool can deliver at most ${…} | quoteReceive, which no screen calls
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | swap pays ${…}, expected at most ${…} of asset ${…} | prepareSwap check; the screen shows its own "Couldn't build the swap"
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | swap receives ${…}, expected asset ${…} | prepareSwap check, never shown
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | deposit pays ${…}, expected assets ${…} and ${…} | prepareAddLiquidity check; the screen shows its own text
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | deposit pays ${…}, asked for $amount1 / $amount2 | prepareAddLiquidity check, never shown
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | deposit receives ${…}, expected LP token ${…} | prepareAddLiquidity check, never shown
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | withdraw pays ${…}, expected $lpAmount of LP token ${…} | prepareWithdraw check; the screen shows its own text
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | withdraw receives ${…}, expected assets ${…} and ${…} | prepareWithdraw check, never shown
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | this transaction was already sent | alreadyExecuted guard; the review screen shows its own text
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | no such pool | AMM shader's error text, matched in _codeFor
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | no liquidity | AMM shader's error text, matched in _codeFor
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | pool already exists | AMM shader's error text, matched in _codeFor
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | val1 too large | AMM shader's error text, matched in _codeFor
+lib/wallets/beam/contracts/dex/beam_dex_service.dart | val2 too large | AMM shader's error text, matched in _codeFor
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Create a new token | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Mint ${…} units of asset $assetId | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Issuance fee to the BEAM DAO: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Asset deposit, never returned: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Network fee: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Total BEAM out: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | the token arguments differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | creating the token | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Asset $assetId was not created with the Minter. | exception message for MinterErrorCode.noSuchToken; the screen shows minterErrNoSuchToken* for this code, never this text
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Only the wallet that created this token can mint it. | exception message for MinterErrorCode.notOwner; the screen shows minterErrNotOwner* for this code, never this text
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | the mint arguments differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | the mint | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | This transaction was already sent. | exception message for MinterErrorCode.alreadyExecuted; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | This confirmation is no longer current. Prepare it again. | exception message for MinterErrorCode.expired; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | Another token transaction is in progress. Finish or cancel it first. | exception message for MinterErrorCode.busy; the screen shows minterErrBusy* for this code, never this text
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | a read-only Minter call produced a transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | the shader built no transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | cannot read the prepared transaction: ${…} | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | expected one contract call | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | the call is not to the Minter | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | contract method ${…}, not $method | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | a dependent call | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | BVM charge ${…}, expected $charge | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | kernel comment "${…}" | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | no such token | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | not owner | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | no such contract | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/minter/beam_minter_service.dart | $what moves $s, expected exactly $expected | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/wallet/beam_wallet_file_import.dart | no longer | matched in the BEAM host's own error message to tell a vanished file apart
+lib/wallets/wallet/impl/beam_wallet.dart | Campfire is looking for your coins on the BEAM network. Your balance fills in as they are found, usually within an hour. Payments from before the restore aren't listed: BEAM keeps no history on the chain. Keep this wallet open; you can receive payments meanwhile. | kBeamRestoreScanningMessage: the English constant test/beam/restore expects; the app shows walletRestoreScanning
+lib/wallets/wallet/impl/beam_wallet.dart | BEAM: wallet could not open (${…}) | log line (Logging.instance.w on the line above)
+lib/wallets/wallet/impl/beam_wallet.dart | Owner key not read at ${…} (it will be read before the first open): $e | log line (environment.log on the line above)
+lib/wallets/wallet/impl/beam_wallet.dart | wallet.db$suffix | file names
+lib/wallets/wallet/impl/beam_wallet.dart | swap being confirmed | node-switch hold reason, an internal tag, never shown
+lib/wallets/wallet/impl/beam_wallet.dart | confirm send | node-switch hold reason, an internal tag, never shown
+lib/wallets/wallet/impl/beam_wallet.dart | confirm split | node-switch hold reason, an internal tag, never shown
+lib/wallets/wallet/impl/beam_wallet.dart | already exists | matched in the BEAM core's error text (tx id already known)
+lib/wallets/wallet/impl/beam_wallet.dart | split coins | node-switch hold reason (_kSplitHold), an internal tag, never shown
+lib/wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart | asset send | node-switch hold reason, an internal tag, never shown
+lib/wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart | confirm asset send | node-switch hold reason, an internal tag, never shown
+lib/wallets/wallet/impl/sub_wallets/beam_asset_wallet.dart | already exists | matched in the BEAM core's error text (tx id already known)
+lib/pages/bridge/bridge_crossing_view.dart | bridge-crossing-lock | widget key name passed to _link, not shown
+lib/pages/bridge/bridge_crossing_view.dart | bridge-crossing-address | widget key name passed to _link, not shown
+lib/pages/bridge/bridge_wiring.dart | ${…}${…}bridge_crossings.json | file name
+lib/widgets/beam/send/beam_send_backend.dart | name payment | node-switch hold reason, an internal tag, never shown
+lib/widgets/beam/send/beam_send_model.dart | name payment | node-switch hold reason, an internal tag, never shown
+lib/widgets/beam/receive/beam_receive_text.dart | active transaction | matched against the BEAM core's error text
+lib/widgets/beam/receive/beam_receive_text.dart | in use | matched against the BEAM core's error text
+lib/utilities/beam/scan_recognize.dart | ^[1-9A-HJ-NP-Za-km-z]{40,1024}$ | regex (base58 address shape)
+lib/utilities/beam/scan_route.dart | ScanStopped($reason, $text, onward: $onward, canAddEthereumWallet: $canAddEthereumWallet, token: $token, to: $to) | debug toString
+lib/wallets/beam/host/secret_file.dart | chmod not found in /bin or /usr/bin | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | Could not set mode $mode on ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | ${…} has mode ${…}, expected ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | Directory is accessible to other users (mode ${…}): $path | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/secret_file.dart | Scratch directory already exists: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/contracts/bridge/pipe_output.dart | msg with current id is absent | matched against the pipe shader's own error text
+lib/wallets/beam/contracts/bridge/pipe_output.dart | remote_msg receiver | contract action + field name, goes into a placeholder
+lib/wallets/beam/host/process_host.dart | Not a usable node address: $node | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Removed $removed secret file(s) left by an earlier run | log line
+lib/wallets/beam/host/process_host.dart | wallet-api- | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | beam-common.cfg | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | wallet-api.cfg | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | beam-wallet.cfg | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | Removing unexpected $name from the run directory | log line
+lib/wallets/beam/host/process_host.dart | wallet.db | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | No wallet.db in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet.db already exists in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet successfully created | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Creating the wallet failed | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Created wallet.db in ${…} | log line
+lib/wallets/beam/host/process_host.dart | This build's BEAM core cannot connect through Tor; with Tor on it does not connect at all | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api could not bind a free port in 3 attempts | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api port was taken by another process; retrying | log line
+lib/wallets/beam/host/process_host.dart | Wallet summary | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | This file did not open as a BEAM wallet | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Imported a wallet.db into ${…} | log line
+lib/wallets/beam/host/process_host.dart | The wallet file is no longer there | matched by beam_wallet_file_import.dart (contains 'no longer'), which shows BeamImportMessages.gone instead
+lib/wallets/beam/host/process_host.dart | This file is too small to be a BEAM wallet | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Another program is using this wallet file | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Phones run no private node; the owner key is not read on Android | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Owner Viewer key:\s*(\S+) | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Exporting the owner key failed | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Rescan needs your own node holding the owner key. Without one the wallet would download every block since genesis. | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Current state is | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Rescan failed | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Reading config from | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | beam-wallet $command did not finish in ${…} s | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Please check your password | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | File is not a database | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | The wallet password is wrong | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | already initialized | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Please initialize your wallet first | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Invalid seed phrase | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | provide a valid seed phrase | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | unable to resolve | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | The node address could not be resolved | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api-${…}-$port.log | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | Starting wallet-api for ${…} on $route, port $port${…} | log line
+lib/wallets/beam/host/process_host.dart | ACL file successfully loaded | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Start server on | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | cannot start server | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | Wallet not found | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | unable to resolve node address | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | wallet-api speaks API $apiVersion, expected $kBeamApiVersion | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api is up on port $port (pid ${…}) | log line
+lib/wallets/beam/host/process_host.dart | wallet-api did not start listening within ${…} s: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api found no wallet.db | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api could not resolve the node address $node | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api exited with code $exitCode: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | wallet-api exited unexpectedly (code $code) | log line
+lib/wallets/beam/host/process_host.dart | owner viewer key | BEAM program output matched in data
+lib/wallets/beam/host/process_host.dart | [line withheld] | placeholder written into the log in place of a withheld line
+lib/wallets/beam/host/process_host.dart | (no output) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Could not start $name: ${…} | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | .wallet.lock | file, program or platform name (data)
+lib/wallets/beam/host/process_host.dart | This wallet is already open | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | Another process is using this wallet | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/process_host.dart | PID eq $target | Windows tasklist/PowerShell command text (data)
+lib/wallets/beam/host/in_process_host.dart | wallet.db | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | Removed $removed secret file(s) left by an earlier run | log line
+lib/wallets/beam/host/in_process_host.dart | The BEAM core is not part of this app build | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Rules signature: $rules | BEAM program output matched in data
+lib/wallets/beam/host/in_process_host.dart | The BEAM core does not report mainnet rules with HF6 ($kBeamHf6RulesFork) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | BEAM core ${…} (in-process) | log line
+lib/wallets/beam/host/in_process_host.dart | This wallet is already open or busy | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | No wallet.db in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | beam-common.cfg | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | wallet-api.cfg | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | beam-wallet.cfg | file, program or platform name (data)
+lib/wallets/beam/host/in_process_host.dart | Removing unexpected $name from the run directory | log line
+lib/wallets/beam/host/in_process_host.dart | wallet.db already exists in the wallet directory | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | The password does not open this wallet file | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | This file did not open as a BEAM wallet (core result $rc) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Imported a wallet.db into ${…} | log line
+lib/wallets/beam/host/in_process_host.dart | Creating the wallet failed (core result $rc) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Creating the wallet failed: no wallet.db afterwards | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Created wallet.db in ${…} | log line
+lib/wallets/beam/host/in_process_host.dart | This build's BEAM core cannot connect through Tor; with Tor on it does not connect at all | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api could not bind a free port in 3 attempts | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api port was taken by another process; retrying | log line
+lib/wallets/beam/host/in_process_host.dart | Phones run no private node; the owner key is not read there | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | The wallet password is wrong | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Reading the owner key failed (core result ${…}) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Rescan needs your own node holding the owner key, which this device does not run | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Another BEAM wallet is open; this device runs one at a time | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | A BEAM core from an earlier session is still running; stopping it | log line
+lib/wallets/beam/host/in_process_host.dart | The BEAM core from an earlier session did not stop | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | Starting wallet-api (in-process) for ${…} on $route, port $port${…} | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api did not start listening within ${…} s | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api speaks API $apiVersion, expected $kBeamApiVersion | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api is up on port $port (${…} ms) | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api of a failed start has not stopped within ${…} s; it keeps the wallet until it does | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api of a failed start has stopped | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api of a failed start still has this wallet open | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api did not stop within ${…} s; it keeps the wallet until it does | log line
+lib/wallets/beam/host/in_process_host.dart | wallet-api did not start listening in time ($node) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api found no wallet.db | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api could not resolve the node address $node | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api stopped during start-up (exit $code) | BeamHostException text for the log; for this kind the screen shows the wallet's own message (beamWalletExceptionFrom)
+lib/wallets/beam/host/in_process_host.dart | wallet-api stopped unexpectedly (exit $code) | log line
+lib/wallets/beam/contracts/bridge/beam_pipe_service.dart | bridge call checked here | Expando debug name
+lib/wallets/beam/contracts/bridge/beam_pipe_service.dart | bridge call sent | Expando debug name
+lib/wallets/beam/dapps/dapp_session.dart | Unknown transaction ID. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Provided address doesn't exist. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Failed to export payment proof, transaction does not exist. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | dApp session closed | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The wallet did not answer in time; the outcome is unknown | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The wallet connection was lost; the outcome is unknown | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Invalid receiver address or token. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Failed to initiate the operation. The minimum fee is $minFee GROTH. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Invalid sender address. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Campfire cannot show this contract call: ${…} | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | contract fee below the core minimum | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The request changed after it was approved | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | Send the app shader with the first contract call | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/dapps/dapp_session.dart | The wallet is still catching up with the network, so it cannot read contracts yet. Nothing was run; try again once it has caught up. | JSON-RPC error data returned to the dApp (protocol, the core's own wording where it mirrors one); Campfire does not show it
+lib/wallets/beam/tx/beam_tx_actions.dart | address is expired | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | timed out | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | inputs missing | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | failed to register | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | not enough inputs | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | fee is too small | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | fee is too large | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | fee is too big | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | not signed by the receiver | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | transaction parameters | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | no voucher | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | cannot get vouchers | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | disabled in the receiver wallet | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | aborted by the user | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | send wallet logs | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | not valid | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | key keeper | matched in the BEAM core's failure_reason text
+lib/wallets/beam/tx/beam_tx_actions.dart | invalid state | matched in the BEAM core's failure_reason text
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | your BEAM names | reservedUse(): English description for logs and tests; screens use the dappsRefused…ReservedKey select messages
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | your airdrops | reservedUse(): English description for logs and tests; screens use the dappsRefused…ReservedKey select messages
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | the airdrop contract | reservedUse(): English description for logs and tests; screens use the dappsRefused…ReservedKey select messages
+lib/wallets/beam/dapps/dapp_wallet_keys.dart | Beam DEX | brand name of BEAM's DEX contract
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | the file could not be read | DappInstallException.message for logs and support; the screen shows dappInstallErrorText
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | package is $length bytes | DappInstallException.message for logs and support; the screen shows dappInstallErrorText
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | the file uses the guid of the bundled ${…} | DappInstallException.message for logs and support; the screen shows dappInstallErrorText
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Liquidity Accumulator for BEAM / BEAMX | BEAM / NPH pair on Beam DEX | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Decentralized anonymous naming for the BEAM wallet | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Mint confidential assets with provably limited supply | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Confidential Bridges app | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Confidential Beam to Ethereum bridge | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Governance, staking and voting | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Voting on Beam community proposals | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | AMM based decentralized exchange for Confidential Assets | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/dapps/host/dapp_store_controller.dart | Buy and sell confidential NFTs | a bundled dApp's own description from its manifest (dApp content, never translated)
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc $method timed out after ${…} ms | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | wallet-api did not answer $method | TimeoutException text for the log; screens map TimeoutException to their own message
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: ignored a line that is not JSON (${…} chars) | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: ignored a line that is not a JSON object | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: ignored a message with an unknown id type | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | malformed error object | stands in for the BEAM core's own error text (BeamRpcException.message), shown as given like the core's
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc ${…} error ${…} in $ms ms | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc ${…} ok in $ms ms | log line
+lib/wallets/beam/rpc/tcp_line_transport.dart | beam rpc: connection lost${…} | log line
+lib/wallets/ethereum/bridge/eth_pipe_service.dart | bridge tx sent | Expando debug name
+lib/wallets/ethereum/bridge/eth_pipe_service.dart | allowance(address,address) | ABI function signature
+lib/wallets/ethereum/bridge/eth_pipe_service.dart | address,uint256 | ABI type list
+lib/wallets/ethereum/bridge/eth_pipe_calls.dart | approve(address,uint256) | ABI function signature

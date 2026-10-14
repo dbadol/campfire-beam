@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/providers.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/constants.dart';
@@ -46,7 +47,7 @@ class SyncingOptionsView extends ConsumerWidget {
                   Navigator.of(context).pop();
                 },
               ),
-              title: Text("Syncing", style: STextStyles.navBarTitle(context)),
+              title: Text(context.l10n.settingsSyncing, style: STextStyles.navBarTitle(context)),
             ),
             body: SafeArea(
               child: Padding(
@@ -136,12 +137,12 @@ class SyncingOptionsView extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Sync only currently open wallet",
+                                    context.l10n.settingsSyncCurrentWalletOnly,
                                     style: STextStyles.titleBold12(context),
                                     textAlign: TextAlign.left,
                                   ),
                                   Text(
-                                    "Sync only the wallet that you are using",
+                                    context.l10n.settingsSyncCurrentWalletOnlyDetail,
                                     style: STextStyles.itemSubtitle(context),
                                     textAlign: TextAlign.left,
                                   ),
@@ -214,12 +215,12 @@ class SyncingOptionsView extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Sync all wallets at startup",
+                                    context.l10n.settingsSyncAllAtStartup,
                                     style: STextStyles.titleBold12(context),
                                     textAlign: TextAlign.left,
                                   ),
                                   Text(
-                                    "All of your wallets will start syncing when you open the app",
+                                    context.l10n.settingsSyncAllAtStartupDetail,
                                     style: STextStyles.itemSubtitle(context),
                                     textAlign: TextAlign.left,
                                   ),
@@ -294,12 +295,12 @@ class SyncingOptionsView extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Sync only selected wallets at startup",
+                                    context.l10n.settingsSyncSelectedAtStartup,
                                     style: STextStyles.titleBold12(context),
                                     textAlign: TextAlign.left,
                                   ),
                                   Text(
-                                    "Only the wallets you select will start syncing when you open the app",
+                                    context.l10n.settingsSyncSelectedAtStartupDetail,
                                     style: STextStyles.itemSubtitle(context),
                                     textAlign: TextAlign.left,
                                   ),
@@ -373,7 +374,7 @@ class SyncingOptionsView extends ConsumerWidget {
                                                           32,
                                                         ),
                                                     child: Text(
-                                                      "Select wallets to sync",
+                                                      context.l10n.settingsSyncSelectWalletsTitle,
                                                       style:
                                                           STextStyles.desktopH3(
                                                             context,
@@ -399,7 +400,7 @@ class SyncingOptionsView extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Select wallets...",
+                                    context.l10n.settingsSyncSelectWallets,
                                     style: STextStyles.link2(context),
                                     textAlign: TextAlign.left,
                                   ),

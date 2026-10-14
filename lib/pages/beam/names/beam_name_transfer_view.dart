@@ -28,6 +28,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/beam/scan_recognize.dart';
 import '../../../utilities/constants.dart';
@@ -110,9 +111,7 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
       if (mine == key) {
         setState(() {
           _key = null;
-          _keyError =
-              "That is this wallet's own key. Paste the key of the wallet "
-              'that should get $_name.';
+          _keyError = context.l10n.namesOwnKey(_name);
         });
       }
     } catch (_) {
@@ -175,20 +174,20 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final key = _key;
     final until = NamesFormat.date(
       widget.clock.dateOf(widget.domain.expireHeight),
     );
     return NamesPage(
       deps: deps,
-      title: 'Transfer $_name',
+      title: l10n.namesTransferName(_name),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           NamesSyncBanner(deps: deps),
           Text(
-            'Give $_name to another wallet. Ask its owner for their name key: '
-            'in Campfire it is under Names → Receive a name.',
+            l10n.namesTransferIntro(_name),
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.textDark3),
           ),
@@ -212,7 +211,7 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding: const EdgeInsets.all(16),
-                hintText: "Paste the receiving wallet's name key",
+                hintText: l10n.namesTransferHint,
                 hintStyle: STextStyles.fieldLabel(context),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -224,7 +223,7 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
           Row(
             children: [
               SecondaryButton(
-                label: 'Paste',
+                label: l10n.namesPaste,
                 width: 120,
                 buttonHeight: deps.desktop ? ButtonHeight.s : ButtonHeight.l,
                 onPressed: _paste,
@@ -233,7 +232,7 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
                 const SizedBox(width: 12),
                 SecondaryButton(
                   key: const Key('names-transfer-scan'),
-                  label: 'Scan',
+                  label: l10n.namesScan,
                   width: 120,
                   buttonHeight: deps.desktop ? ButtonHeight.s : ButtonHeight.l,
                   onPressed: _scan,
@@ -257,7 +256,7 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'New owner',
+                    l10n.namesNewOwner,
                     style: STextStyles.smallMed12(context)
                         .copyWith(color: colors.infoItemLabel),
                   ),
@@ -269,10 +268,7 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Read all ${BansKey.checkCodeLength} characters to the '
-                    "receiving wallet's owner. Their Receive a name screen "
-                    'shows the same ones. If even one differs, stop: the '
-                    'key you pasted is not theirs.',
+                    l10n.namesTransferReadOut(BansKey.checkCodeLength),
                     style: STextStyles.smallMed12(context)
                         .copyWith(color: colors.textSubtitle1),
                   ),
@@ -282,10 +278,8 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
             const SizedBox(height: 12),
             NamesNotice(
               kind: NamesNoticeKind.warning,
-              title: "This can't be undone",
-              detail:
-                  'Only the new owner can give $_name back. Its time left '
-                  '(until $until) goes with it.',
+              title: l10n.namesCantBeUndone,
+              detail: l10n.namesTransferGoesWith(_name, until),
             ),
           ],
           if (_error != null) ...[
@@ -293,7 +287,7 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
             NamesNotice(
               key: const Key('names-transfer-error'),
               kind: NamesNoticeKind.error,
-              title: "Couldn't prepare the transfer",
+              title: l10n.namesCouldntPrepareTransfer,
               detail: _error,
             ),
           ],
@@ -302,10 +296,10 @@ class _BeamNameTransferViewState extends State<BeamNameTransferView> {
       bottom: NamesPrimaryAction(
         deps: deps,
         buttonKey: const Key('names-transfer-cta'),
-        label: _preparing ? 'Preparing…' : 'Transfer $_name',
+        label: _preparing ? l10n.namesPreparing : l10n.namesTransferName(_name),
         onPressed: key == null || _preparing ? null : _transfer,
         reason: key == null && !_preparing
-            ? 'Paste the key of the wallet that should get $_name.'
+            ? l10n.namesTransferPasteKey(_name)
             : null,
       ),
     );

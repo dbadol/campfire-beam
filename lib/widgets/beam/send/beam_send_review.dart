@@ -7,15 +7,13 @@
  *
  */
 
-import 'dart:async';
-
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/bans/bans_name.dart';
 import '../../../wallets/beam/contracts/bans/bans_service.dart';
 import '../../../wallets/beam/models/beam_address.dart';
-import '../../../wallets/beam/rpc/beam_connection_exception.dart';
 import '../../../wallets/beam/wallet/beam_wallet_errors.dart';
 import '../../../wallets/crypto_currency/crypto_currency.dart';
 import '../../../wallets/models/tx_data.dart';
@@ -162,10 +160,11 @@ class BeamSendReview {
 
   bool get isName => kind == BeamSendKind.name;
 
-  /// `72e3…51ef` (names only).
+  /// `72e3 68c0 … 570d 51ef` (names only): the 64-bit check code, which a
+  /// made-up key cannot match, unlike the 32-bit fingerprint.
   String? get ownerFingerprint {
     final k = ownerKey;
-    return k == null ? null : BansKey.fingerprint(k);
+    return k == null ? null : BansKey.checkCode(k);
   }
 
   /// BEAM leaving the wallet, fee included.
@@ -179,8 +178,8 @@ class BeamSendReview {
 
   /// The confirmation button's label.
   String get sendLabel => isName
-      ? 'Send to $destination'
-      : 'Send ${BeamSendFormat.amount(amount, asset)}';
+      ? appL10n.sendToNameCta(destination)
+      : appL10n.sendAmountCta(BeamSendFormat.amount(amount, asset));
 
   /// Sends the payment and returns its transaction id. Called by the
   /// confirmation screen after the PIN / password gate.
@@ -190,10 +189,9 @@ class BeamSendReview {
   /// turns false and the user is sent to their history instead.
   Future<String> send() async {
     if (_sent) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.sendOutcomeUnknown,
-        'This payment was already handed to the wallet. Check your '
-        'transaction history before sending again.',
+        appL10n.sendAlreadyHandedOver,
       );
     }
     beamCheckCanSpend(backend);
@@ -231,11 +229,7 @@ class BeamSendReview {
 
   /// Whether [error], thrown while sending, leaves it open whether the
   /// payment went out.
-  static bool isOutcomeUnknown(Object error) =>
-      (error is BeamWalletException &&
-          error.problem == BeamWalletProblem.sendOutcomeUnknown) ||
-      error is BeamConnectionException ||
-      error is TimeoutException;
+  static bool isOutcomeUnknown(Object error) => beamSendOutcomeUnknown(error);
 
   /// Lets the private node restart wallet-api again. Safe to call twice.
   void dispose() {

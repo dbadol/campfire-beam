@@ -16,6 +16,7 @@ import 'dart:math';
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:path/path.dart' as p;
 
+import '../../../l10n/l10n.dart';
 import '../net/beam_node_route.dart';
 import '../rpc/beam_transport.dart';
 import '../rpc/tcp_line_transport.dart';
@@ -142,9 +143,9 @@ class ProcessHost implements BeamHost, BeamWalletFileImporter {
   /// `<root>/wallets/<walletId>`. Throws for an id that is not a plain name.
   String walletDirFor(String walletId) {
     if (!_walletIdPattern.hasMatch(walletId)) {
-      throw const BeamHostException(
+      throw BeamHostException(
         BeamHostError.invalidInput,
-        'Wallet id must be 1-64 letters, digits, "-" or "_"',
+        appL10n.nodeHostWalletIdInvalid,
       );
     }
     return p.join(walletsDir, walletId);
@@ -160,9 +161,9 @@ class ProcessHost implements BeamHost, BeamWalletFileImporter {
     checkConfigValue('password', password);
     // SecString::MAX_SIZE is 4096 and silently truncates.
     if (utf8.encode(password).length >= 4096) {
-      throw const BeamHostException(
+      throw BeamHostException(
         BeamHostError.invalidInput,
-        'Password is longer than BEAM accepts',
+        appL10n.nodeHostPasswordTooLong,
       );
     }
   }
@@ -174,19 +175,19 @@ class ProcessHost implements BeamHost, BeamWalletFileImporter {
     if (words.length != 12) {
       throw BeamHostException(
         BeamHostError.invalidInput,
-        'A BEAM seed phrase has 12 words, got ${words.length}',
+        appL10n.nodeHostSeedWordCount(words.length),
       );
     }
     if (!words.every(_wordPattern.hasMatch)) {
-      throw const BeamHostException(
+      throw BeamHostException(
         BeamHostError.invalidInput,
-        'Seed words must be lowercase letters a-z only',
+        appL10n.nodeHostSeedLowercase,
       );
     }
     if (!bip39.validateMnemonic(words.join(' '))) {
-      throw const BeamHostException(
+      throw BeamHostException(
         BeamHostError.invalidInput,
-        'Not a valid BIP39 phrase (unknown word or wrong checksum)',
+        appL10n.nodeHostSeedInvalid,
       );
     }
   }
@@ -694,9 +695,9 @@ class ProcessHost implements BeamHost, BeamWalletFileImporter {
       );
     }
     if (r.saw('Invalid seed phrase') || r.saw('provide a valid seed phrase')) {
-      return const BeamHostException(
+      return BeamHostException(
         BeamHostError.invalidInput,
-        'beam-wallet rejected the seed phrase',
+        appL10n.nodeHostCliSeedRejected,
       );
     }
     if (r.saw('unable to resolve')) {
@@ -1410,11 +1411,7 @@ class _WalletLock {
   /// [target] runs [exe] on this wallet: its command line names
   /// `--wallet_path=<dbPath>`, as every wallet-api and beam-wallet this
   /// host starts does. POSIX only (`ps -o command=`).
-  static Future<bool> _isOurChild(
-    int target,
-    String exe,
-    String dbPath,
-  ) async {
+  static Future<bool> _isOurChild(int target, String exe, String dbPath) async {
     if (!await _pidRunning(target, exe)) return false;
     final command = await _commandOf(target);
     return command != null && command.contains('--wallet_path=$dbPath');

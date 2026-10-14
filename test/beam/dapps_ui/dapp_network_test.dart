@@ -143,6 +143,8 @@ void main() {
     required bool desktop,
     List<String> allowed = const [],
     bool torOn = false,
+    ValueNotifier<bool>? tor,
+    List<_Window>? windowsOut,
   }) async {
     await loadCampfireFonts(tester);
     setSurface(tester, desktop ? const Size(1055, 772) : const Size(375, 812));
@@ -164,33 +166,67 @@ void main() {
         await installer.allowOrigin(_guid, o);
       }
     });
-    final windows = <_Window>[];
+    final windows = windowsOut ?? <_Window>[];
     final l = FakeWalletLink(root: root.path, transport: FakeTransport({}));
+    final host = hostFor(l);
+    Widget view(bool on) => DappBrowserView(
+      host: host,
+      installation: installation,
+      desktop: desktop,
+      webviewAvailable: true,
+      torOn: on,
+      webviewFactory:
+          ({
+            required session,
+            required background,
+            required onExternalLink,
+            onLoaded,
+            onLoadFailed,
+          }) async {
+            final w = _Window(session, onLoaded);
+            windows.add(w);
+            return w;
+          },
+    );
     await tester.pumpWidget(
       campfireApp(
-        home: DappBrowserView(
-          host: hostFor(l),
-          installation: installation,
-          desktop: desktop,
-          webviewAvailable: true,
-          torOn: torOn,
-          webviewFactory:
-              ({
-                required session,
-                required background,
-                required onExternalLink,
-                onLoaded,
-                onLoadFailed,
-              }) async {
-                final w = _Window(session, onLoaded);
-                windows.add(w);
-                return w;
-              },
-        ),
+        home: tor == null
+            ? view(torOn)
+            : ValueListenableBuilder<bool>(
+                valueListenable: tor,
+                builder: (_, on, _) => view(on),
+              ),
       ),
     );
     await settleReal(tester, () => windows.isNotEmpty);
     return windows.single;
+  }
+
+  /// The Content-Security-Policy the dApp's server sends now (over a raw
+  /// socket, as [tokenOf] reads the page).
+  Future<String> cspOf(WidgetTester tester, DappHostSession s) async {
+    String? csp;
+    await tester.runAsync(() async {
+      final port = s.server.port;
+      final socket = await Socket.connect(InternetAddress.loopbackIPv4, port);
+      socket.write(
+        'GET ${s.startUri.path} HTTP/1.1\r\n'
+        'Host: 127.0.0.1:$port\r\nConnection: close\r\n\r\n',
+      );
+      final bytes = <int>[];
+      unawaited(
+        socket.listen(bytes.addAll).asFuture<void>().then((_) {
+          socket.destroy();
+          csp = RegExp(
+            r'^content-security-policy: *(.*?)\r$',
+            caseSensitive: false,
+            multiLine: true,
+          ).firstMatch(latin1.decode(bytes))!.group(1);
+        }),
+      );
+    });
+    await settleReal(tester, () => csp != null);
+    return csp!;
   }
 
   Future<void> close(WidgetTester tester) async {
@@ -318,6 +354,42 @@ void main() {
       expect(find.text(DappNetworkText.torNote), findsOneWidget);
       await tester.tap(find.byKey(DappReachPrompt.notNowKey));
       await tester.pumpAndSettle();
+      await close(tester);
+    },
+  );
+
+  testWidgets(
+    'desktop: Tor turned on while a dApp from a file is open cuts its '
+    'servers at once; turned off, they are back',
+    timeout: _limit,
+    (tester) async {
+      final tor = ValueNotifier(false);
+      addTearDown(tor.dispose);
+      final windows = <_Window>[];
+      final first = await open(
+        tester,
+        desktop: true,
+        allowed: [_explorer],
+        tor: tor,
+        windowsOut: windows,
+      );
+      expect(await cspOf(tester, first.session), contains(_explorer));
+
+      tor.value = true;
+      await tester.pump();
+      await settleReal(tester, () => windows.length == 2);
+      final torOn = windows.last;
+      expect(first.session.isClosed, isTrue, reason: 'the old page is gone');
+      expect(torOn.session.isClosed, isFalse);
+      expect(await cspOf(tester, torOn.session), isNot(contains(_explorer)));
+      // Still saved with the dApp: only not reached while Tor is on.
+      expect(torOn.session.allowedOrigins, [_explorer]);
+
+      tor.value = false;
+      await tester.pump();
+      await settleReal(tester, () => windows.length == 3);
+      expect(torOn.session.isClosed, isTrue);
+      expect(await cspOf(tester, windows.last.session), contains(_explorer));
       await close(tester);
     },
   );

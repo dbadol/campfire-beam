@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mutex/mutex.dart';
 
+import '../../l10n/l10n.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../providers/global/secure_store_provider.dart';
 import '../../providers/providers.dart';
@@ -157,7 +158,7 @@ class _LockscreenViewState extends ConsumerState<LockscreenView> {
           ),
           opaqueBG: true,
           context: context,
-          message: "Loading wallets...",
+          message: context.l10n.pinLoadingWallets,
         );
 
         if (loadSuccess == null || loadSuccess == false) {
@@ -371,18 +372,17 @@ class _LockscreenViewState extends ConsumerState<LockscreenView> {
     }
 
     if (_attemptLock) {
-      String prettyTime = "";
+      final String lockedOutMessage;
       if (_timeout.inSeconds >= 60) {
-        prettyTime += "${_timeout.inMinutes} minutes";
+        lockedOutMessage = context.l10n.pinLockedOutMinutes(_timeout.inMinutes);
       } else {
-        prettyTime += "${_timeout.inSeconds} seconds";
+        lockedOutMessage = context.l10n.pinLockedOutSeconds(_timeout.inSeconds);
       }
 
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.warning,
-          message:
-              "Incorrect PIN entered too many times. Please wait $prettyTime",
+          message: lockedOutMessage,
           context: context,
           iconAsset: Assets.svg.alertCircle,
         ),
@@ -404,7 +404,7 @@ class _LockscreenViewState extends ConsumerState<LockscreenView> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.warning,
-            message: "Incorrect PIN. Please try again",
+            message: context.l10n.pinIncorrect,
             context: context,
             iconAsset: Assets.svg.alertCircle,
           ),
@@ -452,7 +452,7 @@ class _LockscreenViewState extends ConsumerState<LockscreenView> {
                       if (ref.read(prefsChangeNotifierProvider).useBiometrics ==
                           true)
                         CustomTextButton(
-                          text: "Use biometrics",
+                          text: context.l10n.pinUseBiometrics,
                           onTap: () async {
                             await _checkUseBiometrics();
                           },
@@ -477,7 +477,7 @@ class _LockscreenViewState extends ConsumerState<LockscreenView> {
                   children: [
                     Center(
                       child: Text(
-                        "Enter PIN",
+                        context.l10n.pinEnterTitle,
                         style: STextStyles.pageTitleH1(context),
                       ),
                     ),

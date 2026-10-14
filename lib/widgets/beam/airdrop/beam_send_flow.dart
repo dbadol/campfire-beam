@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/util.dart';
 import '../../desktop/primary_button.dart';
 import '../../desktop/secondary_button.dart';
@@ -58,7 +59,7 @@ class BeamCtaBar extends StatelessWidget {
     required this.onPressed,
     this.enabled = true,
     this.busy = false,
-    this.busyLabel = 'Working…',
+    this.busyLabel,
     this.secondaryLabel,
     this.onSecondary,
     this.primaryKey,
@@ -68,7 +69,9 @@ class BeamCtaBar extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool enabled;
   final bool busy;
-  final String busyLabel;
+
+  /// What the primary button says while [busy]; "Working…" by default.
+  final String? busyLabel;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
   final Key? primaryKey;
@@ -109,7 +112,10 @@ class BeamCtaBar extends StatelessWidget {
               icon: Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(busy ? busyLabel : label, style: style),
+                  child: Text(
+                    busy ? busyLabel ?? context.l10n.beamWorking : label,
+                    style: style,
+                  ),
                 ),
               ),
             );

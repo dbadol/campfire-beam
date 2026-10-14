@@ -9,6 +9,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
@@ -146,7 +147,7 @@ class _DexAssetPickerState extends State<_DexAssetPicker> {
         ? Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'No asset matches "$q". Search by name, ticker or #id.',
+              context.l10n.dexPickerNoMatch(q),
               style: STextStyles.smallMed12(context),
             ),
           )
@@ -175,7 +176,9 @@ class _DexAssetPickerState extends State<_DexAssetPicker> {
                           children: [
                             DexAssetName(asset: a),
                             Text(
-                              a.verified ? a.name : 'Not verified · ${a.name}',
+                              a.verified
+                                  ? a.name
+                                  : context.l10n.dexPickerNotVerified(a.name),
                               style: STextStyles.label(context),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -202,7 +205,7 @@ class _DexAssetPickerState extends State<_DexAssetPicker> {
                             // so the asset's name is not cut for it.
                             if (deps.pools.pricer?.isSaleValue(id) ?? false)
                               Text(
-                                'if sold now',
+                                context.l10n.dexIfSoldNow,
                                 key: Key('dex-asset-sold-$id'),
                                 style: STextStyles.label(context),
                               ),
@@ -235,7 +238,7 @@ class _DexAssetPickerState extends State<_DexAssetPicker> {
           onChanged: (_) => setState(() {}),
           style: STextStyles.field(context),
           decoration: standardInputDecoration(
-            'Search by name, ticker or #id',
+            context.l10n.dexSearchHint,
             _focus,
             context,
           ),

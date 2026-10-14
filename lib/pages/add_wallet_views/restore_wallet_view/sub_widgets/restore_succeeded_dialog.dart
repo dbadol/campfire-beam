@@ -10,12 +10,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/assets.dart';
 import '../../../../utilities/text_styles.dart';
 import '../../../../utilities/util.dart';
 import '../../../../wallets/wallet/impl/beam_wallet.dart'
-    show kBeamRestoreScanningMessage;
+    show beamRestoreScanningMessage;
 import '../../../../widgets/desktop/desktop_dialog.dart';
 import '../../../../widgets/desktop/desktop_dialog_close_button.dart';
 import '../../../../widgets/desktop/primary_button.dart';
@@ -30,7 +31,7 @@ import '../../../../widgets/stack_dialog.dart';
 // before the user sees the 0, and the button says where it goes.
 
 /// The button: opens the restored wallet.
-const kBeamRestoredOpenWallet = "Open my wallet";
+String get kBeamRestoredOpenWallet => appL10n.restoreOpenMyWallet;
 
 /// A restored BEAM wallet: the honest scan text and one button labelled with
 /// its outcome. The dialog closes itself, then runs [onAction].
@@ -40,13 +41,13 @@ class BeamRestoreSucceededDialog extends StatelessWidget {
     required this.isDesktop,
     required this.actionLabel,
     required this.onAction,
-    this.message = kBeamRestoreScanningMessage,
+    this.message,
   });
 
   final bool isDesktop;
   final String actionLabel;
   final VoidCallback onAction;
-  final String message;
+  final String? message;
 
   void _act(BuildContext context) {
     Navigator.of(context).pop();
@@ -80,13 +81,13 @@ class BeamRestoreSucceededDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      "Wallet restored",
+                      context.l10n.restoreSucceededTitle,
                       style: STextStyles.desktopH2(context),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      message,
+                      message ?? beamRestoreScanningMessage,
                       style: STextStyles.desktopTextMedium(
                         context,
                       ).copyWith(color: colors.textDark3),
@@ -117,7 +118,7 @@ class BeamRestoreSucceededDialog extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  "Wallet restored",
+                  context.l10n.restoreSucceededTitle,
                   style: STextStyles.pageTitleH2(context),
                 ),
               ),
@@ -133,7 +134,7 @@ class BeamRestoreSucceededDialog extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(message, style: STextStyles.smallMed14(context)),
+          Text(message ?? beamRestoreScanningMessage, style: STextStyles.smallMed14(context)),
           const SizedBox(height: 20),
           TextButton(
             key: const Key("beamRestoredAction"),
@@ -171,7 +172,7 @@ class RestoreSucceededDialog extends StatelessWidget {
               flex: 2,
             ),
             Text(
-              "Wallet restored",
+              context.l10n.restoreSucceededTitle,
               style: STextStyles.desktopH2(context),
               textAlign: TextAlign.center,
             ),
@@ -179,7 +180,7 @@ class RestoreSucceededDialog extends StatelessWidget {
               height: 16,
             ),
             Text(
-              "You may access your wallet now.",
+              context.l10n.restoreSucceededMessage,
               style: STextStyles.desktopTextMedium(context).copyWith(
                 color: Theme.of(context).extension<StackColors>()!.textDark3,
               ),
@@ -196,7 +197,7 @@ class RestoreSucceededDialog extends StatelessWidget {
               ),
               child: PrimaryButton(
                 width: 272.5,
-                label: "OK",
+                label: context.l10n.commonOk,
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -207,8 +208,8 @@ class RestoreSucceededDialog extends StatelessWidget {
       );
     } else {
       return StackDialog(
-        title: "Wallet restored",
-        message: "You may access your wallet now.",
+        title: context.l10n.restoreSucceededTitle,
+        message: context.l10n.restoreSucceededMessage,
         icon: SvgPicture.asset(
           Assets.svg.checkCircle,
           width: 24,
@@ -220,7 +221,7 @@ class RestoreSucceededDialog extends StatelessWidget {
               .extension<StackColors>()!
               .getSecondaryEnabledButtonStyle(context),
           child: Text(
-            "Ok",
+            context.l10n.restoreOk,
             style: STextStyles.itemSubtitle12(context),
           ),
           onPressed: () {

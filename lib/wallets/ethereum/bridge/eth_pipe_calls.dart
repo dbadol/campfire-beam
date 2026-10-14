@@ -28,6 +28,7 @@
 
 import 'dart:typed_data';
 
+import '../../../l10n/l10n.dart';
 import '../../bridge/bridge_routes.dart';
 import '../../bridge/bridge_sides.dart';
 import '../uniswap/abi.dart';
@@ -146,26 +147,27 @@ EthPipeLock decodeLockReceipt(
   required BigInt fee,
   required Uint8List receiverKey,
 }) {
-  Never refuse(String why) => throw BridgeException(
-    BridgeErrorCode.unexpectedTransaction,
-    'This is not the bridge transaction that was sent: $why.',
-  );
+  // Each reason is a whole sentence: "This is not the bridge transaction
+  // that was sent: …".
+  Never refuse(String message) =>
+      throw BridgeException(BridgeErrorCode.unexpectedTransaction, message);
+  final l = appL10n;
 
   final hash = receipt['transactionHash'];
   final block = receipt['blockNumber'];
-  if (hash is! String || block is! String) refuse('no hash or block');
+  if (hash is! String || block is! String) refuse(l.bridgeLockNoHash);
   final blockNumber = int.parse(block);
   if ((receipt['from'] as String?)?.toLowerCase() != owner.toLowerCase()) {
-    refuse('it was sent from another address');
+    refuse(l.bridgeLockOtherSender);
   }
   if ((receipt['to'] as String?)?.toLowerCase() != route.ethPipe) {
-    refuse('it went to another contract, not the ${route.ethSymbol} pipe');
+    refuse(l.bridgeLockOtherContract(route.ethSymbol));
   }
   final status = receipt['status'];
   if (status == '0x0') {
     return EthPipeLock(hash: hash, success: false, blockNumber: blockNumber);
   }
-  if (status != '0x1') refuse('its receipt has no status');
+  if (status != '0x1') refuse(l.bridgeLockNoStatus);
 
   final logs = [
     for (final l in (receipt['logs'] as List? ?? const []))
@@ -182,22 +184,22 @@ EthPipeLock decodeLockReceipt(
       if (topicsOf(l).firstOrNull == kBridgeNewLocalMessageTopic) l,
   ];
   if (messages.length != 1) {
-    refuse('it records ${messages.length} bridge messages, not one');
+    refuse(l.bridgeLockMessageCount(messages.length));
   }
   final log = messages.single;
   if (addressOf(log) != route.ethPipe || topicsOf(log).length != 1) {
-    refuse('its message comes from another contract');
+    refuse(l.bridgeLockMessageSource);
   }
   final PipeMessage m;
   try {
     m = decodePipeMessage(hexToBytes(log['data'] as String));
   } on FormatException {
-    refuse('its message cannot be read');
+    refuse(l.bridgeLockMessageUnreadable);
   }
-  if (m.amount != value) refuse('it moves another amount');
-  if (m.relayerFee != fee) refuse('it pays another bridge fee');
+  if (m.amount != value) refuse(l.bridgeLockOtherAmount);
+  if (m.relayerFee != fee) refuse(l.bridgeLockOtherFee);
   if (!_sameBytes(m.receiver, receiverKey)) {
-    refuse('it pays another BEAM wallet');
+    refuse(l.bridgeLockOtherReceiver);
   }
 
   if (!route.isNativeEth) {
@@ -211,7 +213,7 @@ EthPipeLock decodeLockReceipt(
           l,
     ];
     if (transfers.length != 1) {
-      refuse('it moves ${route.ethSymbol} ${transfers.length} times');
+      refuse(l.bridgeLockTransferCount(route.ethSymbol, transfers.length));
     }
     final t = transfers.single;
     final topics = topicsOf(t);
@@ -222,7 +224,7 @@ EthPipeLock decodeLockReceipt(
         topics[2] != topicOfAddress(into) ||
         data.length != 32 ||
         bytesToBigInt(data) != value + fee) {
-      refuse('the pipe did not take exactly the amount and the fee');
+      refuse(l.bridgeLockNotExact);
     }
   }
   return EthPipeLock(

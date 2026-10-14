@@ -25,6 +25,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
@@ -82,9 +83,7 @@ class _BeamAddressListState extends ConsumerState<BeamAddressList> {
   @override
   void initState() {
     super.initState();
-    _model = BeamReceiveModel(
-      ref.read(pBeamReceiveBackend(widget.walletId))!,
-    );
+    _model = BeamReceiveModel(ref.read(pBeamReceiveBackend(widget.walletId))!);
     unawaited(_model.start(ensureAddress: false));
   }
 
@@ -111,10 +110,8 @@ class _BeamAddressListState extends ConsumerState<BeamAddressList> {
   Future<void> _edit(BeamAddress a) async {
     final label = await showDialog<String>(
       context: context,
-      builder: (_) => _EditLabelDialog(
-        initial: a.comment,
-        desktop: widget.desktop,
-      ),
+      builder: (_) =>
+          _EditLabelDialog(initial: a.comment, desktop: widget.desktop),
     );
     if (label == null || label.trim() == a.comment) return;
     try {
@@ -171,7 +168,7 @@ class _BeamAddressListState extends ConsumerState<BeamAddressList> {
         final error = _model.listError;
         return error == null
             ? _Message(
-                title: 'Getting your addresses…',
+                title: context.l10n.receiveGettingAddresses,
                 busy: true,
                 body: _model.slow ? BeamReceiveText.gettingAddressSlow : null,
               )
@@ -209,11 +206,11 @@ class _BeamAddressListState extends ConsumerState<BeamAddressList> {
       return ListView(
         padding: EdgeInsets.zero,
         children: [
-          const _Section(text: BeamReceiveText.active),
+          _Section(text: BeamReceiveText.active),
           if (active.isEmpty)
             _Message(
               key: BeamAddressListKeys.empty,
-              title: 'No active address',
+              title: context.l10n.receiveNoActiveAddress,
               body: BeamReceiveText.noAddressesHint,
               action: BeamReceiveText.getMyAddress,
               primary: true,
@@ -243,9 +240,7 @@ class _BeamAddressListState extends ConsumerState<BeamAddressList> {
                     width: 12,
                     height: 6,
                     colorFilter: ColorFilter.mode(
-                      Theme.of(
-                        context,
-                      ).extension<StackColors>()!.textSubtitle1,
+                      Theme.of(context).extension<StackColors>()!.textSubtitle1,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -253,10 +248,7 @@ class _BeamAddressListState extends ConsumerState<BeamAddressList> {
               ),
             ),
             if (_showExpired)
-              for (final a in expired) ...[
-                const SizedBox(height: 10),
-                tile(a),
-              ],
+              for (final a in expired) ...[const SizedBox(height: 10), tile(a)],
           ],
         ],
       );
@@ -321,7 +313,7 @@ class _AddressTile extends StatelessWidget {
               ),
               if (onReceive) ...[
                 const Spacer(),
-                const AddressTag(tag: BeamReceiveText.onReceive),
+                AddressTag(tag: BeamReceiveText.onReceive),
               ],
             ],
           ),
@@ -330,23 +322,20 @@ class _AddressTile extends StatelessWidget {
             hasLabel ? a.comment : BeamReceiveText.noLabel,
             style: hasLabel
                 ? STextStyles.w500_14(context)
-                : STextStyles.w500_14(
-                    context,
-                  ).copyWith(color: colors.textSubtitle2),
+                : STextStyles.w500_14(context)
+                      .copyWith(color: colors.textSubtitle2),
           ),
           const SizedBox(height: 4),
           Text(
             BeamReceiveText.short(a.address),
-            style: STextStyles.itemSubtitle12(
-              context,
-            ).copyWith(color: colors.textSubtitle1),
+            style: STextStyles.itemSubtitle12(context)
+                .copyWith(color: colors.textSubtitle1),
           ),
           const SizedBox(height: 2),
           Text(
             BeamReceiveText.lifetime(a),
-            style: STextStyles.itemSubtitle12(
-              context,
-            ).copyWith(color: colors.textSubtitle1),
+            style: STextStyles.itemSubtitle12(context)
+                .copyWith(color: colors.textSubtitle1),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -355,7 +344,7 @@ class _AddressTile extends StatelessWidget {
             children: [
               CustomTextButton(
                 key: BeamAddressListKeys.copy(a.address),
-                text: 'Copy',
+                text: context.l10n.commonCopy,
                 onTap: onCopy,
               ),
               CustomTextButton(

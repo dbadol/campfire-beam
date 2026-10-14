@@ -27,6 +27,7 @@ import 'package:stackwallet/wallets/beam/api/beam_api.dart';
 import 'package:stackwallet/wallets/beam/contracts/bans/bans.dart';
 import 'package:stackwallet/wallets/beam/contracts/bans/bans_recipient.dart';
 import 'package:stackwallet/wallets/beam/node/beam_private_node_coordinator.dart';
+import 'package:stackwallet/wallets/beam/rpc/beam_connection_exception.dart';
 import 'package:stackwallet/wallets/beam/wallet/beam_wallet_environment.dart';
 import 'package:stackwallet/wallets/beam/wallet/beam_wallet_errors.dart';
 import 'package:stackwallet/wallets/beam/wallet/beam_wallet_services.dart';
@@ -42,7 +43,13 @@ import '../contracts/bans/bans_fixtures.dart';
 import '../core/fixtures.dart';
 import '../wallet/beam_wallet_test_support.dart';
 import 'send_ui_support.dart'
-    show syncRepoShader, vectorAddress, g, kTip, openTestMainDbShared;
+    show
+        syncRepoShader,
+        syncRepoVaultShader,
+        vectorAddress,
+        g,
+        kTip,
+        openTestMainDbShared;
 
 const _myAddr =
     '1111111111111111111111111111111111111111111111111111111111111111aa';
@@ -76,7 +83,7 @@ class _Core {
       final name = RegExp(r'name=([^,]*)').firstMatch(args)?.group(1);
       return switch (action) {
         'view_params' => bansEnvelope('view_params'),
-        'pay' => bansEnvelope('pay_beam'),
+        'send_anon' => bansEnvelope('pay_beam'),
         'view_name' => bansEnvelope(names[name] ?? 'view_name_free'),
         _ => throw StateError('no fixture for $args'),
       };
@@ -167,6 +174,7 @@ void main() {
       BeamApi(BeamWalletTransport(() => w.coreApi)),
       null,
       shader: syncRepoShader(),
+      vaultShader: syncRepoVaultShader(),
     ),
   );
 
@@ -187,7 +195,7 @@ void main() {
     final m = BeamSendModel(backendFor(w), nameDebounce: Duration.zero);
     addTearDown(m.dispose);
     m.setRecipient(vectorAddress('regular'));
-    m.setAmountText('0.01', 'en_US');
+    m.setAmountText('0.01');
     m.comment = 'for lunch';
     expect(m.canReview, isTrue);
 
@@ -218,7 +226,7 @@ void main() {
     final m = BeamSendModel(backendFor(w), nameDebounce: Duration.zero);
     addTearDown(m.dispose);
     m.setRecipient(vectorAddress('regular'));
-    m.setAmountText('0.01', 'en_US');
+    m.setAmountText('0.01');
     final first = m.prepare(w.cryptoCurrency);
     await expectLater(
       m.prepare(w.cryptoCurrency),
@@ -242,7 +250,7 @@ void main() {
     addTearDown(m.dispose);
     m.setRecipient('beam');
     await resolved(m);
-    m.setAmountText('0.00012345', 'en_US');
+    m.setAmountText('0.00012345');
     expect(m.canReview, isTrue);
 
     final review = await m.prepare(w.cryptoCurrency);
@@ -268,7 +276,7 @@ void main() {
     addTearDown(m.dispose);
     m.setRecipient('beam');
     await resolved(m);
-    m.setAmountText('0.00012345', 'en_US');
+    m.setAmountText('0.00012345');
     final review = await m.prepare(w.cryptoCurrency);
 
     core.names['beam'] = 'view_name_listed';
@@ -287,7 +295,7 @@ void main() {
     addTearDown(m.dispose);
     m.setRecipient('beam');
     await resolved(m);
-    m.setAmountText('0.00012345', 'en_US');
+    m.setAmountText('0.00012345');
     core.names['beam'] = 'view_name_listed';
     await expectLater(
       m.prepare(w.cryptoCurrency),
@@ -299,7 +307,7 @@ void main() {
             .firstMatch(c.params['args']! as String)!
             .group(1),
     ];
-    expect(actions, isNot(contains('pay')));
+    expect(actions, isNot(contains('send_anon')));
     expect(w.isBusy, isFalse);
     expect(
       BeamSendModel.describeError(BansOwnerChanged('beam', 'a', 'b')),
@@ -313,7 +321,7 @@ void main() {
     final m = BeamSendModel(b, nameDebounce: Duration.zero);
     addTearDown(m.dispose);
     m.setRecipient(vectorAddress('regular'));
-    m.setAmountText('0.01', 'en_US');
+    m.setAmountText('0.01');
     final review = await m.prepare(w.cryptoCurrency);
 
     explorer.height = kTip + 100;
@@ -362,6 +370,116 @@ void main() {
           contains('Sending is'),
         ),
       ),
+    );
+  });
+
+  // Owner pins on the production backend (audit D-1 review L-3).
+  test('the production backend: a sent name payment pins its owner; a refused one '
+      'does not; a later payment to another owner is refused', () async {
+    final w = await ready();
+    final pins = SecureBansOwnerPins(w.secureStorageInterface, w.walletId);
+    final b = backendFor(w);
+    // Refused before signing: no pin.
+    final m1 = BeamSendModel(b, nameDebounce: Duration.zero);
+    addTearDown(m1.dispose);
+    m1.setRecipient('beam');
+    await resolved(m1);
+    m1.setAmountText('0.00012345');
+    final r1 = await m1.prepare(w.cryptoCurrency);
+    core.names['beam'] = 'view_name_listed';
+    await expectLater(r1.send(), throwsA(isA<BansOwnerChanged>()));
+    r1.dispose();
+    expect(await pins.pinned(BansName('beam')), isNull, reason: 'refused: no pin');
+    // Sent: pinned to the key it was built for.
+    core.names['beam'] = 'view_name_beam';
+    final m2 = BeamSendModel(b, nameDebounce: Duration.zero);
+    addTearDown(m2.dispose);
+    m2.setRecipient('beam');
+    await resolved(m2);
+    m2.setAmountText('0.00012345');
+    final r2 = await m2.prepare(w.cryptoCurrency);
+    expect(await r2.send(), 'ee' * 16);
+    expect(await pins.pinned(BansName('beam')), beamOwnerKey);
+    // The name now shows another owner: the real backend refuses the build.
+    core.names['beam'] = 'view_name_listed';
+    final before = host.lastTransport!.callsTo('invoke_contract').length;
+    final listed = await b.resolveName(BansName('beam'));
+    await expectLater(
+      b.preparePay(BansName('beam'), 0, BigInt.from(12345),
+          expectedOwnerKey: listed.ownerKey!),
+      throwsA(isA<BansOwnerChangedSincePaid>()),
+    );
+    final after = [
+      for (final c in host.lastTransport!.callsTo('invoke_contract').skip(before))
+        RegExp(r'action=([a-z_]+)').firstMatch(c.params['args']! as String)!.group(1),
+    ];
+    expect(after, isNot(contains('send_anon')));
+  });
+
+  test('the production backend: a send whose outcome is unknown (timeout) pins '
+      'its owner too, so a later payment to another owner still stops '
+      '(release audit 1.3.0)', () async {
+    final w = await ready();
+    final pins = SecureBansOwnerPins(w.secureStorageInterface, w.walletId);
+    final b = backendFor(w);
+    final m = BeamSendModel(b, nameDebounce: Duration.zero);
+    addTearDown(m.dispose);
+    m.setRecipient('beam');
+    await resolved(m);
+    m.setAmountText('0.00012345');
+    final r = await m.prepare(w.cryptoCurrency);
+    host.lastTransport!.reply('process_invoke_data', (Map<String, Object?> _) => throw TimeoutException('x'));
+    await expectLater(r.send(), throwsA(anything));
+    expect(r.canRetry, isFalse, reason: 'it may have gone out');
+    expect(await pins.pinned(BansName('beam')), beamOwnerKey);
+    r.dispose();
+    // The name now shows another owner: refused before anything is built.
+    core.names['beam'] = 'view_name_listed';
+    final listed = await b.resolveName(BansName('beam'));
+    await expectLater(
+      b.preparePay(BansName('beam'), 0, BigInt.from(12345),
+          expectedOwnerKey: listed.ownerKey!),
+      throwsA(isA<BansOwnerChangedSincePaid>()),
+    );
+  });
+
+  test('the production backend: a name payment prepared before another '
+      'payment to the name was recorded never overwrites that record '
+      '(release audit 1.3.0)', () async {
+    final w = await ready();
+    final pins = SecureBansOwnerPins(w.secureStorageInterface, w.walletId);
+    final b = backendFor(w);
+    final m = BeamSendModel(b, nameDebounce: Duration.zero);
+    addTearDown(m.dispose);
+    m.setRecipient('beam');
+    await resolved(m);
+    m.setAmountText('0.00012345');
+    final early = await m.prepare(w.cryptoCurrency);
+    // Meanwhile another payment to the name (another Send tab) went out
+    // and recorded the owner it paid.
+    expect(
+      await pins.pin(BansName('beam'), fakeMyKey, expected: null),
+      isTrue,
+    );
+    expect(await early.send(), 'ee' * 16);
+    early.dispose();
+    expect(
+      await pins.pinned(BansName('beam')),
+      fakeMyKey,
+      reason: 'prepared over no record: left as the later payment wrote it',
+    );
+  });
+
+  test('beamSendOutcomeUnknown: a dropped connection or a timeout may have '
+      'sent it; a refusal did not', () {
+    expect(beamSendOutcomeUnknown(TimeoutException('x')), isTrue);
+    expect(
+      beamSendOutcomeUnknown(const BeamConnectionException('gone')),
+      isTrue,
+    );
+    expect(
+      beamSendOutcomeUnknown(BansOwnerChanged('beam', 'a', 'b')),
+      isFalse,
     );
   });
 }

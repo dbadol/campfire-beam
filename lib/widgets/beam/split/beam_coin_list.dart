@@ -13,6 +13,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/amount_text.dart';
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/models/beam_utxo.dart';
@@ -22,55 +24,50 @@ import '../airdrop/beam_units.dart';
 
 /// What the coin list says, in plain words, so each line can be tested.
 abstract final class BeamCoinListText {
-  static String title(String symbol) => 'Your $symbol coins';
+  static String title(String symbol) => appL10n.splitCoinListTitle(symbol);
 
-  /// "3 ready to spend · 1 on its way".
+  /// "3 ready to spend · 1 not yet".
   static String summary(BeamCoinSummary coins) {
     final ready = coins.available.length;
     final waiting = coins.locked.length;
-    final head = ready == 1 ? '1 ready to spend' : '$ready ready to spend';
-    if (waiting == 0) return head;
-    return '$head · ${waiting == 1 ? '1 not yet' : '$waiting not yet'}';
+    if (waiting == 0) return appL10n.splitCoinListReady(ready);
+    return appL10n.splitCoinListReadyWaiting(ready, waiting);
   }
 
   /// One coin's state. BEAM coins worth no more than a payment's fee are
   /// said to be too small: spending one costs more than it holds.
   static String status(BeamUtxo coin) {
+    final l = appL10n;
     switch (coin.status) {
       case BeamUtxoStatus.available:
-        if (coin.isShielded) return 'Ready to spend · private';
+        if (coin.isShielded) return l.splitCoinReadyPrivate;
         if (coin.assetId == 0 && coin.amount <= BeamFees.minimum) {
-          return 'Too small to be worth spending';
+          return l.splitCoinTooSmall;
         }
-        return 'Ready to spend';
+        return l.splitCoinReady;
       case BeamUtxoStatus.maturing:
         final h = coin.maturity;
         return h == null
-            ? 'Ready soon'
-            : 'Ready soon (after block ${_grouped(h)})';
+            ? l.splitCoinReadySoon
+            : l.splitCoinReadySoonAfterBlock(_grouped(h));
       case BeamUtxoStatus.incoming:
-        return 'Arriving';
+        return l.splitCoinArriving;
       case BeamUtxoStatus.outgoing:
-        return "In a payment that hasn't finished";
+        return l.splitCoinInPayment;
       case BeamUtxoStatus.unavailable ||
           BeamUtxoStatus.spent ||
           BeamUtxoStatus.consumed ||
           BeamUtxoStatus.unknown:
-        return 'Not spendable right now';
+        return l.splitCoinNotSpendable;
     }
   }
 
-  static const note =
-      'Each payment uses one or more coins and gives the rest back as a new '
-      'coin. More coins let several payments go at once.';
+  static String get note => appL10n.splitCoinListNote;
 
-  static const empty = 'No coins yet. Coins that arrive show up here.';
+  static String get empty => appL10n.splitCoinListEmpty;
 
-  /// 4073500 -> "4,073,500".
-  static String _grouped(int n) => n.toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
+  /// 4073500 -> "4,073,500" ("4 073 500" in Russian).
+  static String _grouped(int n) => groupThousands(n.toString());
 }
 
 /// Shows [coins] of one asset: a sheet on a phone, a dialog on desktop.

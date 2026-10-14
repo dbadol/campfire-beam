@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../models/keys/cw_key_data.dart';
 import '../../../../models/keys/key_data_interface.dart';
 import '../../../../models/keys/view_only_wallet_data.dart';
@@ -74,7 +75,7 @@ class WalletKeysDesktopPopup extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 32),
                 child: Text(
-                  "Wallet keys",
+                  context.l10n.walletViewWalletKeys,
                   style: STextStyles.desktopH3(context),
                 ),
               ),
@@ -294,15 +295,16 @@ class _Mnemonic extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text("Recovery phrase", style: STextStyles.desktopTextMedium(context)),
+        Text(
+          context.l10n.walletViewRecoveryPhrase,
+          style: STextStyles.desktopTextMedium(context),
+        ),
         const SizedBox(height: 8),
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              "Please write down your recovery phrase in the correct order and "
-              "save it to keep your funds secure. You will also be asked to"
-              " verify the words on the next screen.",
+              context.l10n.walletViewRecoveryPhraseKeysInfo,
               style: STextStyles.desktopTextExtraExtraSmall(context),
               textAlign: TextAlign.center,
             ),
@@ -326,7 +328,7 @@ class _Mnemonic extends StatelessWidget {
             children: [
               Expanded(
                 child: SecondaryButton(
-                  label: "Copy",
+                  label: context.l10n.commonCopy,
                   onPressed: () async {
                     await clipboardInterface.setData(
                       ClipboardData(text: words.join(" ")),
@@ -335,7 +337,7 @@ class _Mnemonic extends StatelessWidget {
                       unawaited(
                         showFloatingFlushBar(
                           type: FlushBarType.info,
-                          message: "Copied to clipboard",
+                          message: context.l10n.sharedCopiedToClipboard,
                           iconAsset: Assets.svg.copy,
                           context: context,
                         ),
@@ -347,7 +349,7 @@ class _Mnemonic extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: PrimaryButton(
-                  label: "Show QR code",
+                  label: context.l10n.walletViewShowQrCode,
                   onPressed: () {
                     // TODO: address utils
                     final String value = AddressUtils.encodeQRSeedData(words);

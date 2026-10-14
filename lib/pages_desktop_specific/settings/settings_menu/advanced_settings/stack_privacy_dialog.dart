@@ -17,6 +17,7 @@ import 'package:flutter_svg/svg.dart';
 
 import '../../../../app_config.dart';
 import '../../../../db/hive/db.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/prefs_provider.dart';
 import '../../../../providers/global/price_provider.dart';
 import '../../../../services/exchange/exchange_data_loading_service.dart';
@@ -70,7 +71,7 @@ class _StackPrivacyDialog extends ConsumerState<StackPrivacyDialog> {
               Padding(
                 padding: const EdgeInsets.all(32),
                 child: Text(
-                  "Choose Your ${AppConfig.prefix} Experience",
+                  context.l10n.desktopSettingsPrivacyTitle(AppConfig.prefix),
                   style: STextStyles.desktopH3(context),
                   textAlign: TextAlign.center,
                 ),
@@ -111,16 +112,16 @@ class _StackPrivacyDialog extends ConsumerState<StackPrivacyDialog> {
                     children: infoToggle
                         ? [
                             if (Constants.enableExchange)
-                              const TextSpan(
+                              TextSpan(
                                 text:
-                                    "Exchange data preloaded for a seamless experience.",
+                                    context.l10n.privacyEasyExchange,
                               ),
-                            const TextSpan(
+                            TextSpan(
                               text:
-                                  "\n\nCoinGecko enabled: (24 hour price change shown in-app, total wallet value shown in USD or other currency).",
+                                  "\n\n${context.l10n.privacyEasyPrices}",
                             ),
                             TextSpan(
-                              text: "\n\nRecommended for most crypto users.",
+                              text: "\n\n${context.l10n.privacyEasyRecommended}",
                               style: isDesktop
                                   ? STextStyles.desktopTextExtraExtraSmall600(
                                       context,
@@ -134,17 +135,17 @@ class _StackPrivacyDialog extends ConsumerState<StackPrivacyDialog> {
                             ),
                           ]
                         : [
-                            const TextSpan(
+                            TextSpan(
                               text:
-                                  "Exchange data not preloaded (slower experience).",
-                            ),
-                            const TextSpan(
-                              text:
-                                  "\n\nCoinGecko disabled (price changes not shown, no wallet value shown in other currencies).",
+                                  context.l10n.privacyIncognitoExchange,
                             ),
                             TextSpan(
                               text:
-                                  "\n\nRecommended for the privacy conscious.",
+                                  "\n\n${context.l10n.privacyIncognitoPrices}",
+                            ),
+                            TextSpan(
+                              text:
+                                  "\n\n${context.l10n.privacyIncognitoRecommended}",
                               style: isDesktop
                                   ? STextStyles.desktopTextExtraExtraSmall600(
                                       context,
@@ -169,7 +170,7 @@ class _StackPrivacyDialog extends ConsumerState<StackPrivacyDialog> {
               children: [
                 Expanded(
                   child: SecondaryButton(
-                    label: "Cancel",
+                    label: context.l10n.commonCancel,
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
@@ -180,7 +181,7 @@ class _StackPrivacyDialog extends ConsumerState<StackPrivacyDialog> {
                 ),
                 Expanded(
                   child: PrimaryButton(
-                    label: "Save",
+                    label: context.l10n.desktopSettingsSave,
                     onPressed: () {
                       ref.read(prefsChangeNotifierProvider).externalCalls =
                           isEasy;
@@ -315,7 +316,7 @@ class _PrivacyToggleState extends ConsumerState<PrivacyToggle> {
                         ),
                       Center(
                         child: Text(
-                          "Easy Crypto",
+                          context.l10n.privacyEasyTitle,
                           style: isDesktop
                               ? STextStyles.desktopTextSmall(context)
                               : STextStyles.label700(context),
@@ -323,7 +324,7 @@ class _PrivacyToggleState extends ConsumerState<PrivacyToggle> {
                       ),
                       Center(
                         child: Text(
-                          "Recommended",
+                          context.l10n.privacyEasySubtitle,
                           style: isDesktop
                               ? STextStyles.desktopTextExtraExtraSmall(context)
                               : STextStyles.label(context),
@@ -436,7 +437,7 @@ class _PrivacyToggleState extends ConsumerState<PrivacyToggle> {
                         ),
                       Center(
                         child: Text(
-                          "Incognito",
+                          context.l10n.privacyIncognitoTitle,
                           style: isDesktop
                               ? STextStyles.desktopTextSmall(context)
                               : STextStyles.label700(context),
@@ -444,7 +445,7 @@ class _PrivacyToggleState extends ConsumerState<PrivacyToggle> {
                       ),
                       Center(
                         child: Text(
-                          "Privacy conscious",
+                          context.l10n.privacyIncognitoSubtitle,
                           style: isDesktop
                               ? STextStyles.desktopTextExtraExtraSmall(context)
                               : STextStyles.label(context),

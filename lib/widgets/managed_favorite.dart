@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import '../l10n/l10n.dart';
 import '../providers/db/main_db_provider.dart';
 import '../themes/coin_icon_provider.dart';
 import '../themes/stack_colors.dart';
@@ -127,8 +128,8 @@ class _ManagedFavoriteCardState extends ConsumerState<ManagedFavorite> {
                       ),
                       Text(
                         isFavourite
-                            ? "Remove from favorites"
-                            : "Add to favorites",
+                            ? context.l10n.favoritesRemoveFromFavorites
+                            : context.l10n.favoritesAddToFavorites,
                         style:
                             STextStyles.desktopTextExtraSmall(context).copyWith(
                           color: isFavourite

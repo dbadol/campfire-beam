@@ -12,8 +12,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
+import '../../pages/beam/colours/beam_colours_view.dart';
 import '../../pages/shopinbit/shopinbit_settings_view.dart';
 import '../../route_generator.dart';
+import '../../themes/beam/beam_themes.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/constants.dart';
 import '../../utilities/text_styles.dart';
@@ -85,6 +88,7 @@ class _DesktopSettingsViewState extends ConsumerState<DesktopSettingsView> {
           onGenerateRoute: RouteGenerator.generateRoute,
           initialRoute: AppearanceOptionSettings.routeName,
         ), //appearance
+      if (BeamThemes.offered) const BeamColoursDesktopSettings(), // BEAM
       const Navigator(
         key: Key("settingsAdvancedDesktopKey"),
         onGenerateRoute: RouteGenerator.generateRoute,
@@ -131,6 +135,6 @@ class DesktopSettingsTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text("Settings", style: STextStyles.desktopH3(context));
+    return Text(context.l10n.desktopSettingsTitle, style: STextStyles.desktopH3(context));
   }
 }

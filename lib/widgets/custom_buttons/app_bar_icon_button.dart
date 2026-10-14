@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/assets.dart';
 import '../../utilities/util.dart';
@@ -25,7 +26,7 @@ class AppBarIconButton extends StatelessWidget {
     // this.circularBorderRadius = 10.0,
     this.size = 36.0,
     this.shadows = const [],
-    this.semanticsLabel = "Button",
+    this.semanticsLabel,
     this.tooltip,
   });
 
@@ -35,7 +36,7 @@ class AppBarIconButton extends StatelessWidget {
   // final double circularBorderRadius;
   final double size;
   final List<BoxShadow> shadows;
-  final String semanticsLabel;
+  final String? semanticsLabel;
   final String? tooltip;
 
   @override
@@ -54,7 +55,7 @@ class AppBarIconButton extends StatelessWidget {
         ),
         child: Semantics(
           excludeSemantics: true,
-          label: semanticsLabel,
+          label: semanticsLabel ?? context.l10n.sharedButtonLabel,
           child: MaterialButton(
             splashColor: Theme.of(context).extension<StackColors>()!.highlight,
             padding: EdgeInsets.zero,
@@ -78,14 +79,14 @@ class AppBarBackButton extends StatelessWidget {
     this.isCompact = false,
     this.size,
     this.iconSize,
-    this.semanticsLabel = "Back Button. Takes Back To Previous Page.",
+    this.semanticsLabel,
   });
 
   final VoidCallback? onPressed;
   final bool isCompact;
   final double? size;
   final double? iconSize;
-  final String semanticsLabel;
+  final String? semanticsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +96,7 @@ class AppBarBackButton extends StatelessWidget {
           ? const EdgeInsets.symmetric(vertical: 20, horizontal: 24)
           : const EdgeInsets.all(10),
       child: AppBarIconButton(
-        semanticsLabel: semanticsLabel,
+        semanticsLabel: semanticsLabel ?? context.l10n.sharedBackButtonLabel,
         size:
             size ??
             (isDesktop

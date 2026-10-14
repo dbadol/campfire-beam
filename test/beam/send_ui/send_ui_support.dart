@@ -103,6 +103,13 @@ PinnedShader syncRepoShader() => bansAppShader(
   _BytesSource(File('assets/beam/shaders/$kBansShaderName').readAsBytesSync()),
 );
 
+/// The pinned Anon-Vault shader, which builds payments to a name (audit D-1).
+PinnedShader syncRepoVaultShader() => vaultAnonAppShader(
+  _BytesSource(
+    File('assets/beam/shaders/$kVaultAnonShaderName').readAsBytesSync(),
+  ),
+);
+
 // ------------------------------------------------------------- core fakes
 
 Map<String, Object?> invokeEnvelope(String output, {List<int>? raw}) => {
@@ -140,8 +147,9 @@ class BansCore {
     'nobody': 'view_name_free',
   };
 
-  /// A `pay` builds the recorded `pay_beam` kernel (12345 groth of BEAM to
-  /// `beam`, fee 0.011 BEAM), whatever the name.
+  /// A payment to a name (the Anon-Vault's `send_anon`) builds the recorded
+  /// `pay_beam` kernel (12345 groth of BEAM to `beam`, fee 0.011 BEAM),
+  /// whatever the name: the deposit is the same as BANS's `pay` wrote.
   String payFixture = 'pay_beam';
   String sentTxId = 'ee' * 16;
 
@@ -159,7 +167,7 @@ class BansCore {
     switch (action) {
       case 'view_params':
         return bansEnvelope('view_params');
-      case 'pay':
+      case 'send_anon':
         return bansEnvelope(payFixture);
       case 'view_name':
         final o = override?.call(name!);
@@ -210,10 +218,14 @@ class ScriptedBackend implements BeamSendBackend {
       BeamApi(this.core.transport),
       null,
       shader: syncRepoShader(),
+      vaultShader: syncRepoVaultShader(),
     );
   }
 
   final BansCore core;
+
+  /// Owners this wallet paid, by name (audit D-1), as the real backend keeps them.
+  BansOwnerPins pins = MemoryBansOwnerPins();
   late final BeamBansService bans;
   Map<int, BigInt> balances;
   BeamSyncAssessment _sync;
@@ -264,6 +276,9 @@ class ScriptedBackend implements BeamSendBackend {
   Future<BansResolution> resolveName(BansName name) => bans.resolve(name);
 
   @override
+  Future<String?> paidOwner(BansName name) => bansPaidOwner(pins, name);
+
+  @override
   Future<BigInt> estimateAddressFee(BigInt amount) async => kBeamDefaultFee;
 
   /// Mirrors BeamWallet.prepareSend's rules (sync, address type, BEAM only,
@@ -310,21 +325,31 @@ class ScriptedBackend implements BeamSendBackend {
     int assetId,
     BigInt amount, {
     required String expectedOwnerKey,
-  }) {
+    String? acceptedOwnerKey,
+  }) async {
     log.add('preparePay');
     return bans.preparePay(
       name,
       assetId,
       amount,
       expectedOwnerKey: expectedOwnerKey,
+      pinnedOwnerKey: await bansPaidOwner(pins, name),
+      acceptedOwnerKey: acceptedOwnerKey,
     );
   }
 
   @override
-  Future<String> executePay(BansPrepared prepared) {
+  Future<String> executePay(BansPrepared prepared) async {
     log.add('executePay');
     beamCheckCanSpend(this);
-    return bans.execute(prepared);
+    final txId = await bans.execute(prepared);
+    final s = prepared.summary;
+    if (s.name != null && s.ownerKey != null) {
+      try {
+        await pins.pin(s.name!, s.ownerKey!, expected: prepared.pinnedOwnerKey);
+      } catch (_) {}
+    }
+    return txId;
   }
 
   @override

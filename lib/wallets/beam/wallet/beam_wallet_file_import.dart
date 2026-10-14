@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:isar_community/isar.dart';
 
 import '../../../db/isar/main_db.dart';
+import '../../../l10n/l10n.dart';
 import '../../../services/node_service.dart';
 import '../../../utilities/flutter_secure_storage_interface.dart';
 import '../../../utilities/prefs.dart';
@@ -27,22 +28,14 @@ import 'beam_wallet_environment.dart';
 import 'beam_wallet_errors.dart';
 
 /// What went wrong importing a `wallet.db`, in words for the person who
-/// picked the file. Never blames them; always says what to do next.
+/// picked the file. Never blames them; always says what to do next. The
+/// text is in lib/l10n/app_en.arb (walletImport* keys).
 abstract final class BeamImportMessages {
-  static const wrongPassword =
-      "That password doesn't open this wallet file. Check it (it is the "
-      "password you set in the BEAM wallet this file comes from) and try "
-      'again. If it still fails, the file may not be a BEAM wallet.';
-  static const inUse =
-      'Another program is using this wallet file right now. Close that BEAM '
-      'wallet app, then import the file again.';
-  static const gone =
-      'BEAM Campfire could not read that file any more. Choose it again.';
-  static const unsupported =
-      "This version of BEAM Campfire can't import wallet files on this "
-      'device yet.';
-  static const failed =
-      'Importing the wallet did not work. Nothing was changed; try again.';
+  static String get wrongPassword => appL10n.walletImportWrongPassword;
+  static String get inUse => appL10n.walletImportInUse;
+  static String get gone => appL10n.walletImportGone;
+  static String get unsupported => appL10n.walletImportUnsupported;
+  static String get failed => appL10n.walletImportFailed;
 }
 
 /// Brings a BEAM `wallet.db` and its password into Campfire as a new wallet,
@@ -74,15 +67,13 @@ Future<BeamWallet> importBeamWalletFile({
   final walletId = info.walletId;
   var created = false;
   try {
-    final wallet =
-        await Wallet.create(
-              walletInfo: info,
-              mainDB: mainDB,
-              secureStorageInterface: secureStorage,
-              nodeService: nodeService,
-              prefs: prefs,
-            )
-            as BeamWallet;
+    final wallet = await Wallet.create(
+      walletInfo: info,
+      mainDB: mainDB,
+      secureStorageInterface: secureStorage,
+      nodeService: nodeService,
+      prefs: prefs,
+    ) as BeamWallet;
     created = true;
 
     final BeamHost host;
@@ -92,7 +83,7 @@ Future<BeamWallet> importBeamWalletFile({
       throw beamWalletExceptionFrom(e);
     }
     if (host is! BeamWalletFileImporter) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamImportMessages.unsupported,
       );
@@ -160,7 +151,7 @@ Future<BeamWallet> importBeamWalletFile({
     }
     if (e is BeamWalletException) rethrow;
     if (e is FileSystemException) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamImportMessages.gone,
       );

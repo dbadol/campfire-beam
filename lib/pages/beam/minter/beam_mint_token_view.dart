@@ -26,6 +26,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/minter/minter.dart';
@@ -57,7 +58,7 @@ class BeamMintTokenView extends StatefulWidget {
   });
 
   static const routeName = '/beamMintToken';
-  static const title = 'Create a token';
+  static String get title => appL10n.minterCreateTitle;
 
   final BeamMinterService service;
   final ValueListenable<BeamSyncAssessment> sync;
@@ -174,9 +175,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
       return null;
     } on TokenMetadataException catch (e) {
       if (e.field != field) return null;
-      return field == TokenMetadataField.shortName
-          ? e.message.replaceFirst('Short name', 'Ticker')
-          : e.message;
+      return field == TokenMetadataField.shortName ? e.asTicker : e.message;
     }
   }
 
@@ -185,8 +184,13 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
   String? _error(TokenMetadataField field) =>
       _touched.contains(field) ? _check(field) : null;
 
+  /// The maximum supply typed, in whole tokens: digits, which spaces and
+  /// "_" may group ("1 000 000"). A comma is refused, never dropped: "1,5"
+  /// became 15, and "1,000" is a thousand in English but one in Russian
+  /// (release audit 1.3.0). The field then says what it takes.
   BigInt? get _wholeSupply {
-    final t = _supply.text.replaceAll(RegExp(r'[\s,_]'), '');
+    final t = _supply.text.replaceAll(RegExp(r'[\s_]'), '');
+    if (!RegExp(r'^\d+$').hasMatch(t)) return null;
     final v = BigInt.tryParse(t);
     if (v == null || v <= BigInt.zero) return null;
     if ((v * BeamTokenMetadata.nthRatio).bitLength > 128) return null;
@@ -195,9 +199,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
 
   String? get _supplyProblem {
     if (!_supplyTouched || _supply.text.trim().isEmpty) return null;
-    return _wholeSupply == null
-        ? 'Enter a whole number above zero, like 1000000'
-        : null;
+    return _wholeSupply == null ? context.l10n.minterSupplyProblem : null;
   }
 
   BeamTokenMetadata? get _metadata {
@@ -293,6 +295,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
         final ready =
             m != null && _wholeSupply != null && _params != null && !_tooPoor;
         final ticker = _ticker.text.trim();
+        final l10n = context.l10n;
         return BeamPageScaffold(
           title: BeamMintTokenView.title,
           body: Column(
@@ -316,14 +319,17 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              BeamSyncNotice(sync: sync, what: 'Creating a token'),
+              BeamSyncNotice(
+                sync: sync,
+                action: BeamPausedAction.creatingToken,
+              ),
               BeamCtaBar(
                 primaryKey: const ValueKey('mint-cta'),
                 label: ticker.isEmpty || m == null
-                    ? 'Create my token'
-                    : 'Create $ticker',
+                    ? l10n.minterCreateCtaDefault
+                    : l10n.minterCreateCta(ticker),
                 busy: _preparing,
-                busyLabel: 'Preparing…',
+                busyLabel: l10n.minterPreparing,
                 onPressed: ready && sync.canSpend ? _create : null,
               ),
             ],
@@ -337,6 +343,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
     String beam(BigInt g) => BeamUnits.withSymbol(g, 'BEAM');
     final p = _params;
     final cost = _cost;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -345,7 +352,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             kind: BeamNoticeKind.danger,
             title: _loadProblem!.title,
             message: _loadProblem!.message,
-            actionLabel: 'Try again',
+            actionLabel: l10n.commonTryAgain,
             onAction: _load,
           ),
           const BeamGap(),
@@ -354,25 +361,25 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
           key: const ValueKey('mint-cost'),
           children: [
             BeamDetailRow(
-              label: 'To the BEAM DAO',
-              value: p == null ? 'Reading…' : beam(p.issueFee),
-              detail: 'Issuance fee',
+              label: l10n.minterToDao,
+              value: p == null ? l10n.minterReading : beam(p.issueFee),
+              detail: l10n.minterIssuanceFee,
             ),
             BeamDetailRow(
-              label: 'Asset deposit',
+              label: l10n.minterAssetDeposit,
               value: beam(kMinterAssetDeposit),
-              detail: 'Never returned',
+              detail: l10n.minterNeverReturned,
             ),
-            const BeamDetailRow(
-              label: 'Network fee',
-              value: 'Shown before you confirm',
+            BeamDetailRow(
+              label: l10n.beamNetworkFee,
+              value: l10n.minterFeeShownLater,
             ),
           ],
         ),
         const BeamGap(8),
         BeamTotalRow(
-          label: 'Creating a token costs',
-          value: cost == null ? '…' : '${beam(cost)} + network fee',
+          label: l10n.minterCreateCosts,
+          value: cost == null ? '…' : l10n.minterCostPlusFee(beam(cost)),
           valueKey: const ValueKey('mint-cost-total'),
           confirm: false,
         ),
@@ -381,11 +388,8 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
           BeamNotice(
             key: const ValueKey('mint-too-poor'),
             kind: BeamNoticeKind.danger,
-            title: 'Not enough BEAM',
-            message:
-                'Creating a token needs ${beam(cost!)} plus a network fee, '
-                'and this wallet has ${beam(_beam!)}. Add BEAM to this '
-                'wallet first.',
+            title: l10n.minterNotEnoughBeamTitle,
+            message: l10n.minterCreateTooPoorMessage(beam(cost!), beam(_beam!)),
           ),
         ],
       ],
@@ -395,11 +399,12 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
   List<Widget> _fields(BuildContext context) {
     void touch(TokenMetadataField f) => setState(() => _touched.add(f));
     final copied = _copiesVerified();
+    final l10n = context.l10n;
     return [
       BeamTextField(
         fieldKey: const ValueKey('mint-name'),
         controller: _name,
-        label: 'Token name',
+        label: l10n.minterFieldName,
         hint: 'My Token',
         error: _error(TokenMetadataField.name),
         onChanged: (_) => touch(TokenMetadataField.name),
@@ -412,11 +417,11 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             child: BeamTextField(
               fieldKey: const ValueKey('mint-ticker'),
               controller: _ticker,
-              label: 'Ticker',
+              label: l10n.minterFieldTicker,
               hint: 'MYT',
-              helper:
-                  'Up to ${BeamTokenMetadata.maxShortNameLength} '
-                  'characters',
+              helper: l10n.minterTickerHelper(
+                BeamTokenMetadata.maxShortNameLength,
+              ),
               error:
                   _error(TokenMetadataField.shortName) ??
                   (_unitEdited ? null : _error(TokenMetadataField.unitName)),
@@ -433,9 +438,9 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             child: BeamTextField(
               fieldKey: const ValueKey('mint-supply'),
               controller: _supply,
-              label: 'Maximum supply',
+              label: l10n.minterFieldSupply,
               hint: '1000000',
-              helper: 'Whole tokens, ever',
+              helper: l10n.minterSupplyHelper,
               error: _supplyProblem,
               keyboardType: TextInputType.number,
               onChanged: (_) => setState(() => _supplyTouched = true),
@@ -448,18 +453,15 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
         BeamNotice(
           key: const ValueKey('mint-copies-verified'),
           kind: BeamNoticeKind.warning,
-          message:
-              'Wallets will mark your token "Not the verified '
-              '${copied.symbol}", because ${copied.name} already exists. '
-              'Pick a name and ticker of your own.',
+          message: l10n.minterCopiesVerified(copied.symbol, copied.name),
         ),
       ],
       const BeamGap(),
       BeamTextField(
         fieldKey: const ValueKey('mint-short-desc'),
         controller: _shortDesc,
-        label: 'Short description (optional)',
-        hint: 'What the token is for',
+        label: l10n.minterFieldShortDesc,
+        hint: l10n.minterFieldShortDescHint,
         error: _error(TokenMetadataField.shortDescription),
         onChanged: (_) => touch(TokenMetadataField.shortDescription),
       ),
@@ -472,7 +474,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             child: BeamTextField(
               fieldKey: const ValueKey('mint-color'),
               controller: _color,
-              label: 'Colour (optional)',
+              label: l10n.minterFieldColor,
               hint: '#25C2A0',
               error: _error(TokenMetadataField.color),
               suffix: _swatch(),
@@ -485,7 +487,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             child: BeamTextField(
               fieldKey: const ValueKey('mint-site'),
               controller: _site,
-              label: 'Website (optional)',
+              label: l10n.minterFieldSite,
               hint: 'https://',
               keyboardType: TextInputType.url,
               error: _error(TokenMetadataField.siteUrl),
@@ -499,7 +501,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
         alignment: Alignment.centerLeft,
         child: CustomTextButton(
           key: const ValueKey('mint-more'),
-          text: _more ? 'Fewer details' : 'More details',
+          text: _more ? l10n.minterFewerDetails : l10n.minterMoreDetails,
           onTap: () => setState(() => _more = !_more),
         ),
       ),
@@ -512,9 +514,9 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
               child: BeamTextField(
                 fieldKey: const ValueKey('mint-unit'),
                 controller: _unit,
-                label: 'Unit name',
+                label: l10n.minterFieldUnit,
                 hint: _ticker.text.isEmpty ? 'MYT' : _ticker.text,
-                helper: 'Same as the ticker unless you change it',
+                helper: l10n.minterUnitHelper,
                 error: _unitEdited ? _error(TokenMetadataField.unitName) : null,
                 onChanged: (_) => setState(() {
                   _unitEdited = _unit.text.isNotEmpty;
@@ -527,8 +529,8 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
               child: BeamTextField(
                 fieldKey: const ValueKey('mint-nth'),
                 controller: _nth,
-                label: 'Smallest unit name',
-                helper: '1 token = 100,000,000 of these',
+                label: l10n.minterFieldNth,
+                helper: l10n.minterNthHelper,
                 error: _error(TokenMetadataField.nthUnitName),
                 onChanged: (_) => touch(TokenMetadataField.nthUnitName),
               ),
@@ -539,7 +541,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
         BeamTextField(
           fieldKey: const ValueKey('mint-long-desc'),
           controller: _longDesc,
-          label: 'Long description (optional)',
+          label: l10n.minterFieldLongDesc,
           maxLines: 4,
           error: _error(TokenMetadataField.longDescription),
           onChanged: (_) => touch(TokenMetadataField.longDescription),
@@ -581,6 +583,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
 
   Widget _done(BuildContext context) {
     final desktop = BeamLayoutScope.isDesktop(context);
+    final l10n = context.l10n;
     return BeamPageScaffold(
       title: BeamMintTokenView.title,
       body: Padding(
@@ -590,7 +593,7 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             const BeamStickerImage(BeamSticker.success, size: 128),
             const BeamGap(16),
             Text(
-              '$_createdTicker is being created',
+              l10n.minterCreatedTitle(_createdTicker!),
               key: const ValueKey('mint-done'),
               textAlign: TextAlign.center,
               style: desktop
@@ -599,15 +602,17 @@ class _BeamMintTokenViewState extends State<BeamMintTokenView> {
             ),
             const BeamGap(8),
             Text(
-              'It appears in My tokens once the network confirms it, usually '
-              'within a few minutes. Mint your first tokens there.',
+              l10n.minterCreatedMessage,
               textAlign: TextAlign.center,
               style: STextStyles.itemSubtitle(context),
             ),
           ],
         ),
       ),
-      bottom: BeamCtaBar(label: 'Go to My tokens', onPressed: _openMyTokens),
+      bottom: BeamCtaBar(
+        label: l10n.minterGoToMyTokens,
+        onPressed: _openMyTokens,
+      ),
     );
   }
 }

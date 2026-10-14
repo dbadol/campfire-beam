@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/address_utils.dart';
@@ -114,7 +115,7 @@ class BeamReceiveQr extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'This address is too long for a QR code. Copy it instead.',
+            context.l10n.receiveQrTooLong,
             textAlign: TextAlign.center,
             style: STextStyles.itemSubtitle12(context),
           ),
@@ -129,7 +130,7 @@ Future<void> beamCopy(
   BuildContext context,
   ClipboardInterface clipboard,
   String text, {
-  String message = BeamReceiveText.copied,
+  String? message,
 }) async {
   unawaited(HapticFeedback.lightImpact());
   await clipboard.setData(ClipboardData(text: text));
@@ -137,7 +138,7 @@ Future<void> beamCopy(
   unawaited(
     showFloatingFlushBar(
       type: FlushBarType.info,
-      message: message,
+      message: message ?? BeamReceiveText.copied,
       iconAsset: Assets.svg.copy,
       context: context,
     ),
@@ -236,7 +237,7 @@ Future<void> showBeamAddressDialog(
             Expanded(
               child: SecondaryButton(
                 key: BeamReceiveKeys.dialogDone,
-                label: 'Done',
+                label: context.l10n.commonDone,
                 buttonHeight: desktop ? ButtonHeight.l : null,
                 onPressed: () => Navigator.of(context).pop(),
               ),

@@ -38,6 +38,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../pages/pinpad_views/lock_screen_view.dart';
 import '../../../pages_desktop_specific/my_stack_view/wallet_view/sub_widgets/desktop_auth_send.dart';
@@ -147,9 +148,9 @@ Future<bool?> dappCampfireAuthenticate(BuildContext context) async {
         popOnSuccess: true,
         routeOnSuccessArguments: true,
         routeOnSuccess: "",
-        biometricsCancelButtonString: "CANCEL",
-        biometricsLocalizedReason: "Authenticate to approve this dApp request",
-        biometricsAuthenticationTitle: "Approve dApp request",
+        biometricsCancelButtonString: context.l10n.beamAuthCancel,
+        biometricsLocalizedReason: context.l10n.dappsAuthReason,
+        biometricsAuthenticationTitle: context.l10n.dappsAuthTitle,
         // Face ID / fingerprint only after the user taps "Use biometrics":
         // never a glance that approves what a page put under their finger.
         biometrics: DappManualBiometrics(),
@@ -293,7 +294,9 @@ class _DappApprovalSheetState extends State<DappApprovalSheet> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.warning,
-            message: widget.isDesktop ? "Invalid passphrase" : "Invalid PIN",
+            message: widget.isDesktop
+                ? context.l10n.beamAuthInvalidPassphrase
+                : context.l10n.beamAuthInvalidPin,
             context: context,
           ),
         );
@@ -330,7 +333,7 @@ class _DappApprovalSheetState extends State<DappApprovalSheet> {
     );
     final reject = SecondaryButton(
       key: DappApprovalSheet.rejectKey,
-      label: "Reject",
+      label: context.l10n.dappsReject,
       buttonHeight: desktop ? ButtonHeight.l : null,
       height: desktop ? null : 46,
       onPressed: _reject,
@@ -353,7 +356,7 @@ class _DappApprovalSheetState extends State<DappApprovalSheet> {
               Padding(
                 padding: const EdgeInsets.only(left: 32),
                 child: Text(
-                  "Review request",
+                  context.l10n.dappsReviewTitle,
                   style: STextStyles.desktopH3(context),
                 ),
               ),
@@ -450,6 +453,7 @@ class _SheetBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = model;
+    final l10n = context.l10n;
     if (m.isSignMessage) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -467,7 +471,7 @@ class _SheetBody extends StatelessWidget {
       ?m.passThroughWarning,
       ...m.lookalikeWarnings,
       for (final s in m.shortfallWarnings)
-        '$s Add funds to this wallet, then try again in ${m.dappName}.',
+        joinSentences([s, l10n.dappsShortfallAddFunds(m.dappName)], l10n),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -547,7 +551,7 @@ class _Header extends StatelessWidget {
                       ),
                       radiusMultiplier: 0.5,
                       child: Text(
-                        "Installed from a file · not checked by Campfire",
+                        context.l10n.dappsNotChecked,
                         style: STextStyles.w500_10(context)
                             .copyWith(color: colors.warningForeground),
                       ),
@@ -590,13 +594,13 @@ class _MoneyCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (model.pays.isNotEmpty) ...[
-            label("You pay"),
+            label(context.l10n.dappsYouPay),
             for (final l in model.pays)
               _AssetRow(line: l, outgoing: true, isDesktop: isDesktop),
           ],
           if (model.receives.isNotEmpty) ...[
             if (model.pays.isNotEmpty) divider(),
-            label("You receive"),
+            label(context.l10n.dappsYouReceive),
             for (final l in model.receives)
               _AssetRow(line: l, outgoing: false, isDesktop: isDesktop),
           ],
@@ -604,7 +608,7 @@ class _MoneyCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                "Nothing you hold moves. You pay only the network fee.",
+                context.l10n.dappsFeeOnly,
                 style: STextStyles.smallMed14(context)
                     .copyWith(color: colors.textDark),
               ),
@@ -641,7 +645,7 @@ class _RebuildCard extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                none ? "You may get no ${l.unit}" : label,
+                none ? context.l10n.dappsRebuildMayGetNone(l.unit) : label,
                 style: STextStyles.smallMed12(context).copyWith(color: fg),
               ),
             ),
@@ -694,9 +698,10 @@ class _RebuildCard extends StatelessWidget {
             view.explanation,
             style: STextStyles.smallMed12(context).copyWith(color: sub),
           ),
-          for (final l in view.maxPays) bound("You pay at most", l, pay: true),
+          for (final l in view.maxPays)
+            bound(context.l10n.dappsRebuildPayAtMost, l, pay: true),
           for (final l in view.minReceives)
-            bound("You get at least", l, pay: false),
+            bound(context.l10n.dappsRebuildGetAtLeast, l, pay: false),
         ],
       ),
     );
@@ -767,7 +772,10 @@ class _FeeRow extends StatelessWidget {
             ? CrossAxisAlignment.center
             : CrossAxisAlignment.start,
         children: [
-          Text("Network fee", style: STextStyles.smallMed12(context)),
+          Text(
+            context.l10n.beamNetworkFee,
+            style: STextStyles.smallMed12(context),
+          ),
           const Spacer(),
           if (fee.fiat == null)
             amount
@@ -879,7 +887,7 @@ class _UnverifiedTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       radiusMultiplier: 0.5,
       child: Text(
-        "Unverified asset $idLabel",
+        context.l10n.dappsUnverifiedAsset(idLabel),
         style: STextStyles.w500_10(context)
             .copyWith(color: colors.warningForeground),
       ),
@@ -935,7 +943,7 @@ class _TotalBox extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Total leaving your wallet", style: style),
+          Text(context.l10n.dappsTotalLeaving, style: style),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -979,12 +987,12 @@ class _DappMessage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          label ?? "Message from $dappName",
+          label ?? context.l10n.dappsMessageFrom(dappName),
           style: STextStyles.smallMed12(context),
         ),
         const SizedBox(height: 2),
         Text(
-          "Written by the dApp. Campfire did not write or check it.",
+          context.l10n.dappsMessageWrittenByDapp,
           style: STextStyles.w500_10(context)
               .copyWith(color: colors.textSubtitle2),
         ),
@@ -1001,7 +1009,7 @@ class _DappMessage extends StatelessWidget {
             ),
           ),
           child: SelectableText(
-            "“$message”",
+            context.l10n.dappsMessageQuoted(message),
             style: STextStyles.w400_14(context)
                 .copyWith(color: colors.textDark3, fontStyle: FontStyle.italic),
           ),
@@ -1029,11 +1037,12 @@ class _ContractsState extends State<_Contracts> {
     final colors = Theme.of(context).extension<StackColors>()!;
     final m = widget.model;
     final ids = m.contractIds;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          ids.length > 1 ? "Contracts" : "Contract",
+          ids.length > 1 ? l10n.dappsContractsLabel : l10n.dappsContractLabel,
           style: STextStyles.smallMed12(context),
         ),
         const SizedBox(height: 4),
@@ -1045,7 +1054,7 @@ class _ContractsState extends State<_Contracts> {
                 Expanded(
                   child: Text(
                     m.contractNameOf(id) == null
-                        ? "Unknown contract · ${dappShortHex(id)}"
+                        ? l10n.dappsUnknownContract(dappShortHex(id))
                         : "${m.contractNameOf(id)} · ${dappShortHex(id)}",
                     style: STextStyles.itemSubtitle12(context),
                   ),
@@ -1056,15 +1065,17 @@ class _ContractsState extends State<_Contracts> {
           ),
         if (m.deploys)
           Text(
-            "Creates a new contract",
+            l10n.dappsCreatesContract,
             style: STextStyles.itemSubtitle12(context),
           ),
         if (m.rebuild != null)
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
-              "App code: ${m.rebuild!.appCodeLabel} · "
-              "${m.rebuild!.appCodeFingerprint}",
+              l10n.dappsAppCodeLine(
+                m.rebuild!.appCodeLabel,
+                m.rebuild!.appCodeFingerprint,
+              ),
               key: const Key('dappApprovalAppCode'),
               style: STextStyles.itemSubtitle12(context).copyWith(
                 color: m.rebuild!.verified ? null : colors.warningForeground,
@@ -1076,7 +1087,7 @@ class _ContractsState extends State<_Contracts> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(
-              _details ? "Hide details" : "Show details",
+              _details ? l10n.dappsHideDetails : l10n.dappsShowDetails,
               style: STextStyles.link2(context),
             ),
           ),
@@ -1085,10 +1096,12 @@ class _ContractsState extends State<_Contracts> {
           SelectableText(
             [
               for (final c in m.request.calls)
-                "${c.contractId ?? "new contract"} · method ${c.method}",
+                c.contractId == null
+                    ? l10n.dappsDetailsCallNew('${c.method}')
+                    : l10n.dappsDetailsCall(c.contractId!, '${c.method}'),
               if (m.rebuild != null)
-                "App code SHA-256 ${m.rebuild!.terms.appCodeSha256}",
-              "Approval fingerprint ${m.request.digest}",
+                l10n.dappsDetailsAppCodeSha(m.rebuild!.terms.appCodeSha256),
+              l10n.dappsDetailsApprovalFingerprint(m.request.digest),
             ].join("\n"),
             style: STextStyles.w500_10(context)
                 .copyWith(color: colors.textSubtitle1),
@@ -1134,8 +1147,8 @@ class _CallsCard extends StatelessWidget {
               _AssetRow(line: l, outgoing: true, isDesktop: isDesktop),
             for (final l in c.receives)
               _AssetRow(line: l, outgoing: false, isDesktop: isDesktop),
-            if (!c.movesFunds) note("Moves no funds"),
-            if (c.signs) note("Signs with your wallet's key"),
+            if (!c.movesFunds) note(context.l10n.dappsCallMovesNothing),
+            if (c.signs) note(context.l10n.dappsCallSigns),
           ],
           divider(),
           _FeeRow(fee: model.fee),
@@ -1156,22 +1169,26 @@ class _SignCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final key = model.request.sign?.keyMaterial ?? "";
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _DappMessage(
           dappName: model.dappName,
           message: model.message ?? "",
-          label: "Message to sign, from ${model.dappName}",
+          label: l10n.dappsSignMessageFrom(model.dappName),
         ),
         const SizedBox(height: 16),
-        Text("Signing key", style: STextStyles.smallMed12(context)),
+        Text(l10n.dappsSigningKey, style: STextStyles.smallMed12(context)),
         const SizedBox(height: 4),
         Row(
           children: [
             Expanded(
               child: Text(
-                "Key id ${model.signKeyText}, chosen by ${model.dappName}",
+                l10n.dappsSignKeyChosenBy(
+                  '${model.signKeyText}',
+                  model.dappName,
+                ),
                 style: STextStyles.itemSubtitle12(context),
               ),
             ),
@@ -1182,9 +1199,7 @@ class _SignCard extends StatelessWidget {
         RoundedContainer(
           color: colors.textFieldDefaultBG,
           child: Text(
-            "A signature proves this wallet holds that key, for example to "
-            "log in. It moves no funds and costs no fee. Sign only if you "
-            "trust ${model.dappName} with that proof.",
+            l10n.dappsSignExplainer(model.dappName),
             style: STextStyles.w500_12(context)
                 .copyWith(color: colors.textDark3),
           ),
@@ -1203,16 +1218,15 @@ class _Recipient extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
     final send = model.request.send!;
+    final l10n = context.l10n;
     final notes = [
       model.recipientType!,
-      if (send.isOnline)
-        "Their wallet must come online within 12 hours, or the payment "
-            "is cancelled",
+      if (send.isOnline) l10n.dappsRecipientOnlineNote,
     ].join(" · ");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text("Recipient", style: STextStyles.smallMed12(context)),
+        Text(l10n.dappsRecipient, style: STextStyles.smallMed12(context)),
         const SizedBox(height: 4),
         Row(
           children: [
@@ -1234,7 +1248,7 @@ class _Recipient extends StatelessWidget {
         if (send.isMine) ...[
           const SizedBox(height: 4),
           Text(
-            "This is one of your own addresses.",
+            l10n.dappsRecipientIsMine,
             style: STextStyles.w500_12(context)
                 .copyWith(color: colors.textSubtitle1),
           ),
@@ -1260,9 +1274,7 @@ class _QueueNote extends StatelessWidget {
         color: colors.textFieldDefaultBG,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Text(
-          waiting == 1
-              ? "1 more request waiting after this one"
-              : "$waiting more requests waiting after this one",
+          context.l10n.dappsQueueMore(waiting),
           textAlign: TextAlign.center,
           style: STextStyles.w500_12(context).copyWith(color: colors.textDark3),
         ),

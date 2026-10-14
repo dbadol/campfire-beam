@@ -30,6 +30,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
 import '../../wallets/bridge/bridge_controller.dart';
@@ -112,14 +113,16 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
       if (!mounted) return;
       final ok = await deps.authenticate(
         context,
-        reason: 'Authenticate to collect',
+        reason: context.l10n.bridgeAuthCollectReason,
       );
       if (!mounted) return;
       if (ok != true) {
         setState(() {
           _busy = false;
           _error = ok == false
-              ? (deps.desktop ? 'Wrong password.' : 'Wrong PIN.')
+              ? (deps.desktop
+                    ? context.l10n.bridgeWrongPassword
+                    : context.l10n.bridgeWrongPin)
               : null;
         });
         return;
@@ -129,11 +132,7 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _error =
-              "Couldn't collect it: your BEAM wallet did not answer. It is "
-              'still waiting for you; try again in a minute.',
-        );
+        setState(() => _error = context.l10n.bridgeCollectNoAnswer);
       }
     }
     if (mounted) setState(() => _busy = false);
@@ -142,17 +141,18 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
   @override
   Widget build(BuildContext context) {
     final c = controller.crossing(widget.id);
+    final l10n = context.l10n;
     if (c == null) {
       return DexPage(
         deps: deps,
-        title: 'Crossing',
-        body: const DexNotice(
-          title: 'This crossing is not on this device',
-          detail: 'It may belong to another pair of wallets.',
+        title: l10n.bridgeCrossingTitle,
+        body: DexNotice(
+          title: l10n.bridgeCrossingMissingTitle,
+          detail: l10n.bridgeCrossingMissingDetail,
         ),
         bottom: DexPrimaryAction(
           deps: deps,
-          label: 'Done',
+          label: l10n.commonDone,
           onPressed: () => Navigator.of(context).pop(),
         ),
       );
@@ -161,7 +161,9 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
     final collect = _canCollect(c);
     return DexPage(
       deps: deps,
-      title: c.toEthereum ? 'To Ethereum' : 'To BEAM',
+      title: c.toEthereum
+          ? l10n.bridgeCrossingTitleToEthereum
+          : l10n.bridgeCrossingTitleToBeam,
       body: _body(context, c),
       bottom: Column(
         mainAxisSize: MainAxisSize.min,
@@ -179,17 +181,18 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
             deps: deps,
             buttonKey: const Key('bridge-crossing-cta'),
             label: collect
-                ? 'Collect '
-                      '${BridgeFormat.coin(c.receives, 8, r.beamSymbol)}'
-                : 'Done',
+                ? l10n.bridgeCollectCta(
+                    BridgeFormat.coin(c.receives, 8, r.beamSymbol),
+                  )
+                : l10n.commonDone,
             reason: _busy
-                ? 'Collecting…'
+                ? l10n.bridgeCollecting
                 : collect
-                ? 'Network fee '
-                      '${BridgeFormat.coin(c.beamNetworkFee, 8, 'BEAM')}, '
-                      'from your BEAM wallet.'
+                ? l10n.bridgeCollectFeeReason(
+                    BridgeFormat.coin(c.beamNetworkFee, 8, 'BEAM'),
+                  )
                 : c.isOpen
-                ? 'It carries on if you close this.'
+                ? l10n.bridgeCarriesOn
                 : null,
             onPressed: _busy
                 ? null
@@ -210,13 +213,14 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
     final words = BridgeWords.of(c, blocksLeft: left, now: now);
     final srcDec = r.sourceDecimals(c.direction);
     final srcSym = r.sourceSymbol(c.direction);
+    final l10n = context.l10n;
     final links = <Widget>[
       if (c.lockHash != null)
-        _link('bridge-crossing-lock', 'See it on Etherscan', () {
+        _link('bridge-crossing-lock', l10n.bridgeSeeOnEtherscan, () {
           _open(deps.ethExplorerTx(c.lockHash!));
         }),
       if (c.toEthereum && c.state == BridgeCrossingState.paid)
-        _link('bridge-crossing-address', 'See your wallet on Etherscan', () {
+        _link('bridge-crossing-address', l10n.bridgeSeeWalletOnEtherscan, () {
           _open(deps.ethExplorerAddress(c.ethAddress));
         }),
     ];
@@ -247,11 +251,13 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
           child: Column(
             children: [
               DexDetailRow(
-                label: 'You moved',
+                label: l10n.bridgeYouMovedLabel,
                 value: BridgeFormat.coin(c.amount, srcDec, srcSym),
               ),
               DexDetailRow(
-                label: c.state.isDone ? 'Arrived' : 'Arrives',
+                label: c.state.isDone
+                    ? l10n.bridgeArrivedLabel
+                    : l10n.bridgeArrivesLabel,
                 valueKey: const Key('bridge-crossing-receive'),
                 value: BridgeFormat.coin(
                   c.receives,
@@ -260,33 +266,33 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
                 ),
               ),
               DexDetailRow(
-                label: 'Bridge fee, paid to the bridge operator',
+                label: l10n.bridgeFeeOperatorLabel,
                 value: BridgeFormat.coin(c.relayerFee, srcDec, srcSym),
               ),
               DexDetailRow(
-                label: 'BEAM network fee',
+                label: l10n.bridgeBeamNetworkFeeLabel,
                 value: BridgeFormat.coin(c.beamNetworkFee, 8, 'BEAM'),
               ),
               if (!c.toEthereum)
                 DexDetailRow(
-                  label: 'Ethereum network fee',
-                  value:
-                      'up to '
-                      '${BridgeFormat.coinShort(c.ethNetworkFee, 18, 'ETH')}',
+                  label: l10n.bridgeEthNetworkFeeLabel,
+                  value: l10n.bridgeUpToAmount(
+                    BridgeFormat.coinShort(c.ethNetworkFee, 18, 'ETH'),
+                  ),
                 ),
               DexDetailRow(
                 address: true,
-                label: 'Your Ethereum wallet',
+                label: l10n.bridgeYourEthWallet,
                 value: bridgeShortAddress(c.ethAddress),
               ),
               if (c.msgId != null)
                 DexDetailRow(
-                  label: 'Bridge transfer',
+                  label: l10n.bridgeTransferLabel,
                   valueKey: const Key('bridge-crossing-number'),
                   value: '#${c.msgId}',
                 ),
               DexDetailRow(
-                label: 'Started',
+                label: l10n.bridgeStartedLabel,
                 value: BridgeFormat.ago(c.createdAt, now),
               ),
             ],
@@ -299,7 +305,7 @@ class _BridgeCrossingViewState extends State<BridgeCrossingView> {
         if (c.isOpen && controller.paused) ...[
           const SizedBox(height: 8),
           Text(
-            'Campfire looks again when it is back on screen.',
+            l10n.bridgeLooksAgainOnScreen,
             textAlign: TextAlign.center,
             style: STextStyles.label(context)
                 .copyWith(color: colors.textSubtitle1),

@@ -7,6 +7,7 @@
  *
  */
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/beam/beam_asset_contract.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../utilities/amount/amount_formatter.dart';
@@ -30,71 +31,76 @@ abstract final class BeamTxText {
   static String title(BeamTxView v, {List<BeamFundsLine>? funds}) {
     if (v.isContract) return contractLabel(v, funds: funds);
     if (v.isSplit) return splitTitle(v);
-    if (v.isCancelled) return 'Cancelled';
-    if (v.isFailed) return v.isIncoming ? 'Not received' : 'Not sent';
+    final l = appL10n;
+    if (v.isCancelled) return l.txTitleCancelled;
+    if (v.isFailed) {
+      return v.isIncoming ? l.txTitleNotReceived : l.txTitleNotSent;
+    }
     if (v.isCompleted) {
       return v.isIncoming
-          ? 'Received'
+          ? l.txTitleReceived
           : v.isToSelf
-          ? 'Sent to yourself'
-          : 'Sent';
+          ? l.txTitleSentToYourself
+          : l.txTitleSent;
     }
     return v.isIncoming
-        ? 'Receiving'
+        ? l.txTitleReceiving
         : v.isToSelf
-        ? 'Sending to yourself'
-        : 'Sending';
+        ? l.txTitleSendingToYourself
+        : l.txTitleSending;
   }
 
   /// A split of the wallet's own coins, by where it is.
   static String splitTitle(BeamTxView v) {
-    if (v.isCancelled) return 'Split cancelled';
-    if (v.isFailed) return 'Not split';
-    if (v.isCompleted) return 'Split into coins';
-    return 'Splitting coins';
+    final l = appL10n;
+    if (v.isCancelled) return l.txSplitTitleCancelled;
+    if (v.isFailed) return l.txSplitTitleFailed;
+    if (v.isCompleted) return l.txSplitTitleDone;
+    return l.txSplitTitleInProgress;
   }
 
   /// What a split moved, under its fee (the only thing that left). Short:
   /// the list gives it the width of the amount above it.
   static String splitDetail(BeamTxView v, AmountFormatter beam) =>
-      '${amount(v.amount, v.assetId, beam)} split';
+      appL10n.txSplitDetail(amount(v.amount, v.assetId, beam));
 
   /// What a contract transaction was, when Campfire knows the contract.
   /// [funds] (from the core) tells a swap from a liquidity move.
   static String contractLabel(BeamTxView v, {List<BeamFundsLine>? funds}) {
     final out = funds?.where((f) => f.delta < BigInt.zero).length ?? 0;
     final inn = funds?.where((f) => f.delta > BigInt.zero).length ?? 0;
+    final l = appL10n;
     switch (v.contractKind) {
       case BeamContractKind.dex:
-        if (funds == null) return 'DEX';
-        if (out == 1 && inn == 1) return 'DEX swap';
-        if (out >= 2 && inn == 0) return 'Added to a DEX pool';
-        if (inn >= 2 && out == 0) return 'Taken from a DEX pool';
-        return 'DEX';
+        if (funds == null) return l.txContractDex;
+        if (out == 1 && inn == 1) return l.txContractDexSwap;
+        if (out >= 2 && inn == 0) return l.txContractDexAdded;
+        if (inn >= 2 && out == 0) return l.txContractDexTaken;
+        return l.txContractDex;
       case BeamContractKind.names:
-        return 'Name payment';
+        return l.txContractNamePayment;
       case BeamContractKind.airdrop:
-        if (funds == null) return 'Airdrop';
-        if (inn > 0 && out == 0) return 'Airdrop claim';
-        if (out > 0 && inn == 0) return 'Airdrop created';
-        return 'Airdrop';
+        if (funds == null) return l.txContractAirdrop;
+        if (inn > 0 && out == 0) return l.txContractAirdropClaim;
+        if (out > 0 && inn == 0) return l.txContractAirdropCreated;
+        return l.txContractAirdrop;
       case BeamContractKind.minter:
-        return 'Token minter';
+        return l.txContractMinter;
       case BeamContractKind.burn:
-        return 'Burn';
+        return l.txContractBurn;
       case BeamContractKind.other:
-        return 'Contract call';
+        return l.txContractCall;
     }
   }
 
   /// Who the transaction was with, for contract calls.
   static String contractParty(BeamContractKind kind) => switch (kind) {
-    BeamContractKind.dex => 'BEAM DEX',
-    BeamContractKind.names => 'BEAM name service',
-    BeamContractKind.airdrop => 'Airdrop vouchers',
-    BeamContractKind.minter => 'BEAM token minter',
-    BeamContractKind.burn => 'Burn address (nothing can come back)',
-    BeamContractKind.other => 'An app on BEAM',
+    BeamContractKind.dex => appL10n.txPartyDex,
+    BeamContractKind.names => appL10n.txPartyNames,
+    BeamContractKind.airdrop => appL10n.txPartyAirdrop,
+    BeamContractKind.minter => appL10n.txPartyMinter,
+    BeamContractKind.burn => appL10n.txPartyBurn,
+    BeamContractKind.other => appL10n.txPartyOther,
   };
 
   // ----------------------------------------------------------------- status
@@ -113,38 +119,38 @@ abstract final class BeamTxText {
     }
     // Only a pending or in-progress payment can be cancelled, so nothing
     // left the wallet.
-    if (v.isCancelled) return 'Cancelled. $_nothing';
+    final l = appL10n;
+    if (v.isCancelled) return l.txStatusCancelledNothingSent;
     // "Sent" fits a payment, not a swap or a claim.
-    if (v.isContract && v.isCompleted) return 'Completed';
+    if (v.isContract && v.isCompleted) return l.txStatusCompleted;
     // A split waits for no one: no "waiting for the receiver".
     if (v.isSplit) {
       return switch (v.status) {
-        BeamTxStatus.completed => 'Completed: the new coins are ready',
-        BeamTxStatus.registering => 'Being added to a block',
-        BeamTxStatus.confirming => 'Waiting for confirmation',
-        _ => 'In progress: the new coins are ready in about a minute',
+        BeamTxStatus.completed => l.txSplitStatusCompleted,
+        BeamTxStatus.registering => l.txSplitStatusRegistering,
+        BeamTxStatus.confirming => l.txStatusConfirming,
+        _ => l.txSplitStatusInProgress,
       };
     }
     final line = BeamTxActions.statusLine(v.toCore());
-    if (v.isFailed && line == 'Failed') return kNotCompleted;
+    if (v.isFailed && line == BeamTxActions.failed) return kNotCompleted;
     return line;
   }
 
-  static const kNotCompleted = BeamTxActions.notCompleted;
-  static const _nothing = 'Nothing was sent.';
+  static String get kNotCompleted => BeamTxActions.notCompleted;
 
   /// The status line under a list entry, which already has a title: no
   /// "Cancelled" twice.
   static String? entryStatus(BeamTxView v) {
     if (v.isCompleted) return null;
-    if (v.isCancelled) return _nothing;
+    if (v.isCancelled) return appL10n.txNothingSent;
     return status(v);
   }
 
   /// The fee line: a payment that never went through paid none.
   static String fee(BeamTxView v, AmountFormatter beam) {
-    if (v.isFailed || v.isCancelled) return 'None: nothing was sent';
-    if (v.isIncoming && !v.isContract) return 'Paid by the sender';
+    if (v.isFailed || v.isCancelled) return appL10n.txFeeNone;
+    if (v.isIncoming && !v.isContract) return appL10n.txFeePaidBySender;
     return amount(v.paidFee, 0, beam);
   }
 
@@ -215,7 +221,7 @@ abstract final class BeamTxText {
     if (a.verified) {
       return a.name == a.symbol ? a.symbol : '${a.name} (${a.symbol})';
     }
-    return 'Asset ${a.idLabel} — not verified by Campfire';
+    return appL10n.txAssetUnverified(a.idLabel);
   }
 
   /// "4,864.10722456 CHAD", "0.00069843 BEAM", "1.00000000 #188" for an
@@ -252,40 +258,30 @@ abstract final class BeamTxText {
 
   // ---------------------------------------------------------------- actions
 
-  static const cancelTitle = 'Cancel this payment?';
-  static const cancelMessage = 'Nothing has been sent yet.';
-  static const cancelConfirm = 'Cancel payment';
-  static const cancelKeep = 'Keep waiting';
-  static const cancelDone = 'Payment cancelled. Nothing was sent.';
-  static const cancelTooLate =
-      'Too late to cancel: it is already being added to a block';
+  static String get cancelTitle => appL10n.txCancelTitle;
+  static String get cancelMessage => appL10n.txCancelMessage;
+  static String get cancelConfirm => appL10n.txCancelConfirm;
+  static String get cancelKeep => appL10n.txCancelKeep;
+  static String get cancelDone => appL10n.txCancelDone;
+  static String get cancelTooLate => appL10n.txCancelTooLate;
 
-  static const deleteTitle = 'Remove this record from your wallet?';
-  static const deleteMessage = 'Nothing changes on the blockchain.';
-  static const deleteConfirm = 'Remove record';
-  static const deleteKeep = 'Keep it';
-  static const deleteDone = 'Record removed from this wallet';
-  static const deleteRefused =
-      'This record cannot be removed while the payment is still in progress';
+  static String get deleteTitle => appL10n.txDeleteTitle;
+  static String get deleteMessage => appL10n.txDeleteMessage;
+  static String get deleteConfirm => appL10n.txDeleteConfirm;
+  static String get deleteKeep => appL10n.txDeleteKeep;
+  static String get deleteDone => appL10n.txDeleteDone;
+  static String get deleteRefused => appL10n.txDeleteRefused;
 
-  static const notConnected =
-      'Campfire is still connecting to the BEAM network. '
-      'Try again in a moment.';
+  static String get notConnected => appL10n.txNotConnected;
 
-  static const proofNone =
-      "No proof is available for this payment: the receiver's address "
-      'does not support payment proofs.';
-  static const proofNotAProof =
-      "This text is not a payment proof. Ask the sender to send the whole "
-      'proof again.';
+  static String get proofNone => appL10n.txProofNone;
+  static String get proofNotAProof => appL10n.txProofNotAProof;
 
   /// [BeamProofVerdict]'s sentence, as shown. It already calls the kernel
   /// the "transaction ID" (the word "kernel" stays behind the info button).
   static String plainVerdict(String sentence) => sentence;
 
-  static const explorerInfo =
-      'BEAM calls this the kernel ID. Block explorers look a transaction up '
-      'by it. It does not show the amount or who paid whom.';
+  static String get explorerInfo => appL10n.txExplorerInfo;
 }
 
 /// Colour family of a status line.

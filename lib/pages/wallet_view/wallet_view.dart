@@ -20,6 +20,7 @@ import 'package:tuple/tuple.dart';
 
 import '../../app_config.dart';
 import '../../frost_route_generator.dart';
+import '../../l10n/l10n.dart';
 import '../../models/isar/exchange_cache/currency.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../pages_desktop_specific/spark_coins/spark_coins_view.dart';
@@ -644,7 +645,7 @@ class _WalletViewState extends ConsumerState<WalletView> {
                         aspectRatio: 1,
                         child: AppBarIconButton(
                           semanticsLabel:
-                              "Network Button. Takes To Network Status Page.",
+                              context.l10n.walletViewNetworkButtonLabel,
                           key: const Key("walletViewRadioButton"),
                           size: 36,
                           shadows: const [],
@@ -675,7 +676,7 @@ class _WalletViewState extends ConsumerState<WalletView> {
                         aspectRatio: 1,
                         child: AppBarIconButton(
                           semanticsLabel:
-                              "Notifications Button. Takes To Notifications Page.",
+                              context.l10n.sharedNotificationsButtonLabel,
                           key: const Key("walletViewAlertsButton"),
                           size: 36,
                           shadows: const [],
@@ -789,7 +790,7 @@ class _WalletViewState extends ConsumerState<WalletView> {
                         aspectRatio: 1,
                         child: AppBarIconButton(
                           semanticsLabel:
-                              "Settings Button. Takes To Wallet Settings Page.",
+                              context.l10n.walletViewSettingsButtonLabel,
                           key: const Key("walletViewSettingsButton"),
                           size: 36,
                           shadows: const [],
@@ -939,7 +940,7 @@ class _WalletViewState extends ConsumerState<WalletView> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "Transactions",
+                                context.l10n.walletViewTransactions,
                                 style: STextStyles.itemSubtitle(context)
                                     .copyWith(
                                       color: Theme.of(
@@ -948,7 +949,7 @@ class _WalletViewState extends ConsumerState<WalletView> {
                                     ),
                               ),
                               CustomTextButton(
-                                text: "See all",
+                                text: context.l10n.walletViewSeeAll,
                                 onTap: () {
                                   Navigator.of(context).pushNamed(
                                     ref
@@ -1035,7 +1036,7 @@ class _WalletViewState extends ConsumerState<WalletView> {
               WalletNavigationBar(
                 items: [
                   WalletNavigationBarItemData(
-                    label: "Receive",
+                    label: context.l10n.walletViewReceive,
                     icon: const ReceiveNavIcon(),
                     onTap: () {
                       if (mounted) {
@@ -1086,7 +1087,7 @@ class _WalletViewState extends ConsumerState<WalletView> {
                     ),
                   if (!viewOnly)
                     WalletNavigationBarItemData(
-                      label: "Send",
+                      label: context.l10n.walletViewSend,
                       icon: wallet is BeamWallet
                           ? BeamSendNavIconFor(walletId: walletId)
                           : const SendNavIcon(),

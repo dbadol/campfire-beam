@@ -12,6 +12,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../utilities/amount/amount.dart';
 import '../../../utilities/beam/scan_recognize.dart';
@@ -73,6 +74,7 @@ class BeamSendModel extends ChangeNotifier {
     _resolver = BansRecipientResolver(
       backend.resolveName,
       debounce: nameDebounce,
+      paidOwner: backend.paidOwner,
     );
     _nameSub = _resolver.states.listen(_onNameState);
     _sync = backend.syncAssessment;
@@ -100,6 +102,10 @@ class BeamSendModel extends ChangeNotifier {
   /// address or a link of another coin, chain or the web.
   ScanRecognition? _foreign;
   BansRecipientState? _nameState;
+
+  /// A new owner of the name the person chose to pay after seeing it next
+  /// to the one this wallet paid before (audit D-1); cleared with the field.
+  String? _acceptedOwnerKey;
 
   int _assetId = 0;
   String _amountText = '';
@@ -130,6 +136,22 @@ class BeamSendModel extends ChangeNotifier {
   BansRecipientState? get nameState =>
       _recipient is BeamRecipientName ? _nameState : null;
 
+  /// Whether the person chose to pay the name's new owner (audit D-1).
+  bool get newOwnerAccepted {
+    final s = nameState;
+    return s is BansRecipientPayable &&
+        s.ownerChangedSincePaid &&
+        _acceptedOwnerKey == s.ownerKey;
+  }
+
+  /// The person saw both owner keys and chose to pay the new one.
+  void acceptNewOwner() {
+    final s = nameState;
+    if (s is! BansRecipientPayable || !s.ownerChangedSincePaid) return;
+    _acceptedOwnerKey = s.ownerKey;
+    _notify();
+  }
+
   bool get isName => _recipient is BeamRecipientName;
   bool get isAddress => _recipient is BeamRecipientAddress;
 
@@ -152,8 +174,7 @@ class BeamSendModel extends ChangeNotifier {
   /// transaction finishes.
   static BeamSendIssue _waiting(String back, int assetId) => BeamSendIssue(
     BeamSendField.amount,
-    "$back is in a payment that hasn't finished yet; it's back in about a "
-    'minute. Try again then.',
+    appL10n.sendFundsReturning(back),
     waitingAssetId: assetId,
   );
 
@@ -202,20 +223,28 @@ class BeamSendModel extends ChangeNotifier {
     if (r is! BeamRecipientAddress || mode == null) return null;
     return switch (r.type) {
       BeamAddressType.regular || BeamAddressType.regularNew => (
-        'BEAM address',
-        "The receiver's wallet must be online to accept this payment.",
+        appL10n.sendAddressTypeRegular,
+        appL10n.sendAddressRegularNote,
       ),
-      BeamAddressType.offline => ('Offline address', mode.explanation),
-      BeamAddressType.maxPrivacy => ('Max-privacy address', mode.explanation),
-      BeamAddressType.publicOffline => ('Public address', mode.explanation),
+      BeamAddressType.offline => (
+        appL10n.sendAddressTypeOffline,
+        mode.explanation,
+      ),
+      BeamAddressType.maxPrivacy => (
+        appL10n.sendAddressTypeMaxPrivacy,
+        mode.explanation,
+      ),
+      BeamAddressType.publicOffline => (
+        appL10n.sendAddressTypePublic,
+        mode.explanation,
+      ),
       BeamAddressType.unknown => null,
     };
   }
 
   /// Name payments carry no message; address payments share the comment.
-  String get commentHint => isName
-      ? 'Only you see this. Name payments carry no message.'
-      : 'Saved with the payment. The receiver sees it too.';
+  String get commentHint =>
+      isName ? appL10n.sendCommentHintName : appL10n.sendCommentHintAddress;
 
   /// A heads-up that does not block sending.
   String? get warning {
@@ -225,9 +254,9 @@ class BeamSendModel extends ChangeNotifier {
         a != null &&
         a > BigInt.zero &&
         a <= BeamContractFee.minimum) {
-      return 'Claiming a name payment costs its owner '
-          '${BeamSendFormat.beam(BeamContractFee.minimum)}, more than this '
-          'amount. Consider sending more, or ask for an address.';
+      return appL10n.sendNameClaimCostWarning(
+        BeamSendFormat.beam(BeamContractFee.minimum),
+      );
     }
     return null;
   }
@@ -249,9 +278,9 @@ class BeamSendModel extends ChangeNotifier {
     final r = _recipient;
     switch (r) {
       case BeamRecipientEmpty():
-        return const BeamSendIssue(
+        return BeamSendIssue(
           BeamSendField.recipient,
-          'Enter an address or a name.',
+          appL10n.sendEnterRecipient,
           quiet: true,
         );
       case BeamRecipientInvalid(:final nameProblem):
@@ -265,8 +294,7 @@ class BeamSendModel extends ChangeNotifier {
         return BeamSendIssue(
           BeamSendField.recipient,
           _recipientText.trim().length > 20 || nameProblem == null
-              ? "That isn't a BEAM address or a name. Copy it again from "
-                    "the person you're paying."
+              ? appL10n.sendNotAddressOrName
               : BansName.describe(nameProblem),
         );
       case BeamRecipientAddress(:final type):
@@ -278,20 +306,27 @@ class BeamSendModel extends ChangeNotifier {
         return null;
       case BeamRecipientName():
         return switch (_nameState) {
+          final BansRecipientPayable p
+              when p.ownerChangedSincePaid && _acceptedOwnerKey != p.ownerKey =>
+            BeamSendIssue(
+              BeamSendField.recipient,
+              appL10n.sendNameNewOwnerSincePaid,
+              quiet: true,
+            ),
           BansRecipientPayable() => null,
-          null || BansRecipientResolving() => const BeamSendIssue(
+          null || BansRecipientResolving() => BeamSendIssue(
             BeamSendField.recipient,
-            'Checking the name…',
+            appL10n.sendCheckingName,
             quiet: true,
           ),
-          BansRecipientNotPayable() => const BeamSendIssue(
+          BansRecipientNotPayable() => BeamSendIssue(
             BeamSendField.recipient,
-            'This name cannot receive payments.',
+            appL10n.sendNameCannotReceive,
             quiet: true,
           ),
-          BansRecipientFailed() => const BeamSendIssue(
+          BansRecipientFailed() => BeamSendIssue(
             BeamSendField.recipient,
-            "The name couldn't be checked.",
+            appL10n.sendNameCouldNotCheck,
             quiet: true,
           ),
         };
@@ -308,17 +343,11 @@ class BeamSendModel extends ChangeNotifier {
 
   /// What the field says about a [foreignRecipient].
   static String describeForeign(ScanRecognition r) {
-    if (r.kind == ScanKind.eth) {
-      return "That's an Ethereum address. BEAM can't be sent to it: pay it "
-          'from an Ethereum wallet.';
-    }
+    if (r.kind == ScanKind.eth) return appL10n.sendForeignEthereum;
     return switch (r.reason) {
-      ScanUnsupportedReason.link =>
-        "That's a web link, not a BEAM address. Campfire doesn't open "
-            'links.',
-      ScanUnsupportedReason.chain =>
-        "That's a payment for another network, not a BEAM address.",
-      _ => "That's a link for another coin or app, not a BEAM address.",
+      ScanUnsupportedReason.link => appL10n.sendForeignWebLink,
+      ScanUnsupportedReason.chain => appL10n.sendForeignChain,
+      _ => appL10n.sendForeignOther,
     };
   }
 
@@ -326,8 +355,7 @@ class BeamSendModel extends ChangeNotifier {
     if (_assetId != 0 && isAddress) {
       return BeamSendIssue(
         BeamSendField.asset,
-        '${BeamSendFormat.symbol(asset)} can be sent to a name for now, '
-        'not to an address. Choose BEAM to pay this address.',
+        appL10n.sendAssetToNameOnly(BeamSendFormat.symbol(asset)),
       );
     }
     return null;
@@ -337,17 +365,14 @@ class BeamSendModel extends ChangeNotifier {
     final text = _amountText.trim();
     final a = _amount;
     if (text.isEmpty) {
-      return const BeamSendIssue(
+      return BeamSendIssue(
         BeamSendField.amount,
-        'Enter an amount.',
+        appL10n.sendEnterAmount,
         quiet: true,
       );
     }
     if (a == null || a <= BigInt.zero) {
-      return const BeamSendIssue(
-        BeamSendField.amount,
-        'Enter an amount above zero.',
-      );
+      return BeamSendIssue(BeamSendField.amount, appL10n.sendAmountAboveZero);
     }
     final fee = feeEstimate;
     final beam = available(0);
@@ -359,8 +384,10 @@ class BeamSendModel extends ChangeNotifier {
         if (a <= fee) {
           return BeamSendIssue(
             BeamSendField.amount,
-            'Your balance (${BeamSendFormat.beam(beam)}) does not cover the '
-            '${BeamSendFormat.beam(fee)} network fee.',
+            appL10n.sendBalanceBelowFee(
+              BeamSendFormat.beam(beam),
+              BeamSendFormat.beam(fee),
+            ),
           );
         }
         return null;
@@ -370,13 +397,17 @@ class BeamSendModel extends ChangeNotifier {
         if (back > BigInt.zero && a + fee <= beam + back) {
           return _waiting(BeamSendFormat.beam(back), 0);
         }
+        final notEnough = feeIsMinimum
+            ? appL10n.sendNotEnoughBeamMinFee
+            : appL10n.sendNotEnoughBeam;
         return BeamSendIssue(
           BeamSendField.amount,
-          'Not enough BEAM. Sending ${BeamSendFormat.beam(a)} plus the '
-          '${feeIsMinimum ? 'at least ' : ''}'
-          '${BeamSendFormat.beam(fee)} network fee needs '
-          '${BeamSendFormat.beam(a + fee)}, and '
-          '${BeamSendFormat.beam(beam)} is available.',
+          notEnough(
+            BeamSendFormat.beam(a),
+            BeamSendFormat.beam(fee),
+            BeamSendFormat.beam(a + fee),
+            BeamSendFormat.beam(beam),
+          ),
         );
       }
       return null;
@@ -389,8 +420,10 @@ class BeamSendModel extends ChangeNotifier {
       }
       return BeamSendIssue(
         BeamSendField.amount,
-        'Not enough ${BeamSendFormat.symbol(asset)}: '
-        '${BeamSendFormat.amount(have, asset)} is available.',
+        appL10n.sendNotEnoughAsset(
+          BeamSendFormat.symbol(asset),
+          BeamSendFormat.amount(have, asset),
+        ),
       );
     }
     if (fee > beam) {
@@ -398,12 +431,16 @@ class BeamSendModel extends ChangeNotifier {
       if (back > BigInt.zero && fee <= beam + back) {
         return _waiting(BeamSendFormat.beam(back), 0);
       }
+      final needsBeam = feeIsMinimum
+          ? appL10n.sendFeeNeedsBeamMinFee
+          : appL10n.sendFeeNeedsBeam;
       return BeamSendIssue(
         BeamSendField.amount,
-        'The network fee (${feeIsMinimum ? 'at least ' : ''}'
-        '${BeamSendFormat.beam(fee)}) is paid in BEAM, and this wallet has '
-        '${BeamSendFormat.beam(beam)}. Add BEAM to send '
-        '${BeamSendFormat.symbol(asset)}.',
+        needsBeam(
+          BeamSendFormat.beam(fee),
+          BeamSendFormat.beam(beam),
+          BeamSendFormat.symbol(asset),
+        ),
       );
     }
     return null;
@@ -422,6 +459,7 @@ class BeamSendModel extends ChangeNotifier {
         ? const BeamRecipientInvalid(null)
         : BeamRecipientInput.classify(text);
     _nameState = null;
+    _acceptedOwnerKey = null;
     _resolver.input(_foreign != null ? '' : text);
     if (_recipient is! BeamRecipientAddress) _addressFee = null;
     _scheduleFee();
@@ -444,11 +482,11 @@ class BeamSendModel extends ChangeNotifier {
     _notify();
   }
 
-  /// Call on every change of the amount field; [locale] decides the
-  /// decimal separator.
-  void setAmountText(String text, String locale) {
+  /// Call on every change of the amount field ("." decimals in every
+  /// language: [BeamSendFormat.parse]).
+  void setAmountText(String text) {
     _amountText = text;
-    _amount = BeamSendFormat.parse(text, locale);
+    _amount = BeamSendFormat.parse(text);
     _sendAll = false;
     _scheduleFee();
     _notify();
@@ -458,7 +496,7 @@ class BeamSendModel extends ChangeNotifier {
   /// amount field. BEAM to an address: the whole balance, the fee comes out
   /// of it on the next screen. BEAM to a name: the balance less the
   /// minimum fee. Any other asset: all of it (the fee is paid in BEAM).
-  String useMax(String locale) {
+  String useMax() {
     final have = available();
     BigInt max = have;
     if (_assetId == 0 && !isAddress) {
@@ -466,7 +504,7 @@ class BeamSendModel extends ChangeNotifier {
       if (max < BigInt.zero) max = BigInt.zero;
     }
     _amount = max > BigInt.zero ? max : null;
-    _amountText = max > BigInt.zero ? BeamSendFormat.editable(max, locale) : '';
+    _amountText = max > BigInt.zero ? BeamSendFormat.editable(max) : '';
     _sendAll = max > BigInt.zero;
     _scheduleFee();
     _notify();
@@ -490,9 +528,9 @@ class BeamSendModel extends ChangeNotifier {
     if (_preparing) {
       // One payment is built at a time; a second call is never a second
       // payment.
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
-        'This payment is already being prepared.',
+        appL10n.sendAlreadyPreparing,
       );
     }
     final blocking = issue;
@@ -553,6 +591,7 @@ class BeamSendModel extends ChangeNotifier {
         _assetId,
         amount,
         expectedOwnerKey: payable.ownerKey,
+        acceptedOwnerKey: _acceptedOwnerKey,
       );
       final beam = available(0);
       var fee = prepared.summary.fee;
@@ -566,23 +605,28 @@ class BeamSendModel extends ChangeNotifier {
             _assetId,
             amount,
             expectedOwnerKey: payable.ownerKey,
+            acceptedOwnerKey: _acceptedOwnerKey,
           );
           fee = prepared.summary.fee;
         }
         if (amount + fee > beam) {
           throw BeamWalletException(
             BeamWalletProblem.insufficientFunds,
-            'Not enough BEAM. Sending ${BeamSendFormat.beam(amount)} plus '
-            'the ${BeamSendFormat.beam(fee)} network fee needs '
-            '${BeamSendFormat.beam(amount + fee)}, and '
-            '${BeamSendFormat.beam(beam)} is available.',
+            appL10n.sendNotEnoughBeam(
+              BeamSendFormat.beam(amount),
+              BeamSendFormat.beam(fee),
+              BeamSendFormat.beam(amount + fee),
+              BeamSendFormat.beam(beam),
+            ),
           );
         }
       } else if (_assetId != 0 && fee > beam) {
         throw BeamWalletException(
           BeamWalletProblem.insufficientFunds,
-          'The ${BeamSendFormat.beam(fee)} network fee is paid in BEAM, and '
-          'this wallet has ${BeamSendFormat.beam(beam)}.',
+          appL10n.sendNameFeeNeedsBeam(
+            BeamSendFormat.beam(fee),
+            BeamSendFormat.beam(beam),
+          ),
         );
       }
       final domain = payable.resolution.domain;
@@ -598,7 +642,9 @@ class BeamSendModel extends ChangeNotifier {
       );
     } catch (e) {
       hold.release();
-      if (e is BansOwnerChanged) recheckName();
+      if (e is BansOwnerChanged || e is BansOwnerChangedSincePaid) {
+        recheckName();
+      }
       rethrow;
     }
   }
@@ -606,8 +652,7 @@ class BeamSendModel extends ChangeNotifier {
   /// A failure while preparing or sending, as one plain sentence.
   static String describeError(Object e) {
     if (e is BansOwnerChanged) {
-      return '${e.name}.beam changed owner just now, so nothing was sent. '
-          "Check the name with the person you're paying, then try again.";
+      return appL10n.sendNameChangedOwner('${e.name}.beam');
     }
     if (e is BansException) return e.message;
     if (e is BeamWalletException) return e.message;
@@ -615,9 +660,9 @@ class BeamSendModel extends ChangeNotifier {
       return BeamWalletMessages.notOpen;
     }
     if (e is BeamRpcException) {
-      return 'The BEAM wallet refused the payment: ${e.message}';
+      return appL10n.sendWalletRefused(e.message);
     }
-    return 'Something went wrong, and nothing was sent. Try again.';
+    return appL10n.sendSomethingWrong;
   }
 
   // ------------------------------------------------------------- internals

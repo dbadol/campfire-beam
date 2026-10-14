@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../l10n/l10n.dart';
 import '../../../../../themes/stack_colors.dart';
 import '../../../../../utilities/amount/amount_formatter.dart';
 import '../../../../../utilities/amount/amount_unit.dart';
@@ -72,7 +73,7 @@ class _ChooseUnitSheetState extends ConsumerState<ChooseUnitSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Coin units",
+                    context.l10n.settingsCoinUnitsSheetTitle,
                     style: STextStyles.pageTitleH2(context),
                     textAlign: TextAlign.left,
                   ),

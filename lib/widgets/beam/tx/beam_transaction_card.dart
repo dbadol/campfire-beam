@@ -27,6 +27,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../pages/wallet_view/transaction_views/tx_v2/transaction_v2_details_view.dart';
 import '../../../themes/stack_colors.dart';
@@ -71,15 +72,16 @@ class BeamTxEntryText {
     if (lines.isEmpty) {
       // A contract call that moved nothing but its fee.
       primary = BeamTxText.amount(-v.paidFee, 0, formatter, sign: !stopped);
-      secondary = 'Network fee';
+      secondary = appL10n.beamNetworkFee;
     } else if (v.isToSelf && !v.isContract) {
       // Only the fee left the wallet; the amount moved between its own
       // addresses. "−0.01 BEAM" would read as money gone.
       primary = BeamTxText.amount(-v.paidFee, 0, formatter, sign: !stopped);
       secondary = v.isSplit
           ? BeamTxText.splitDetail(v, formatter)
-          : '${BeamTxText.amount(v.amount, v.assetId, formatter)} moved to '
-                'your own address';
+          : appL10n.txMovedToOwnAddress(
+              BeamTxText.amount(v.amount, v.assetId, formatter),
+            );
     } else {
       // What arrived reads first: "+4,864 CHAD" above "−0.07 BEAM".
       final ordered = [
@@ -127,7 +129,7 @@ class BeamTxEntryText {
             .toAmount(fractionDigits: 2)
             .fiatString(locale: fiat.locale);
         secondary = tiny
-            ? 'under $centText ${fiat.currency}'
+            ? appL10n.txFiatUnderCent(centText, fiat.currency)
             : '$sign$text ${fiat.currency}';
       }
     }

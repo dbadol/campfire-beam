@@ -19,6 +19,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stackwallet/wallets/beam/contracts/airdrop/airdrop_constants.dart';
+import 'package:stackwallet/wallets/beam/contracts/airdrop/airdrop_v3_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/bans/bans_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/bridge/pipe_constants.dart';
 import 'package:stackwallet/wallets/beam/contracts/burn/blackhole_constants.dart';
@@ -34,6 +35,7 @@ List<PinnedShader> _pinned(ShaderSource source) => [
   ammAppShader(source),
   bansAppShader(source),
   airdropAppShader(source),
+  airdropV3AppShader(source),
   minterAppShader(source),
   blackHoleAppShader(source),
   pipeAppShader(BridgeShader.forward, source),
@@ -70,7 +72,7 @@ void main() {
       () => Future.wait([for (final s in _pinned(source)) s.load()]),
     );
     final shaders = _pinned(source);
-    expect(loaded, hasLength(9));
+    expect(loaded, hasLength(10));
     for (var i = 0; i < shaders.length; i++) {
       final bytes = loaded![i];
       expect(bytes.length, shaders[i].size, reason: shaders[i].name);
@@ -84,6 +86,7 @@ void main() {
       kAmmAppShaderName,
       kBansShaderName,
       kAirdropAppShaderName,
+      kAirdropV3AppShaderName,
       kMinterAppShaderName,
       kBlackHoleAppShaderName,
       kPipeAppShaderName,

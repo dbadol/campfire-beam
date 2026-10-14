@@ -23,6 +23,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../l10n/l10n.dart';
 import '../../bridge/bridge_fees.dart';
 import '../../bridge/bridge_routes.dart';
 import '../../bridge/bridge_sides.dart';
@@ -71,10 +72,9 @@ class BridgePriceFeed {
       }
     }
     if (lookupsAllowed?.call() == false) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.noPrice,
-        'Price lookups are off in Settings, so the bridge fee cannot be '
-        'worked out.',
+        appL10n.bridgePriceLookupsOff,
       );
     }
     if (!_fresh(ids)) {
@@ -89,8 +89,7 @@ class BridgePriceFeed {
       if (prices.of(id) == null) {
         throw BridgeException(
           BridgeErrorCode.noPrice,
-          'CoinGecko gave no price for $id, so the bridge fee cannot be '
-          'worked out.',
+          appL10n.bridgePriceMissing(id),
         );
       }
     }
@@ -120,21 +119,18 @@ class BridgePriceFeed {
     } catch (e) {
       throw BridgeException(
         BridgeErrorCode.noPrice,
-        'Prices could not be read ($e).',
+        appL10n.bridgePriceReadFailed('$e'),
       );
     } finally {
       client.close();
     }
     if (response.statusCode == 429) {
-      throw const BridgeException(
-        BridgeErrorCode.noPrice,
-        'CoinGecko is busy (too many requests); try again in a minute.',
-      );
+      throw BridgeException(BridgeErrorCode.noPrice, appL10n.bridgePriceBusy);
     }
     if (response.statusCode != 200) {
       throw BridgeException(
         BridgeErrorCode.noPrice,
-        'CoinGecko answered HTTP ${response.statusCode}.',
+        appL10n.bridgePriceHttp('${response.statusCode}'),
       );
     }
     final usd = <String, double>{};
@@ -145,9 +141,9 @@ class BridgePriceFeed {
         if (v is num && v.isFinite && v > 0) usd[key] = v.toDouble();
       }
     } catch (_) {
-      throw const BridgeException(
+      throw BridgeException(
         BridgeErrorCode.noPrice,
-        'CoinGecko did not answer with prices.',
+        appL10n.bridgePriceNoPrices,
       );
     }
     _usd = usd;

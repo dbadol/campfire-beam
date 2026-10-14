@@ -17,6 +17,7 @@ import 'package:meta/meta.dart';
 import 'package:mutex/mutex.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../models/paymint/fee_object_model.dart';
@@ -69,9 +70,15 @@ import '../intermediate/bip39_wallet.dart';
 import '../intermediate/external_wallet.dart';
 import '../supporting/beam_wallet_info_extension.dart';
 
-/// What a freshly restored BEAM wallet tells the user (restore flows). The
-/// balance reads 0 until the scan finds the coins; that must not look like
-/// a loss (ARCHITECTURE.md §4.5).
+/// What a freshly restored BEAM wallet tells the user (restore flows), in
+/// the language the app speaks (walletRestoreScanning). The balance reads 0
+/// until the scan finds the coins; that must not look like a loss
+/// (ARCHITECTURE.md §4.5).
+String get beamRestoreScanningMessage => appL10n.walletRestoreScanning;
+
+/// [beamRestoreScanningMessage] in English, as a constant: only for the
+/// default value of `BeamRestoreSucceededDialog.message` until that reads
+/// [beamRestoreScanningMessage] instead.
 const String kBeamRestoreScanningMessage =
     "Campfire is looking for your coins on the BEAM network. Your balance "
     "fills in as they are found, usually within an hour. Payments from "
@@ -379,7 +386,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
     // Rebuilding deletes wallet.db and makes a new one from the phrase. An
     // imported wallet has no phrase: its file is all there is.
     if (isImportedFromFile) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamWalletMessages.importedNoRescan,
       );
@@ -392,7 +399,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       if (wasOpen && !await _closeForMaintenance()) {
         // The core still has wallet.db open: the file stays as it is.
         _ensureOpening();
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.walletInUse,
           BeamWalletMessages.rescanCoreStillOpen,
         );
@@ -415,7 +422,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
   /// The core's history when it is open, Campfire's copy of it otherwise.
   Future<void> _checkNothingInFlight() async {
     if (_gate.isBusy) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamWalletMessages.rescanWhileBusy,
       );
@@ -440,7 +447,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       }
     }
     if (unsettled) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
         BeamWalletMessages.rescanWithTxInFlight,
       );
@@ -479,14 +486,14 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       final host = await _hostOrThrow();
       final dir = await _walletDir();
       if (!await beamWalletFileExists(dir)) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.walletFileMissing,
           BeamWalletMessages.walletFileMissing,
         );
       }
       final password = await _secrets.readPassword();
       if (password == null || password.isEmpty) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.passwordMissing,
           BeamWalletMessages.passwordMissing,
         );
@@ -711,7 +718,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
   Future<void> _createWalletFile(String dir, {required bool restore}) async {
     final words = await getMnemonicAsWords();
     if (words.length != 12 || !bip39.validateMnemonic(words.join(' '))) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.invalidPhrase,
         BeamWalletMessages.invalidPhrase,
       );
@@ -1487,7 +1494,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
   BeamApi _requireApi() =>
       _api ??
       (throw _problem ??
-          const BeamWalletException(
+          BeamWalletException(
             BeamWalletProblem.notOpen,
             BeamWalletMessages.notOpen,
           ));
@@ -1504,9 +1511,9 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
     }
     final assetId = decoded is Map ? decoded['assetId'] : null;
     if (assetId != null && assetId != 0) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.other,
-        'Sending Confidential Assets is not available yet.',
+        appL10n.walletSendAssetsUnavailable,
       );
     }
   }
@@ -1523,9 +1530,9 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
     try {
       final recipients = txData.recipients;
       if (recipients == null || recipients.length != 1) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
-          'A BEAM payment goes to one address at a time.',
+          appL10n.walletSendOneAddress,
         );
       }
       _checkBeamOnly(txData);
@@ -1537,9 +1544,9 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
 
       final validation = await api.validateAddress(address);
       if (!validation.isValid) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.invalidAddress,
-          "That address isn't valid or has expired. Ask for a new one.",
+          appL10n.walletSendInvalidAddress,
         );
       }
       BeamSendRules.checkAddressType(validation.type);
@@ -1597,9 +1604,9 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       final recipient = txData.recipients?.singleOrNull;
       final fee = txData.fee;
       if (recipient == null || fee == null) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
-          'This payment was not prepared. Go back and review it again.',
+          appL10n.walletSendNotPrepared,
         );
       }
       _checkBeamOnly(txData);
@@ -1607,10 +1614,9 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
         BeamSendRules.checkAddress(recipient.address),
       );
       if (fee.raw < mode.minimumFee) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
-          'The fee changed for this kind of address. Go back and review '
-          'the payment again.',
+          appL10n.walletSendFeeChanged,
         );
       }
       final api = _requireApi();
@@ -1636,7 +1642,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
           e.message.toLowerCase().contains('funds')
               ? BeamWalletProblem.insufficientFunds
               : BeamWalletProblem.sendRejected,
-          'The payment was not sent: ${e.message}',
+          appL10n.walletSendNotSent(e.message),
         );
       } on BeamConnectionException {
         sentId = await _lookUpSent(api, txId);
@@ -1697,7 +1703,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       );
     }
     if (isRestoreScanRunning) {
-      return const BeamWalletException(
+      return BeamWalletException(
         BeamWalletProblem.scanningForCoins,
         BeamSplitMessages.scanning,
       );
@@ -1723,7 +1729,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
       _requireApi();
       BeamSendRules.checkSynced(_assessment);
       if (_isPoolShare(plan.assetId)) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
           BeamSplitMessages.poolShare,
         );
@@ -1753,7 +1759,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
     required BigInt beam,
   }) {
     if (plan.count < 2 || plan.size <= BigInt.zero) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.invalidAmount,
         BeamSplitMessages.tooLittle,
       );
@@ -1782,7 +1788,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
     final lease = _gate.hold('confirm split');
     try {
       if (split.isDiscarded) {
-        throw const BeamWalletException(
+        throw BeamWalletException(
           BeamWalletProblem.other,
           BeamSplitMessages.notPrepared,
         );
@@ -1822,7 +1828,7 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
                     e.message.toLowerCase().contains('missing')
                 ? BeamWalletProblem.insufficientFunds
                 : BeamWalletProblem.sendRejected,
-            'The coins were not split: ${e.message}',
+            appL10n.walletSplitNotSplit(e.message),
           );
         }
       } on BeamConnectionException {
@@ -1845,12 +1851,15 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
   static Future<String> _lookUpSplit(
     BeamApi api,
     String txId, [
-    String message = BeamSplitMessages.outcomeUnknown,
+    String? message,
   ]) async {
     try {
       return (await api.txStatus(txId)).txId;
     } catch (_) {
-      throw BeamWalletException(BeamWalletProblem.sendOutcomeUnknown, message);
+      throw BeamWalletException(
+        BeamWalletProblem.sendOutcomeUnknown,
+        message ?? BeamSplitMessages.outcomeUnknown,
+      );
     }
   }
 
@@ -1858,11 +1867,9 @@ class BeamWallet extends Bip39Wallet<Beam> implements ExternalWallet<Beam> {
     try {
       return (await api.txStatus(txId)).txId;
     } catch (_) {
-      throw const BeamWalletException(
+      throw BeamWalletException(
         BeamWalletProblem.sendOutcomeUnknown,
-        "The connection dropped while sending, so it's not certain whether "
-        'the payment went out. Check your transaction history before '
-        'sending again.',
+        appL10n.walletSendOutcomeUnknown,
       );
     }
   }

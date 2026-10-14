@@ -9,6 +9,7 @@
 
 import 'package:async/async.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../services/event_bus/events/global/node_connection_status_changed_event.dart';
 import '../../../../services/event_bus/events/global/wallet_sync_status_changed_event.dart';
 import '../../../../services/event_bus/global_event_bus.dart';
@@ -87,8 +88,10 @@ class BeamWalletDappLink implements DappWalletLink {
     final m = BeamSyncMessages.describe(wallet.syncAssessment);
     final detail = m.detail;
     if (detail == null) return m.title;
-    final end = m.title.endsWith('.') ? '' : '.';
-    return '${m.title}$end $detail';
+    final title = m.title.endsWith('.')
+        ? m.title
+        : appL10n.dappsTitleAsSentence(m.title);
+    return joinSentences([title, detail]);
   }
 
   @override

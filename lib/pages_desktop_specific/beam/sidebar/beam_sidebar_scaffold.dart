@@ -33,6 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
 import '../../../pages/add_wallet_views/create_or_restore_wallet_view/create_or_restore_wallet_view.dart';
 import '../../../themes/coin_icon_provider.dart';
@@ -128,7 +129,7 @@ class BeamSidebarSubPage extends StatelessWidget {
                 size: 32,
                 color: colors.textFieldDefaultBG,
                 shadows: const [],
-                semanticsLabel: 'Back',
+                semanticsLabel: context.l10n.beamBack,
                 icon: SvgPicture.asset(
                   Assets.svg.arrowLeft,
                   width: 18,
@@ -277,11 +278,14 @@ class SidebarWalletChip extends StatelessWidget {
       ),
     );
     if (!canSwitch) {
-      return Semantics(label: 'Wallet: ${wallet.info.name}', child: chip);
+      return Semantics(
+        label: context.l10n.sidebarWalletChipA11y(wallet.info.name),
+        child: chip,
+      );
     }
     return PopupMenuButton<String>(
       key: const Key('beamSidebarWalletSwitch'),
-      tooltip: 'Switch wallet',
+      tooltip: context.l10n.sidebarSwitchWallet,
       offset: const Offset(0, 46),
       color: colors.popupBG,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -349,6 +353,7 @@ class BeamSidebarWalletPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final wallets = ref.watch(pBeamSidebarWallet).wallets;
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Align(
@@ -363,13 +368,15 @@ class BeamSidebarWalletPicker extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Which wallet?',
+                  l10n.sidebarWhichWallet,
                   style: STextStyles.desktopTextMedium(context),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${destination.label} works with one BEAM wallet at a '
-                  'time. Pick one; you can switch any time at the top right.',
+                  joinSentences([
+                    l10n.sidebarPickerOneWallet(destination.name),
+                    l10n.sidebarPickerHowToSwitch,
+                  ], l10n),
                   style: STextStyles.desktopTextExtraExtraSmall(context),
                 ),
                 const SizedBox(height: 20),
@@ -461,15 +468,16 @@ class BeamSidebarNoWallet extends StatelessWidget {
             const BeamStickerImage(BeamMoments.emptyWallets, size: 140),
             const SizedBox(height: 24),
             Text(
-              'No BEAM wallet yet',
+              context.l10n.sidebarNoWalletTitle,
               style: STextStyles.desktopH3(context),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
             Text(
-              '${destination.label} works from a BEAM wallet. Creating one '
-              'takes about a minute; it lives on this computer and only you '
-              'can open it.',
+              joinSentences([
+                context.l10n.sidebarNoWalletNeedsWallet(destination.name),
+                context.l10n.sidebarNoWalletCreateNote,
+              ], context.l10n),
               style: STextStyles.desktopTextExtraSmall(context).copyWith(
                 color: Theme.of(context)
                     .extension<StackColors>()!
@@ -480,7 +488,7 @@ class BeamSidebarNoWallet extends StatelessWidget {
             const SizedBox(height: 28),
             PrimaryButton(
               key: const Key('beamSidebarCreateWallet'),
-              label: 'Create a BEAM wallet',
+              label: context.l10n.sidebarCreateBeamWallet,
               width: 260,
               onPressed: () =>
                   Navigator.of(context, rootNavigator: true).pushNamed(

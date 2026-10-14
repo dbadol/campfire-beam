@@ -13,14 +13,22 @@
 //         confirmation, which shows the amounts read back from the built
 //         transaction).
 //   Taps: open wallet → Airdrop → Create codes → amount → Create (→ confirm
-//         → PIN): 4 + confirm + PIN, BEAM and 10 codes pre-filled.
+//         → PIN): 4 + confirm + PIN, BEAM, 10 codes and paid claim fees
+//         pre-filled.
 //
-// Exit-intent: "what will this cost?" → the locked total and the 1%
-// fee update as the user types, and the network fee is shown, exact,
-// before confirming; "what if I lose the codes?" → saved on this device
-// before anything is sent, and the next screen says how to keep a copy;
-// "I tapped twice — did I pay twice?" → one batch per tap, guarded here
-// and in the service.
+// Every new batch is made on Airdrop v3: 1 to 100 codes, whose claims never
+// show the code to the network.
+//
+// Exit-intent: "what will this cost?" → the locked total, the 1% fee, the
+// claim fees paid ahead and the network fee update as the user types, with
+// what leaves the wallet in total; the confirmation shows the same figures
+// read back from the built transaction; "my friends have no BEAM for the
+// fee" → "Pay the claim fee for each code" is on by default (0.022 BEAM
+// per code), one tap turns it off; "can I share them right away?" → said
+// before the button: the codes are checked on the network first, a few
+// minutes after the batch is confirmed; "what if I lose the codes?" → saved
+// on this device before anything is sent; "I tapped twice — did I pay
+// twice?" → one batch per tap, guarded here and in the service.
 
 import 'dart:async';
 
@@ -28,6 +36,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/text_styles.dart';
@@ -55,21 +64,33 @@ class BeamCreateAirdropView extends StatefulWidget {
     this.assetNames,
     this.authorize = campfireAuthorizeSpend,
     this.initialAssetId = 0,
+    this.initialValue,
+    this.initialCount,
+    this.initialPrepayClaimFees = true,
     this.clipboard = const ClipboardWrapper(),
     this.exporter = const CampfireAirdropCodesExporter(),
   });
 
   static const routeName = '/beamCreateAirdrop';
-  static const title = 'Create airdrop codes';
+  static String get title => appL10n.airdropCreateTitle;
 
-  /// This wallet's airdrop service; it must have a code store.
-  final BeamAirdropService service;
+  /// This wallet's airdrops; they must have a code store.
+  final BeamAirdrops service;
   final ValueListenable<BeamSyncAssessment> sync;
   final BeamAssetNames? assetNames;
   final BeamSpendAuthorizer authorize;
 
   /// Pre-selected asset (BEAM by default).
   final int initialAssetId;
+
+  /// Pre-filled amount per code and number of codes, when new codes replace
+  /// a batch whose codes failed their check ("Make new codes").
+  final BigInt? initialValue;
+  final int? initialCount;
+
+  /// Whether "Pay the claim fee for each code" starts on (it does, unless a
+  /// replaced batch had it off).
+  final bool initialPrepayClaimFees;
   final ClipboardInterface clipboard;
   final AirdropCodesExporter exporter;
 
@@ -80,10 +101,17 @@ class BeamCreateAirdropView extends StatefulWidget {
 class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
   late final BeamAssetNames _names =
       widget.assetNames ?? BeamAssetNames.fromApi(widget.service.api);
-  final _amount = TextEditingController();
-  final _count = TextEditingController(text: '10');
+  late final _amount = TextEditingController(
+    text: widget.initialValue == null
+        ? ''
+        : BeamUnits.plain(widget.initialValue!),
+  );
+  late final _count = TextEditingController(
+    text: '${widget.initialCount ?? 10}',
+  );
 
   late int _assetId = widget.initialAssetId;
+  late bool _prepay = widget.initialPrepayClaimFees;
   Map<int, BigInt>? _balances;
   BeamProblem? _loadProblem;
   BeamProblem? _problem;
@@ -120,9 +148,9 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
       setState(
         () => _loadProblem =
             beamTransportProblem(e) ??
-            const BeamProblem(
-              "Couldn't read your balances",
-              'The wallet did not answer. Try again in a moment.',
+            BeamProblem(
+              context.l10n.airdropCreateCantReadTitle,
+              context.l10n.airdropCreateCantReadMessage,
             ),
       );
     }
@@ -137,33 +165,72 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
 
   int? get _n {
     final n = int.tryParse(_count.text.trim());
-    return n != null && n >= 1 && n <= kAirdropMaxVouchersPerBatch ? n : null;
+    return n != null && n >= 1 && n <= kAirdropV3MaxVouchersPerBatch ? n : null;
   }
 
   String? get _countProblem {
     if (_count.text.trim().isEmpty) return null;
-    return _n == null ? 'Choose 1 to $kAirdropMaxVouchersPerBatch codes' : null;
+    return _n == null
+        ? context.l10n.airdropCreateCountProblem(kAirdropV3MaxVouchersPerBatch)
+        : null;
   }
 
   BigInt? get _value => BeamUnits.parse(_amount.text);
 
-  /// (total locked, 1% fee) for valid input.
-  (BigInt, BigInt)? get _totals {
+  /// The largest amount a call's funds carry (signed 64-bit).
+  static final _maxFunds = (BigInt.one << 63) - BigInt.one;
+
+  /// What the batch costs, for valid input: locked for the codes, the 1%
+  /// fee, the claim fees paid ahead and the network fee (the fee the
+  /// service requires the built transaction to carry, exactly).
+  ({BigInt total, BigInt fee, BigInt gas, BigInt network})? get _plan {
     final v = _value;
     final n = _n;
     if (v == null || n == null) return null;
     final total = v * BigInt.from(n);
-    if (total > AirdropFee.maxTotal) return null;
-    return (total, AirdropFee.creationFee(total));
+    if (total > _maxFunds) return null;
+    final fee = AirdropV3Fee.creationFee(total);
+    final gas = _prepay
+        ? kAirdropV3GasPerVoucher * BigInt.from(n)
+        : BigInt.zero;
+    if (total + fee + (_assetId == 0 ? gas : BigInt.zero) > _maxFunds) {
+      return null;
+    }
+    return (total: total, fee: fee, gas: gas, network: AirdropV3Fee.create(n));
   }
 
+  BigInt get _beamAvailable => _balances?[0] ?? BigInt.zero;
+
   String? get _fundsProblem {
-    final t = _totals;
-    if (t == null || _balances == null) return null;
-    final (total, fee) = t;
-    if (total + fee <= _available) return null;
-    return 'You have ${_names.amount(_assetId, _available)}: not enough for '
-        '${_n!} codes plus the 1% fee.';
+    final p = _plan;
+    if (p == null || _balances == null) return null;
+    final lock = p.total + p.fee;
+    final beam = p.gas + p.network;
+    String b(BigInt v) => BeamUnits.withSymbol(v, 'BEAM');
+    final l10n = context.l10n;
+    if (_assetId == 0) {
+      if (lock + beam <= _available) return null;
+      return l10n.airdropCreateNeedsBeam(b(lock + beam), b(_available));
+    }
+    if (lock > _available) {
+      return l10n.airdropCreateNeedsAsset(
+        _names.amount(_assetId, lock),
+        _names.amount(_assetId, _available),
+      );
+    }
+    if (beam > _beamAvailable) {
+      return p.gas > BigInt.zero
+          ? l10n.airdropCreateFeesNeedBeam(b(beam), b(_beamAvailable))
+          : l10n.airdropCreateNetworkFeeNeedsBeam(b(beam), b(_beamAvailable));
+    }
+    return null;
+  }
+
+  /// Which asset runs short, for the notice's title.
+  String get _shortSymbol {
+    final p = _plan;
+    if (_assetId == 0 || p == null) return _names.symbol(_assetId);
+    return p.total + p.fee > _available ? _names.symbol(_assetId) : 'BEAM';
   }
 
   Future<void> _pickAsset() async {
@@ -171,7 +238,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
       context: context,
       assets: _held,
       names: _names,
-      title: 'What to give away',
+      title: context.l10n.airdropCreateWhatToGive,
     );
     if (picked != null && mounted) setState(() => _assetId = picked);
   }
@@ -186,11 +253,12 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
       _preparing = true;
       _problem = null;
     });
-    BeamPreparedAirdropCall? p;
+    AirdropPreparedCall? p;
     try {
       p = await widget.service.prepareCreateBatch(
         assetId: _assetId,
         values: List.filled(n, v),
+        prepayClaimFees: _prepay,
       );
     } catch (e) {
       if (mounted) setState(() => _problem = airdropProblem(e));
@@ -219,10 +287,12 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
         MaterialPageRoute<void>(
           builder: (_) => BeamAirdropCodesView(
             service: widget.service,
-            localId: p!.saved!.localId,
+            localId: p!.savedLocalId!,
             assetNames: _names,
             justCreated: true,
             notice: sent.problem,
+            sync: widget.sync,
+            authorize: widget.authorize,
             clipboard: widget.clipboard,
             exporter: widget.exporter,
           ),
@@ -231,33 +301,58 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
     );
   }
 
+  static String _beam(BigInt g) => BeamUnits.withSymbol(g, 'BEAM');
+
+  /// "Pay the claim fee for each code": on by default, so people with an
+  /// empty wallet can claim (README "Gasless claims", prepaid gas).
+  Widget _prepayToggle(BuildContext context) {
+    final colors = Theme.of(context).extension<StackColors>()!;
+    return RoundedWhiteContainer(
+      key: const ValueKey('create-prepay'),
+      padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+      onPressed: () => setState(() => _prepay = !_prepay),
+      child: Row(
+        children: [
+          Checkbox(
+            key: const ValueKey('create-prepay-box'),
+            value: _prepay,
+            onChanged: (v) => setState(() => _prepay = v ?? false),
+            activeColor: colors.checkboxBGChecked,
+            checkColor: colors.checkboxIconChecked,
+          ),
+          Expanded(
+            child: Text(
+              context.l10n.airdropCreatePrepayClaimFees(
+                BeamUnits.withSymbol(kAirdropV3GasPerVoucher, 'BEAM'),
+              ),
+              style: STextStyles.itemSubtitle12(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => BeamSyncGate(
     sync: widget.sync,
     builder: (context, sync) {
-      final totals = _totals;
+      final plan = _plan;
       final n = _n;
       final valid =
-          totals != null &&
+          plan != null &&
           _fundsProblem == null &&
           _balances != null &&
           _available > BigInt.zero;
+      final l10n = context.l10n;
       return BeamPageScaffold(
         title: BeamCreateAirdropView.title,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Lock tokens into one-time codes. Whoever gets a code can claim '
-              'its tokens once.',
+              l10n.airdropCreateIntro,
               style: STextStyles.itemSubtitle(context),
-            ),
-            const BeamGap(16),
-            const BeamNotice(
-              key: ValueKey('create-bearer-warning'),
-              kind: BeamNoticeKind.warning,
-              title: AirdropBearerText.createTitle,
-              message: AirdropBearerText.createMessage,
             ),
             const BeamGap(16),
             if (_loadProblem != null) ...[
@@ -265,20 +360,22 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
                 kind: BeamNoticeKind.danger,
                 title: _loadProblem!.title,
                 message: _loadProblem!.message,
-                actionLabel: 'Try again',
+                actionLabel: l10n.commonTryAgain,
                 onAction: _loadBalances,
               ),
               const BeamGap(),
             ],
-            const BeamLabel('What to give away'),
+            BeamLabel(l10n.airdropCreateWhatToGive),
             RoundedWhiteContainer(
               key: const ValueKey('create-asset'),
               onPressed: _held.length > 1 ? _pickAsset : null,
               child: BeamAssetTitle(
                 display: _names.display(_assetId),
                 subtitle: _balances == null
-                    ? 'Reading your balance…'
-                    : 'You have ${_names.amount(_assetId, _available)}',
+                    ? l10n.airdropCreateReadingBalance
+                    : l10n.beamAssetYouHave(
+                        _names.amount(_assetId, _available),
+                      ),
                 trailing: _held.length > 1
                     ? Icon(
                         Icons.expand_more_rounded,
@@ -298,7 +395,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
                   child: BeamTextField(
                     fieldKey: const ValueKey('create-amount'),
                     controller: _amount,
-                    label: 'Each code gives',
+                    label: l10n.airdropEachCodeGives,
                     hint: '0.1',
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -323,7 +420,7 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
                   child: BeamTextField(
                     fieldKey: const ValueKey('create-count'),
                     controller: _count,
-                    label: 'Number of codes',
+                    label: l10n.airdropNumberOfCodes,
                     hint: '10',
                     keyboardType: TextInputType.number,
                     inputFormatters: [
@@ -336,38 +433,85 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
                 ),
               ],
             ),
-            const BeamGap(16),
-            if (totals != null)
+            const BeamGap(12),
+            _prepayToggle(context),
+            const BeamGap(12),
+            if (plan != null) ...[
               BeamDetailCard(
                 children: [
                   BeamDetailRow(
-                    label: 'Locked for the codes',
-                    value: _names.amount(_assetId, totals.$1),
+                    label: l10n.airdropLockedForCodes,
+                    value: _names.amount(_assetId, plan.total),
                     detail: '$n × ${_names.amount(_assetId, _value!)}',
                     valueKey: const ValueKey('create-locked'),
                   ),
                   BeamDetailRow(
-                    label: 'Airdrop fee (1%)',
-                    value: _names.amount(_assetId, totals.$2),
+                    label: l10n.airdropFeeLabel,
+                    value: _names.amount(_assetId, plan.fee),
+                    detail: l10n.airdropConfirmFeeKept,
                     valueKey: const ValueKey('create-fee'),
                   ),
-                  const BeamDetailRow(
-                    label: 'Network fee',
-                    value: 'Shown before you confirm',
+                  if (_prepay)
+                    BeamDetailRow(
+                      label: l10n.airdropConfirmClaimFeesLabel,
+                      value: BeamUnits.withSymbol(plan.gas, 'BEAM'),
+                      detail:
+                          '$n × '
+                          '${_beam(kAirdropV3GasPerVoucher)}',
+                      valueKey: const ValueKey('create-gas'),
+                    ),
+                  BeamDetailRow(
+                    label: l10n.beamNetworkFee,
+                    value: BeamUnits.withSymbol(plan.network, 'BEAM'),
+                    valueKey: const ValueKey('create-network-fee'),
                   ),
                 ],
               ),
+              const BeamGap(8),
+              BeamTotalRow(
+                confirm: false,
+                label: l10n.airdropLeavesWallet,
+                value: _assetId == 0
+                    ? BeamUnits.withSymbol(
+                        plan.total + plan.fee + plan.gas + plan.network,
+                        'BEAM',
+                      )
+                    : '${_names.amount(_assetId, plan.total + plan.fee)} + '
+                          '${_beam(plan.gas + plan.network)}',
+                valueKey: const ValueKey('create-total'),
+              ),
+            ],
             if (_fundsProblem != null) ...[
               const BeamGap(),
               BeamNotice(
                 key: const ValueKey('create-funds-problem'),
                 kind: BeamNoticeKind.danger,
-                title: 'Not enough ${_names.symbol(_assetId)}',
-                message:
-                    '${_fundsProblem!} Lower the amount or the number '
-                    'of codes.',
+                title: l10n.airdropCreateNotEnoughTitle(_shortSymbol),
+                message: joinSentences([
+                  _fundsProblem,
+                  _prepay
+                      ? l10n.airdropCreateLowerAmountOrNoClaimFees
+                      : l10n.airdropCreateLowerAmount,
+                ], l10n),
               ),
             ],
+            const BeamGap(),
+            // What a code is, closest to the button (the scariest question
+            // sits next to the action).
+            BeamNotice(
+              key: const ValueKey('create-bearer-warning'),
+              kind: BeamNoticeKind.warning,
+              title: AirdropBearerText.createTitle,
+              message: AirdropBearerText.createMessageV3,
+            ),
+            const BeamGap(8),
+            Text(
+              _prepay
+                  ? l10n.airdropCreateCheckNoteWithFees
+                  : l10n.airdropCreateCheckNote,
+              key: const ValueKey('create-check-note'),
+              style: STextStyles.label(context),
+            ),
             if (_problem != null) ...[
               const BeamGap(),
               BeamNotice(
@@ -383,12 +527,14 @@ class _BeamCreateAirdropViewState extends State<BeamCreateAirdropView> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            BeamSyncNotice(sync: sync, what: 'Creating codes'),
+            BeamSyncNotice(sync: sync, action: BeamPausedAction.creatingCodes),
             BeamCtaBar(
               primaryKey: const ValueKey('create-cta'),
-              label: n == null ? 'Create codes' : 'Create $n codes',
+              label: n == null
+                  ? l10n.airdropCreateCodesCtaNoCount
+                  : l10n.airdropCreateCodesCta(n),
               busy: _preparing,
-              busyLabel: 'Preparing…',
+              busyLabel: l10n.airdropPreparing,
               onPressed: valid && sync.canSpend ? _create : null,
             ),
           ],

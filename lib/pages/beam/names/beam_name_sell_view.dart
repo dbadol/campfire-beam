@@ -22,6 +22,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/constants.dart';
 import '../../../utilities/text_styles.dart';
@@ -123,6 +124,7 @@ class _BeamNameSellViewState extends State<BeamNameSellView> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final until = NamesFormat.date(
       widget.clock.dateOf(widget.domain.expireHeight),
     );
@@ -132,20 +134,18 @@ class _BeamNameSellViewState extends State<BeamNameSellView> {
     );
     return NamesPage(
       deps: deps,
-      title: 'Sell $_name',
+      title: l10n.namesSellName(_name),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           NamesSyncBanner(deps: deps),
           Text(
-            'Anyone can buy $_name instantly at the price you set, without '
-            'asking you. The payment waits for you on the Names screen, '
-            'where you claim it.',
+            l10n.namesSellIntro(_name),
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.textDark3),
           ),
           const SizedBox(height: 16),
-          const NamesSectionLabel('Price'),
+          NamesSectionLabel(l10n.namesPriceLabel),
           Row(
             children: [
               Expanded(
@@ -210,19 +210,19 @@ class _BeamNameSellViewState extends State<BeamNameSellView> {
             child: Column(
               children: [
                 NamesDetailRow(
-                  label: 'The buyer gets',
-                  value: '$_name until ≈ $until',
+                  label: l10n.namesRowBuyerGets,
+                  value: l10n.namesBuyerGetsValue(_name, until),
                 ),
-                const NamesDetailRow(
-                  label: 'To list it',
-                  value: '≈ 0.011 BEAM network fee',
+                NamesDetailRow(
+                  label: l10n.namesRowToListIt,
+                  value: l10n.namesListFeeValue,
                 ),
               ],
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'You can stop selling at any time until someone buys it.',
+            l10n.namesSellStopAnytime,
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.textSubtitle1),
           ),
@@ -231,7 +231,7 @@ class _BeamNameSellViewState extends State<BeamNameSellView> {
             NamesNotice(
               key: const Key('names-sell-error'),
               kind: NamesNoticeKind.error,
-              title: "Couldn't prepare the listing",
+              title: l10n.namesCouldntPrepareListing,
               detail: _error,
             ),
           ],
@@ -241,13 +241,13 @@ class _BeamNameSellViewState extends State<BeamNameSellView> {
         deps: deps,
         buttonKey: const Key('names-sell-cta'),
         label: _preparing
-            ? 'Preparing…'
+            ? l10n.namesPreparing
             : _amount == null
-            ? 'List $_name for sale'
-            : 'List $_name for $_priceText',
+            ? l10n.namesListForSale(_name)
+            : l10n.namesListNameFor(_name, _priceText),
         onPressed: _amount == null || _preparing ? null : _list,
         reason: _amount == null && !_preparing
-            ? 'Enter the price you want for $_name.'
+            ? l10n.namesSellEnterPrice(_name)
             : null,
       ),
     );

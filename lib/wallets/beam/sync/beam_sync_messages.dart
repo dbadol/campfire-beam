@@ -14,6 +14,8 @@
 /// Every message that blocks sending says so and names the next step.
 library;
 
+import '../../../l10n/amount_text.dart';
+import '../../../l10n/l10n.dart';
 import 'beam_sync_state.dart';
 
 /// What to show for one assessment.
@@ -37,49 +39,37 @@ class BeamSyncMessage {
 }
 
 abstract final class BeamSyncMessages {
-  static const _sendingPaused = "Sending is paused until it's done.";
-  static const _sendingOff = 'Sending is off until this is fixed.';
-
   /// The degraded "synced" state ([BeamSynced.verified] false): the node is
   /// connected and current, but no second source could confirm the height.
-  static const String unverifiedDetail =
-      "Can't double-check with the network right now. Your node is "
-      'connected and has the latest blocks, so sending works.';
+  static String get unverifiedDetail => appL10n.syncUnverifiedDetail;
 
   static BeamSyncMessage describe(BeamSyncAssessment a) {
+    final l = appL10n;
     final private = a.node == BeamNodeKind.privateNode;
     final label = actionLabel(a.action);
     return switch (a) {
       BeamSyncConnecting() => BeamSyncMessage(
-        title: private
-            ? 'Connecting to your private node'
-            : 'Connecting to the BEAM network',
-        detail: 'This usually takes a few seconds.',
+        title: private ? l.syncConnectingPrivate : l.syncConnectingPublic,
+        detail: l.syncConnectingDetail,
         actionLabel: label,
       ),
       BeamSyncNotConnected(:final networkReachable) => BeamSyncMessage(
-        title: private
-            ? "Can't reach your private node"
-            : "Can't reach the network",
+        title: private ? l.syncCantReachPrivate : l.syncCantReachNetwork,
         detail: private
-            ? 'It isn\'t answering. Switch to a public node to keep using '
-                  'the wallet. $_sendingOff'
+            ? l.syncPrivateNotAnsweringDetail
             : networkReachable
-            ? "The BEAM node you're using isn't answering. $_sendingOff"
-            : 'Check your internet connection. The wallet keeps trying on '
-                  'its own.',
+            ? l.syncNodeNotAnsweringDetail
+            : l.syncCheckInternetDetail,
         actionLabel: label,
       ),
       BeamSyncCatchingUp() => BeamSyncMessage(
-        title: private
-            ? 'Your private node is catching up'
-            : 'Catching up with the network',
+        title: private ? l.syncCatchingUpPrivate : l.syncCatchingUpPublic,
         detail: _catchingUpDetail(a),
         actionLabel: label,
       ),
       BeamSyncStalled() => _stalled(a, private, label),
       BeamSynced(:final verified) => BeamSyncMessage(
-        title: 'Up to date',
+        title: l.syncUpToDate,
         detail: verified ? null : unverifiedDetail,
         actionLabel: label,
       ),
@@ -89,29 +79,30 @@ abstract final class BeamSyncMessages {
   /// Button text per action; null when the user has nothing to press.
   static String? actionLabel(BeamSyncAction action) => switch (action) {
     BeamSyncAction.none || BeamSyncAction.wait => null,
-    BeamSyncAction.tryAnotherNode => 'Try another node',
-    BeamSyncAction.usePublicNode => 'Use a public node',
-    BeamSyncAction.checkInternet => 'Try again',
-    BeamSyncAction.reconnect => 'Reconnect',
-    BeamSyncAction.fixDeviceClock => 'Check again',
+    BeamSyncAction.tryAnotherNode => appL10n.syncActionTryAnotherNode,
+    BeamSyncAction.usePublicNode => appL10n.syncActionUsePublicNode,
+    BeamSyncAction.checkInternet => appL10n.syncActionTryAgain,
+    BeamSyncAction.reconnect => appL10n.syncActionReconnect,
+    BeamSyncAction.fixDeviceClock => appL10n.syncActionCheckAgain,
   };
 
   static String _catchingUpDetail(BeamSyncCatchingUp a) {
+    final l = appL10n;
     if (a.walletHeight == null && a.blocksBehind == null) {
-      return 'Reading the BEAM network from the start, which takes a while '
-          'the first time. $_sendingPaused';
+      return l.syncReadingFromStartDetail;
     }
-    final parts = <String>[];
     final behind = a.blocksBehind;
-    if (behind != null && behind > 0) {
-      parts.add('${behindBy(behind, a.blockInterval)}.');
-    } else {
-      parts.add('Getting the latest blocks.');
-    }
     final eta = a.eta;
-    if (eta != null) parts.add('${_capitalize(approxDuration(eta))} left.');
-    parts.add(_sendingPaused);
-    return parts.join(' ');
+    return joinSentences([
+      behind != null && behind > 0
+          ? l.syncBehindBySentence(
+              blockCount(behind),
+              approxDuration(a.blockInterval * behind),
+            )
+          : l.syncGettingLatestBlocks,
+      if (eta != null) timeLeft(eta),
+      l.syncSendingPaused,
+    ]);
   }
 
   static BeamSyncMessage _stalled(
@@ -119,105 +110,126 @@ abstract final class BeamSyncMessages {
     bool private,
     String? label,
   ) {
+    final l = appL10n;
+    final node = private ? 'private' : 'other';
     final behind = a.blocksBehind;
-    final behindText = behind != null && behind > 0
-        ? ' ${behindBy(behind, a.blockInterval)}.'
-        : '';
-    final who = private ? 'Your private node' : 'Your node';
+    final behindSentence = behind != null && behind > 0
+        ? l.syncBehindBySentence(
+            blockCount(behind),
+            approxDuration(a.blockInterval * behind),
+          )
+        : null;
     switch (a.reason) {
       case BeamStallReason.stuckBelowHardFork:
         final at = a.walletHeight;
-        final stoppedAt = at == null
-            ? ''
-            : ' and this node stopped at block ${number(at)}';
         return BeamSyncMessage(
-          title: '$who is stuck on an old version of the BEAM network',
-          detail:
-              'BEAM upgraded at block ${number(a.forkHeight)}$stoppedAt.'
-              '$behindText Balances are out of date. $_sendingOff',
+          title: l.syncStuckOldVersionTitle(node),
+          detail: joinSentences([
+            at == null
+                ? l.syncUpgradedAtBlock(number(a.forkHeight))
+                : l.syncUpgradedAtBlockStoppedAt(
+                    number(a.forkHeight),
+                    number(at),
+                  ),
+            behindSentence,
+            l.syncOutOfDateSendingOff,
+          ]),
           actionLabel: label,
         );
       case BeamStallReason.tipTooOld:
         final age = a.tipAge;
-        final newest = age == null
-            ? 'Its newest block is old'
-            : 'Its newest block is ${approxDuration(age)} old';
         return BeamSyncMessage(
-          title: '$who stopped receiving new blocks',
-          detail:
-              '$newest.$behindText Balances may be out of date. '
-              '$_sendingOff',
+          title: l.syncNoNewBlocksTitle(node),
+          detail: joinSentences([
+            age == null
+                ? l.syncNewestBlockOld
+                : l.syncNewestBlockAge(approxDuration(age)),
+            behindSentence,
+            l.syncMayBeOutOfDateSendingOff,
+          ]),
           actionLabel: label,
         );
       case BeamStallReason.headerAheadOfProcessed:
         final lag = a.headerLag;
-        final known = lag == null
-            ? 'It knows about newer blocks'
-            : "It knows about ${_blocks(lag)} it hasn't processed";
         return BeamSyncMessage(
-          title: "The wallet isn't processing new blocks",
-          detail: '$known. Balances may be out of date. $_sendingOff',
+          title: l.syncNotProcessingTitle,
+          detail: joinSentences([
+            lag == null
+                ? l.syncKnowsNewerBlocks
+                : l.syncKnowsUnprocessedBlocks(lag, number(lag)),
+            l.syncMayBeOutOfDateSendingOff,
+          ]),
           actionLabel: label,
         );
       case BeamStallReason.behindNetwork:
         return BeamSyncMessage(
-          title: '$who disagrees with the rest of the network',
-          detail:
-              'It looks up to date, but other BEAM nodes are further '
-              'ahead.$behindText $_sendingOff',
+          title: l.syncDisagreesTitle(node),
+          detail: joinSentences([
+            l.syncLooksUpToDateButBehind,
+            behindSentence,
+            l.syncSendingOff,
+          ]),
           actionLabel: label,
         );
       case BeamStallReason.deviceClockWrong:
         final offset = a.deviceClockOffset;
-        final direction = offset == null
-            ? 'wrong'
-            : '${approxDuration(offset.abs())} '
-                  '${offset.isNegative ? 'behind' : 'ahead'}';
         return BeamSyncMessage(
-          title: "Your device's clock is wrong",
-          detail:
-              "It's $direction, so the wallet can't tell whether it's up "
-              'to date. Set the date and time to update automatically, '
-              'then check again. $_sendingOff',
+          title: l.syncClockWrongTitle,
+          detail: offset == null
+              ? l.syncClockWrongDetail
+              : offset.isNegative
+              ? l.syncClockBehindDetail(approxDuration(offset.abs()))
+              : l.syncClockAheadDetail(approxDuration(offset.abs())),
           actionLabel: label,
         );
     }
   }
 
   /// "Behind by 42 blocks — about 42 minutes".
-  static String behindBy(int blocks, Duration blockInterval) =>
-      'Behind by ${_blocks(blocks)} — '
-      '${approxDuration(blockInterval * blocks)}';
+  static String behindBy(int blocks, Duration blockInterval) => appL10n
+      .syncBehindBy(blockCount(blocks), approxDuration(blockInterval * blocks));
+
+  /// "1 block", "42 blocks", "139,235 blocks".
+  static String blockCount(int n) => appL10n.syncBlockCount(n, number(n));
 
   /// "less than a minute", "about 1 minute", "about 42 minutes",
   /// "about 1 hour", "about 3 hours", "about 97 days".
   static String approxDuration(Duration d) {
+    final l = appL10n;
     final minutes = d.inSeconds.abs() / 60;
-    if (minutes < 1) return 'less than a minute';
+    if (minutes < 1) return l.syncAboutLessThanMinute;
     if (minutes.round() < 60) {
-      return 'about ${_unit(minutes.round(), 'minute')}';
+      final n = minutes.round();
+      return l.syncAboutMinutes(n, number(n));
     }
     final hours = minutes / 60;
-    if (hours.round() < 36) return 'about ${_unit(hours.round(), 'hour')}';
-    return 'about ${_unit((hours / 24).round(), 'day')}';
-  }
-
-  /// 139235 -> "139,235".
-  static String number(int n) {
-    final digits = n.abs().toString();
-    final out = StringBuffer(n < 0 ? '-' : '');
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) out.write(',');
-      out.write(digits[i]);
+    if (hours.round() < 36) {
+      final n = hours.round();
+      return l.syncAboutHours(n, number(n));
     }
-    return out.toString();
+    final n = (hours / 24).round();
+    return l.syncAboutDays(n, number(n));
   }
 
-  static String _blocks(int n) => n == 1 ? '1 block' : '${number(n)} blocks';
+  /// The sentence for time still to go: "Less than a minute left.",
+  /// "About 42 minutes left.", "About 3 hours left.", "About 2 days left.".
+  static String timeLeft(Duration d) {
+    final l = appL10n;
+    final minutes = d.inSeconds.abs() / 60;
+    if (minutes < 1) return l.syncLeftLessThanMinute;
+    if (minutes.round() < 60) {
+      final n = minutes.round();
+      return l.syncLeftMinutes(n, number(n));
+    }
+    final hours = minutes / 60;
+    if (hours.round() < 36) {
+      final n = hours.round();
+      return l.syncLeftHours(n, number(n));
+    }
+    final n = (hours / 24).round();
+    return l.syncLeftDays(n, number(n));
+  }
 
-  static String _unit(int n, String unit) =>
-      n == 1 ? '1 $unit' : '${number(n)} ${unit}s';
-
-  static String _capitalize(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  /// 139235 -> "139,235" ("139 235" in Russian), grouped like amounts.
+  static String number(int n) => groupThousands(n.toString());
 }

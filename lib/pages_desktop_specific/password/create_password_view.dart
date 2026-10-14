@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:zxcvbn/zxcvbn.dart';
 
+import '../../l10n/l10n.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../providers/desktop/storage_crypto_handler_provider.dart';
 import '../../providers/global/secure_store_provider.dart';
@@ -54,8 +55,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
   late final FocusNode passwordRepeatFocusNode;
   final zxcvbn = Zxcvbn();
 
-  String passwordFeedback =
-      "Add another word or two. Uncommon words are better. Use a few words, avoid common phrases. No need for symbols, digits, or uppercase letters.";
+  String passwordFeedback = appL10n.loginPasswordFeedbackStart;
   bool shouldShowPasswordHint = true;
   bool hidePassword = true;
   double passwordStrength = 0.0;
@@ -77,7 +77,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.warning,
-          message: "A password is required",
+          message: context.l10n.loginPasswordRequired,
           context: context,
         ),
       );
@@ -87,7 +87,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.warning,
-          message: "Password does not match",
+          message: context.l10n.loginPasswordMismatch,
           context: context,
         ),
       );
@@ -98,7 +98,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
       whileFuture() async {
         if (await ref.read(storageCryptoHandlerProvider).hasPassword()) {
           throw Exception(
-            "Tried creating a new password and attempted to overwrite an existing entry!",
+            appL10n.loginPasswordOverwrite,
           );
         }
 
@@ -110,7 +110,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
       await showLoading(
         whileFuture: whileFuture(),
         context: context,
-        message: "Initializing...",
+        message: context.l10n.loginInitializing,
         rootNavigator: true,
         onException: (e) {
           throw e;
@@ -127,7 +127,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
         unawaited(
           showFloatingFlushBar(
             type: FlushBarType.warning,
-            message: "Error: $e",
+            message: context.l10n.loginErrorDetail(e.toString()),
             context: context,
           ),
         );
@@ -155,7 +155,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
       unawaited(
         showFloatingFlushBar(
           type: FlushBarType.success,
-          message: "Your password is set up",
+          message: context.l10n.loginPasswordSetUp,
           context: context,
         ),
       );
@@ -222,14 +222,14 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Create a password",
+                      context.l10n.loginCreateTitle,
                       style: STextStyles.desktopH2(context),
                     ),
                     const SizedBox(
                       height: 16,
                     ),
                     Text(
-                      "Protect your funds with a strong password",
+                      context.l10n.loginCreateSubtitle,
                       style: STextStyles.desktopSubtitleH2(context),
                     ),
                     const SizedBox(
@@ -250,7 +250,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
                         enableSuggestions: false,
                         autocorrect: false,
                         decoration: standardInputDecoration(
-                          "Create password",
+                          context.l10n.loginCreateHint,
                           passwordFocusNode,
                           context,
                         ).copyWith(
@@ -407,7 +407,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
                         enableSuggestions: false,
                         autocorrect: false,
                         decoration: standardInputDecoration(
-                          "Confirm password",
+                          context.l10n.loginConfirmHint,
                           passwordRepeatFocusNode,
                           context,
                         ).copyWith(
@@ -486,7 +486,7 @@ class _CreatePasswordViewState extends ConsumerState<CreatePasswordView> {
                                 .getPrimaryDisabledButtonStyle(context),
                         onPressed: nextEnabled ? _onNextPressedWrapper : null,
                         child: Text(
-                          "Next",
+                          context.l10n.loginNext,
                           style: nextEnabled
                               ? STextStyles.desktopButtonEnabled(context)
                               : STextStyles.desktopButtonDisabled(context),

@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tuple/tuple.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/balance.dart';
 import '../../../notifications/show_flush_bar.dart';
 import '../../../pages/pinpad_views/lock_screen_view.dart';
@@ -155,7 +156,7 @@ class BeamHomeFormat {
     final cent = Decimal.parse('0.01');
     if (exact > Decimal.zero && exact < cent) {
       final c = cent.toAmount(fractionDigits: 2).fiatString(locale: locale);
-      return 'under $c $currency';
+      return appL10n.homeFiatUnder('$c $currency');
     }
     final value = exact.toAmount(fractionDigits: 2);
     return '${value.fiatString(locale: locale)} $currency';
@@ -423,7 +424,10 @@ void openBeamNetworkSettings(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Network', style: STextStyles.desktopH3(context)),
+                        Text(
+                          context.l10n.homeNetworkTitle,
+                          style: STextStyles.desktopH3(context),
+                        ),
                         DesktopDialogCloseButton(
                           onPressedOverride: Navigator.of(
                             context,
@@ -594,14 +598,14 @@ BeamAuthGate beamAuthGate(CryptoCurrency coin, {required bool isDesktop}) =>
         context,
         RouteGenerator.getRoute<bool>(
           shouldUseMaterialRoute: RouteGenerator.useMaterialPageRoute,
-          builder: (_) => const LockscreenView(
+          builder: (context) => LockscreenView(
             showBackButton: true,
             popOnSuccess: true,
             routeOnSuccessArguments: true,
             routeOnSuccess: "",
-            biometricsCancelButtonString: "CANCEL",
-            biometricsLocalizedReason: "Authenticate to claim name payments",
-            biometricsAuthenticationTitle: "Confirm claim",
+            biometricsCancelButtonString: context.l10n.beamAuthCancel,
+            biometricsLocalizedReason: context.l10n.homeClaimAuthReason,
+            biometricsAuthenticationTitle: context.l10n.homeClaimAuthTitle,
           ),
           settings: const RouteSettings(name: "/beamclaimlockscreen"),
         ),

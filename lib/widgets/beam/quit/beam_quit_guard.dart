@@ -25,6 +25,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/node/beam_in_process_node.dart';
 import '../../../wallets/beam/wallet/beam_shutdown.dart';
@@ -45,29 +46,20 @@ bool get kBeamCoreSwapRestartSafe =>
     Platform.isLinux ||
     Platform.isWindows;
 
+/// What the quit dialog says (lib/l10n/app_en.arb, quit* keys).
 abstract final class BeamQuitText {
-  static String title(int count) => count == 1
-      ? 'A swap is still being confirmed'
-      : '$count swaps are still being confirmed';
+  static String title(int count) => appL10n.quitSwapsTitle(count);
 
-  static String body(int count) {
-    final it = count == 1 ? 'it' : 'them';
-    return kBeamCoreSwapRestartSafe
-        ? 'This usually takes under a minute. If you quit now, BEAM may '
-              'cancel $it instead. Nothing is lost if it does.'
-        : 'This usually takes under a minute. Quitting now can make $it '
-              'run again.';
-  }
+  static String body(int count) => kBeamCoreSwapRestartSafe
+      ? appL10n.quitSwapsBodySafe(count)
+      : appL10n.quitSwapsBodyUnsafe(count);
 
-  static const nodeTitle = 'Your private node is finishing a step';
+  static String get nodeTitle => appL10n.quitNodeTitle;
 
-  static String nodeBody(int percent) =>
-      'It is tidying its data after syncing ($percent% done). If you quit '
-      'now, it starts this step over the next time BEAM Campfire opens, '
-      'which can take a while. Your wallet is not affected.';
+  static String nodeBody(int percent) => appL10n.quitNodeBody(percent);
 
-  static const wait = 'Wait';
-  static const quitAnyway = 'Quit anyway';
+  static String get wait => appL10n.quitWait;
+  static String get quitAnyway => appL10n.quitAnyway;
 }
 
 Future<bool>? _asking;
@@ -184,9 +176,7 @@ class _BeamQuitDialogState extends State<BeamQuitDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              _count > 0
-                  ? BeamQuitText.title(_count)
-                  : BeamQuitText.nodeTitle,
+              _count > 0 ? BeamQuitText.title(_count) : BeamQuitText.nodeTitle,
               key: const Key('beamQuitTitle'),
               style: STextStyles.desktopH3(context),
             ),

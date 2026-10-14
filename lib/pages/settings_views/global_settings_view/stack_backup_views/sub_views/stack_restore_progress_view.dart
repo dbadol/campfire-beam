@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../../../app_config.dart';
+import '../../../../../l10n/l10n.dart';
 import '../../../../../pages_desktop_specific/desktop_home_view.dart';
 import '../../../../../pages_desktop_specific/desktop_menu.dart';
 import '../../../../../providers/desktop/current_desktop_menu_item.dart';
@@ -82,7 +83,7 @@ class _StackRestoreProgressViewState
                 color: Colors.transparent,
                 child: Center(
                   child: Text(
-                    "Cancelling restore. Please wait.",
+                    appL10n.appBackupCancelling,
                     style: STextStyles.pageTitleH2(context).copyWith(
                       color: Theme.of(
                         context,
@@ -274,7 +275,7 @@ class _StackRestoreProgressViewState
                 },
               ),
               title: Text(
-                "Restoring ${AppConfig.appName}",
+                context.l10n.appBackupRestoringApp(AppConfig.appName),
                 style: STextStyles.navBarTitle(context),
               ),
             ),
@@ -293,7 +294,7 @@ class _StackRestoreProgressViewState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Settings", style: STextStyles.itemSubtitle(context)),
+              Text(context.l10n.appBackupItemSettings, style: STextStyles.itemSubtitle(context)),
               const SizedBox(height: 12),
               Consumer(
                 builder: (_, ref, __) {
@@ -329,10 +330,10 @@ class _StackRestoreProgressViewState
                             height: 20,
                             child: _getIconForState(state),
                           ),
-                          title: "Preferences",
+                          title: context.l10n.appBackupItemPreferences,
                           subTitle: state == StackRestoringStatus.failed
                               ? Text(
-                                  "Something went wrong",
+                                  context.l10n.appBackupItemFailed,
                                   style: STextStyles.errorSmall(context),
                                 )
                               : null,
@@ -371,10 +372,10 @@ class _StackRestoreProgressViewState
                               height: 20,
                               child: _getIconForState(state),
                             ),
-                            title: "Preferences",
+                            title: context.l10n.appBackupItemPreferences,
                             subTitle: state == StackRestoringStatus.failed
                                 ? Text(
-                                    "Something went wrong",
+                                    context.l10n.appBackupItemFailed,
                                     style: STextStyles.errorSmall(context),
                                   )
                                 : null,
@@ -416,10 +417,10 @@ class _StackRestoreProgressViewState
                             height: 20,
                             child: _getIconForState(state),
                           ),
-                          title: "Address book",
+                          title: context.l10n.appBackupItemAddressBook,
                           subTitle: state == StackRestoringStatus.failed
                               ? Text(
-                                  "Something went wrong",
+                                  context.l10n.appBackupItemFailed,
                                   style: STextStyles.errorSmall(context),
                                 )
                               : null,
@@ -457,10 +458,10 @@ class _StackRestoreProgressViewState
                               height: 20,
                               child: _getIconForState(state),
                             ),
-                            title: "Address book",
+                            title: context.l10n.appBackupItemAddressBook,
                             subTitle: state == StackRestoringStatus.failed
                                 ? Text(
-                                    "Something went wrong",
+                                    context.l10n.appBackupItemFailed,
                                     style: STextStyles.errorSmall(context),
                                   )
                                 : null,
@@ -503,10 +504,10 @@ class _StackRestoreProgressViewState
                             height: 20,
                             child: _getIconForState(state),
                           ),
-                          title: "Nodes",
+                          title: context.l10n.appBackupItemNodes,
                           subTitle: state == StackRestoringStatus.failed
                               ? Text(
-                                  "Something went wrong",
+                                  context.l10n.appBackupItemFailed,
                                   style: STextStyles.errorSmall(context),
                                 )
                               : null,
@@ -545,10 +546,10 @@ class _StackRestoreProgressViewState
                               height: 20,
                               child: _getIconForState(state),
                             ),
-                            title: "Nodes",
+                            title: context.l10n.appBackupItemNodes,
                             subTitle: state == StackRestoringStatus.failed
                                 ? Text(
-                                    "Something went wrong",
+                                    context.l10n.appBackupItemFailed,
                                     style: STextStyles.errorSmall(context),
                                   )
                                 : null,
@@ -591,10 +592,10 @@ class _StackRestoreProgressViewState
                             height: 20,
                             child: _getIconForState(state),
                           ),
-                          title: "Exchange history",
+                          title: context.l10n.appBackupItemExchangeHistory,
                           subTitle: state == StackRestoringStatus.failed
                               ? Text(
-                                  "Something went wrong",
+                                  context.l10n.appBackupItemFailed,
                                   style: STextStyles.errorSmall(context),
                                 )
                               : null,
@@ -633,10 +634,10 @@ class _StackRestoreProgressViewState
                               height: 20,
                               child: _getIconForState(state),
                             ),
-                            title: "Exchange history",
+                            title: context.l10n.appBackupItemExchangeHistory,
                             subTitle: state == StackRestoringStatus.failed
                                 ? Text(
-                                    "Something went wrong",
+                                    context.l10n.appBackupItemFailed,
                                     style: STextStyles.errorSmall(context),
                                   )
                                 : null,
@@ -645,7 +646,7 @@ class _StackRestoreProgressViewState
                 },
               ),
               const SizedBox(height: 16),
-              Text("Wallets", style: STextStyles.itemSubtitle(context)),
+              Text(context.l10n.appBackupItemWallets, style: STextStyles.itemSubtitle(context)),
               const SizedBox(height: 8),
               ...ref
                   .watch(
@@ -684,7 +685,7 @@ class _StackRestoreProgressViewState
                             .extension<StackColors>()!
                             .getPrimaryEnabledButtonStyle(context),
                         child: Text(
-                          _success ? "OK" : "Cancel restore process",
+                          _success ? context.l10n.commonOk : context.l10n.appBackupCancelRestoreTitlePhone,
                           style: STextStyles.button(context).copyWith(
                             color: Theme.of(
                               context,
@@ -700,7 +701,7 @@ class _StackRestoreProgressViewState
                                   width: 248,
                                   buttonHeight: ButtonHeight.l,
                                   enabled: true,
-                                  label: "Done",
+                                  label: context.l10n.commonDone,
                                   onPressed: () async {
                                     const DesktopMenuItemId keyID = .myStack;
 
@@ -737,7 +738,7 @@ class _StackRestoreProgressViewState
                                   width: 248,
                                   buttonHeight: ButtonHeight.l,
                                   enabled: true,
-                                  label: "Cancel restore process",
+                                  label: context.l10n.appBackupCancelRestoreTitlePhone,
                                   onPressed: () async {
                                     if (await _requestCancel()) {
                                       await _cancel();

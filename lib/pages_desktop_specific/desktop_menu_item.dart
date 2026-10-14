@@ -372,7 +372,7 @@ class _DesktopMenuItemState<T> extends ConsumerState<DesktopMenuItem<T>>
                     children: [
                       const SizedBox(width: 12),
                       Text(
-                        label,
+                        widget.label,
                         style: value == group
                             ? STextStyles.desktopMenuItemSelected(context)
                             : STextStyles.desktopMenuItem(context),

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/beam_app_identity.dart';
 import '../../utilities/text_styles.dart';
@@ -75,9 +76,10 @@ class _ForgotPasswordDesktopViewState
                 SizedBox(
                   width: 400,
                   child: Text(
-                    "${AppConfig.appName} does not store your password. "
-                    "Create new wallet or use a ${AppConfig.prefix} "
-                    "backup file to restore your wallet.",
+                    context.l10n.loginForgotMessage(
+                      AppConfig.appName,
+                      AppConfig.prefix,
+                    ),
                     textAlign: TextAlign.center,
                     style: STextStyles.desktopTextSmall(context).copyWith(
                       color: Theme.of(context)
@@ -90,7 +92,7 @@ class _ForgotPasswordDesktopViewState
                   height: 48,
                 ),
                 PrimaryButton(
-                  label: "Create new ${AppConfig.prefix}",
+                  label: context.l10n.introCreateNew(AppConfig.prefix),
                   onPressed: () {
                     const shouldCreateNew = true;
                     Navigator.of(context).pushNamed(
@@ -103,7 +105,7 @@ class _ForgotPasswordDesktopViewState
                   height: 24,
                 ),
                 SecondaryButton(
-                  label: "Restore from ${AppConfig.prefix} backup",
+                  label: context.l10n.introRestoreFromBackup(AppConfig.prefix),
                   onPressed: () {
                     const shouldCreateNew = false;
                     Navigator.of(context).pushNamed(

@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/global/secure_store_provider.dart';
 import '../../../../providers/providers.dart';
 import '../../../../themes/stack_colors.dart';
@@ -56,14 +57,14 @@ class _RestoreFailedDialogState extends ConsumerState<RestoreFailedDialog> {
         return false;
       },
       child: StackDialog(
-        title: "Restore failed",
+        title: context.l10n.restoreFailedTitle,
         message: errorMessage,
         rightButton: TextButton(
           style: Theme.of(context)
               .extension<StackColors>()!
               .getSecondaryEnabledButtonStyle(context),
           child: Text(
-            "Ok",
+            context.l10n.restoreOk,
             style: STextStyles.itemSubtitle12(context),
           ),
           onPressed: () async {

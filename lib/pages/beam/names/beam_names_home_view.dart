@@ -34,6 +34,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/text_styles.dart';
@@ -238,7 +239,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
     if (!mounted) return;
     setState(() {
       _claiming = false;
-      _claimMessage = 'Nothing from a name sale is waiting for this wallet.';
+      _claimMessage = context.l10n.namesNoSaleMoney;
     });
   }
 
@@ -259,7 +260,10 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           titleSpacing: 0,
-          title: Text('Names', style: STextStyles.navBarTitle(context)),
+          title: Text(
+            context.l10n.namesTitle,
+            style: STextStyles.navBarTitle(context),
+          ),
         ),
         body: SafeArea(
           child: Column(
@@ -318,7 +322,10 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
               colorFilter: ColorFilter.mode(colors.textDark, BlendMode.srcIn),
             ),
             const SizedBox(width: 10),
-            Text('Names', style: STextStyles.desktopH3(context)),
+            Text(
+              context.l10n.namesTitle,
+              style: STextStyles.desktopH3(context),
+            ),
           ],
         ),
       ),
@@ -332,7 +339,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _columnLabel(context, 'Get a name'),
+                  _columnLabel(context, context.l10n.namesGetANameTitle),
                   const SizedBox(height: 14),
                   RoundedWhiteContainer(
                     padding: const EdgeInsets.all(24),
@@ -340,15 +347,12 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          'Let people pay alice instead of a 67-character '
-                          'address.',
+                          context.l10n.namesPayByNameIntro('alice'),
                           style: STextStyles.desktopTextSmall(context),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Names cost \$10 a year for 5 or more characters, '
-                          '\$120 for 4 and \$320 for 3, paid in BEAM at '
-                          "today's rate.",
+                          context.l10n.namesPriceTiersToday,
                           style: STextStyles.desktopTextExtraExtraSmall(
                             context,
                           ),
@@ -368,7 +372,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _columnLabel(context, 'My names'),
+                    _columnLabel(context, context.l10n.namesMyNames),
                     const SizedBox(height: 14),
                     Expanded(
                       child: ListView(
@@ -398,7 +402,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
   Widget _cta() => NamesPrimaryAction(
     deps: deps,
     buttonKey: const Key('names-home-cta'),
-    label: 'Get a name',
+    label: context.l10n.namesGetANameCta,
     onPressed: _getAName,
   );
 
@@ -418,9 +422,9 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
           NamesNotice(
             key: const Key('names-home-error'),
             kind: NamesNoticeKind.error,
-            title: "Can't read your names right now",
+            title: context.l10n.namesCantReadNames,
             detail: namesErrorText(_error!),
-            actionLabel: 'Try again',
+            actionLabel: context.l10n.commonTryAgain,
             onAction: _load,
           ),
         );
@@ -434,11 +438,12 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
       out.addAll([
         NamesNotice(
           kind: NamesNoticeKind.warning,
-          title: "Couldn't refresh your names",
-          detail:
-              'Showing them as they were a moment ago. '
-              '${namesErrorText(_error!)}',
-          actionLabel: 'Try again',
+          title: context.l10n.namesCouldntRefresh,
+          detail: joinSentences([
+            context.l10n.namesShowingOld,
+            namesErrorText(_error!),
+          ]),
+          actionLabel: context.l10n.commonTryAgain,
           onAction: _load,
         ),
         const SizedBox(height: 12),
@@ -466,7 +471,9 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
     if (sorted.isEmpty && incoming.isEmpty) {
       out.add(_empty(context));
     } else {
-      if (!deps.desktop) out.add(const NamesSectionLabel('My names'));
+      if (!deps.desktop) {
+        out.add(NamesSectionLabel(context.l10n.namesMyNames));
+      }
       for (final p in incoming) {
         out.addAll([_pendingCard(context, p), const SizedBox(height: 8)]);
       }
@@ -485,7 +492,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
         alignment: Alignment.centerLeft,
         child: CustomTextButton(
           key: const Key('names-home-receive'),
-          text: 'Receive a name from another wallet',
+          text: context.l10n.namesReceiveFromWallet,
           onTap: () => BeamNameKeyView.show(context, deps),
         ),
       ),
@@ -495,7 +502,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
         Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Text(
-            'Checking for changes…',
+            context.l10n.namesCheckingForChanges,
             style: STextStyles.smallMed12(context)
                 .copyWith(color: colors.textSubtitle2),
           ),
@@ -527,7 +534,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
         const SizedBox(height: 8),
       ],
       Text(
-        'Reading your names from the BEAM network…',
+        context.l10n.namesReadingNames,
         key: const Key('names-home-loading'),
         style: STextStyles.smallMed12(context)
             .copyWith(color: colors.textSubtitle1),
@@ -545,7 +552,7 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
           const BeamStickerImage(BeamSticker.hi, size: 112),
           const SizedBox(height: 8),
           Text(
-            "You don't have a name yet",
+            context.l10n.namesEmptyTitle,
             style: STextStyles.titleBold12(context),
           ),
           const SizedBox(height: 6),
@@ -553,21 +560,20 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
           // name is for and what it costs; here, what will be in this list.
           if (deps.desktop)
             Text(
-              'Names you get, or receive from another wallet, show here '
-              'with the date each one renews.',
+              context.l10n.namesEmptyDesktop,
               textAlign: TextAlign.center,
               style: STextStyles.smallMed14(context)
                   .copyWith(color: colors.textSubtitle1),
             )
           else ...[
             Text(
-              'Let people pay alice instead of a 67-character address.',
+              context.l10n.namesPayByNameIntro('alice'),
               textAlign: TextAlign.center,
               style: STextStyles.smallMed14(context),
             ),
             const SizedBox(height: 6),
             Text(
-              'From \$10 a year, paid in BEAM.',
+              context.l10n.namesFromPrice,
               textAlign: TextAlign.center,
               style: STextStyles.smallMed12(context)
                   .copyWith(color: colors.textSubtitle1),
@@ -658,26 +664,31 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
           d,
     ];
     if (due.isEmpty) return const [];
+    final l10n = context.l10n;
     final d = due.first;
     final onHold = d.statusAt(clock.tipHeight) == BansNameStatus.onHold;
-    final more = due.length > 1 ? ' (and ${due.length - 1} more)' : '';
     final days = NamesFormat.daysBetween(clock.tipHeight, d.expireHeight);
     final renewBy = NamesFormat.date(
       clock.dateOf(BansTimeline.holdEndHeight(d.expireHeight)),
     );
+    final first = onHold
+        ? l10n.namesRenewWarnExpired(d.name)
+        : days <= 0
+        ? l10n.namesRenewWarnToday(d.name)
+        : days == 1
+        ? l10n.namesRenewWarnTomorrow(d.name)
+        : l10n.namesRenewWarnInDays(d.name, days);
     return [
       NamesNotice(
         key: const Key('names-home-renew-warning'),
         kind: NamesNoticeKind.warning,
-        title: onHold
-            ? '${d.name} has expired$more'
-            : '${d.name} expires ${NamesFormat.inDays(days)}$more',
+        title: due.length > 1
+            ? l10n.namesRenewWarnAndMore(first, due.length - 1)
+            : first,
         detail: onHold
-            ? 'Renew it by $renewBy to keep it. After that anyone can take '
-                  'it.'
-            : 'Renew it to keep it. After it expires you still have 90 '
-                  'days.',
-        actionLabel: 'Renew ${d.name}',
+            ? l10n.namesRenewWarnHoldDetail(renewBy)
+            : l10n.namesRenewWarnSoonDetail,
+        actionLabel: l10n.namesRenewName(d.name),
         actionKey: const Key('names-home-renew-action'),
         onAction: () => _open(d, clock),
       ),
@@ -701,13 +712,13 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
           NamesNotice(
             key: Key('names-home-proceeds-${e.key}'),
             kind: NamesNoticeKind.success,
-            title: 'You sold a name: $amount is waiting for you',
+            title: context.l10n.namesProceedsTitle(amount),
             detail: e.key == 0
-                ? 'Claim it to move it into your balance. The network fee '
-                      'comes out of it.'
-                : 'Claim it to move it into your balance. The network fee '
-                      'is paid in BEAM.',
-            actionLabel: _claiming ? 'Preparing…' : 'Claim $amount',
+                ? context.l10n.namesProceedsDetailBeam
+                : context.l10n.namesProceedsDetailAsset,
+            actionLabel: _claiming
+                ? context.l10n.namesPreparing
+                : context.l10n.namesClaimAmount(amount),
             actionKey: Key('names-home-claim-${e.key}'),
             onAction: _claiming
                 ? null
@@ -718,10 +729,10 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
       }
       if (inbox.payments.isNotEmpty) {
         out.addAll([
-          const NamesNotice(
-            key: Key('names-home-payments'),
-            title: 'People paid your names',
-            detail: 'Claim those payments from your wallet home screen.',
+          NamesNotice(
+            key: const Key('names-home-payments'),
+            title: context.l10n.namesPaymentsTitle,
+            detail: context.l10n.namesPaymentsDetail,
           ),
           const SizedBox(height: 12),
         ]);
@@ -747,12 +758,11 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
       out.addAll([
         NamesNotice(
           key: const Key('names-home-claim-unsupported'),
-          title: "This version can't see payments to your names yet",
-          detail:
-              'They are safe in the BEAM vault and can be claimed with the '
-              'full Campfire build of this wallet. Money from a name you '
-              'sold can be claimed now.',
-          actionLabel: _claiming ? 'Checking…' : 'Check for money from a sale',
+          title: context.l10n.namesClaimUnsupportedTitle,
+          detail: context.l10n.namesClaimUnsupportedDetail,
+          actionLabel: _claiming
+              ? context.l10n.namesChecking
+              : context.l10n.namesCheckSaleMoney,
           actionKey: const Key('names-home-check-sale'),
           onAction: _claiming ? null : _checkSaleMoney,
         ),
@@ -763,34 +773,32 @@ class _BeamNamesHomeViewState extends State<BeamNamesHomeView> {
   }
 
   Widget _sentCard(BuildContext context, BeamNameSent sent) {
+    final l10n = context.l10n;
     final s = sent.summary;
     final n = s.name?.value ?? '';
     final (String title, String detail) = switch (s.action) {
       BansAction.register || BansAction.buy => (
-        '$n is on its way to you',
-        "It's usually yours within 2 minutes. People can then pay "
-            '${s.name?.display ?? n}.',
+        l10n.namesSentOnItsWay(n),
+        l10n.namesSentOnItsWayDetail(s.name?.display ?? n),
       ),
       BansAction.extend => (
-        'Renewal of $n sent',
-        'It shows the new date once confirmed, usually within 2 minutes.',
+        l10n.namesSentRenewal(n),
+        l10n.namesSentRenewalDetail,
       ),
       BansAction.setOwner => (
-        'Transfer of $n sent',
-        'It leaves this wallet once confirmed, usually within 2 minutes.',
+        l10n.namesSentTransfer(n),
+        l10n.namesSentTransferDetail,
       ),
       BansAction.setPrice =>
         s.listPrice == null || s.listPrice!.amount == BigInt.zero
-            ? ('$n is coming off sale', 'Usually within 2 minutes.')
+            ? (l10n.namesSentUnlisting(n), l10n.namesSentUnlistingDetail)
             : (
-                '$n is being listed for ${_price(s.listPrice!)}',
-                'Anyone can buy it once confirmed, usually within 2 '
-                    'minutes.',
+                l10n.namesSentListing(n, _price(s.listPrice!)),
+                l10n.namesSentListingDetail,
               ),
       _ => (
-        'Claim sent',
-        '${s.youReceive.map(_price).join(' + ')} arrives in your balance '
-            'once confirmed.',
+        l10n.namesSentClaim,
+        l10n.namesSentClaimDetail(s.youReceive.map(_price).join(' + ')),
       ),
     };
     final celebrate =

@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/assets.dart';
 import '../../utilities/text_styles.dart';
@@ -153,7 +154,7 @@ class _BackspaceKeyState extends State<BackspaceKey> {
           });
         },
         child: Semantics(
-          label: "Backspace Button. Deletes The Last Digit.",
+          label: context.l10n.pinBackspaceLabel,
           excludeSemantics: true,
           child: Center(
             child: SvgPicture.asset(

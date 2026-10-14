@@ -23,6 +23,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/text_styles.dart';
 import '../../wallets/bridge/bridge_controller.dart';
@@ -110,13 +111,13 @@ class _BridgeCrossingsViewState extends State<BridgeCrossingsView> {
     if (widget.embedded) return body;
     return DexPage(
       deps: widget.deps,
-      title: 'Bridge history',
+      title: context.l10n.bridgeHistoryTitle,
       body: body,
       bottom: list.isEmpty
           ? DexPrimaryAction(
               deps: widget.deps,
               buttonKey: const Key('bridge-history-move'),
-              label: 'Move coins',
+              label: context.l10n.bridgeMoveCoinsCta,
               onPressed: () => Navigator.of(context).pop(),
             )
           : null,
@@ -126,10 +127,8 @@ class _BridgeCrossingsViewState extends State<BridgeCrossingsView> {
   Widget _empty(BuildContext context) => DexNotice(
     key: const Key('bridge-history-empty'),
     sticker: widget.embedded ? null : BeamMoments.trading,
-    title: 'No crossings yet',
-    detail:
-        'Coins you move between your BEAM and Ethereum wallets show here, '
-        'with where each one is.',
+    title: context.l10n.bridgeHistoryEmptyTitle,
+    detail: context.l10n.bridgeHistoryEmptyDetail,
   );
 
   Widget _list(BuildContext context, List<BridgeCrossing> list) {
@@ -150,12 +149,12 @@ class _BridgeCrossingsViewState extends State<BridgeCrossingsView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (open.isNotEmpty) ...[
-          header('On their way'),
+          header(context.l10n.bridgeHistoryOpen),
           for (final c in open) _row(context, c, now),
           const SizedBox(height: 8),
         ],
         if (done.isNotEmpty) ...[
-          header('Finished'),
+          header(context.l10n.bridgeHistoryDone),
           for (final c in done) _row(context, c, now),
         ],
       ],

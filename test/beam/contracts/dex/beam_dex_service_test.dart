@@ -207,6 +207,108 @@ void main() {
       );
     });
 
+    group('BEAM/bUSDT on mainnet (2026-10-14): a dust pool beside a real '
+        'one', () {
+      // kind 1: tok1=5, tok2=1, ctl=1, and its shader answers "no
+      // liquidity"; kind 2: ~224,900 BEAM / 2,091 bUSDT.
+      final dust = BeamPool(
+        aid1: 0,
+        aid2: 37,
+        kind: BeamPoolKind.mid,
+        tok1: g(5),
+        tok2: g(1),
+        ctl: g(1),
+        lpToken: 0,
+      );
+      final real = BeamPool(
+        aid1: 0,
+        aid2: 37,
+        kind: BeamPoolKind.high,
+        tok1: g(22490000000000),
+        tok2: g(209100000000),
+        ctl: g(400493169221),
+        lpToken: 0,
+      );
+      // 299.989 BEAM.
+      const payAmount = 29998900000;
+      final dustArgs = tradeArgs(0, 37, BeamPoolKind.mid, payAmount);
+      final realArgs = tradeArgs(0, 37, BeamPoolKind.high, payAmount);
+      Map<String, Object?> realQuote() {
+        final raw = g(29701881182);
+        final fee = BeamPoolKind.high.tradeFee(raw);
+        return outputOnly(
+          '{"res": {"buy": 275877939,"pay": ${raw + fee.pool + fee.dao},'
+          '"pay_raw": $raw,"fee_pool": ${fee.pool},"fee_dao": ${fee.dao}}}',
+        );
+      }
+
+      Map<String, Object?> refuse(String why) =>
+          outputOnly('{"error": "$why"}');
+      Matcher code(BeamDexErrorCode c) =>
+          throwsA(isA<BeamDexException>().having((e) => e.code, 'code', c));
+      Future<BeamSwapQuote> ask(DexRouter router) =>
+          serviceWith(router).quote(
+            payAsset: 0,
+            payAmount: g(payAmount),
+            receiveAsset: 37,
+            pools: [dust, real],
+          );
+
+      test('the dust pool says "no liquidity": the real one quotes', () async {
+        final router = DexRouter({
+          dustArgs: () => refuse('no liquidity'),
+          realArgs: realQuote,
+        });
+        final q = await ask(router);
+        expect(router.seen.map((p) => p['args']), [dustArgs, realArgs]);
+        expect(q.kind, BeamPoolKind.high);
+        expect(q.payRaw, g(29701881182));
+        expect(q.pay, g(29998899994));
+        expect(q.pay <= g(payAmount), isTrue);
+        expect(q.receive, g(275877939));
+      });
+
+      test('"no such pool" is skipped the same way', () async {
+        final q = await ask(
+          DexRouter({
+            dustArgs: () => recorded('error_no_such_pool'),
+            realArgs: realQuote,
+          }),
+        );
+        expect(q.receive, g(275877939));
+      });
+
+      test('no pool quotes: the first refusal is the answer', () async {
+        await expectLater(
+          ask(
+            DexRouter({
+              dustArgs: () => refuse('no liquidity'),
+              realArgs: () => refuse('no such pool'),
+            }),
+          ),
+          code(BeamDexErrorCode.poolEmpty),
+        );
+        await expectLater(
+          ask(
+            DexRouter({
+              dustArgs: () => refuse('no such pool'),
+              realArgs: () => refuse('no liquidity'),
+            }),
+          ),
+          code(BeamDexErrorCode.noPool),
+        );
+      });
+
+      test('any other error still stops the quote', () async {
+        final router = DexRouter({
+          dustArgs: () => recorded('error_invalid_kind'),
+          realArgs: realQuote,
+        });
+        await expectLater(ask(router), code(BeamDexErrorCode.shaderError));
+        expect(router.seen, hasLength(1), reason: 'not asked further');
+      });
+    });
+
     test('shader errors map to codes', () async {
       final pool = BeamPool(
         aid1: 0,

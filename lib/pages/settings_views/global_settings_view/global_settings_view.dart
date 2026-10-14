@@ -13,7 +13,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../app_config.dart';
+import '../../../l10n/l10n.dart';
 import '../../../route_generator.dart';
+import '../../../themes/beam/beam_themes.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/constants.dart';
@@ -22,6 +24,7 @@ import '../../../widgets/background.dart';
 import '../../../widgets/custom_buttons/app_bar_icon_button.dart';
 import '../../../widgets/rounded_white_container.dart';
 import '../../address_book_views/address_book_view.dart';
+import '../../beam/colours/beam_colours_view.dart';
 import '../../pinpad_views/lock_screen_view.dart';
 import '../../shopinbit/shopinbit_settings_view.dart';
 import '../sub_widgets/settings_list_button.dart';
@@ -56,7 +59,7 @@ class GlobalSettingsView extends StatelessWidget {
               Navigator.of(context).pop();
             },
           ),
-          title: Text("Settings", style: STextStyles.navBarTitle(context)),
+          title: Text(context.l10n.settingsTitle, style: STextStyles.navBarTitle(context)),
         ),
         body: SafeArea(
           child: LayoutBuilder(
@@ -81,7 +84,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.addressBook,
                                     iconSize: 16,
-                                    title: "Address book",
+                                    title: context.l10n.settingsAddressBook,
                                     onPressed: () {
                                       Navigator.of(
                                         context,
@@ -93,23 +96,23 @@ class GlobalSettingsView extends StatelessWidget {
                                     iconAssetName: Assets.svg.downloadFolder,
                                     iconSize: 14,
                                     title:
-                                        "${AppConfig.prefix} backup & restore",
+                                        context.l10n.settingsBackupRestore(AppConfig.prefix),
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         RouteGenerator.getRoute(
                                           shouldUseMaterialRoute: RouteGenerator
                                               .useMaterialPageRoute,
-                                          builder: (_) => const LockscreenView(
+                                          builder: (_) => LockscreenView(
                                             showBackButton: true,
                                             routeOnSuccess:
                                                 StackBackupView.routeName,
                                             biometricsCancelButtonString:
-                                                "CANCEL",
+                                                context.l10n.beamAuthCancel,
                                             biometricsLocalizedReason:
-                                                "Authenticate to access ${AppConfig.prefix} backup & restore settings",
+                                                context.l10n.settingsBackupRestoreAuthReason(AppConfig.prefix),
                                             biometricsAuthenticationTitle:
-                                                "${AppConfig.prefix} backup",
+                                                context.l10n.settingsBackupAuthTitle(AppConfig.prefix),
                                           ),
                                           settings: const RouteSettings(
                                             name: "/swblockscreen",
@@ -122,7 +125,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.lock,
                                     iconSize: 16,
-                                    title: "Security",
+                                    title: context.l10n.settingsSecurity,
                                     onPressed: () {
                                       Navigator.of(
                                         context,
@@ -133,7 +136,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.dollarSign,
                                     iconSize: 18,
-                                    title: "Currency",
+                                    title: context.l10n.settingsCurrency,
                                     onPressed: () {
                                       Navigator.of(context).pushNamed(
                                         BaseCurrencySettingsView.routeName,
@@ -144,7 +147,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.language,
                                     iconSize: 18,
-                                    title: "Language",
+                                    title: context.l10n.settingsLanguageTitle,
                                     onPressed: () {
                                       Navigator.of(context).pushNamed(
                                         LanguageSettingsView.routeName,
@@ -155,7 +158,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.tor,
                                     iconSize: 18,
-                                    title: "Tor Settings",
+                                    title: context.l10n.settingsTorSettings,
                                     onPressed: () {
                                       Navigator.of(
                                         context,
@@ -166,7 +169,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.node,
                                     iconSize: 16,
-                                    title: "Manage nodes",
+                                    title: context.l10n.settingsManageNodes,
                                     onPressed: () {
                                       Navigator.of(
                                         context,
@@ -177,7 +180,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.arrowRotate,
                                     iconSize: 18,
-                                    title: "Syncing preferences",
+                                    title: context.l10n.settingsSyncingPreferences,
                                     onPressed: () {
                                       Navigator.of(context).pushNamed(
                                         SyncingPreferencesView.routeName,
@@ -188,7 +191,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.arrowUpRight,
                                     iconSize: 16,
-                                    title: "Startup",
+                                    title: context.l10n.settingsStartup,
                                     onPressed: () {
                                       Navigator.of(context).pushNamed(
                                         StartupPreferencesView.routeName,
@@ -212,12 +215,23 @@ class GlobalSettingsView extends StatelessWidget {
                                         );
                                       },
                                     ),
+                                  // BEAM's colours (Campfire's Appearance).
+                                  if (BeamThemes.offered)
+                                    const SizedBox(height: 8),
+                                  if (BeamThemes.offered)
+                                    SettingsListButton(
+                                      iconAssetName: Assets.svg.sun,
+                                      iconSize: 18,
+                                      title: BeamColoursText.title,
+                                      onPressed: () =>
+                                          BeamColoursView.open(context),
+                                    ),
                                   if (Platform.isIOS) const SizedBox(height: 8),
                                   if (Platform.isIOS)
                                     SettingsListButton(
                                       iconAssetName: Assets.svg.circleAlert,
                                       iconSize: 16,
-                                      title: "Delete account",
+                                      title: context.l10n.settingsDeleteAccount,
                                       onPressed: () async {
                                         await Navigator.of(context).pushNamed(
                                           DeleteAccountView.routeName,
@@ -228,7 +242,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.ellipsis,
                                     iconSize: 18,
-                                    title: "About",
+                                    title: context.l10n.settingsAbout,
                                     onPressed: () {
                                       Navigator.of(
                                         context,
@@ -239,7 +253,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.solidSliders,
                                     iconSize: 16,
-                                    title: "Advanced",
+                                    title: context.l10n.settingsAdvanced,
                                     onPressed: () {
                                       Navigator.of(context).pushNamed(
                                         AdvancedSettingsView.routeName,
@@ -269,7 +283,7 @@ class GlobalSettingsView extends StatelessWidget {
                                   SettingsListButton(
                                     iconAssetName: Assets.svg.questionMessage,
                                     iconSize: 16,
-                                    title: "Support",
+                                    title: context.l10n.settingsSupport,
                                     onPressed: () {
                                       Navigator.of(
                                         context,

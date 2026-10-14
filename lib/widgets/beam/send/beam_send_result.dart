@@ -26,6 +26,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/assets.dart';
 import '../../../utilities/clipboard_interface.dart';
@@ -101,15 +102,14 @@ class BeamSendSuccess extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).extension<StackColors>()!;
+    final l10n = context.l10n;
     final what = BeamSendFormat.amount(review.amount, review.asset);
     final to = review.isName
         ? review.destination
         : BeamSendFormat.shortAddress(review.destination);
     final next = review.isName
-        ? 'The owner of ${review.destination} can claim it from their wallet '
-              'whenever they like.'
-        : "It completes when the receiver's wallet comes online. You can "
-              'follow it in your history.';
+        ? l10n.sendSuccessNameNext(review.destination)
+        : l10n.sendSuccessAddressNext;
     final body = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -119,7 +119,7 @@ class BeamSendSuccess extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Payment sent',
+          l10n.sendSuccessTitle,
           textAlign: TextAlign.center,
           style: desktop
               ? STextStyles.desktopH3(context)
@@ -127,7 +127,7 @@ class BeamSendSuccess extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '$what to $to.',
+          l10n.sendSuccessSummary(what, to),
           key: const Key('beamSendSuccessSummary'),
           textAlign: TextAlign.center,
           style: STextStyles.itemSubtitle12(context),
@@ -144,7 +144,7 @@ class BeamSendSuccess extends StatelessWidget {
           borderColor: c.textFieldDefaultBG,
           child: Row(
             children: [
-              Text('Transaction ID', style: STextStyles.label(context)),
+              Text(l10n.sendTxIdLabel, style: STextStyles.label(context)),
               const Spacer(),
               SelectableText(
                 BeamSendFormat.shortTxId(txId),
@@ -152,7 +152,7 @@ class BeamSendSuccess extends StatelessWidget {
                 style: STextStyles.itemSubtitle12(context),
               ),
               IconButton(
-                tooltip: 'Copy the transaction ID',
+                tooltip: l10n.sendCopyTxId,
                 onPressed: () => clipboard.setData(ClipboardData(text: txId)),
                 icon: SvgPicture.asset(
                   Assets.svg.copy,
@@ -170,14 +170,15 @@ class BeamSendSuccess extends StatelessWidget {
         const SizedBox(height: 20),
         PrimaryButton(
           key: const Key('beamSendSuccessDone'),
-          label: 'View in history',
+          label: l10n.sendViewInHistory,
           buttonHeight: desktop ? ButtonHeight.l : null,
           onPressed: () {
             final id = walletId;
             if (id != null) {
-              ProviderScope.containerOf(context, listen: false)
-                  .read(pBeamShowHistoryRequest(id).state)
-                  .state++;
+              ProviderScope.containerOf(
+                context,
+                listen: false,
+              ).read(pBeamShowHistoryRequest(id).state).state++;
             }
             Navigator.of(context, rootNavigator: true).pop();
           },
@@ -211,11 +212,12 @@ class BeamSendFailure extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final title = outcomeUnknown
-        ? 'Check your history before sending again'
+        ? l10n.sendFailureUnknownTitle
         : error is BansOwnerChanged
-        ? 'Nothing was sent'
-        : 'Payment not sent';
+        ? l10n.sendNothingSent
+        : l10n.sendFailureTitle;
     final body = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -234,9 +236,7 @@ class BeamSendFailure extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           outcomeUnknown && error is! BeamWalletException
-              ? 'The connection to the wallet dropped while sending, so it '
-                    "isn't certain whether the payment went out. Check your "
-                    'history before sending again.'
+              ? l10n.sendFailureConnectionDropped
               : BeamSendModel.describeError(error),
           key: const Key('beamSendFailureMessage'),
           textAlign: TextAlign.center,
@@ -246,10 +246,10 @@ class BeamSendFailure extends StatelessWidget {
         PrimaryButton(
           key: const Key('beamSendFailureDone'),
           label: outcomeUnknown
-              ? 'Check my history'
+              ? l10n.sendCheckMyHistory
               : error is BansOwnerChanged
-              ? 'Check the name again'
-              : 'Back to the payment',
+              ? l10n.sendCheckNameAgain
+              : l10n.sendBackToPayment,
           buttonHeight: desktop ? ButtonHeight.l : null,
           onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
         ),

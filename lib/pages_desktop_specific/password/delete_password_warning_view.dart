@@ -17,6 +17,7 @@ import 'package:isar_community/isar.dart';
 
 import '../../app_config.dart';
 import '../../db/hive/db.dart';
+import '../../l10n/l10n.dart';
 import '../../notifications/show_flush_bar.dart';
 import '../../pages/intro_view.dart';
 import '../../utilities/logger.dart';
@@ -137,45 +138,28 @@ class _ForgotPasswordDesktopViewState
               children: [
                 const AppIcon(width: 100),
                 const SizedBox(height: 42),
-                Text("Warning!", style: STextStyles.desktopH1(context)),
+                Text(context.l10n.loginDeleteTitle, style: STextStyles.desktopH1(context)),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: 480,
                   child: RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: "To ",
-                          style: STextStyles.desktopTextSmall(context),
-                        ),
-                        TextSpan(
-                          text:
-                              widget.shouldCreateNew
-                                  ? "create a new ${AppConfig.prefix}"
-                                  : "restore from backup",
-                          style: STextStyles.desktopTextSmallBold(context),
-                        ),
-                        TextSpan(
-                          text: ", we need to ",
-                          style: STextStyles.desktopTextSmall(context),
-                        ),
-                        TextSpan(
-                          text: "delete your old wallets",
-                          style: STextStyles.desktopTextSmallBold(context),
-                        ),
-                        TextSpan(
-                          text:
-                              ". All wallets will be lost. If you have not written down your recovery phrase for EACH wallet, you may be in danger of losing funds. Continue?",
-                          style: STextStyles.desktopTextSmall(context),
-                        ),
-                      ],
+                      children: _boldTagSpans(
+                        widget.shouldCreateNew
+                            ? context.l10n.loginDeleteWarningCreate(
+                              AppConfig.prefix,
+                            )
+                            : context.l10n.loginDeleteWarningRestore,
+                        STextStyles.desktopTextSmall(context),
+                        STextStyles.desktopTextSmallBold(context),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 48),
                 PrimaryButton(
-                  label: "Delete and continue",
+                  label: context.l10n.loginDeleteAndContinue,
                   enabled: !_deleteInProgress,
                   onPressed: () async {
                     final shouldDelete = !_deleteInProgress;
@@ -187,7 +171,7 @@ class _ForgotPasswordDesktopViewState
                       unawaited(
                         showFloatingFlushBar(
                           type: FlushBarType.info,
-                          message: "Deleting wallet...",
+                          message: context.l10n.loginDeleting,
                           context: context,
                         ),
                       );
@@ -197,7 +181,7 @@ class _ForgotPasswordDesktopViewState
                       if (success) {
                         await showFloatingFlushBar(
                           type: FlushBarType.success,
-                          message: "Wallet deleted",
+                          message: appL10n.loginDeleted,
                           context: context,
                         );
                         if (mounted) {
@@ -209,7 +193,7 @@ class _ForgotPasswordDesktopViewState
                       } else {
                         await showFloatingFlushBar(
                           type: FlushBarType.warning,
-                          message: "Something broke badly. Contact developer",
+                          message: appL10n.loginDeleteFailed,
                           context: context,
                         );
 
@@ -222,7 +206,7 @@ class _ForgotPasswordDesktopViewState
                 ),
                 const SizedBox(height: 24),
                 SecondaryButton(
-                  label: "Take me back!",
+                  label: context.l10n.loginTakeMeBack,
                   enabled: !_deleteInProgress,
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -236,4 +220,22 @@ class _ForgotPasswordDesktopViewState
       ),
     );
   }
+}
+
+/// [text] as spans: the parts between <b> and </b> in [bold], the rest in
+/// [plain]. The message keeps the bold words inside its whole sentence.
+List<TextSpan> _boldTagSpans(String text, TextStyle plain, TextStyle bold) {
+  final spans = <TextSpan>[];
+  var start = 0;
+  for (final m in RegExp(r"<b>(.*?)</b>").allMatches(text)) {
+    if (m.start > start) {
+      spans.add(TextSpan(text: text.substring(start, m.start), style: plain));
+    }
+    spans.add(TextSpan(text: m.group(1), style: bold));
+    start = m.end;
+  }
+  if (start < text.length) {
+    spans.add(TextSpan(text: text.substring(start), style: plain));
+  }
+  return spans;
 }

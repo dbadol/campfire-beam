@@ -32,6 +32,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app_config.dart';
 import '../../../db/hive/db.dart';
+import '../../../l10n/l10n.dart';
 import '../../../pages_desktop_specific/desktop_menu.dart';
 import '../../../providers/desktop/current_desktop_menu_item.dart';
 import '../../../providers/global/active_wallet_provider.dart';
@@ -87,12 +88,30 @@ enum BeamSidebarDestination {
   final DesktopMenuItemId menuId;
 
   /// "Swap", "Assets"… (the feature's own word, everywhere; the menu's
-  /// Buy says what it buys, as it is not inside a BEAM wallet).
-  String get label => this == buy ? 'Buy BEAM' : feature.label;
+  /// Buy says what it buys, as it is not inside a BEAM wallet). The words
+  /// are in lib/l10n (sidebar* keys), in the language the app speaks.
+  String get label => switch (this) {
+    buy => appL10n.sidebarBuy,
+    swap => appL10n.sidebarSwap,
+    bridge => appL10n.sidebarBridge,
+    assets => appL10n.sidebarAssets,
+    names => appL10n.sidebarNames,
+    dapps => appL10n.sidebarDapps,
+    airdrops => appL10n.sidebarAirdrops,
+    tokens => appL10n.sidebarTokens,
+  };
 
   /// One line under the page title.
-  String get description =>
-      this == buy ? 'BEAM, or WBEAM on Ethereum' : feature.description;
+  String get description => switch (this) {
+    buy => appL10n.sidebarBuyDescription,
+    swap => appL10n.sidebarSwapDescription,
+    bridge => appL10n.sidebarBridgeDescription,
+    assets => appL10n.sidebarAssetsDescription,
+    names => appL10n.sidebarNamesDescription,
+    dapps => appL10n.sidebarDappsDescription,
+    airdrops => appL10n.sidebarAirdropsDescription,
+    tokens => appL10n.sidebarTokensDescription,
+  };
 
   /// Campfire's own solid desktop icons, so the BEAM items have the weight
   /// and size of My Campfire, Notifications and the rest.

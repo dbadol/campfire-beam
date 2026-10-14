@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../../providers/ui/verify_recovery_phrase/mnemonic_word_count_state_provider.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/constants.dart';
@@ -69,7 +70,7 @@ class MnemonicWordCountSelectSheet extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Phrase length",
+                      context.l10n.restorePhraseLength,
                       style: STextStyles.pageTitleH2(context),
                       textAlign: TextAlign.left,
                     ),
@@ -132,7 +133,7 @@ class MnemonicWordCountSelectSheet extends ConsumerWidget {
                                   // ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    "${lengthOptions[i]} words",
+                                    context.l10n.restoreWordCount(lengthOptions[i]),
                                     style: STextStyles.titleBold12(context),
                                     textAlign: TextAlign.left,
                                   ),

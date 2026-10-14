@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/amount_text.dart';
 import '../../models/isar/models/contract.dart';
 import '../../providers/global/locale_provider.dart';
 import '../../providers/global/prefs_provider.dart';
@@ -28,7 +29,9 @@ final pAmountFormatter = Provider.family<AmountFormatter, CryptoCurrency>((
 
   return AmountFormatter(
     unit: ref.watch(pAmountUnit(coin)),
-    locale: locale,
+    // Campfire for BEAM: BEAM amounts are written the app's way in every
+    // language ("." decimals, never the device's; lib/l10n/amount_text.dart).
+    locale: coin is Beam ? kAppAmountLocale : locale,
     coin: coin,
     maxDecimals: ref.watch(pMaxDecimals(coin)),
   );

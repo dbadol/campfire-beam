@@ -22,6 +22,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/contracts/minter/minter.dart';
@@ -102,7 +103,9 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
   Future<void> _confirm() async {
     final tx = await runSend(
       authorize: widget.authorize,
-      reason: _create ? 'Create the token $_ticker' : 'Mint $_ticker',
+      reason: _create
+          ? context.l10n.minterConfirmAuthCreate(_ticker)
+          : context.l10n.minterConfirmAuthMint(_ticker),
       send: () => widget.service.execute(widget.prepared),
       explain: minterProblem,
     );
@@ -115,8 +118,11 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
     builder: (context, sync) {
       final short = _beamAvailable != null && _beamAvailable! < _s.beamOut;
       final spent = widget.prepared.isExecuted;
+      final l10n = context.l10n;
       return BeamPageScaffold(
-        title: _create ? 'Confirm new token' : 'Confirm mint',
+        title: _create
+            ? l10n.minterConfirmCreateTitle
+            : l10n.minterConfirmMintTitle,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -126,11 +132,11 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
               BeamNotice(
                 key: const ValueKey('minter-confirm-short'),
                 kind: BeamNoticeKind.danger,
-                title: 'Not enough BEAM',
-                message:
-                    'This needs ${_beam(_s.beamOut)} and the wallet has '
-                    '${_beam(_beamAvailable!)}. Add BEAM to this wallet, '
-                    'then try again.',
+                title: l10n.minterNotEnoughBeamTitle,
+                message: l10n.minterConfirmShortMessage(
+                  _beam(_s.beamOut),
+                  _beam(_beamAvailable!),
+                ),
               ),
             ],
             if (problem != null) ...[
@@ -150,21 +156,23 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
           children: [
             BeamSyncNotice(
               sync: sync,
-              what: _create ? 'Creating a token' : 'Minting',
+              action: _create
+                  ? BeamPausedAction.creatingToken
+                  : BeamPausedAction.minting,
             ),
             if (spent && problem != null)
               BeamCtaBar(
-                label: 'Back',
+                label: l10n.commonBack,
                 onPressed: () => Navigator.of(context).maybePop(),
               )
             else
               BeamCtaBar(
                 primaryKey: const ValueKey('minter-confirm-cta'),
                 label: _create
-                    ? 'Create $_ticker for ${_beam(_s.beamOut)}'
-                    : 'Mint ${_minted()}',
+                    ? l10n.minterConfirmCreateCta(_ticker, _beam(_s.beamOut))
+                    : l10n.minterMintAmountCta(_minted()),
                 busy: sending,
-                busyLabel: 'Sending…',
+                busyLabel: l10n.minterSending,
                 onPressed: sync.canSpend && !short ? _confirm : null,
               ),
           ],
@@ -178,6 +186,7 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
     final colors = Theme.of(context).extension<StackColors>()!;
     final whole = _s.limit! ~/ BeamTokenMetadata.nthRatio;
     final lost = _s.issueFee! + _s.assetDeposit!;
+    final l10n = context.l10n;
     return [
       RoundedWhiteContainer(
         child: BeamAssetTitle(
@@ -190,28 +199,28 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
             verified: false,
             color: _color(f['OPT_COLOR']),
           ),
-          subtitle:
-              'New token · at most ${BeamUnits.format(whole * BeamUnits.one)}'
-              ' ${f['SN'] ?? ''}',
+          subtitle: l10n.minterNewTokenAtMost(
+            '${BeamUnits.format(whole * BeamUnits.one)} ${f['SN'] ?? ''}',
+          ),
         ),
       ),
       const BeamGap(8),
       BeamDetailCard(
         children: [
           BeamDetailRow(
-            label: 'To the BEAM DAO',
+            label: l10n.minterToDao,
             value: _beam(_s.issueFee!),
-            detail: 'Issuance fee',
+            detail: l10n.minterIssuanceFee,
             valueKey: const ValueKey('minter-issue-fee'),
           ),
           BeamDetailRow(
-            label: 'Asset deposit',
+            label: l10n.minterAssetDeposit,
             value: _beam(_s.assetDeposit!),
-            detail: 'Never returned',
+            detail: l10n.minterNeverReturned,
             valueKey: const ValueKey('minter-deposit'),
           ),
           BeamDetailRow(
-            label: 'Network fee',
+            label: l10n.beamNetworkFee,
             value: _beam(_s.networkFee),
             valueKey: const ValueKey('minter-network-fee'),
           ),
@@ -219,25 +228,23 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
       ),
       const BeamGap(8),
       BeamTotalRow(
-        label: 'Leaves your wallet',
+        label: l10n.minterLeavesWallet,
         value: _beam(_s.beamOut),
         valueKey: const ValueKey('minter-total'),
       ),
       const BeamGap(),
       BeamNotice(
         kind: BeamNoticeKind.warning,
-        title: 'These ${_beam(lost)} do not come back',
-        message:
-            'Not even if you never mint the token. Nothing is minted yet: '
-            'once the token exists, mint it from My tokens.',
+        title: l10n.minterConfirmLostTitle(_beam(lost)),
+        message: l10n.minterConfirmLostMessage,
       ),
       const BeamGap(8),
       Align(
         alignment: Alignment.centerLeft,
         child: CustomTextButton(
           text: _showMetadata
-              ? 'Hide what is stored on the chain'
-              : 'Show what is stored on the chain',
+              ? l10n.minterConfirmHideMetadata
+              : l10n.minterConfirmShowMetadata,
           onTap: () => setState(() => _showMetadata = !_showMetadata),
         ),
       ),
@@ -260,23 +267,24 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
   List<Widget> _mintRows(BuildContext context) {
     final aid = _s.assetId!;
     final gets = _s.receives[aid]!;
+    final l10n = context.l10n;
     return [
       RoundedWhiteContainer(
         child: BeamAssetTitle(
           display: widget.assetNames.display(aid),
-          subtitle: 'Your token',
+          subtitle: l10n.minterConfirmYourToken,
         ),
       ),
       const BeamGap(8),
       BeamDetailCard(
         children: [
           BeamDetailRow(
-            label: 'New tokens to your wallet',
+            label: l10n.minterConfirmNewTokens,
             value: widget.assetNames.amount(aid, gets),
             valueKey: const ValueKey('minter-mint-amount'),
           ),
           BeamDetailRow(
-            label: 'Network fee',
+            label: l10n.beamNetworkFee,
             value: _beam(_s.networkFee),
             valueKey: const ValueKey('minter-network-fee'),
           ),
@@ -284,7 +292,7 @@ class _BeamMinterConfirmViewState extends State<BeamMinterConfirmView>
       ),
       const BeamGap(8),
       BeamTotalRow(
-        label: 'Your balances change by',
+        label: l10n.minterConfirmBalancesChange,
         value:
             '+${widget.assetNames.amount(aid, gets)}, −${_beam(_s.networkFee)}',
         valueKey: const ValueKey('minter-total'),

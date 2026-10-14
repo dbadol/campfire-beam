@@ -18,6 +18,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../pages/beam/node/beam_node_sync_panel.dart';
 import '../../../utilities/text_styles.dart';
 import '../../../wallets/beam/node/beam_node_panel_model.dart';
@@ -60,10 +61,13 @@ class DesktopBeamNodeSyncDialog extends StatelessWidget {
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(32, 8, 32, 32),
               child: s != null
-                  ? BeamNodeSyncPanel(source: s, header: 'Status')
+                  ? BeamNodeSyncPanel(
+                      source: s,
+                      header: context.l10n.nodePanelStatusHeader,
+                    )
                   : BeamWalletNodeSyncPanel(
                       walletId: walletId!,
-                      header: 'Status',
+                      header: context.l10n.nodePanelStatusHeader,
                     ),
             ),
           ),

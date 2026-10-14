@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../../app_config.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../../themes/stack_colors.dart';
 import '../../../../utilities/assets.dart';
 import '../../../../utilities/constants.dart';
@@ -42,7 +43,7 @@ class StackBackupView extends StatelessWidget {
             },
           ),
           title: Text(
-            "${AppConfig.prefix} backup",
+            context.l10n.appBackupScreenTitle(AppConfig.prefix),
             style: STextStyles.navBarTitle(context),
           ),
         ),
@@ -79,7 +80,7 @@ class StackBackupView extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            "Auto Backup",
+                            context.l10n.appBackupAutoTitle,
                             style: STextStyles.titleBold12(context),
                             textAlign: TextAlign.left,
                           ),
@@ -119,7 +120,7 @@ class StackBackupView extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            "Create manual backup",
+                            context.l10n.appBackupCreateManual,
                             style: STextStyles.titleBold12(context),
                             textAlign: TextAlign.left,
                           ),
@@ -158,7 +159,7 @@ class StackBackupView extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            "Restore backup",
+                            context.l10n.appBackupRestoreBackup,
                             style: STextStyles.titleBold12(context),
                             textAlign: TextAlign.left,
                           ),

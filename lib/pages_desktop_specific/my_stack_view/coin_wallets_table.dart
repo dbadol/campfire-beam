@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/l10n.dart';
 import '../../providers/global/active_wallet_provider.dart';
 import '../../providers/global/node_service_provider.dart';
 import '../../providers/global/prefs_provider.dart';
@@ -111,7 +112,9 @@ class CoinWalletsTable extends ConsumerWidget {
                             await showLoading(
                               whileFuture: loadFuture,
                               context: context,
-                              message: 'Opening ${wallet.info.name}',
+                              message: context.l10n.walletListOpeningWallet(
+                                wallet.info.name,
+                              ),
                               rootNavigator: Util.isDesktop,
                             );
 

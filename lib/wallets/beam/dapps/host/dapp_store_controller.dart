@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../l10n/l10n.dart';
 import '../dapp_catalogue.dart';
 import '../dapp_errors.dart';
 import '../dapp_installer.dart';
@@ -65,9 +66,9 @@ class DappStoreItem {
     final b = bundled;
     if (b == null) return null;
     if (b.size < 1000 * 1000) {
-      return '${(b.size / 1000).ceil()} KB download';
+      return appL10n.dappsDownloadKb('${(b.size / 1000).ceil()}');
     }
-    return '${(b.size / (1000 * 1000)).toStringAsFixed(1)} MB download';
+    return appL10n.dappsDownloadMb((b.size / (1000 * 1000)).toStringAsFixed(1));
   }
 }
 
@@ -172,10 +173,7 @@ class DappStoreController extends ChangeNotifier {
         'package is $length bytes',
       );
     }
-    final package = DappPackage.read(
-      await file.readAsBytes(),
-      limits: limits,
-    );
+    final package = DappPackage.read(await file.readAsBytes(), limits: limits);
     _refuseBundledGuid(package);
     return package;
   }
@@ -282,40 +280,44 @@ const Map<String, String> dappBundledDescriptions = {
 };
 
 /// What went wrong with an install, in words that never blame the user and
-/// name the next step.
-String dappInstallErrorText(Object error, {required String name}) {
-  if (error is DappFetchException) {
+/// name the next step. [name] is the dApp's name; null for a `.dapp` file
+/// that could not be read yet (its name is not known). Such a file can only
+/// fail while it is read, never while it downloads or is written, so the
+/// download and save sentences always have a name.
+String dappInstallErrorText(Object error, {String? name}) {
+  final l = appL10n;
+  if (error is DappFetchException && name != null) {
     return switch (error.failure) {
-      DappFetchFailure.network =>
-        "Couldn't download $name. Check your internet connection (and Tor, "
-            "if it's on), then try again.",
-      DappFetchFailure.server =>
-        "The download server didn't send $name. Try again in a few "
-            'minutes.',
-      DappFetchFailure.mismatch =>
-        "The download didn't match the fingerprint Campfire expects for "
-            '$name, so nothing was installed. Try again later.',
+      DappFetchFailure.network => l.dappsInstallNetwork(name),
+      DappFetchFailure.server => l.dappsInstallServer(name),
+      DappFetchFailure.mismatch => l.dappsInstallMismatch(name),
     };
   }
   if (error is DappInstallException) {
-    return switch (error.error) {
-      DappInstallError.unsupported =>
-        '$name needs a newer wallet than this version of Campfire.',
-      DappInstallError.alreadyInstalled => '$name is already installed.',
-      DappInstallError.reservedGuid =>
-        'This file claims to be ${error.dappName ?? 'a dApp Campfire '
-                'checks'}, but it is not the package Campfire checked, so '
-            'nothing was installed. Install ${error.dappName ?? 'it'} from '
-            'the Available list instead.',
-      DappInstallError.folderPrepFailed || DappInstallError.extractFailed =>
-        "Campfire couldn't save $name on this device. Check that there is "
-            'free space, then try again.',
-      _ =>
-        "This file isn't a dApp package Campfire can install safely, so "
-            'nothing was installed. Ask the dApp\'s publisher for a new '
-            'copy.',
-    };
+    final reserved = error.dappName;
+    switch (error.error) {
+      case DappInstallError.unsupported:
+        return name == null
+            ? l.dappsInstallUnsupportedUnnamed
+            : l.dappsInstallUnsupported(name);
+      case DappInstallError.alreadyInstalled when name != null:
+        return l.dappsInstallAlreadyInstalled(name);
+      case DappInstallError.reservedGuid:
+        return reserved == null
+            ? l.dappsInstallReservedGuidUnnamed
+            : l.dappsInstallReservedGuid(reserved);
+      case DappInstallError.folderPrepFailed || DappInstallError.extractFailed
+          when name != null:
+        return l.dappsInstallSaveFailed(name);
+      case DappInstallError.alreadyInstalled ||
+          DappInstallError.folderPrepFailed ||
+          DappInstallError.extractFailed:
+        return l.dappsInstallFailedUnnamed;
+      default:
+        return l.dappsInstallNotAPackage;
+    }
   }
-  return 'Something went wrong installing $name. Nothing was changed. '
-      'Try again.';
+  return name == null
+      ? l.dappsInstallFailedUnnamed
+      : l.dappsInstallFailed(name);
 }
