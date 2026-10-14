@@ -6,6 +6,8 @@ lib/widgets/beam/split/beam_split_backend.dart | Amm Liquidity Token | the AMM c
 lib/wallets/beam/wallet/beam_wallet_errors.dart | BEAM not enabled | matched in the text of the plain Exception libBeam.createHost throws when the BEAM flag is off
 lib/pages/beam/airdrop/beam_airdrop_codes_view.dart | airdrop-codes-$day-${…}.csv | file name of the exported codes file
 lib/pages/beam/airdrop/beam_claim_voucher_view.dart | XXXX-XXXX-XXXX-XXXX | hint showing the shape of a voucher code; codes are never translated
+lib/pages/beam/airdrop/beam_airdrop_batches_view.dart | batch-cancel-v3-$batchId | ValueKey id of a v3 batch card's take-back link, never shown
+lib/pages/beam/airdrop/beam_airdrop_batches_view.dart | batch-cancel-$batchId | ValueKey id of an old-contract batch card's take-back link, never shown
 lib/pages/beam/buy/buy_beam_wiring.dart | ${…}${…}buybeam_orders.json | file name of the local buys store
 lib/pages/beam/dex/beam_dex_confirm_view.dart | pool-fee | row id used to build ValueKeys (dex-confirm-pool-fee)
 lib/pages/beam/import/beam_import_wallet_file_view.dart | BEAM Campfire | the app's name, passed as the {app} brand to filePickerFailureText
@@ -23,6 +25,8 @@ lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Contract fee (1%,
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | You receive: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Network fee: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Total BEAM out: ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Claim fees paid ahead (included above): ${…} | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
+lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | The code pays the network fee: ${…} comes with it | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | The codes are the only key to these funds. They are saved in this wallet before anything is sent. | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | This voucher is worth less than the network fee to claim it. | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Cancel batch $batchId and take back its unclaimed vouchers | summary lines()/format() for logs and tests; the confirmation screens build their own text from the catalogue
@@ -76,6 +80,71 @@ lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Insufficient fees
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Contract not found | the contract shader's own error text, matched to an error code
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Missing or invalid code | the contract shader's own error text, matched to an error code
 lib/wallets/beam/contracts/airdrop/beam_airdrop_service.dart | Empty code after normalization | the contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | AirdropSquatCheck.ok($batchId) | toString() of the check's result, for logs and tests
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | AirdropSquatCheck.failed(${…}, $index) | toString() of the check's result, for logs and tests
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This batch is not among the codes saved on this device. | exception message for AirdropErrorCode.batchNotFound; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | The wallet is still catching up with the network. Try again once it is in sync. | exception message for AirdropErrorCode.walletNotSynced; the screen shows beamProblemNotSynced* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | These codes can still unlock funds, so they stay saved. Take the batch back first, or wait until its transaction settles. | exception message for AirdropErrorCode.stillHoldsFunds; the screen shows airdropErrStillHoldsFunds* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | 1 to $kAirdropV3MaxVouchersPerBatch codes | developer error (ArgumentError.value) for a bad argument; never shown
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch carries a seed | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | no creator key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch arguments differ from the request | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the shader reports another $k | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | a network fee of ${…} groth, expected ${…} | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | A code has letters and digits, like ABCD-EFGH-JKLM-NPQR. | exception message for AirdropErrorCode.invalidCode; the screen shows airdropErrInvalidCode* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | No voucher has this code. Check it letter by letter; codes never contain I, O, 0 or 1. | exception message for AirdropErrorCode.voucherNotFound; the screen shows airdropErrNotFound* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This code was already claimed. | exception message for AirdropErrorCode.alreadyRedeemed; the screen shows airdropErrAlreadyClaimed* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the network answered for another voucher than this code | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim arguments have the wrong size | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim names another voucher | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim has no receiving key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim asks the gas pool | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim carries the code | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim takes its fee from the gas pool | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the claim | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This wallet has no batch with codes left under that number. | exception message for AirdropErrorCode.batchNotFound; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | Every code of this batch was already claimed or taken back. | exception message for AirdropErrorCode.nothingToCancel; the screen shows airdropErrNothingToCancel* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | Some codes were claimed while this was being prepared. Nothing was sent. Look at the batch again, then take back what is left. | exception message for AirdropErrorCode.changed; the screen shows airdropErrChanged* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | another creator key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | another batch | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the batch changed while preparing; try again | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | repeated or broken voucher keys | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | a voucher that is not one of this batch's codes | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the take-back | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This transaction was already sent. | exception message for AirdropErrorCode.alreadyExecuted; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | This confirmation is no longer current. Prepare it again. | exception message for AirdropErrorCode.expired; the screen shows beamProblemOutOfDate* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | Another airdrop transaction is in progress. Finish or cancel it first. | exception message for AirdropErrorCode.busy; the screen shows airdropErrBusy* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | The codes could not be saved, so nothing was sent. ($e) | exception message for AirdropErrorCode.codesNotSaved; the screen shows airdropErrCodesNotSaved* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | a read-only airdrop call produced a transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the shader built no transaction | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the core started a transaction by itself | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | cannot read the prepared transaction: ${…} | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | expected one contract call | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | the call targets ${…}, not Airdrop v3 | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | contract method ${…}, not $method | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | not a plain call (flags ${…}) | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | something the core would rebuild later | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | BVM charge ${…}, expected $charge | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | kernel comment "${…}" | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | not signed by exactly the expected key | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | $what moves $s, expected exactly $expected | reason of an unexpectedTransaction refusal, kept for logs; screens show their own catalogue text for that code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | voucher not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | voucher already redeemed | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | batch not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | this wallet did not create the batch | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | no unclaimed vouchers in this batch | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | contract is paused: no new batches | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | code has no letters or digits | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | code is longer than 64 letters and digits | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | no Airdrop v3 contract at this cid | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | this cid is not derived from | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | contract settings not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | gas pool not found | the v3 contract shader's own error text, matched to an error code
+lib/wallets/beam/contracts/airdrop/beam_airdrop_v3_service.dart | New codes cannot be made right now: the airdrop contract is paused. Claims and take-backs still work. | exception message for AirdropErrorCode.paused; the screen shows airdropErrPaused* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrops.dart | must share the old service's store | developer error (ArgumentError.value) for a bad argument; never shown
+lib/wallets/beam/contracts/airdrop/beam_airdrops.dart | Another airdrop transaction is in progress. Finish or cancel it first. | exception message for AirdropErrorCode.busy; the screen shows airdropErrBusy* for this code, never this text
+lib/wallets/beam/contracts/airdrop/beam_airdrops.dart | A code has letters and digits, like ABCD-EFGH-JKLM-NPQR. | exception message for AirdropErrorCode.invalidCode; the screen shows airdropErrInvalidCode* for this code, never this text
 lib/wallets/beam/contracts/bans/bans_exceptions.dart | name is invalid | BANS shader's error text, matched by BansRefusal.fromWire
 lib/wallets/beam/contracts/bans/bans_exceptions.dart | name too short | BANS shader's error text, matched by BansRefusal.fromWire
 lib/wallets/beam/contracts/bans/bans_exceptions.dart | name too long | BANS shader's error text, matched by BansRefusal.fromWire

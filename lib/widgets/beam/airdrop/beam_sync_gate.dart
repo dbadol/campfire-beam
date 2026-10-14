@@ -73,6 +73,6 @@ enum BeamPausedAction {
   creatingToken,
   burning,
   creatingCodes,
-  cancelling,
+  takingBack,
   claiming,
 }

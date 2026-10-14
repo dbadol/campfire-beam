@@ -3046,7 +3046,7 @@ class RouteGenerator {
             builder: (_) {
               final beam = BeamWalletWiring.of(args);
               return BeamClaimVoucherView(
-                service: beam.airdrop,
+                service: beam.airdrops,
                 sync: beam.sync,
                 assetNames: beam.assetNames,
               );
@@ -3061,7 +3061,7 @@ class RouteGenerator {
             builder: (_) {
               final beam = BeamWalletWiring.of(args.wallet);
               return BeamClaimVoucherView(
-                service: beam.airdrop,
+                service: beam.airdrops,
                 sync: beam.sync,
                 assetNames: beam.assetNames,
                 initialCode: args.code,
@@ -3079,7 +3079,7 @@ class RouteGenerator {
             builder: (_) {
               final beam = BeamWalletWiring.of(args);
               return BeamAirdropBatchesView(
-                service: beam.airdrop,
+                service: beam.airdrops,
                 sync: beam.sync,
                 assetNames: beam.assetNames,
               );
@@ -3096,7 +3096,7 @@ class RouteGenerator {
             builder: (_) {
               final beam = BeamWalletWiring.of(args);
               return BeamCreateAirdropView(
-                service: beam.airdrop,
+                service: beam.airdrops,
                 sync: beam.sync,
                 assetNames: beam.assetNames,
               );

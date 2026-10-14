@@ -43,15 +43,23 @@ BeamProblem? beamTransportProblem(Object error) {
 
 /// What a voucher code is, said where codes are made and claimed.
 ///
-/// The live Airdrop contract redeems with the code itself (the preimage of
+/// The old Airdrop contract redeems with the code itself (the preimage of
 /// the hash it stores), so a claim carries the code in a transaction that
 /// the network sees before it is in a block. Anyone watching could take the
 /// code and claim the voucher first. Campfire cannot change that contract;
-/// it says so, so codes are used for amounts where that risk is acceptable.
+/// it says so where its codes are claimed ([claimMessage]).
+///
+/// Airdrop v3, where every new code is made, signs a claim with a key made
+/// from the code, so the code never reaches the network and a copied claim
+/// pays only its claimer. The code itself still works like cash, and its
+/// maker can take it back until a claim is confirmed ([createMessageV3],
+/// [claimMessageV3]; the web wallet's `BEARER_TEXT_V3`, word for word).
 abstract final class AirdropBearerText {
   static String get createTitle => appL10n.airdropBearerCreateTitle;
 
-  static String get createMessage => appL10n.airdropBearerCreateMessage;
+  static String get createMessageV3 => appL10n.airdropBearerCreateMessageV3;
+
+  static String get claimMessageV3 => appL10n.airdropBearerClaimMessageV3;
 
   static String get claimMessage => appL10n.airdropBearerClaimMessage;
 }
@@ -110,6 +118,32 @@ BeamProblem airdropProblem(Object error) {
       l.airdropErrContractNotFoundTitle,
       l.airdropErrContractNotFoundMessage,
     ),
+    AirdropErrorCode.paused => BeamProblem(
+      l.airdropErrPausedTitle,
+      l.airdropErrPausedMessage,
+    ),
+    AirdropErrorCode.changed => BeamProblem(
+      l.airdropErrChangedTitle,
+      l.airdropErrChangedMessage,
+    ),
+    AirdropErrorCode.notBatchCreator => BeamProblem(
+      l.airdropErrNotBatchCreatorTitle,
+      l.airdropErrNotBatchCreatorMessage,
+    ),
     _ => BeamProblem(l.airdropErrRefusedTitle, error.message),
+  };
+}
+
+/// Why a new batch's codes failed the check before sharing, in plain words
+/// (the screen adds what to do next).
+String airdropCheckProblemText(AirdropCheckProblem? p) {
+  final l = appL10n;
+  return switch (p) {
+    AirdropCheckProblem.notFound => l.airdropCheckProblemNotFound,
+    AirdropCheckProblem.otherKey => l.airdropCheckProblemOtherKey,
+    AirdropCheckProblem.otherValue => l.airdropCheckProblemOtherValue,
+    AirdropCheckProblem.otherBatch => l.airdropCheckProblemOtherBatch,
+    AirdropCheckProblem.notMine => l.airdropCheckProblemNotMine,
+    null => l.airdropCheckProblemUnknown,
   };
 }

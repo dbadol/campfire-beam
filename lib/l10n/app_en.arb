@@ -241,15 +241,41 @@
   "@airdropBalanceChangesBy": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Label of the total (cancel confirmation, and the claim screen for a BEAM code): how much the BEAM balance goes up or down, network fee included; the value is e.g. '+4.319 BEAM' or '−0.011 BEAM'. (glossary: balance, network fee)"
   },
-  "airdropBatchCodesTimesValue": "{count, plural, one{{count} codes × {amount}} other{{count} codes × {amount}}}",
-  "@airdropBatchCodesTimesValue": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Line under the asset on a batch card: how many codes the batch has and what each one gives. {count} is the number of codes, {amount} what one code gives, with its ticker, e.g. '0.5 BEAM'. (glossary: code, batch)",
+  "airdropBatchBeingCheckedNote": "Being confirmed and checked before you share the codes. Show codes to see how far it is.",
+  "@airdropBatchBeingCheckedNote": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line on a batch card marked 'Being checked'. 'Show codes' is the link on the same card. (glossary: confirming, code)"
+  },
+  "airdropBatchCheckFailedNote": "These codes did not pass the check. Show codes says what to do.",
+  "@airdropBatchCheckFailedNote": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line on a batch card marked 'Do not share'. 'Show codes' is the link on the same card. (glossary: code)"
+  },
+  "airdropBatchCheckedNote": "Checked and ready to share.",
+  "@airdropBatchCheckedNote": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line on a new batch card once its codes passed the check on the network. (glossary: code)"
+  },
+  "airdropBatchClaimFeesPaid": "Claim fees paid: people with an empty wallet can claim.",
+  "@airdropBatchClaimFeesPaid": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line on a batch card whose maker paid each claim's network fee ahead, so whoever gets a code needs no BEAM to claim it. (glossary: network fee, claim, wallet)"
+  },
+  "airdropBatchCodeCount": "{count, plural, one{{count} code} other{{count} codes}}",
+  "@airdropBatchCodeCount": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line under the asset on a batch card whose codes give different amounts: how many codes it has. {count} is the number of codes. (glossary: code, batch)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "airdropBatchCodesTimes": "{count, plural, one{{count} code × {amount}} other{{count} codes × {amount}}}",
+  "@airdropBatchCodesTimes": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line under the asset on a batch card: how many codes the batch has and what each one gives. {count} is the number of codes, {amount} what one code gives, with its ticker, e.g. '10 codes × 0.5 BEAM'. (glossary: code, batch)",
     "placeholders": {
       "count": {
         "type": "int"
       },
       "amount": {
-        "type": "String"
+        "type": "String",
+        "example": "0.5 BEAM"
       }
     }
   },
@@ -281,9 +307,17 @@
   "@airdropBatchForget": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Link on a finished batch card (every code claimed or cancelled): removes it from the list on this device. (glossary: batch)"
   },
+  "airdropBatchHoldsNothing": "These codes hold nothing.",
+  "@airdropBatchHoldsNothing": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line on a batch card marked 'Not created — nothing was locked'. (glossary: code)"
+  },
   "airdropBatchNotOnDevice": "Its codes are not on this device, but you can still take back what nobody claimed.",
   "@airdropBatchNotOnDevice": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Line on a batch card the contract lists for this wallet but whose codes were saved elsewhere (another device or app). (glossary: code, batch, claim)"
+  },
+  "airdropBatchNotOnDeviceNothingLeft": "Its codes are not on this device. Nothing is left to claim.",
+  "@airdropBatchNotOnDeviceNothingLeft": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line on a batch card the contract lists for this wallet but whose codes were saved elsewhere (another device or app), once every code was claimed or taken back. (glossary: code, claim)"
   },
   "airdropBatchShowCodes": "Show codes",
   "@airdropBatchShowCodes": {
@@ -298,22 +332,23 @@
       }
     }
   },
-  "airdropBatchesCancelSentMessage": "The unclaimed codes stop working and {amount} comes back once the network confirms it, usually within a few minutes.",
-  "@airdropBatchesCancelSentMessage": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Success notice message after cancelling a batch's unclaimed codes. {amount} is what returns to the wallet, with its ticker, e.g. '4.5 BEAM'. (glossary: code, batch)",
+  "airdropBatchTakeBackFee": "Network fee to take back: {fee}",
+  "@airdropBatchTakeBackFee": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': line under a batch card's links: what taking back its unclaimed codes costs. {fee} is the fee with its ticker, e.g. '0.016 BEAM'. (glossary: network fee)",
     "placeholders": {
-      "amount": {
-        "type": "String"
+      "fee": {
+        "type": "String",
+        "example": "0.016 BEAM"
       }
     }
   },
-  "airdropBatchesCancelSentTitle": "Cancel sent",
-  "@airdropBatchesCancelSentTitle": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Success notice title after the person confirmed cancelling a batch's unclaimed codes: the cancel transaction was sent. (glossary: batch, cancelled)"
+  "airdropBatchTakingBack": "Taking back…",
+  "@airdropBatchTakingBack": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches': the take-back link on a batch card while its take-back is on its way (sent, not confirmed yet). (glossary: confirming, cancelled)"
   },
   "airdropBatchesCheckAgain": "Check again",
   "@airdropBatchesCheckAgain": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Link next to \"Up to date with the network\": checks the batches on the network again."
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Link next to \"Up to date with the network\": checks the batches on the network again. Also the action of the error notice on 'Your airdrop codes' when a new batch's codes could not be checked: asks the network again. (glossary: code)"
   },
   "airdropBatchesChecking": "Checking your codes on the network…",
   "@airdropBatchesChecking": {
@@ -355,9 +390,56 @@
   "@airdropBatchesForgetTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Dialog title before removing a finished batch (every code claimed or cancelled) from the list on this device. (glossary: batch)"
   },
-  "airdropBatchesPreparingCancel": "Preparing the cancel…",
-  "@airdropBatchesPreparingCancel": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Progress line while the wallet builds the transaction that cancels a batch's unclaimed codes (nothing is sent yet). (glossary: batch, cancelled)"
+  "airdropBatchesPartProblemMessage": "The list may be missing some.",
+  "@airdropBatchesPartProblemMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Warning message under \"Some batches couldn't be read just now\"; 'some' = some batches. 'Your saved codes are safe on this device.' follows it. (glossary: batch)"
+  },
+  "airdropBatchesPartProblemTitle": "Some batches couldn't be read just now",
+  "@airdropBatchesPartProblemTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches' (a batch is one set of codes created together). Warning title when the network answered for one of the two airdrop contracts but not the other, so the list may be incomplete. (glossary: batch)"
+  },
+  "airdropBatchesPreparingTakeBack": "Preparing the take-back…",
+  "@airdropBatchesPreparingTakeBack": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Progress line while the wallet builds the transaction that takes back a batch's unclaimed codes (nothing is sent yet). (glossary: batch, cancelled)"
+  },
+  "airdropBatchesTakeBackFailedMessage": "Nothing changed and nothing left your wallet. If a code was claimed in the meantime, take back what is left now.",
+  "@airdropBatchesTakeBackFailedMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Message under 'The take-back did not go through'. (glossary: code, claim, wallet)"
+  },
+  "airdropBatchesTakeBackFailedTitle": "The take-back did not go through",
+  "@airdropBatchesTakeBackFailedTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Notice title when the network turned a sent take-back down (usually because a code was claimed first). (glossary: failed)"
+  },
+  "airdropBatchesTakeBackSentMessage": "{count, plural, one{The {count} unclaimed code stops working and {amount} comes back once the network confirms it, usually within 2 minutes.} other{The {count} unclaimed codes stop working and {amount} comes back once the network confirms it, usually within 2 minutes.}}",
+  "@airdropBatchesTakeBackSentMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Message under 'Take-back sent'. {count} is the number of codes taken back; {amount} what returns to the wallet with its ticker, e.g. '4.5 BEAM' or '10 bETH + 0.066 BEAM' (the BEAM part is the claim fees paid ahead). (glossary: code, confirming)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String",
+        "example": "4.5 BEAM"
+      }
+    }
+  },
+  "airdropBatchesTakeBackSentTitle": "Take-back sent",
+  "@airdropBatchesTakeBackSentTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Success notice title after the person confirmed taking back a batch's unclaimed codes ('take-back' = cancelling them so their amount returns): the transaction was sent. (glossary: batch, cancelled)"
+  },
+  "airdropBatchesTakenBackMessage": "{amount} is back in your wallet.",
+  "@airdropBatchesTakenBackMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Message under 'Taken back'. {amount} is what returned, with its ticker, e.g. '4.5 BEAM' or '10 bETH + 0.066 BEAM'. (glossary: wallet)",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "4.5 BEAM"
+      }
+    }
+  },
+  "airdropBatchesTakenBackTitle": "Taken back",
+  "@airdropBatchesTakenBackTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'My airdrop batches'. Notice title once the network confirmed a take-back (the unclaimed codes are cancelled and their amount returned). (glossary: cancelled)"
   },
   "airdropBatchesTitle": "My airdrop batches",
   "@airdropBatchesTitle": {
@@ -369,15 +451,43 @@
   },
   "airdropBearerClaimMessage": "Claiming shows this code to the network before it is confirmed, so someone watching could claim it first. That is how this airdrop contract works; codes are meant for small amounts.",
   "@airdropBearerClaimMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where a code is claimed. 'Contract' = the program on the BEAM network that holds the airdrop. (glossary: airdrop, code, batch, claim)"
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where a code of the old airdrop contract is claimed (codes made before Airdrop v3; v3's claims never show the code). 'Contract' = the program on the BEAM network that holds the airdrop. (glossary: airdrop, code, batch, claim)"
   },
-  "airdropBearerCreateMessage": "Anyone who has a code can claim it. Claiming also shows the code to the network before it is confirmed, so someone watching could claim it first. Use codes for small amounts, and give each one to one person.",
-  "@airdropBearerCreateMessage": {
-    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where codes are created. (glossary: airdrop, code, batch, claim)"
+  "airdropBearerClaimMessageV3": "The network never sees this code, so nobody watching can take your claim. Until the claim is confirmed, anyone else who has the code could still claim it first, and whoever made it could still take it back.",
+  "@airdropBearerClaimMessageV3": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where a code of Airdrop v3 (the airdrop contract every new code is made on) is claimed. 'Take it back' = the person who made the code cancels it and gets its amount back. (glossary: airdrop, code, claim, confirming)"
+  },
+  "airdropBearerCreateMessageV3": "Anyone who has a code can claim it, so give each code only to its person. Claiming never shows the code to the network, so nobody watching can take it. Codes nobody has claimed can be taken back.",
+  "@airdropBearerCreateMessageV3": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): the warning shown where codes are created, under 'Codes work like cash'. New codes are made on Airdrop v3, whose claims never show the code to the network; whoever made a code can take it back while nobody has claimed it. (glossary: airdrop, code, claim)"
   },
   "airdropBearerCreateTitle": "Codes work like cash",
   "@airdropBearerCreateTitle": {
     "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): title of the warning shown where codes are created. (glossary: airdrop, code, batch, claim)"
+  },
+  "airdropCheckProblemNotFound": "A code is not on the network.",
+  "@airdropCheckProblemNotFound": {
+    "description": "Airdrop (BEAM wallet → Airdrop): before new codes are shown for sharing, the wallet checks each one on the network. One reason the check failed, shown on the batch's codes screen above 'Do not share these codes' (the screen then says what to do). (glossary: code)"
+  },
+  "airdropCheckProblemNotMine": "The codes belong to a batch another wallet made.",
+  "@airdropCheckProblemNotMine": {
+    "description": "Airdrop (BEAM wallet → Airdrop): before new codes are shown for sharing, the wallet checks each one on the network. One reason the check failed: the batch on the network was created by another wallet. (glossary: code, batch, wallet)"
+  },
+  "airdropCheckProblemOtherBatch": "A code belongs to a batch other than the one this wallet made.",
+  "@airdropCheckProblemOtherBatch": {
+    "description": "Airdrop (BEAM wallet → Airdrop): before new codes are shown for sharing, the wallet checks each one on the network. One reason the check failed: a code is part of another batch. (glossary: code, batch)"
+  },
+  "airdropCheckProblemOtherKey": "A code points somewhere other than where this wallet put it.",
+  "@airdropCheckProblemOtherKey": {
+    "description": "Airdrop (BEAM wallet → Airdrop): before new codes are shown for sharing, the wallet checks each one on the network. One reason the check failed: a code on the network is tied to a different claim key than the one this wallet made for it. (glossary: code)"
+  },
+  "airdropCheckProblemOtherValue": "A code holds a different amount than this batch locked.",
+  "@airdropCheckProblemOtherValue": {
+    "description": "Airdrop (BEAM wallet → Airdrop): before new codes are shown for sharing, the wallet checks each one on the network. One reason the check failed: a code's asset, amount or prepaid claim fee differs from what the batch locked. (glossary: code, asset, amount, batch)"
+  },
+  "airdropCheckProblemUnknown": "A code did not check out.",
+  "@airdropCheckProblemUnknown": {
+    "description": "Airdrop (BEAM wallet → Airdrop): before new codes are shown for sharing, the wallet checks each one on the network. The general reason the check failed, when no more precise one applies. (glossary: code)"
   },
   "airdropChecking": "Checking…",
   "@airdropChecking": {
@@ -420,6 +530,10 @@
   "@airdropClaimCheckCode": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Main button once enough characters are typed: looks the code up (nothing is sent). (glossary: code)"
   },
+  "airdropClaimCheckCodeAgain": "Check the code again",
+  "@airdropClaimCheckCodeAgain": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': main button after a claim did not go through; checks the same code on the network again. (glossary: code)"
+  },
   "airdropClaimChecking": "Checking the code…",
   "@airdropClaimChecking": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Progress line while the code is looked up and the claim is prepared (nothing is sent). (glossary: code)"
@@ -441,18 +555,13 @@
       }
     }
   },
-  "airdropClaimDoneMessage": "It shows in your balance once the network confirms the claim, usually within a few minutes.",
-  "@airdropClaimDoneMessage": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Text under the title after the claim was sent. (glossary: balance, claim)"
+  "airdropClaimFailedMessage": "Nothing left your wallet. Someone else may have claimed the code first, or whoever made it took it back. Check the code again to see.",
+  "@airdropClaimFailedMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': text under 'The claim did not go through'. 'Took it back' = the code's maker cancelled it so its amount returned to them. (glossary: claim, code, wallet, cancelled)"
   },
-  "airdropClaimDoneTitle": "{amount} is on its way",
-  "@airdropClaimDoneTitle": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Title of the screen shown after the claim was sent. {amount} is what the code gives, with its ticker, e.g. '2.5 BEAM'. (glossary: claim)",
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
+  "airdropClaimFailedTitle": "The claim did not go through",
+  "@airdropClaimFailedTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': title when the network turned a sent claim down. (glossary: claim, failed)"
   },
   "airdropClaimFound": "Code found — not claimed yet",
   "@airdropClaimFound": {
@@ -485,6 +594,18 @@
   "@airdropClaimLossTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Warning title: claiming this code costs more network fee than the BEAM it gives. (glossary: code, network fee)"
   },
+  "airdropClaimNoBeamNeededMessage": "Whoever made this code paid its network fee, so you can claim it even with an empty wallet.",
+  "@airdropClaimNoBeamNeededMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code'. Message under 'No BEAM needed'. (glossary: network fee, claim, code, wallet)"
+  },
+  "airdropClaimNoBeamNeededTitle": "No BEAM needed",
+  "@airdropClaimNoBeamNeededTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code'. Title of a notice once the code was found, when whoever made the code paid its claim's network fee ahead: the claim needs no BEAM in this wallet. Keep 'BEAM' as written. (glossary: network fee, claim, code)"
+  },
+  "airdropClaimPaidByCode": "Paid by the code",
+  "@airdropClaimPaidByCode": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code'. Small detail under 'Network fee' when whoever made the code paid the claim's fee ahead: the code covers it. (glossary: network fee, code)"
+  },
   "airdropClaimPaidFromBeam": "Paid from your BEAM",
   "@airdropClaimPaidFromBeam": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Small detail under 'Network fee' when the code gives a token other than BEAM: the fee is paid in BEAM. Keep 'BEAM' as written. (glossary: network fee, token)"
@@ -493,9 +614,33 @@
   "@airdropClaimPasteLabel": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Screen-reader label of the paste button in the code field. (glossary: code)"
   },
+  "airdropClaimReceivedMessage": "The network confirmed your claim. It is in your balance now.",
+  "@airdropClaimReceivedMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': text under '<amount> received'. (glossary: claim, balance)"
+  },
+  "airdropClaimReceivedTitle": "{amount} received",
+  "@airdropClaimReceivedTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': title once the network confirmed the claim. {amount} is what the code gave, with its ticker, e.g. '2.5 BEAM'. (glossary: receive, claim)",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "2.5 BEAM"
+      }
+    }
+  },
   "airdropClaimScanLabel": "Scan a QR code",
   "@airdropClaimScanLabel": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code': the person pastes a voucher code they were given and receives what it holds. Screen-reader label of the camera button in the code field (phones). (glossary: scan, QR code)"
+  },
+  "airdropClaimSentMessage": "{amount} is yours once the network confirms the claim, usually within 2 minutes. You can leave this screen; it shows in your balance then.",
+  "@airdropClaimSentMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Claim a code', after the claim was sent ('Claim sent'), while the network has not confirmed it yet. {amount} is what the code gives, with its ticker, e.g. '2.5 BEAM'. (glossary: claim, confirming, balance)",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "2.5 BEAM"
+      }
+    }
   },
   "airdropClaimShortMessage": "Claiming needs {needed} and this wallet has {available}. Add BEAM to this wallet, then claim.",
   "@airdropClaimShortMessage": {
@@ -577,7 +722,7 @@
   },
   "airdropCodesBatchSentTitle": "Batch sent",
   "@airdropCodesBatchSentTitle": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Success notice title right after the batch of codes was sent to the network. (glossary: batch)"
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Success notice title right after the batch of codes was sent to the network. Also the first of the steps a new batch goes through before its codes can be shared ('Batch sent' → 'Confirmed by the network' → 'Every code checked'). (glossary: batch)"
   },
   "airdropCodesCantOpenMessage": "The secure storage on this device did not answer. Close this screen and open it again; the codes are not lost.",
   "@airdropCodesCantOpenMessage": {
@@ -586,6 +731,22 @@
   "airdropCodesCantOpenTitle": "Couldn't open the saved codes",
   "@airdropCodesCantOpenTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Error title: the device's secure storage did not answer. (glossary: code)"
+  },
+  "airdropCodesCheckErrorTitle": "The codes couldn't be checked",
+  "@airdropCodesCheckErrorTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': title when asking the network about a new batch failed (the node did not answer or refused); the message under it gives the reason. (glossary: code, node)"
+  },
+  "airdropCodesCheckFailedNothingLocked": "Someone may have copied this batch while it was on its way, so the codes could point to empty vouchers. Your funds are safe: nothing more was locked, and make new codes.",
+  "@airdropCodesCheckFailedNothingLocked": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': message under 'Do not share these codes' when this wallet's own batch transaction did not go into a block, so none of its funds were locked; it follows the sentence that says why the check failed. (glossary: batch, code, block)"
+  },
+  "airdropCodesCheckFailedTakeBack": "Someone may have copied this batch while it was on its way, so the codes could point to empty vouchers. Your funds are safe: take this batch back in My batches to get them back, and make new codes.",
+  "@airdropCodesCheckFailedTakeBack": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': message under 'Do not share these codes' when this wallet's batch transaction went into a block (its funds are locked); it follows the sentence that says why the check failed. 'Take back' = cancel the batch so its funds return; 'My batches' is the name of the airdrop batches screen. (glossary: batch, code, block)"
+  },
+  "airdropCodesCheckFailedTitle": "Do not share these codes",
+  "@airdropCodesCheckFailedTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': title of the danger notice when a new batch's codes failed the check on the network that runs before they can be shared. (glossary: code)"
   },
   "airdropCodesCopyAll": "Copy all codes",
   "@airdropCodesCopyAll": {
@@ -635,6 +796,14 @@
   "@airdropCodesKeyWarningTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Warning title: whoever has a code can claim its value, and the codes are not in the wallet backup. (glossary: code, backup)"
   },
+  "airdropCodesMakeNew": "Make new codes",
+  "@airdropCodesMakeNew": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': main button when a batch failed its check or did not go through: opens 'Create airdrop codes' filled in with the same asset, amount, number of codes and claim fee choice. (glossary: code)"
+  },
+  "airdropCodesNeverSentMessage": "It was never sent, so nothing was locked and these codes hold nothing. They stay saved here anyway.",
+  "@airdropCodesNeverSentMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': message under 'This batch did not go through' when the batch's transaction never left the wallet. (glossary: batch, code)"
+  },
   "airdropCodesNotOnDeviceMessage": "They may have been saved by another device or app. Open My batches to see what this wallet has.",
   "@airdropCodesNotOnDeviceMessage": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Error message: the batch is not in this device's saved codes. 'My batches' is the name of the airdrop batches screen. (glossary: code, batch)"
@@ -643,13 +812,87 @@
   "@airdropCodesNotOnDeviceTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Error title: the batch asked for is not in this device's saved codes. (glossary: code)"
   },
+  "airdropCodesNotSentTitle": "This batch did not go through",
+  "@airdropCodesNotSentTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': title when the transaction that creates the batch failed, so its codes hold nothing. (glossary: batch, failed)"
+  },
   "airdropCodesOpening": "Opening your saved codes…",
   "@airdropCodesOpening": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Progress line while the codes are read from secure storage. (glossary: code)"
   },
+  "airdropCodesReadyMessage": "Every code is on the network in your batch.",
+  "@airdropCodesReadyMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': message under 'Ready to share'. (glossary: code, batch)"
+  },
+  "airdropCodesReadyMessageWithFees": "Every code is on the network in your batch, with its claim fee paid.",
+  "@airdropCodesReadyMessageWithFees": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': message under 'Ready to share' when the batch's claim fees were paid ahead (whoever gets a code needs no BEAM to claim it). (glossary: code, batch, network fee, claim)"
+  },
+  "airdropCodesReadyTitle": "Ready to share",
+  "@airdropCodesReadyTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': title of the success notice once every code of a new batch passed its check on the network; the codes are shown below it. (glossary: code)"
+  },
+  "airdropCodesSavedOnDevice": "They are saved on this device.",
+  "@airdropCodesSavedOnDevice": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': sentence added after the reason under 'The codes couldn't be checked': the codes are not lost. 'They' = the codes. (glossary: code)"
+  },
   "airdropCodesShare": "Share",
   "@airdropCodesShare": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Link on phones: opens the system's share sheet with the codes. (glossary: code)"
+  },
+  "airdropCodesStepChecked": "Every code checked",
+  "@airdropCodesStepChecked": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes', steps a new batch goes through before its codes can be shared. Third step: the app checked each code on the network; its progress shows on the right, e.g. '4 of 10'. (glossary: code)"
+  },
+  "airdropCodesStepConfirmed": "Confirmed by the network",
+  "@airdropCodesStepConfirmed": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes', steps a new batch goes through before its codes can be shared ('Batch sent' → this → 'Every code checked'). Second step: the batch is in enough blocks; its progress shows on the right, e.g. '2 of 3'. (glossary: confirming, block)"
+  },
+  "airdropCodesStepCount": "{done} of {total}",
+  "@airdropCodesStepCount": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes', steps before sharing: small progress note on the right of a step, e.g. '2 of 3' confirmations or '4 of 10' codes checked. {done} is how many are done, {total} how many are needed (numbers, keep as written).",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "airdropCodesStepWaiting": "waiting",
+  "@airdropCodesStepWaiting": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes', steps before sharing: small note on the right of 'Confirmed by the network' while the network has not confirmed the batch at all yet (lowercase in English, a status, not a sentence). (glossary: confirming)"
+  },
+  "airdropCodesSummaryEach": "{count, plural, one{{count} code · {amount} each} other{{count} codes · {amount} each}}",
+  "@airdropCodesSummaryEach": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes' while a new batch waits for its check before sharing (or failed it). Line under the asset: how many codes and what each gives. {count} is the number of codes, {amount} what one code gives, with its ticker, e.g. '0.5 BEAM'. (glossary: code, batch)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String",
+        "example": "0.5 BEAM"
+      }
+    }
+  },
+  "airdropCodesSummaryTotal": "{count, plural, one{{count} code · {amount} in total} other{{count} codes · {amount} in total}}",
+  "@airdropCodesSummaryTotal": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes' while a new batch waits for its check before sharing (or failed it). Line under the asset when the codes give different amounts: how many codes and what they give together. {count} is the number of codes, {amount} their total with its ticker, e.g. '5 BEAM'. (glossary: code, batch)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String",
+        "example": "5 BEAM"
+      }
+    }
+  },
+  "airdropCodesTakeBatchBack": "Take the batch back",
+  "@airdropCodesTakeBatchBack": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': second button when a batch that is on the network failed its check: opens My batches, where the batch can be taken back (cancelled) so its funds return. (glossary: batch, cancelled)"
   },
   "airdropCodesTitle": "Airdrop codes",
   "@airdropCodesTitle": {
@@ -659,13 +902,29 @@
   "@airdropCodesTitleNew": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen with the codes of one batch (opens right after a batch is created, or from My batches → Show codes). Screen title right after the batch was created. (glossary: airdrop, code, batch)"
   },
-  "airdropConfirmAuthCancel": "Cancel airdrop codes",
-  "@airdropConfirmAuthCancel": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Reason shown in the PIN / fingerprint / face prompt that confirms cancelling a batch's unclaimed codes. (glossary: airdrop, code, batch)"
+  "airdropCodesToBatches": "My batches",
+  "@airdropCodesToBatches": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': second button when a batch failed its check or did not go through: opens the screen 'My airdrop batches'. (glossary: batch)"
+  },
+  "airdropCodesTurnedDownMessage": "The network turned it down, so nothing was locked and these codes hold nothing. Do not use them: make new codes.",
+  "@airdropCodesTurnedDownMessage": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': message under 'This batch did not go through' when the network refused the batch's transaction. (glossary: batch, code, failed)"
+  },
+  "airdropCodesWaitBeforeSharing": "Wait a few minutes before sharing the codes.",
+  "@airdropCodesWaitBeforeSharing": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes' right after a batch was created: message under 'Batch sent' while the app waits to check the codes on the network. (glossary: code)"
+  },
+  "airdropCodesWaitWhy": "Before you share them, Campfire makes sure every code points to the batch you made, so nobody can swap them for empty ones. The codes appear here once that is done. You can leave this screen and come back.",
+  "@airdropCodesWaitWhy": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes' while a new batch waits for its check: why the codes are not shown yet. Campfire is the app's name (keep it). (glossary: code, batch)"
   },
   "airdropConfirmAuthCreate": "Create airdrop codes",
   "@airdropConfirmAuthCreate": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Reason shown in the PIN / fingerprint / face prompt that confirms creating the batch. (glossary: airdrop, code, batch)"
+  },
+  "airdropConfirmAuthTakeBack": "Take back airdrop codes",
+  "@airdropConfirmAuthTakeBack": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before taking back the codes of a batch nobody claimed yet ('take back' = cancel them so their amount returns to this wallet). Reason shown in the PIN / fingerprint / face prompt that confirms taking back a batch's unclaimed codes. (glossary: airdrop, code, batch, cancelled)"
   },
   "airdropConfirmBatchUnclaimed": "Batch {batch} · unclaimed codes",
   "@airdropConfirmBatchUnclaimed": {
@@ -678,11 +937,7 @@
   },
   "airdropConfirmCancelLater": "Codes nobody claims can be cancelled later from My batches; their value then comes back to you.",
   "@airdropConfirmCancelLater": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Information before creating. 'My batches' is the name of the airdrop batches screen. (glossary: code, claim, cancelled, batch)"
-  },
-  "airdropConfirmCancelTitle": "Confirm cancel",
-  "@airdropConfirmCancelTitle": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Screen title before cancelling a batch's unclaimed codes. (glossary: cancelled, confirm)"
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Information before creating codes on the old airdrop contract (new codes are made on Airdrop v3, which shows 'Share the codes once Campfire has checked them…' instead). 'My batches' is the name of the airdrop batches screen. (glossary: code, claim, cancelled, batch)"
   },
   "airdropConfirmCancelWarning": "{count, plural, one{These {count} codes stop working right away, even if you already gave them to someone. Codes already claimed are not affected.} other{These {count} codes stop working right away, even if you already gave them to someone. Codes already claimed are not affected.}}",
   "@airdropConfirmCancelWarning": {
@@ -692,6 +947,10 @@
         "type": "int"
       }
     }
+  },
+  "airdropConfirmClaimFeesLabel": "Claim fees paid ahead",
+  "@airdropConfirmClaimFeesLabel": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes. Row label: the BEAM locked with the codes to pay the network fee of each claim, so whoever gets a code can claim it with no BEAM of their own. The detail under the value reads e.g. '5 × 0.022 BEAM'. (glossary: network fee, claim, code)"
   },
   "airdropConfirmCodesStop": "Codes that stop working",
   "@airdropConfirmCodesStop": {
@@ -715,7 +974,7 @@
   },
   "airdropConfirmGetBackCta": "Get back {amount}",
   "@airdropConfirmGetBackCta": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Main button when cancelling: cancels the unclaimed codes and returns their value. {amount} is that value with its ticker, e.g. '4.5 BEAM'. (glossary: code, cancelled)",
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Main button when taking back (cancelling): cancels the unclaimed codes and returns their value. {amount} is that value with its ticker, e.g. '4.5 BEAM', or '10 bETH + 0.066 BEAM' when claim fees paid ahead come back too. (glossary: code, cancelled)",
     "placeholders": {
       "amount": {
         "type": "String"
@@ -754,6 +1013,22 @@
   "@airdropConfirmOnlyKeyTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes, or before cancelling the codes of a batch nobody claimed yet. Warning title before creating: whoever has a code can claim its value, and the codes are not in the wallet backup. (glossary: code, backup)"
   },
+  "airdropConfirmShareAfterCheck": "Share the codes once Campfire has checked them on the network, a few minutes after the batch is confirmed. Codes nobody claims can be taken back later from My batches.",
+  "@airdropConfirmShareAfterCheck": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes. Information: the codes are shown for sharing only after the app has checked each one on the network. 'My batches' is the name of the airdrop batches screen; 'taken back' = cancelled so their amount returns. Campfire is the app's name (keep it). (glossary: code, batch, confirming, claim)"
+  },
+  "airdropConfirmShareAfterCheckWithFees": "Share the codes once Campfire has checked them on the network, a few minutes after the batch is confirmed. Codes nobody claims can be taken back later from My batches, with their claim fees.",
+  "@airdropConfirmShareAfterCheckWithFees": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before creating a batch of codes whose claim fees are paid ahead. Information: the codes are shown for sharing only after the app has checked each one on the network; unclaimed codes can be taken back (cancelled) together with the BEAM paid ahead for their claims. 'My batches' is the name of the airdrop batches screen. Campfire is the app's name (keep it). (glossary: code, batch, confirming, claim, network fee)"
+  },
+  "airdropConfirmTakeBackTitle": "Confirm take-back",
+  "@airdropConfirmTakeBackTitle": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before taking back the codes of a batch nobody claimed yet ('take-back' = cancelling them so their amount returns to this wallet). Screen title. (glossary: confirm, cancelled, batch)"
+  },
+  "airdropConfirmWithClaimFees": "With their claim fees paid ahead",
+  "@airdropConfirmWithClaimFees": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Confirmation screen before taking back a batch's unclaimed codes. Detail under 'Comes back to you': the BEAM prepaid for the codes' claim fees comes back too. (glossary: network fee, claim, code)"
+  },
   "airdropCreateCantReadMessage": "The wallet did not answer. Try again in a moment.",
   "@airdropCreateCantReadMessage": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Error message under \"Couldn't read your balances\"."
@@ -761,6 +1036,14 @@
   "airdropCreateCantReadTitle": "Couldn't read your balances",
   "@airdropCreateCantReadTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Error title: the wallet did not answer when asked for the balances. (glossary: balance)"
+  },
+  "airdropCreateCheckNote": "Share the codes once Campfire has checked them: it waits for the network to confirm the batch, then checks every code. This takes a few minutes. Codes nobody claims can be taken back later.",
+  "@airdropCreateCheckNote": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes'. Note above the button: the codes are shown for sharing only after the app has checked each one on the network; 'taken back' = cancelled so their amount returns to this wallet. Campfire is the app's name (keep it). (glossary: code, batch, confirming, claim)"
+  },
+  "airdropCreateCheckNoteWithFees": "Share the codes once Campfire has checked them: it waits for the network to confirm the batch, then checks every code. This takes a few minutes. Codes nobody claims can be taken back later, with their claim fees.",
+  "@airdropCreateCheckNoteWithFees": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes', with 'Pay the claim fee for each code' on. Note above the button: the codes are shown for sharing only after the app has checked each one on the network; unclaimed codes can be taken back (cancelled) together with the BEAM paid ahead for their claims. Campfire is the app's name (keep it). (glossary: code, batch, confirming, claim, network fee)"
   },
   "airdropCreateCodesCta": "{count, plural, one{Create {count} codes} other{Create {count} codes}}",
   "@airdropCreateCodesCta": {
@@ -777,26 +1060,24 @@
   },
   "airdropCreateCountProblem": "{max, plural, one{Choose 1 to {max} codes} other{Choose 1 to {max} codes}}",
   "@airdropCreateCountProblem": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Error under the 'Number of codes' field when the number is not allowed. {max} is the most codes one batch can have, e.g. 29. Keep '1' as written. (glossary: code, batch)",
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Error under the 'Number of codes' field when the number is not allowed. {max} is the most codes one batch can have, e.g. 100. Keep '1' as written. (glossary: code, batch)",
     "placeholders": {
       "max": {
         "type": "int"
       }
     }
   },
-  "airdropCreateFeeShownLater": "Shown before you confirm",
-  "@airdropCreateFeeShownLater": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Value of the 'Network fee' row: the exact fee is shown on the confirmation screen. (glossary: network fee, confirm)"
-  },
-  "airdropCreateFundsShort": "{count, plural, one{You have {amount}: not enough for {count} codes plus the 1% fee.} other{You have {amount}: not enough for {count} codes plus the 1% fee.}}",
-  "@airdropCreateFundsShort": {
-    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Error message when the balance is too small. {amount} is the balance with its ticker, e.g. '3 BEAM'; {count} the number of codes. Keep '1%' as written. (glossary: balance, code)",
+  "airdropCreateFeesNeedBeam": "The claim fees and the network fee are paid in BEAM: {needed}, and you have {available}.",
+  "@airdropCreateFeesNeedBeam": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes', codes of a token with 'Pay the claim fee for each code' on. Error message (under 'Not enough BEAM') when the wallet has enough of the token but too little BEAM for the fees. {needed} is the claim fees paid ahead plus the network fee, {available} the BEAM balance, e.g. '0.235 BEAM', '0.1 BEAM'. (glossary: network fee, claim, balance)",
     "placeholders": {
-      "count": {
-        "type": "int"
+      "needed": {
+        "type": "String",
+        "example": "0.235 BEAM"
       },
-      "amount": {
-        "type": "String"
+      "available": {
+        "type": "String",
+        "example": "0.1 BEAM"
       }
     }
   },
@@ -808,12 +1089,68 @@
   "@airdropCreateLowerAmount": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Sentence added after the 'not enough' error message: what to change. (glossary: amount, code)"
   },
+  "airdropCreateLowerAmountOrNoClaimFees": "Lower the amount or the number of codes, or turn off paying the claim fees.",
+  "@airdropCreateLowerAmountOrNoClaimFees": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes'. Sentence added after the 'not enough' error message when 'Pay the claim fee for each code' is on: what to change. (glossary: amount, code, network fee, claim)"
+  },
+  "airdropCreateNeedsAsset": "This needs {needed} with the 1% fee, and you have {available}.",
+  "@airdropCreateNeedsAsset": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes'. Error message (under 'Not enough <token>') when codes of a token cost more of that token than the wallet holds. {needed} is the codes' total plus the 1% airdrop fee, {available} the token balance, each with its ticker, e.g. '10.1 bETH', '3 bETH'. Keep '1%' as written. (glossary: token, balance)",
+    "placeholders": {
+      "needed": {
+        "type": "String",
+        "example": "10.1 bETH"
+      },
+      "available": {
+        "type": "String",
+        "example": "3 bETH"
+      }
+    }
+  },
+  "airdropCreateNeedsBeam": "This needs {needed}, fees included, and you have {available}.",
+  "@airdropCreateNeedsBeam": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Error message (under 'Not enough BEAM') when BEAM codes cost more than the wallet holds. {needed} is what the batch needs in all (codes, 1% fee, claim fees paid ahead and network fee), {available} the BEAM balance, each with its ticker, e.g. '10.12 BEAM', '3 BEAM'. (glossary: balance, network fee)",
+    "placeholders": {
+      "needed": {
+        "type": "String",
+        "example": "10.12 BEAM"
+      },
+      "available": {
+        "type": "String",
+        "example": "3 BEAM"
+      }
+    }
+  },
+  "airdropCreateNetworkFeeNeedsBeam": "The network fee is paid in BEAM: {needed}, and you have {available}.",
+  "@airdropCreateNetworkFeeNeedsBeam": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes', codes of a token with the claim fees not paid ahead. Error message (under 'Not enough BEAM') when the wallet has enough of the token but too little BEAM for the network fee. {needed} is the network fee, {available} the BEAM balance, e.g. '0.015 BEAM', '0.01 BEAM'. (glossary: network fee, balance)",
+    "placeholders": {
+      "needed": {
+        "type": "String",
+        "example": "0.015 BEAM"
+      },
+      "available": {
+        "type": "String",
+        "example": "0.01 BEAM"
+      }
+    }
+  },
   "airdropCreateNotEnoughTitle": "Not enough {symbol}",
   "@airdropCreateNotEnoughTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes': pick the asset, the amount each code gives and how many codes. Error title when the balance of the chosen asset is too small. {symbol} is its ticker, e.g. 'BEAM' or 'bETH' (keep as written). (glossary: asset)",
     "placeholders": {
       "symbol": {
         "type": "String"
+      }
+    }
+  },
+  "airdropCreatePrepayClaimFees": "Pay the claim fee for each code ({fee} per code), so people with an empty wallet can claim",
+  "@airdropCreatePrepayClaimFees": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Create airdrop codes'. Checkbox, on by default: the BEAM for each claim's network fee is locked with the codes, so whoever gets a code can claim it from a wallet holding no BEAM. {fee} is that fee per code with its ticker, e.g. '0.022 BEAM'. (glossary: network fee, claim, code, wallet)",
+    "placeholders": {
+      "fee": {
+        "type": "String",
+        "example": "0.022 BEAM"
       }
     }
   },
@@ -849,6 +1186,14 @@
   "@airdropErrBusyTitle": {
     "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when another airdrop screen is still sending. (glossary: airdrop, code, batch, claim)"
   },
+  "airdropErrChangedMessage": "Nothing was sent. The batch has been read again: take back what is left.",
+  "@airdropErrChangedMessage": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'Some codes were just claimed'. The wallet read the batch from the network again; the person can now take back the codes still unclaimed. (glossary: batch, claim)"
+  },
+  "airdropErrChangedTitle": "Some codes were just claimed",
+  "@airdropErrChangedTitle": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when someone claimed codes of a batch while the wallet was preparing to take its unclaimed codes back. (glossary: code, claim)"
+  },
   "airdropErrCodesNotSavedMessage": "So nothing was sent and nothing was locked. Free up some space or restart the wallet, then try again.",
   "@airdropErrCodesNotSavedMessage": {
     "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'The codes couldn't be saved on this device'; it continues that sentence. (glossary: airdrop, code, batch, claim)"
@@ -881,6 +1226,14 @@
   "@airdropErrNoSavedCodes": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Error message (under 'The airdrop refused this') when the wallet has no secure storage for codes on this device, so it has no saved codes. (glossary: airdrop, code, batch)"
   },
+  "airdropErrNotBatchCreatorMessage": "Only the wallet that made a batch can take it back. Nothing was sent.",
+  "@airdropErrNotBatchCreatorMessage": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'Another wallet made this batch'. 'Take it back' = cancel its unclaimed codes so their amount returns. (glossary: wallet, batch)"
+  },
+  "airdropErrNotBatchCreatorTitle": "Another wallet made this batch",
+  "@airdropErrNotBatchCreatorTitle": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when this wallet tries to take back a batch of codes another wallet created. (glossary: wallet, batch)"
+  },
   "airdropErrNotFoundMessage": "Check it letter by letter: codes never use I, O, 0 or 1. If it still fails, ask the sender: the code may have been cancelled.",
   "@airdropErrNotFoundMessage": {
     "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'No voucher has this code'. Keep the letters I, O and digits 0, 1 as they are. (glossary: airdrop, code, batch, claim)"
@@ -896,6 +1249,14 @@
   "airdropErrNothingToCancelTitle": "Nothing left to take back",
   "@airdropErrNothingToCancelTitle": {
     "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when cancelling codes that are all claimed or cancelled already. (glossary: airdrop, code, batch, claim)"
+  },
+  "airdropErrPausedMessage": "The airdrop contract is not taking new batches at the moment. Claims and take-backs still work. Try again later.",
+  "@airdropErrPausedMessage": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error message under 'New codes are paused for now'. 'Contract' = the program on the BEAM network that holds the airdrop; a 'take-back' cancels unclaimed codes so their amount returns to whoever made them. (glossary: airdrop, batch, claim)"
+  },
+  "airdropErrPausedTitle": "New codes are paused for now",
+  "@airdropErrPausedTitle": {
+    "description": "Airdrop (voucher codes that anyone holding them can claim for BEAM or a token): error title when the airdrop contract's owner has paused the making of new codes. (glossary: airdrop, code)"
   },
   "airdropErrRefusedTitle": "The airdrop refused this",
   "@airdropErrRefusedTitle": {
@@ -950,6 +1311,10 @@
       }
     }
   },
+  "airdropStatusBeingChecked": "Being checked",
+  "@airdropStatusBeingChecked": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Status pill on a new batch card (My airdrop batches) while it waits for the network to confirm it and for its codes to be checked before sharing. (glossary: confirming, code)"
+  },
   "airdropStatusCancelled": "Cancelled",
   "@airdropStatusCancelled": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Status pill on a batch card (My airdrop batches) or next to one code. A batch whose codes were all cancelled (none claimed). (glossary: batch, cancelled)"
@@ -962,6 +1327,18 @@
         "type": "int"
       },
       "cancelled": {
+        "type": "int"
+      }
+    }
+  },
+  "airdropStatusClaimedTakenBack": "{claimed, plural, one{{claimed} claimed} other{{claimed} claimed}} · {takenBack, plural, one{{takenBack} taken back} other{{takenBack} taken back}}",
+  "@airdropStatusClaimedTakenBack": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Status pill on a finished batch card (My airdrop batches): how many codes were claimed and how many the maker took back (cancelled). {claimed} and {takenBack} are counts of codes, e.g. 7 and 3. (glossary: code, claim, cancelled)",
+    "placeholders": {
+      "claimed": {
+        "type": "int"
+      },
+      "takenBack": {
         "type": "int"
       }
     }
@@ -980,6 +1357,28 @@
         "type": "int"
       }
     }
+  },
+  "airdropStatusClaimedWaitingTakenBack": "{claimed} of {total} claimed · {waiting, plural, one{{waiting} waiting} other{{waiting} waiting}} · {takenBack, plural, one{{takenBack} taken back} other{{takenBack} taken back}}",
+  "@airdropStatusClaimedWaitingTakenBack": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Status pill on a batch card (My airdrop batches) when some codes were taken back and some still wait. {claimed} and {total} are counts of codes, e.g. 3 of 10; {waiting} the codes not claimed yet, e.g. 5; {takenBack} the codes the maker took back (cancelled), e.g. 2. (glossary: code, claim, cancelled)",
+    "placeholders": {
+      "claimed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "waiting": {
+        "type": "int"
+      },
+      "takenBack": {
+        "type": "int"
+      }
+    }
+  },
+  "airdropStatusDoNotShare": "Do not share",
+  "@airdropStatusDoNotShare": {
+    "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Status pill on a batch card (My airdrop batches) whose codes failed the check on the network that runs before sharing. (glossary: code)"
   },
   "airdropStatusNotChecked": "Not checked yet",
   "@airdropStatusNotChecked": {
@@ -2060,18 +2459,18 @@
   "@beamNetworkFee": {
     "description": "BEAM confirm/review screens: label of the row with the fee paid to the BEAM network (e.g. '0.001 BEAM'). (glossary: network fee)"
   },
-  "beamPausedResumesBySelf": "{action, select, splitting{Splitting turns back on by itself once the wallet is up to date.} minting{Minting turns back on by itself once the wallet is up to date.} creatingToken{Creating a token turns back on by itself once the wallet is up to date.} burning{Burning turns back on by itself once the wallet is up to date.} creatingCodes{Creating codes turns back on by itself once the wallet is up to date.} cancelling{Cancelling turns back on by itself once the wallet is up to date.} claiming{Claiming turns back on by itself once the wallet is up to date.} other{This turns back on by itself once the wallet is up to date.}}",
+  "beamPausedResumesBySelf": "{action, select, splitting{Splitting turns back on by itself once the wallet is up to date.} minting{Minting turns back on by itself once the wallet is up to date.} creatingToken{Creating a token turns back on by itself once the wallet is up to date.} burning{Burning turns back on by itself once the wallet is up to date.} creatingCodes{Creating codes turns back on by itself once the wallet is up to date.} takingBack{Taking back turns back on by itself once the wallet is up to date.} claiming{Claiming turns back on by itself once the wallet is up to date.} other{This turns back on by itself once the wallet is up to date.}}",
   "@beamPausedResumesBySelf": {
-    "description": "BEAM money screens (send, swap, airdrop, minter, names, split coins): notice above a disabled button while the wallet catches up with the network; says the action comes back by itself. {action} selects the action ('splitting' coins, 'minting' or 'burning' a token, 'creatingToken', 'creatingCodes' for an airdrop, 'cancelling' airdrop codes, 'claiming' a voucher). Each case is a whole sentence; translate each, and keep 'other' as a general sentence.",
+    "description": "BEAM money screens (send, swap, airdrop, minter, names, split coins): notice above a disabled button while the wallet catches up with the network; says the action comes back by itself. {action} selects the action ('splitting' coins, 'minting' or 'burning' a token, 'creatingToken', 'creatingCodes' for an airdrop, 'takingBack' airdrop codes nobody claimed (their amount returns to whoever made them), 'claiming' a voucher). Each case is a whole sentence; translate each, and keep 'other' as a general sentence.",
     "placeholders": {
       "action": {
         "type": "String"
       }
     }
   },
-  "beamPausedStaysOff": "{action, select, splitting{Splitting stays off until this is fixed.} minting{Minting stays off until this is fixed.} creatingToken{Creating a token stays off until this is fixed.} burning{Burning stays off until this is fixed.} creatingCodes{Creating codes stays off until this is fixed.} cancelling{Cancelling stays off until this is fixed.} claiming{Claiming stays off until this is fixed.} other{This stays off until this is fixed.}}",
+  "beamPausedStaysOff": "{action, select, splitting{Splitting stays off until this is fixed.} minting{Minting stays off until this is fixed.} creatingToken{Creating a token stays off until this is fixed.} burning{Burning stays off until this is fixed.} creatingCodes{Creating codes stays off until this is fixed.} takingBack{Taking back stays off until this is fixed.} claiming{Claiming stays off until this is fixed.} other{This stays off until this is fixed.}}",
   "@beamPausedStaysOff": {
-    "description": "BEAM money screens (send, swap, airdrop, minter, names, split coins): notice above a disabled button while the wallet's node is stuck; the action stays off until the problem is fixed. {action} selects the action ('splitting' coins, 'minting' or 'burning' a token, 'creatingToken', 'creatingCodes' for an airdrop, 'cancelling' airdrop codes, 'claiming' a voucher). Each case is a whole sentence; translate each, and keep 'other' as a general sentence.",
+    "description": "BEAM money screens (send, swap, airdrop, minter, names, split coins): notice above a disabled button while the wallet's node is stuck; the action stays off until the problem is fixed. {action} selects the action ('splitting' coins, 'minting' or 'burning' a token, 'creatingToken', 'creatingCodes' for an airdrop, 'takingBack' airdrop codes nobody claimed (their amount returns to whoever made them), 'claiming' a voucher). Each case is a whole sentence; translate each, and keep 'other' as a general sentence.",
     "placeholders": {
       "action": {
         "type": "String"
@@ -8154,7 +8553,7 @@
   },
   "homeClaimSentTitle": "Claim sent",
   "@homeClaimSentTitle": {
-    "description": "BEAM wallet home → claim sheet (opens from \"Claim\" on the name payments line; it claims into the wallet the payments people sent to the user's BEAM names, like alice.beam, which wait in the name's vault until claimed): title of the result once the claim went out. (glossary: claim)"
+    "description": "BEAM wallet home → claim sheet (opens from \"Claim\" on the name payments line; it claims into the wallet the payments people sent to the user's BEAM names, like alice.beam, which wait in the name's vault until claimed): title of the result once the claim went out. Also the title on 'Claim a code' (BEAM wallet → Airdrop) once a voucher code's claim was sent, before the network confirms it. (glossary: claim)"
   },
   "homeClaimSentTo": "Sent to",
   "@homeClaimSentTo": {
@@ -13447,6 +13846,38 @@
   "settingsCoinUnitsSheetTitle": "Coin units",
   "@settingsCoinUnitsSheetTitle": {
     "description": "Edit units screen (App settings → Advanced → Units → one coin): title of the bottom sheet that lists the units an amount of this coin can be shown in (e.g. BEAM, mBEAM)."
+  },
+  "settingsColoursBeamDark": "BEAM dark",
+  "@settingsColoursBeamDark": {
+    "description": "Settings → Colours: the name of the choice that always shows BEAM's colours in a dark theme. Keep 'BEAM' as written; translate 'dark'. (glossary: theme)"
+  },
+  "settingsColoursBeamDarkDetail": "Always dark",
+  "@settingsColoursBeamDarkDetail": {
+    "description": "Settings → Colours: the line under the choice 'BEAM dark'. (glossary: theme)"
+  },
+  "settingsColoursBeamDeviceDetail": "Light or dark, like this device",
+  "@settingsColoursBeamDeviceDetail": {
+    "description": "Settings → Colours: the line under the choice 'BEAM': BEAM's colours, light or dark as the phone or computer is set. (glossary: theme, like this device)"
+  },
+  "settingsColoursBeamLight": "BEAM light",
+  "@settingsColoursBeamLight": {
+    "description": "Settings → Colours: the name of the choice that always shows BEAM's colours in a light theme. Keep 'BEAM' as written; translate 'light'. (glossary: theme)"
+  },
+  "settingsColoursBeamLightDetail": "Always light",
+  "@settingsColoursBeamLightDetail": {
+    "description": "Settings → Colours: the line under the choice 'BEAM light'. (glossary: theme)"
+  },
+  "settingsColoursCampfireDetail": "Campfire red, the default",
+  "@settingsColoursCampfireDetail": {
+    "description": "Settings → Colours: the line under the choice 'Campfire' (the app's own red colours, used until the person chooses another). Campfire is the app's name (keep it). (glossary: theme)"
+  },
+  "settingsColoursLead": "BEAM's colours are the ones BEAM's own wallets use. The logo stays Campfire's.",
+  "@settingsColoursLead": {
+    "description": "Settings → Colours: the sentence above the choices. BEAM and Campfire are brand names (keep them); 'BEAM's own wallets' are the wallets the BEAM project makes. (glossary: appearance, theme)"
+  },
+  "settingsColoursTitle": "Colours",
+  "@settingsColoursTitle": {
+    "description": "Settings → Colours: the row in the phone settings list, the entry in the desktop settings menu, and the page's title. The page where the app's colours are chosen: Campfire's own, or BEAM's (light, dark, or like this device). (glossary: appearance, theme)"
   },
   "settingsConfirm": "Confirm",
   "@settingsConfirm": {

@@ -62,8 +62,8 @@ class BeamAirdropConfirmView extends StatefulWidget {
     this.authorize = campfireAuthorizeSpend,
   });
 
-  final BeamAirdropService service;
-  final BeamPreparedAirdropCall prepared;
+  final BeamAirdrops service;
+  final AirdropPreparedCall prepared;
   final ValueListenable<BeamSyncAssessment> sync;
   final BeamAssetNames assetNames;
   final BeamSpendAuthorizer authorize;
@@ -102,10 +102,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
     super.dispose();
   }
 
-  BigInt get _beamNeeded {
-    final n = _s.beamOut - (_s.receives[0] ?? BigInt.zero);
-    return n.isNegative ? BigInt.zero : n;
-  }
+  BigInt get _beamNeeded => _s.beamNeeded;
 
   String _beam(BigInt g) => BeamUnits.withSymbol(g, 'BEAM');
   String _amount(BigInt units) => _names.amount(_s.assetId, units);
@@ -117,7 +114,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       authorize: widget.authorize,
       reason: _create
           ? context.l10n.airdropConfirmAuthCreate
-          : context.l10n.airdropConfirmAuthCancel,
+          : context.l10n.airdropConfirmAuthTakeBack,
       send: () => widget.service.execute(p),
       explain: (e) {
         failure = e;
@@ -157,7 +154,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       return BeamPageScaffold(
         title: _create
             ? l10n.airdropConfirmCreateTitle
-            : l10n.airdropConfirmCancelTitle,
+            : l10n.airdropConfirmTakeBackTitle,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -202,7 +199,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
               sync: sync,
               action: _create
                   ? BeamPausedAction.creatingCodes
-                  : BeamPausedAction.cancelling,
+                  : BeamPausedAction.takingBack,
             ),
             if (spent && problem != null)
               BeamCtaBar(
@@ -214,9 +211,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
                 primaryKey: const ValueKey('airdrop-confirm-cta'),
                 label: _create
                     ? l10n.airdropCreateCodesCta(_s.voucherCount!)
-                    : l10n.airdropConfirmGetBackCta(
-                        _amount(_s.receives[_s.assetId]!),
-                      ),
+                    : l10n.airdropConfirmGetBackCta(_backText()),
                 busy: sending,
                 busyLabel: l10n.airdropSending,
                 onPressed: sync.canSpend && !short ? _confirm : null,
@@ -257,6 +252,15 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
             detail: l10n.airdropConfirmFeeKept,
             valueKey: const ValueKey('confirm-creation-fee'),
           ),
+          if (_s.claimFees > BigInt.zero)
+            BeamDetailRow(
+              label: l10n.airdropConfirmClaimFeesLabel,
+              value: _beam(_s.claimFees),
+              detail:
+                  '${_s.voucherCount} × '
+                  '${_beam(_s.gasPerVoucher ?? BigInt.zero)}',
+              valueKey: const ValueKey('confirm-gas'),
+            ),
           BeamDetailRow(
             label: l10n.beamNetworkFee,
             value: _beam(_s.networkFee),
@@ -269,7 +273,7 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
         label: l10n.airdropLeavesWallet,
         value: isBeam
             ? _beam(_s.beamOut)
-            : '${_amount(_s.pays[_s.assetId]!)} + ${_beam(_s.networkFee)}',
+            : '${_amount(_s.pays[_s.assetId]!)} + ${_beam(_s.beamOut)}',
         valueKey: const ValueKey('confirm-total'),
       ),
       const BeamGap(),
@@ -280,16 +284,31 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       ),
       const BeamGap(8),
       BeamNotice(
+        key: const ValueKey('confirm-share-note'),
         kind: BeamNoticeKind.info,
-        message: l10n.airdropConfirmCancelLater,
+        message: _s.contract != AirdropContract.v3
+            ? l10n.airdropConfirmCancelLater
+            : _s.claimFees > BigInt.zero
+            ? l10n.airdropConfirmShareAfterCheckWithFees
+            : l10n.airdropConfirmShareAfterCheck,
       ),
     ];
   }
 
+  /// What a take-back returns: the codes' value, and their prepaid claim
+  /// fees when the batch had them.
+  String _backText() {
+    final value = _amount(_s.assetAmount);
+    if (_s.assetId == 0) return _beam(_s.receives[0] ?? BigInt.zero);
+    return _s.claimFees > BigInt.zero
+        ? '$value + ${_beam(_s.claimFees)}'
+        : value;
+  }
+
   List<Widget> _cancelRows() {
-    final back = _s.receives[_s.assetId]!;
     final isBeam = _s.assetId == 0;
-    final net = back - _s.networkFee;
+    final net = _s.beamChange;
+    String beamLine(BigInt v) => '${v.isNegative ? '−' : '+'}${_beam(v.abs())}';
     final l10n = context.l10n;
     return [
       BeamDetailCard(
@@ -300,7 +319,10 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
           ),
           BeamDetailRow(
             label: l10n.airdropConfirmComesBack,
-            value: _amount(back),
+            value: _backText(),
+            detail: _s.claimFees > BigInt.zero
+                ? l10n.airdropConfirmWithClaimFees
+                : null,
             valueKey: const ValueKey('confirm-returned'),
           ),
           BeamDetailRow(
@@ -314,8 +336,8 @@ class _BeamAirdropConfirmViewState extends State<BeamAirdropConfirmView>
       BeamTotalRow(
         label: l10n.airdropBalanceChangesBy,
         value: isBeam
-            ? '${net.isNegative ? '−' : '+'}${_beam(net.abs())}'
-            : '+${_amount(back)}, −${_beam(_s.networkFee)}',
+            ? beamLine(net)
+            : '+${_amount(_s.assetAmount)}, ${beamLine(net)}',
         valueKey: const ValueKey('confirm-total'),
       ),
       const BeamGap(),

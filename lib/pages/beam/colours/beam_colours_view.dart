@@ -21,6 +21,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../providers/global/prefs_provider.dart';
 import '../../../themes/beam/beam_themes.dart';
 import '../../../themes/stack_colors.dart';
@@ -32,11 +33,8 @@ import '../../../widgets/custom_buttons/app_bar_icon_button.dart';
 import '../../../widgets/rounded_white_container.dart';
 
 abstract final class BeamColoursText {
-  static const title = 'Colours';
-  static const subtitle = "Campfire's red or BEAM's own colours";
-  static const lead =
-      "BEAM's colours are the ones BEAM's own wallets use. "
-      "The logo stays Campfire's.";
+  static String get title => appL10n.settingsColoursTitle;
+  static String get lead => appL10n.settingsColoursLead;
 }
 
 /// Each choice's swatch: its page and its main button (the themes'

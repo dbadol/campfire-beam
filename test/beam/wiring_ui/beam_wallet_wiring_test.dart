@@ -116,17 +116,23 @@ void main() {
       // The wallet home is always first: it builds the services, no store.
       final home = BeamWalletHomeSource(wallet);
       expect(home.services.voucherStore, isNull);
-      // Something even read the airdrop service before any store existed.
-      final early = home.services.airdrop;
+      // Something even read the airdrop services before any store existed.
+      final early = home.services.airdrops;
       expect(early.store, isNull);
+      expect(home.services.airdrop.store, isNull);
 
       final w = BeamWalletWiring.of(wallet);
-      expect(w.airdrop.store, isA<SecureVoucherCodeStore>());
+      expect(w.airdrops.store, isA<SecureVoucherCodeStore>());
       expect(
-        (w.airdrop.store! as SecureVoucherCodeStore).walletId,
+        (w.airdrops.store! as SecureVoucherCodeStore).walletId,
         wallet.walletId,
       );
-      expect(identical(home.services.airdrop, w.airdrop), isTrue);
+      // Both contracts' services: one store, one transaction at a time.
+      expect(identical(w.airdrops.old.store, w.airdrops.v3.store), isTrue);
+      expect(identical(w.airdrops.old.lock, w.airdrops.v3.lock), isTrue);
+      expect(identical(early.v3.lock, w.airdrops.v3.lock), isTrue);
+      expect(identical(home.services.airdrops, w.airdrops), isTrue);
+      expect(identical(home.services.airdropV3, w.airdrops.v3), isTrue);
       expect(home.services.voucherStore, isA<SecureVoucherCodeStore>());
       await finish(tester);
     });
@@ -151,20 +157,22 @@ void main() {
       // The home comes later and gets the same services, store included.
       final home = BeamWalletHomeSource(wallet);
       expect(home.services.voucherStore, isA<SecureVoucherCodeStore>());
-      expect(identical(home.services.airdrop, page.service), isTrue);
+      expect(identical(home.services.airdrops, page.service), isTrue);
       await finish(tester);
     });
 
     testWidgets('a later, different store never replaces it', (tester) async {
       final wallet = await openBeamWallet(tester, db);
       final w = BeamWalletWiring.of(wallet);
-      final secure = w.airdrop.store;
+      final secure = w.airdrops.store;
       final services = BeamWalletServices.of(
         wallet,
         voucherStore: _MemoryStore(),
       );
       expect(identical(services.voucherStore, secure), isTrue);
       expect(identical(services.airdrop.store, secure), isTrue);
+      expect(identical(services.airdropV3.store, secure), isTrue);
+      expect(identical(services.airdrops.store, secure), isTrue);
       await finish(tester);
     });
   });

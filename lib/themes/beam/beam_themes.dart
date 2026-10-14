@@ -10,6 +10,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../app_config.dart';
+import '../../l10n/l10n.dart';
 import '../../utilities/prefs.dart';
 import '../../wallets/crypto_currency/crypto_currency.dart';
 
@@ -48,15 +49,27 @@ typedef BeamThemePrefs = ({
 
 /// Settings -> Colours.
 enum BeamColours {
-  campfire('Campfire', 'Campfire red, the default'),
-  beamDevice('BEAM', 'Light or dark, like this device'),
-  beamLight('BEAM light', 'Always light'),
-  beamDark('BEAM dark', 'Always dark');
+  campfire,
+  beamDevice,
+  beamLight,
+  beamDark;
 
-  const BeamColours(this.label, this.detail);
+  /// The choice's name. "Campfire" and "BEAM" are brand names, never
+  /// translated.
+  String get label => switch (this) {
+    campfire => 'Campfire',
+    beamDevice => 'BEAM',
+    beamLight => appL10n.settingsColoursBeamLight,
+    beamDark => appL10n.settingsColoursBeamDark,
+  };
 
-  final String label;
-  final String detail;
+  /// The line under the choice's name.
+  String get detail => switch (this) {
+    campfire => appL10n.settingsColoursCampfireDetail,
+    beamDevice => appL10n.settingsColoursBeamDeviceDetail,
+    beamLight => appL10n.settingsColoursBeamLightDetail,
+    beamDark => appL10n.settingsColoursBeamDarkDetail,
+  };
 
   /// What [prefs] show. Anything that is not one of BEAM's choices is
   /// Campfire's, the default.

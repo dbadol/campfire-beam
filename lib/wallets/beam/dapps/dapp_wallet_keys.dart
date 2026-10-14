@@ -13,6 +13,7 @@ import 'package:crypto/crypto.dart' as crypto;
 
 import '../../../l10n/l10n.dart';
 import '../contracts/airdrop/airdrop_constants.dart';
+import '../contracts/airdrop/airdrop_v3_constants.dart';
 import '../contracts/bans/bans_constants.dart';
 import '../contracts/burn/blackhole_constants.dart';
 import '../contracts/dex/dex_constants.dart';
@@ -58,10 +59,14 @@ abstract final class DappWalletKeys {
   /// * Airdrop `MyAccountID{cid, 0}` (`contracts/airdrop/app.cpp`): creates
   ///   and cancels the user's voucher batches. The hash appears verbatim in
   ///   the recorded `create_batch` raw_data (a test checks it).
-  /// * Airdrop `OwnerAccountID{0xAD, 42}`: the airdrop contract's owner.
+  /// * Airdrop v3 `CreatorID{cid, 0}` (`contracts/v3/app.cpp`): creates and
+  ///   takes back the user's v3 batches, with their prepaid claim fees.
+  /// * Airdrop `OwnerAccountID{0xAD, 42}`: the owner of both airdrop
+  ///   contracts (v3 keeps the same key id).
   static final Map<String, String> reserved = Map.unmodifiable({
     keyHash(_hex(kBansCid)): 'names',
     keyHash([..._hex(kAirdropContractId), 0]): 'airdrops',
+    keyHash([..._hex(kAirdropV3ContractId), 0]): 'airdrops',
     keyHash(const [0xAD, 42]): 'airdropContract',
   });
 
@@ -106,6 +111,7 @@ Map<String, String> get dappKnownContracts => {
   kVaultAnonCid: appL10n.dappsContractBansVault,
   kDaoVaultCid: appL10n.dappsContractDaoVault,
   kAirdropContractId: appL10n.dappsContractAirdrops,
+  kAirdropV3ContractId: appL10n.dappsContractAirdrops,
   kMinterContractId: appL10n.dappsContractMinter,
   kBlackHoleContractId: appL10n.dappsContractBlackHole,
 };
