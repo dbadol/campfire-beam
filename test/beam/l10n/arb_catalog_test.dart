@@ -18,7 +18,8 @@
 //   * no translation is empty (it would show as blank, not as English) or
 //     drops or invents a placeholder;
 //   * no fragment is left in lib/l10n/parts/ (merge with
-//     scripts/beam/l10n_merge.py --write --consume).
+//     scripts/beam/l10n_merge.py --write --consume);
+//   * no Russian message groups a number with a comma (its decimal sign).
 
 import 'dart:convert';
 import 'dart:io';
@@ -209,6 +210,20 @@ void main() {
       expect(problems, isEmpty, reason: problems.join('\n'));
     });
   }
+
+  // Russian writes "1,5" for one and a half: a number grouped with commas
+  // there ("100,000,000") reads as 100. Its thousands take a narrow
+  // no-break space, as lib/l10n/amount_text.dart writes amounts.
+  test('app_ru.arb: no number is grouped with a comma', () {
+    final ru = _read('lib/l10n/app_ru.arb');
+    final grouped = RegExp(r'\d,\d{3}(?!\d)');
+    final problems = <String>[
+      for (final k in _messageKeys(ru))
+        if (ru[k] case final String v when grouped.hasMatch(v)) '$k: $v',
+    ];
+    expect(problems, isEmpty, reason: problems.join('\n'));
+    expect(ru['minterNthHelper'], contains('100\u202F000\u202F000'));
+  });
 
   test('no fragment is left unmerged in lib/l10n/parts', () {
     final parts = Directory('lib/l10n/parts');

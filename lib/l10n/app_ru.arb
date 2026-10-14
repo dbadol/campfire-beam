@@ -1717,7 +1717,7 @@
   "minterNeverReturned": "Не возвращается",
   "minterNewTokenAtMost": "Новый токен · не больше {amount}",
   "minterNotEnoughBeamTitle": "Недостаточно BEAM",
-  "minterNthHelper": "1 токен = 100,000,000 таких единиц",
+  "minterNthHelper": "1 токен = 100 000 000 таких единиц",
   "minterPreparing": "Подготовка…",
   "minterReading": "Чтение…",
   "minterSending": "Отправка…",

@@ -9835,7 +9835,7 @@
   },
   "minterNthHelper": "1 token = 100,000,000 of these",
   "@minterNthHelper": {
-    "description": "Token Minter (BEAM wallet → Create a token / My tokens): the person creates their own token (a BEAM Confidential Asset) with BEAM's Minter contract and mints it. Screen 'Create a token' (form: name, ticker, maximum supply, optional details). Help line under 'Smallest unit name'. Keep '1' and '100,000,000' as written."
+    "description": "Token Minter (BEAM wallet → Create a token / My tokens): the person creates their own token (a BEAM Confidential Asset) with BEAM's Minter contract and mints it. Screen 'Create a token' (form: name, ticker, maximum supply, optional details). Help line under 'Smallest unit name'. Keep '1' and the number 100,000,000 (one hundred million); group its digits the way the app writes amounts in your language: in Russian with narrow no-break spaces (U+202F), '100 000 000', because a comma is the decimal point there and '100,000,000' would read as 100."
   },
   "minterPreparing": "Preparing…",
   "@minterPreparing": {
