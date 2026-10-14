@@ -27,6 +27,7 @@ import 'package:stackwallet/wallets/beam/api/beam_api.dart';
 import 'package:stackwallet/wallets/beam/contracts/bans/bans.dart';
 import 'package:stackwallet/wallets/beam/contracts/bans/bans_recipient.dart';
 import 'package:stackwallet/wallets/beam/node/beam_private_node_coordinator.dart';
+import 'package:stackwallet/wallets/beam/rpc/beam_connection_exception.dart';
 import 'package:stackwallet/wallets/beam/wallet/beam_wallet_environment.dart';
 import 'package:stackwallet/wallets/beam/wallet/beam_wallet_errors.dart';
 import 'package:stackwallet/wallets/beam/wallet/beam_wallet_services.dart';
@@ -415,8 +416,9 @@ void main() {
     expect(after, isNot(contains('send_anon')));
   });
 
-  test('the production backend: a send whose outcome is unknown (timeout) writes '
-      'no pin', () async {
+  test('the production backend: a send whose outcome is unknown (timeout) pins '
+      'its owner too, so a later payment to another owner still stops '
+      '(release audit 1.3.0)', () async {
     final w = await ready();
     final pins = SecureBansOwnerPins(w.secureStorageInterface, w.walletId);
     final b = backendFor(w);
@@ -428,7 +430,29 @@ void main() {
     final r = await m.prepare(w.cryptoCurrency);
     host.lastTransport!.reply('process_invoke_data', (Map<String, Object?> _) => throw TimeoutException('x'));
     await expectLater(r.send(), throwsA(anything));
-    expect(await pins.pinned(BansName('beam')), isNull);
+    expect(r.canRetry, isFalse, reason: 'it may have gone out');
+    expect(await pins.pinned(BansName('beam')), beamOwnerKey);
     r.dispose();
+    // The name now shows another owner: refused before anything is built.
+    core.names['beam'] = 'view_name_listed';
+    final listed = await b.resolveName(BansName('beam'));
+    await expectLater(
+      b.preparePay(BansName('beam'), 0, BigInt.from(12345),
+          expectedOwnerKey: listed.ownerKey!),
+      throwsA(isA<BansOwnerChangedSincePaid>()),
+    );
+  });
+
+  test('beamSendOutcomeUnknown: a dropped connection or a timeout may have '
+      'sent it; a refusal did not', () {
+    expect(beamSendOutcomeUnknown(TimeoutException('x')), isTrue);
+    expect(
+      beamSendOutcomeUnknown(const BeamConnectionException('gone')),
+      isTrue,
+    );
+    expect(
+      beamSendOutcomeUnknown(BansOwnerChanged('beam', 'a', 'b')),
+      isFalse,
+    );
   });
 }

@@ -27,6 +27,7 @@ import 'package:stackwallet/pages/beam/airdrop/beam_claim_voucher_view.dart';
 import 'package:stackwallet/pages/beam/airdrop/beam_create_airdrop_view.dart';
 import 'package:stackwallet/wallets/beam/api/beam_api.dart';
 import 'package:stackwallet/wallets/beam/contracts/airdrop/airdrop.dart';
+import 'package:stackwallet/wallets/beam/rpc/beam_transport.dart';
 import 'package:stackwallet/wallets/beam/rpc/fake_transport.dart';
 import 'package:stackwallet/wallets/beam/sync/beam_sync_state.dart';
 import 'package:stackwallet/widgets/beam/airdrop/airdrop_text.dart';
@@ -158,6 +159,11 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('claim-cta')));
       await tester.pumpAndSettle();
+      // A v3 claim never shows the code: no stop before the PIN.
+      expect(
+        find.byKey(const ValueKey('claim-old-contract-stop')),
+        findsNothing,
+      );
       expect(t.callsTo('process_invoke_data'), hasLength(1));
       expect(auth.reasons, ['Claim 5 bETH']);
       expect(_textOf(tester, 'claim-done'), 'Claim sent');
@@ -334,7 +340,7 @@ void main() {
       expect(saved.check!.ok, isTrue);
       for (var i = 0; i < 3; i++) {
         expect(
-          tester.widget<SelectableText>(find.byKey(ValueKey('code-$i'))).data,
+          tester.widget<Text>(find.byKey(ValueKey('code-$i'))).data,
           saved.codes[i].code,
         );
       }
@@ -386,6 +392,56 @@ void main() {
       expect(find.byType(BeamCreateAirdropView), findsOneWidget);
       expect(_textOf(tester, 'create-locked'), '0.6 bETH');
       expect(_textOf(tester, 'create-gas'), '0.066 BEAM');
+    });
+
+    testWidgets('a copied batch whose own transaction this wallet does not '
+        'know: never "nothing was locked", it points to My batches (release '
+        'audit 1.3.0)', (tester) async {
+      init(balances: const {0: 66707641121, 36: 1000000000});
+      final b = await sent();
+      final p = shader.pending!;
+      shader.mine((
+        creator: v3Other,
+        assetId: p.assetId,
+        gas: BigInt.zero,
+        entries: [for (final e in p.entries) (key: e.key, value: BigInt.one)],
+      ));
+      // The history lost it (restored from the seed, say): whether ours
+      // went into a block is not known.
+      t.reply(
+        'tx_status',
+        const BeamRpcException(-32001, 'Transaction not found'),
+      );
+      await openCodes(tester, b.localId, justCreated: false);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('codes-check-failed')), findsOneWidget);
+      expect(
+        find.textContaining('Your funds are safe: nothing was locked.'),
+        findsNothing,
+      );
+      expect(
+        find.textContaining('if this batch is in My batches, take it back'),
+        findsOneWidget,
+      );
+      expect(find.text('My batches'), findsOneWidget);
+      expect(find.text('Take the batch back'), findsNothing);
+      await expectScreen(tester, 'v3_codes_check_failed_unknown_tx');
+
+      // Known never to have gone into a block: then it says so.
+      await tester.pumpWidget(const SizedBox());
+      final saved = (await store.all()).single;
+      expect(saved.check!.ok, isFalse);
+      await store.put(saved.copyWith(txStatus: AirdropBatchTxStatus.failed));
+      await openCodes(tester, b.localId, justCreated: false);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Your funds are safe: nothing was locked.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('if this batch is in My batches'),
+        findsNothing,
+      );
     });
 
     testWidgets('a create the network turned down: these codes hold nothing', (
@@ -493,6 +549,49 @@ void main() {
       expect(find.text('The take-back did not go through'), findsOneWidget);
       expect(find.textContaining('take back what is left now'), findsOneWidget);
       await expectScreen(tester, 'v3_batches_takeback_failed');
+    });
+
+    testWidgets('more than 200 batches: the list says the network stops at '
+        '200, and a newer batch whose codes are saved here is read on its '
+        'own and can still be taken back (release audit 1.3.0)', (
+      tester,
+    ) async {
+      init();
+      txState = {'status': 3, 'confirmations': 9};
+      // The first 200 (one stands in for them), then ours, unlisted.
+      final first = shader.addBatch([code(75)], 0, g(10000000));
+      await v3Batch();
+      shader
+        ..truncated = true
+        ..listed = {first};
+      await pumpBeamPage(tester, batches());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('batches-truncated')), findsOneWidget);
+      expect(
+        find.text('Only the first 200 batches are listed'),
+        findsOneWidget,
+      );
+      expect(
+        shader.seen.where((a) => a.contains('action=view_batch')),
+        isNotEmpty,
+      );
+      // Ours, read with view_batch: its counts and its take-back.
+      expect(find.text('1 of 3 claimed · 2 waiting'), findsOneWidget);
+      expect(find.byKey(const ValueKey('batch-cancel-v3-2')), findsOneWidget);
+      await expectScreen(tester, 'v3_batches_truncated');
+
+      await tester.tap(find.byKey(const ValueKey('batch-cancel-v3-2')));
+      await tester.pumpAndSettle();
+      expect(_textOf(tester, 'confirm-returned'), '0.4 bETH + 0.044 BEAM');
+
+      // Not truncated: no notice.
+      await tester.pumpWidget(const SizedBox());
+      shader
+        ..truncated = false
+        ..listed = null;
+      await pumpBeamPage(tester, batches());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('batches-truncated')), findsNothing);
     });
 
     testWidgets('a v3 batch that was never created can be removed from the '

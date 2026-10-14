@@ -204,6 +204,12 @@ Future<AirdropSquatCheck> airdropV3SquatCheck({
       : const AirdropSquatCheck.failed(AirdropCheckProblem.otherBatch);
 }
 
+/// Confirmations of a transaction in block [blockHeight] with the chain at
+/// [tip], counted as wallet-api counts them (`systemHeight -
+/// txProofHeight`): 0 in the newest block.
+int airdropV3Confirmations({required int blockHeight, required int tip}) =>
+    tip > blockHeight ? tip - blockHeight : 0;
+
 /// Where a saved v3 batch stands ([BeamAirdropV3Service.verifyBatch]).
 enum AirdropV3BatchState {
   /// Not a v3 batch: the old contract's codes work as soon as it confirms.
@@ -233,6 +239,7 @@ class AirdropV3Verdict {
     this.problem,
     this.confirmations,
     this.mined = false,
+    this.notMined = false,
     this.onChain = false,
   });
 
@@ -249,6 +256,12 @@ class AirdropV3Verdict {
   /// [AirdropV3BatchState.failed]: the batch's own transaction was mined,
   /// so its funds are locked and can be taken back.
   final bool mined;
+
+  /// [AirdropV3BatchState.failed]: the batch's own transaction is known not
+  /// to have gone into a block, so nothing was locked. Neither this nor
+  /// [mined] when the wallet does not know (the send timed out, or the
+  /// transaction is no longer in its history).
+  final bool notMined;
 
   /// [AirdropV3BatchState.notSent]: the network turned it down (rather than
   /// it never being sent).
@@ -403,6 +416,7 @@ class BeamAirdropV3Service {
               rec,
               problem: check.problem,
               mined: rec.txStatus == AirdropBatchTxStatus.confirmed,
+              notMined: rec.txStatus == AirdropBatchTxStatus.failed,
             );
     }
     if (rec.txStatus == AirdropBatchTxStatus.failed) {
@@ -465,6 +479,20 @@ class BeamAirdropV3Service {
         r.problem == AirdropCheckProblem.notFound &&
         r.index == 0) {
       return AirdropV3Verdict(AirdropV3BatchState.waiting, rec);
+    }
+    // Found without a known transaction: it still waits the same
+    // confirmations, counted from the block that holds it. A short
+    // reorganisation could undo a batch seen in the newest block (the web
+    // wallet's release audit 0.2.16). Nothing is saved while it waits.
+    if (r.ok && !mined && !txKnown) {
+      final confirmations = await _batchConfirmations(r.batchId!);
+      if (confirmations < kAirdropV3ConfirmationsBeforeCheck) {
+        return AirdropV3Verdict(
+          AirdropV3BatchState.waiting,
+          rec,
+          confirmations: confirmations,
+        );
+      }
     }
     final next = rec.copyWith(
       txStatus: r.ok || mined ? AirdropBatchTxStatus.confirmed : null,
@@ -841,19 +869,7 @@ class BeamAirdropV3Service {
         final mine = await myBatches();
         var row = mine.batches.where((b) => b.id == batchId).firstOrNull;
         if (row == null && mine.truncated) {
-          final b = await viewBatch(batchId);
-          final open = b.vouchers.where((v) => !v.redeemed).toList();
-          row = AirdropV3Batch(
-            id: batchId,
-            assetId: b.assetId,
-            created: b.created,
-            unclaimed: open.length,
-            redeemed: b.vouchers.length - open.length,
-            cancelled: b.created - b.vouchers.length,
-            valueUnclaimed: open.fold(BigInt.zero, (s, v) => s + v.value),
-            gasPerVoucher: b.gasPerVoucher,
-            createdAtHeight: b.createdAtHeight,
-          );
+          row = AirdropV3Batch.fromDetail(await viewBatch(batchId));
         }
         if (row == null) {
           throw const BeamAirdropException(
@@ -1087,14 +1103,30 @@ class BeamAirdropV3Service {
   }
 
   /// Confirmations of a completed transaction: the core's own count, or
-  /// the distance from its height to the wallet's tip.
+  /// the same count made here, `tip - proof height` (wallet-api's
+  /// `systemHeight - txProofHeight`).
   Future<int> _confirmations(BeamTransaction t) async {
     final c = t.confirmations;
     if (c != null) return c;
     final h = t.height;
     if (h == null) return 0;
+    return airdropV3Confirmations(
+      blockHeight: h,
+      tip: (await api.walletStatus()).currentHeight,
+    );
+  }
+
+  /// Confirmations of the batch [batchId], from the height the contract
+  /// recorded when creating it. A contract reads the height of the block
+  /// before the one it runs in (`BvmProcessor::get_Height` is
+  /// `m_Height - 1`), so the batch's transaction is in block
+  /// `created_at + 1`.
+  Future<int> _batchConfirmations(BigInt batchId) async {
+    final b = await viewBatch(batchId);
     final tip = (await api.walletStatus()).currentHeight;
-    return tip >= h ? tip - h + 1 : 0;
+    final block = b.createdAtHeight + BigInt.one;
+    if (block > BigInt.from(tip)) return 0;
+    return airdropV3Confirmations(blockHeight: block.toInt(), tip: tip);
   }
 
   Future<T> _serial<T>(Future<T> Function() task) {

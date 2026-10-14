@@ -22,6 +22,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stackwallet/pages/beam/airdrop/beam_airdrop_batches_view.dart';
 import 'package:stackwallet/pages/beam/airdrop/beam_airdrop_codes_view.dart';
@@ -134,12 +135,31 @@ void main() {
     auth = FakeAuth();
   }
 
-  Widget claimView({bool withNames = true}) => BeamClaimVoucherView(
+  Widget claimView({
+    bool withNames = true,
+    String? initialCode,
+    ClipboardInterface? clipboard,
+  }) => BeamClaimVoucherView(
     service: service,
     sync: sync,
     assetNames: withNames ? names : null,
     authorize: auth.authorizer,
+    initialCode: initialCode,
+    clipboard: clipboard ?? FakeClipboard(),
   );
+
+  final field = find.byKey(const ValueKey('claim-code-field'));
+
+  /// Every code text the node was asked about: the old contract's SHA-256
+  /// keys and the codes Airdrop v3's shader derives a key from.
+  bool asked(String code) {
+    final n = AirdropVoucherCode.normalise(code);
+    final hash = AirdropVoucherCode.hashHex(n);
+    return [
+      ...shader.seen,
+      ...v3Shader.seen,
+    ].any((a) => a.contains(hash) || RegExp('=$n(,|\$)').hasMatch(a));
+  }
 
   group('claim a voucher', () {
     testWidgets('a full code is checked by itself; value and decoded fee '
@@ -171,6 +191,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('claim-cta')));
       await tester.tap(find.byKey(const ValueKey('claim-cta')));
       await tester.pumpAndSettle();
+      // An old-contract code: the stop first, once for both taps.
+      expect(
+        find.byKey(const ValueKey('claim-old-contract-stop')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('claim-old-contract-go')));
+      await tester.pumpAndSettle();
       expect(t.callsTo('process_invoke_data'), hasLength(1));
       expect(auth.reasons, ['Claim 0.5 BEAM']);
       // Sent, not "received": that waits for the network.
@@ -186,6 +213,151 @@ void main() {
         hasLength(1),
       );
       await expectScreen(tester, 'claim_done');
+    });
+
+    testWidgets('typing a code and pausing at every length short of a full '
+        'code asks the node nothing (release audit 1.3.0)', (tester) async {
+      init();
+      final c = code(5);
+      voucher(c, 0, g(50000000));
+      final n = AirdropVoucherCode.normalise(c);
+      await pumpBeamPage(tester, claimView());
+      for (var i = 1; i < AirdropVoucherCode.length; i++) {
+        await tester.enterText(field, n.substring(0, i));
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pumpAndSettle();
+        expect(t.callsTo('invoke_contract'), isEmpty, reason: '$i symbols');
+        expect(service.isBusy, isFalse);
+      }
+      // 15 symbols: offered, never run by itself.
+      expect(find.text('Check code'), findsOneWidget);
+      expect(_enabled(tester, 'claim-cta'), isTrue);
+      expect(find.text('15 of 16 characters'), findsOneWidget);
+
+      // The 16th: looked up at once, and only the whole code.
+      await tester.enterText(field, n);
+      await tester.pumpAndSettle();
+      expect(find.text('Claim 0.5 BEAM'), findsOneWidget);
+      expect(asked(c), isTrue);
+      for (var i = 1; i < AirdropVoucherCode.length; i++) {
+        expect(asked(n.substring(0, i)), isFalse, reason: '$i symbols');
+      }
+    });
+
+    testWidgets('a code that is not a full one, pasted or opened from a '
+        'scan, is looked up only after a tap on Check code', (tester) async {
+      init();
+      // Codes made elsewhere can be shorter; this one is on the old
+      // contract.
+      const short = 'ABCD-EFGH-JKLM';
+      voucher(short, 0, g(50000000));
+      final clipboard = FakeClipboard();
+      await clipboard.setData(const ClipboardData(text: short));
+      await pumpBeamPage(tester, claimView(clipboard: clipboard));
+      await tester.tap(find.byKey(const ValueKey('claim-paste')));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(t.callsTo('invoke_contract'), isEmpty);
+      expect(find.text('Check code'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('claim-cta')));
+      await tester.pumpAndSettle();
+      expect(asked(short), isTrue);
+      expect(find.text('Claim 0.5 BEAM'), findsOneWidget);
+      expect(t.callsTo('process_invoke_data'), isEmpty);
+
+      // From a scan or a link: the same, nothing on open.
+      await tester.pumpWidget(const SizedBox());
+      init();
+      voucher(short, 0, g(50000000));
+      await pumpBeamPage(tester, claimView(initialCode: short));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(t.callsTo('invoke_contract'), isEmpty);
+      expect(find.text('Check code'), findsOneWidget);
+    });
+
+    testWidgets('a code edited while the full one is being checked: the part '
+        'left is never looked up', (tester) async {
+      init();
+      final c = code(5);
+      voucher(c, 0, g(50000000));
+      final n = AirdropVoucherCode.normalise(c);
+      await pumpBeamPage(tester, claimView());
+      t.latency = const Duration(milliseconds: 100);
+      await tester.enterText(field, n);
+      await tester.pump(); // the check starts
+      expect(find.text('Checking the code…'), findsOneWidget);
+      await tester.enterText(field, n.substring(0, 12));
+      await tester.pumpAndSettle();
+      expect(asked(n), isTrue);
+      expect(asked(n.substring(0, 12)), isFalse);
+      expect(find.text('Check code'), findsOneWidget);
+      expect(service.isBusy, isFalse, reason: 'the stale claim is dropped');
+      expect(find.byKey(const ValueKey('claim-gets')), findsNothing);
+    });
+
+    testWidgets('every claim of an old-contract code stops first and says '
+        'why: Don\'t claim is the default, closing it claims nothing, and a '
+        'scanned code never goes past it', (tester) async {
+      init();
+      // Airdrop v3 says "not found" and the old contract "found": all a
+      // node that lies needs to steer a new code here.
+      final c = code(5);
+      voucher(c, 0, g(50000000));
+      await pumpBeamPage(tester, claimView(initialCode: c));
+      await tester.pumpAndSettle();
+      expect(find.text('Claim 0.5 BEAM'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('claim-old-contract-stop')),
+        findsNothing,
+      );
+      expect(auth.reasons, isEmpty);
+      expect(t.callsTo('process_invoke_data'), isEmpty);
+
+      final stop = find.byKey(const ValueKey('claim-old-contract-stop'));
+      await tester.tap(find.byKey(const ValueKey('claim-cta')));
+      await tester.pumpAndSettle();
+      expect(stop, findsOneWidget);
+      expect(
+        find.text('This code is from the old airdrop contract'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          'Codes made since 13 October 2026 never need '
+          'this.',
+        ),
+        findsOneWidget,
+      );
+      expect(auth.reasons, isEmpty, reason: 'the PIN comes after the stop');
+      await expectScreen(tester, 'claim_old_contract_stop');
+
+      // "Don't claim": nothing asked, nothing sent.
+      await tester.tap(find.byKey(const ValueKey('claim-old-contract-keep')));
+      await tester.pumpAndSettle();
+      expect(stop, findsNothing);
+      expect(auth.reasons, isEmpty);
+      expect(t.callsTo('process_invoke_data'), isEmpty);
+      expect(find.text('Claim 0.5 BEAM'), findsOneWidget);
+
+      // Closed by tapping beside it: the same.
+      await tester.tap(find.byKey(const ValueKey('claim-cta')));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(stop, findsNothing);
+      expect(auth.reasons, isEmpty);
+      expect(t.callsTo('process_invoke_data'), isEmpty);
+
+      // Only "Claim it anyway" goes on: the PIN, then the claim.
+      await tester.tap(find.byKey(const ValueKey('claim-cta')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('claim-old-contract-go')));
+      await tester.pumpAndSettle();
+      expect(auth.reasons, ['Claim 0.5 BEAM']);
+      expect(t.callsTo('process_invoke_data'), hasLength(1));
+      expect(_textOf(tester, 'claim-done'), 'Claim sent');
     });
 
     testWidgets('a voucher worth less than its fee says how much BEAM the '
@@ -370,11 +542,12 @@ void main() {
       expect(find.byKey(const ValueKey('codes-ready')), findsOneWidget);
       expect(find.byKey(const ValueKey('codes-key-warning')), findsOneWidget);
       for (var i = 0; i < 3; i++) {
-        final shown = tester
-            .widget<SelectableText>(find.byKey(ValueKey('code-$i')))
-            .data;
+        final shown = tester.widget<Text>(find.byKey(ValueKey('code-$i'))).data;
         expect(shown, saved.codes[i].code);
       }
+      // Nothing to select: a code leaves only through Copy, which takes it
+      // off the clipboard again (release audit 1.3.0).
+      expect(find.byType(SelectableText), findsNothing);
       await expectScreen(tester, 'codes_new');
     });
 

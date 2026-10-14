@@ -115,21 +115,29 @@ class SecureBansOwnerPins implements BansOwnerPins {
   /// Forgets every name of this wallet: the wallet itself is being deleted.
   Future<void> deleteAll() => _serial(() => _storage.delete(key: _key));
 
+  /// The whole record. One malformed entry makes all of it unreadable:
+  /// the entry may be any name's, and dropping it would make that name
+  /// "never paid" (release audit 1.3.0).
   Future<Map<String, String>> _read() async {
     final raw = await _storage.read(key: _key);
     if (raw == null) return {};
     try {
       final json = jsonDecode(raw);
       if (json is! Map) throw const BansPinsUnreadable();
-      return {
-        for (final e in json.entries)
-          if (e.key is String &&
-              BansName.tryParse(e.key as String) != null &&
-              e.value is String &&
-              BansKey.isValid(e.value as String) &&
-              e.value != BansKey.zero)
-            e.key as String: e.value as String,
-      };
+      final out = <String, String>{};
+      for (final e in json.entries) {
+        final name = e.key;
+        final key = e.value;
+        if (name is! String ||
+            BansName.tryParse(name) == null ||
+            key is! String ||
+            !BansKey.isValid(key) ||
+            key == BansKey.zero) {
+          throw const BansPinsUnreadable();
+        }
+        out[name] = key;
+      }
+      return out;
     } on FormatException {
       throw const BansPinsUnreadable();
     }

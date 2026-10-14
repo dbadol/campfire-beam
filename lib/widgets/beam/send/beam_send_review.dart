@@ -7,8 +7,6 @@
  *
  */
 
-import 'dart:async';
-
 import '../../../l10n/l10n.dart';
 import '../../../models/isar/models/blockchain_data/address.dart';
 import '../../../utilities/amount/amount.dart';
@@ -16,7 +14,6 @@ import '../../../wallets/beam/assets/beam_asset_catalog.dart';
 import '../../../wallets/beam/contracts/bans/bans_name.dart';
 import '../../../wallets/beam/contracts/bans/bans_service.dart';
 import '../../../wallets/beam/models/beam_address.dart';
-import '../../../wallets/beam/rpc/beam_connection_exception.dart';
 import '../../../wallets/beam/wallet/beam_wallet_errors.dart';
 import '../../../wallets/crypto_currency/crypto_currency.dart';
 import '../../../wallets/models/tx_data.dart';
@@ -232,11 +229,7 @@ class BeamSendReview {
 
   /// Whether [error], thrown while sending, leaves it open whether the
   /// payment went out.
-  static bool isOutcomeUnknown(Object error) =>
-      (error is BeamWalletException &&
-          error.problem == BeamWalletProblem.sendOutcomeUnknown) ||
-      error is BeamConnectionException ||
-      error is TimeoutException;
+  static bool isOutcomeUnknown(Object error) => beamSendOutcomeUnknown(error);
 
   /// Lets the private node restart wallet-api again. Safe to call twice.
   void dispose() {

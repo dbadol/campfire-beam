@@ -132,8 +132,26 @@ class BeamAirdrops {
       : old.prepareCancelBatch(batchId);
 
   /// Sends [prepared] with the service that built it.
-  Future<String> execute(AirdropPreparedCall prepared) => switch (prepared) {
+  ///
+  /// A claim on the old contract carries its code in plain text, so anyone
+  /// watching the network could claim it first; and a code is old only on
+  /// the node's word. Such a claim is refused
+  /// ([AirdropErrorCode.notAcknowledged], nothing sent, [prepared] still
+  /// usable) unless [acknowledgedCodeShown] is true, which a screen sets
+  /// only after the person chose to claim on its stop.
+  Future<String> execute(
+    AirdropPreparedCall prepared, {
+    bool acknowledgedCodeShown = false,
+  }) => switch (prepared) {
     final BeamPreparedAirdropV3Call p => v3.execute(p),
+    final BeamPreparedAirdropCall p
+        when p.action == AirdropAction.redeem && !acknowledgedCodeShown =>
+      Future.error(
+        BeamAirdropException(
+          AirdropErrorCode.notAcknowledged,
+          appL10n.airdropClaimOldContractMessage,
+        ),
+      ),
     final BeamPreparedAirdropCall p => old.execute(p),
     _ => throw ArgumentError.value(prepared, 'prepared', 'unknown call'),
   };

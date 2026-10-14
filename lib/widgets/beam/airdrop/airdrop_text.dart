@@ -130,6 +130,10 @@ BeamProblem airdropProblem(Object error) {
       l.airdropErrNotBatchCreatorTitle,
       l.airdropErrNotBatchCreatorMessage,
     ),
+    AirdropErrorCode.notAcknowledged => BeamProblem(
+      l.airdropClaimOldContractTitle,
+      l.airdropClaimOldContractMessage,
+    ),
     _ => BeamProblem(l.airdropErrRefusedTitle, error.message),
   };
 }

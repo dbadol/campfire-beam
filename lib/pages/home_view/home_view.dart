@@ -27,6 +27,7 @@ import '../../services/event_bus/events/global/tor_connection_status_changed_eve
 import '../../themes/stack_colors.dart';
 import '../../themes/theme_providers.dart';
 import '../../utilities/assets.dart';
+import '../../utilities/beam/secret_clipboard.dart';
 import '../../utilities/constants.dart';
 import '../../utilities/idle_monitor.dart';
 import '../../utilities/prefs.dart';
@@ -78,6 +79,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
   IdleMonitor? _idleMonitor;
 
   void _onIdle() async {
+    // A voucher code copied before the lock leaves the clipboard now.
+    unawaited(SecretClipboard.onAppLocked());
     final context = _key.currentContext;
     if (context != null) {
       await Navigator.push(

@@ -11,10 +11,13 @@
 //   Job:  turn a voucher code into tokens in this wallet.
 //   CTA:  "Claim <amount> <ticker>" (or "Claim anyway" when the voucher is
 //         worth less than its network fee).
-//   Taps: open wallet → Claim a voucher → paste → Claim → PIN (3 + PIN).
+//   Taps: open wallet → Claim a voucher → paste → Claim → PIN (3 + PIN);
+//         a code of the old contract adds one: "Claim anyway" on the stop.
 //
 // A code is looked up on Airdrop v3 first, then on the old contract, and
-// claimed where it was found.
+// claimed where it was found. Only a complete code is looked up by itself
+// (AirdropVoucherCode.isWellFormed); anything else waits for a tap on
+// "Check code", so a code typed or pasted in part never reaches the node.
 //
 // Exit-intent, and what this screen does about each:
 //   * "Is this a scam / what will it cost me?" → the value and the network
@@ -27,7 +30,12 @@
 //   * "The code doesn't work" → the error says why and what to check,
 //     without blaming the user.
 //   * "Nothing happens" → checking starts by itself once a full code is in
-//     and says "Checking the code…" while it works.
+//     and says "Checking the code…" while it works; any other code has
+//     "Check code" to tap.
+//   * "Could someone take it?" → a code of the old contract is shown to the
+//     network when claimed. Every such claim stops first and says so, with
+//     "Don't claim" as the default: a node that lies could pass off a new
+//     code as an old one, and only the person can tell which they have.
 //   * "Did I get it?" → "Claim sent", then "received" only once the network
 //     confirms it; a claim that does not go through says nothing left the
 //     wallet and offers to check the code again.
@@ -39,6 +47,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../themes/stack_colors.dart';
 import '../../../utilities/barcode_scanner_interface.dart';
 import '../../../utilities/clipboard_interface.dart';
 import '../../../utilities/text_styles.dart';
@@ -55,10 +64,12 @@ import '../../../widgets/beam/airdrop/beam_sync_gate.dart';
 import '../../../widgets/beam/airdrop/beam_units.dart';
 import '../../../widgets/beam/airdrop/voucher_code_input.dart';
 import '../../../widgets/beam/stickers/beam_sticker.dart';
+import '../../../widgets/desktop/primary_button.dart';
 import '../../../widgets/flag_secure_scope.dart';
 import '../../../widgets/icon_widgets/clipboard_icon.dart';
 import '../../../widgets/icon_widgets/qrcode_icon.dart';
 import '../../../widgets/rounded_white_container.dart';
+import '../../../widgets/stack_dialog.dart';
 import '../../../widgets/textfield_icon_button.dart';
 
 /// Claim an airdrop voucher with its code.
@@ -119,9 +130,12 @@ enum _ClaimState { sent, received, failed }
 
 class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
     with BeamSendFlow {
-  /// Codes this module generates have 16 symbols; codes made elsewhere may
-  /// differ, so shorter text is checked too, after a pause in typing.
-  static const _minAutoCheck = 8;
+  /// From this many symbols on, a code that is not complete can be checked
+  /// with a tap ("Check code"); codes made elsewhere may differ from the 16
+  /// symbols this module generates. Never checked by itself: looking a
+  /// code up shows its key to the node, so a code typed in part would leak
+  /// piece by piece.
+  static const _minManualCheck = 8;
 
   final _code = TextEditingController();
   late final BeamAssetNames _names =
@@ -132,7 +146,14 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
   Timer? _debounce;
   bool _checking = false;
   bool _inFlight = false;
-  bool _again = false;
+
+  /// The text a check was asked for (by a tap, or by itself for a complete
+  /// code) and not run yet. Cleared by any edit: only text someone asked
+  /// about is ever looked up.
+  String? _pending;
+
+  /// The stop before an old-contract claim is on screen.
+  bool _stopOpen = false;
 
   /// After a claim was sent: what it gives, its transaction, where it is.
   String? _claimedText;
@@ -148,7 +169,9 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
     final initial = widget.initialCode;
     if (initial != null && initial.isNotEmpty) {
       _code.text = AirdropVoucherCode.format(initial);
-      _debounce = Timer(Duration.zero, _check);
+      if (AirdropVoucherCode.isWellFormed(_code.text)) {
+        _debounce = Timer(Duration.zero, _check);
+      }
     }
   }
 
@@ -176,16 +199,12 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
 
   void _onChanged(String _) {
     _debounce?.cancel();
+    _pending = null;
     _dropPrepared();
     setState(() => problem = null);
-    final n = _normalised.length;
-    if (n >= _minAutoCheck) {
-      _debounce = Timer(
-        n >= AirdropVoucherCode.length
-            ? Duration.zero
-            : const Duration(milliseconds: 700),
-        _check,
-      );
+    // Only a complete code is looked up by itself: never a part of one.
+    if (AirdropVoucherCode.isWellFormed(_code.text)) {
+      _debounce = Timer(Duration.zero, _check);
     }
   }
 
@@ -205,21 +224,21 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
     _onChanged(_code.text);
   }
 
-  /// Builds the claim for the code in the field. Runs one at a time; a
-  /// change while it runs re-checks once it returns, and a stale result is
-  /// discarded, never shown.
+  /// Builds the claim for the code in the field: called for a complete
+  /// code as it is typed, and by the screen's buttons. Runs one at a time;
+  /// a check asked for while one runs follows it, and a stale result is
+  /// discarded, never shown. Only the text it was asked about is looked
+  /// up: an edit since then cancels it.
   Future<void> _check() async {
     _debounce?.cancel();
-    if (_inFlight) {
-      _again = true;
-      return;
-    }
+    _pending = _code.text;
+    if (_inFlight) return;
     _inFlight = true;
     try {
-      do {
-        _again = false;
-        final code = _code.text;
-        if (AirdropVoucherCode.normalise(code).isEmpty) break;
+      while (mounted) {
+        final code = _pending;
+        _pending = null;
+        if (code == null || AirdropVoucherCode.normalise(code).isEmpty) break;
         _dropPrepared();
         if (mounted) {
           setState(() {
@@ -230,7 +249,7 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
         try {
           final p = await widget.service.prepareRedeem(code);
           if (!mounted ||
-              _again ||
+              _pending != null ||
               AirdropVoucherCode.normalise(code) != _normalised) {
             widget.service.discard(p);
             continue;
@@ -239,10 +258,14 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
           unawaited(_names.preload([p.summary.assetId]));
           _beamAvailable = await _beamBalance();
         } catch (e) {
-          if (!mounted || _again) continue;
+          if (!mounted ||
+              _pending != null ||
+              AirdropVoucherCode.normalise(code) != _normalised) {
+            continue;
+          }
           problem = airdropProblem(e);
         }
-      } while (_again && mounted);
+      }
     } finally {
       _inFlight = false;
       if (mounted) setState(() => _checking = false);
@@ -259,14 +282,29 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
 
   Future<void> _claim() async {
     final p = _prepared;
-    if (p == null) return;
+    if (p == null || sending || _stopOpen) return;
     final s = p.summary;
+    // A code of the old contract is shown to the network when claimed:
+    // every such claim stops first, and goes on only if the person says so
+    // ("Don't claim" is the default). Nothing is prepared again meanwhile:
+    // the stop covers the screen.
+    if (s.contract != AirdropContract.v3) {
+      _stopOpen = true;
+      final bool go;
+      try {
+        go = await _confirmOldContract();
+      } finally {
+        _stopOpen = false;
+      }
+      if (!go || !mounted || !identical(_prepared, p)) return;
+    }
     final gets = _names.amount(s.assetId, s.assetAmount);
     final code = _code.text;
     final tx = await runSend(
       authorize: widget.authorize,
       reason: context.l10n.airdropClaimAuthReason(gets),
-      send: () => widget.service.execute(p),
+      // Only reached past the stop for an old-contract code.
+      send: () => widget.service.execute(p, acknowledgedCodeShown: true),
       explain: airdropProblem,
     );
     if (!mounted) return;
@@ -280,6 +318,43 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
       });
       _schedulePoll();
     }
+  }
+
+  /// The stop before an old-contract claim. True only when the person
+  /// chose to claim; closing it any other way is "Don't claim".
+  Future<bool> _confirmOldContract() async {
+    final desktop = BeamLayoutScope.isDesktop(context);
+    final colors = Theme.of(context).extension<StackColors>()!;
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final l10n = context.l10n;
+        return StackDialog(
+          key: const ValueKey('claim-old-contract-stop'),
+          width: desktop ? 460 : null,
+          title: l10n.airdropClaimOldContractTitle,
+          message: l10n.airdropClaimOldContractMessage,
+          leftButton: TextButton(
+            key: const ValueKey('claim-old-contract-go'),
+            style: colors.getDeleteEnabledButtonStyle(context),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              l10n.airdropClaimOldContractGo,
+              textAlign: TextAlign.center,
+              style: STextStyles.button(context)
+                  .copyWith(color: colors.accentColorRed),
+            ),
+          ),
+          rightButton: PrimaryButton(
+            key: const ValueKey('claim-old-contract-keep'),
+            label: l10n.airdropClaimOldContractKeep,
+            buttonHeight: desktop ? ButtonHeight.l : null,
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+        );
+      },
+    );
+    return go ?? false;
   }
 
   void _schedulePoll() {
@@ -359,7 +434,7 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
       } else if (problem != null && _normalised.isNotEmpty) {
         label = l10n.airdropClaimCheckAgain;
         action = _check;
-      } else if (_normalised.length >= _minAutoCheck) {
+      } else if (_normalised.length >= _minManualCheck) {
         label = l10n.airdropClaimCheckCode;
         action = _check;
       } else {
