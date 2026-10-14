@@ -16,7 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stackwallet/widgets/beam/names/names_format.dart';
 
 void main() {
-  final g = BigInt.from;
+  const g = BigInt.from;
 
   test('a comma is never dropped: "0,5" is 0.5, never 5', () {
     expect(NamesFormat.parse('0,5'), g(50000000));

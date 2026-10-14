@@ -378,7 +378,7 @@ void main() {
 
     test("D-10: a deposit address that is not an address of the coin's "
         'chain is never shown', () async {
-      const wrong = {
+      final wrong = {
         'an Ethereum address': '0x1111111111111111111111111111111111111111',
         'a Tron address': 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
         'a Litecoin address': 'ltc1qxyur73jd23dky6tswalgtrynn2s63takhkjszu',
@@ -389,10 +389,7 @@ void main() {
             'bitcoin:bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx2s?amount=0.0123',
         'words': 'pay to this address',
         'spaces around it': ' bc1q6rga95756htd0kxemtdaehw7mlswrchr6zzx2s ',
-        'a very long text':
-            'bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq'
-            'qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq'
-            'qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+        'a very long text': 'bc1q${'q' * 200}',
         'the old made-up fixture':
             'bc1qfake0deposit0address0000000000000000000',
       };

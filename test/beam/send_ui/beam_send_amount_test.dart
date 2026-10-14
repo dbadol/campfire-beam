@@ -65,7 +65,7 @@ void main() {
   tearDown(debugResetAppL10n);
 
   group('BeamSendFormat.parse: "." decimals, a comma never', () {
-    final g = BigInt.from;
+    const g = BigInt.from;
 
     test('a dot is the decimal point', () {
       expect(BeamSendFormat.parse('0.5'), g(50000000));
