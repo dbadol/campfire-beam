@@ -29,8 +29,11 @@ abstract final class BeamThemes {
   static const ids = [light, dark];
 
   /// The zips' theme.json "version": an installed copy older than this is
-  /// replaced at startup.
-  static const version = 1;
+  /// replaced at startup. It also picks Stack Wallet's image format
+  /// (StackTheme.fromJson: 3 and up is ThemeAssetsV3, the format of Campfire's
+  /// images), so it never goes below 3: at 1 the app stopped at startup while
+  /// storing the theme.
+  static const version = 17;
 
   /// Offered where Stack Wallet's own theme choice is not: the Campfire build
   /// (no AppFeature.themeSelection) that has BEAM.

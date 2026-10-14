@@ -28,6 +28,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:isar_community/isar.dart';
 import 'package:stackwallet/models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import 'package:stackwallet/models/isar/stack_theme.dart';
 import 'package:stackwallet/pages/beam/colours/beam_colours_view.dart';
@@ -185,6 +186,47 @@ void main() {
         StackColors.fromStackColorTheme(campfire).background,
         const Color(0xFFFFF1F1),
       );
+    });
+
+    test('stored as the app does at startup: every theme in the V3 image '
+        'format, read back whole', () async {
+      // theme.json's "version" also picks the image format. At 1, BEAM's themes
+      // parsed as V1 and the app stopped at startup storing them (a black
+      // window; found in the 1.3.0 trial build). Parsing alone never showed it:
+      // the unset V1 fields only fail when Isar sizes the record.
+      final mocked = HttpOverrides.current;
+      HttpOverrides.global = null;
+      try {
+        await Isar.initializeIsarCore(download: true);
+      } finally {
+        HttpOverrides.global = mocked;
+      }
+      final dir = Directory.systemTemp.createTempSync('beam_theme_isar');
+      final isar = await Isar.open(
+        [StackThemeSchema],
+        directory: dir.path,
+        name: 'beam_theme_test',
+      );
+      addTearDown(() async {
+        await isar.close(deleteFromDisk: true);
+        dir.deleteSync(recursive: true);
+      });
+      for (final name in [BeamThemes.campfire, ..._beam]) {
+        final theme = _theme(name);
+        expect(theme.version, greaterThanOrEqualTo(3), reason: name);
+        expect(theme.assetsV3, isNotNull, reason: name);
+        expect([theme.assetsV1, theme.assetsV2], [null, null], reason: name);
+        await isar.writeTxn(() => isar.stackThemes.put(theme));
+        final back = await isar.stackThemes
+            .where()
+            .themeIdEqualTo(name)
+            .findFirst();
+        expect(
+          back?.assetsV3?.coinIconsString,
+          theme.assetsV3!.coinIconsString,
+          reason: name,
+        );
+      }
     });
 
     test("Campfire's images: only theme.json and the history's icons differ, "

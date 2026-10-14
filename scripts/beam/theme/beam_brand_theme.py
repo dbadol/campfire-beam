@@ -31,7 +31,12 @@ REPO = pathlib.Path(__file__).resolve().parents[3]
 SRC = REPO / 'asset_sources/default_themes/campfire/light.zip'
 OUT = REPO / 'asset_sources/default_themes/campfire'
 FIXED_TIME = (2026, 10, 13, 0, 0, 0)
-VERSION = 1  # lib/themes/beam/beam_themes.dart BeamThemes.version
+# lib/themes/beam/beam_themes.dart BeamThemes.version. theme.json's "version" is also Stack Wallet's
+# image-format switch (StackTheme.fromJson: 1 -> ThemeAssets, 2 -> ThemeAssetsV2, 3 and up ->
+# ThemeAssetsV3). Campfire's images are V3, so it must stay 3 or more: at 1 the app read them as V1, left
+# its per-coin fields unset, and stopped at startup storing the theme (a black window on a new install and
+# after updating; found in the 1.3.0 trial build, 2026-10-14). Bump it to make installed copies update.
+VERSION = 17
 
 # One palette per brightness, in the web wallet's token names (css/app.css, data-skin="beam").
 DARK = dict(
@@ -256,6 +261,7 @@ def recolour(svg: str, kind: str, p: dict) -> str:
 def build(name: str, title: str, brightness: str, p: dict) -> bytes:
     src = zipfile.ZipFile(SRC)
     base = json.loads(src.read('theme.json'))
+    assert base['version'] >= 3 and VERSION >= 3, 'the V3 image format (see VERSION)'
     theme = {
         'version': VERSION,
         'name': title,
