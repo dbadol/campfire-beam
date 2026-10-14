@@ -22,7 +22,9 @@
 //   said above the address, the exact amount has its own copy button.
 // * "Did it work?" — four steps, each ticked as it happens; the screen
 //   updates by itself. "Arrived" is said only once this wallet has the
-//   BEAM transaction; until then it says buybeam.my sent it.
+//   BEAM transaction, received at this buy's own address, and then with
+//   the amount the wallet actually got; until then it says buybeam.my
+//   sent it.
 // * "Can I close this?" — said: the buy keeps going; Campfire must be
 //   opened again within 12 hours for the BEAM to arrive (a regular BEAM
 //   address needs the wallet online).
@@ -85,8 +87,10 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
   bool _copied = false;
   bool _amountCopied = false;
 
-  /// This wallet has the BEAM buybeam.my sent.
-  bool _arrived = false;
+  /// What this wallet received at the buy's address in buybeam.my's BEAM
+  /// transaction (null until it has).
+  BigInt? _received;
+  bool get _arrived => _received != null;
   Timer? _arrival;
 
   BuyBeamDeps get deps => widget.deps;
@@ -133,15 +137,17 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
       return;
     }
     Future<void> look() async {
-      bool got;
+      BuyBeamReceipt? got;
       try {
         got = await check(tx);
       } catch (_) {
-        got = false;
+        got = null;
       }
-      if (!mounted || !got) return;
+      // buybeam.my names the transaction; only BEAM this wallet received
+      // at the buy's own address makes it "arrived".
+      if (!mounted || got == null || !got.isFor(o!.beamAddress)) return;
       _arrival?.cancel();
-      setState(() => _arrived = true);
+      setState(() => _received = got!.groth);
     }
 
     _arrival = Timer.periodic(
@@ -400,9 +406,15 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
             label: paid ? l10n.buyYouPaid : l10n.buyYouPay,
             value: '${o.sendAmount} ${o.symbol}',
           ),
-          if (estimate != null)
+          if (_received case final got?)
             DexDetailRow(
-              label: _arrived ? l10n.buyYouGot : l10n.buyYouGet,
+              label: l10n.buyYouGot,
+              valueKey: const Key('buy-order-received'),
+              value: BuyBeamWords.beamExact(got),
+            )
+          else if (estimate != null)
+            DexDetailRow(
+              label: l10n.buyYouGet,
               valueKey: const Key('buy-order-estimate'),
               value: '≈ $estimate',
             ),
@@ -444,14 +456,16 @@ class _BuyBeamOrderViewState extends State<BuyBeamOrderView> {
         final got = o.beamEstimate == null
             ? null
             : '≈ ${BuyBeamWords.beam(BuyBeamWords.groth(o.beamEstimate!))}';
-        if (_arrived) {
+        if (_received case final received?) {
           return DexNotice(
             key: const Key('buy-arrived'),
             kind: DexNoticeKind.success,
             title: l10n.buyArrived,
-            detail: got == null
-                ? l10n.buyArrivedDetailNoAmount(deps.walletName)
-                : l10n.buyArrivedDetail(got, deps.walletName),
+            // What the wallet got, every digit: not buybeam.my's estimate.
+            detail: l10n.buyArrivedDetail(
+              BuyBeamWords.beamExact(received),
+              deps.walletName,
+            ),
           );
         }
         return DexNotice(

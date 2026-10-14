@@ -820,7 +820,6 @@
   "buyAmountUseDot": "请用小数点表示小数，例如 0.5",
   "buyArrived": "你的 BEAM 已到账",
   "buyArrivedDetail": "{amount} 已在 {wallet} 中。",
-  "buyArrivedDetailNoAmount": "你的 BEAM 已在 {wallet} 中。",
   "buyArrivesIn": "到账至 {wallet}",
   "buyArrivesInLabel": "到账至",
   "buyAskingDeposit": "正在向 buybeam.my 获取充值地址…",

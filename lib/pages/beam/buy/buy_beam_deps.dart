@@ -17,10 +17,49 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/isar/models/blockchain_data/transaction.dart'
+    show TransactionType;
+import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../utilities/util.dart';
 import '../../../wallets/beam/buy/buybeam_client.dart';
 import '../../../wallets/beam/buy/buybeam_controller.dart';
 import '../../../widgets/beam/dex/dex_widgets.dart';
+
+/// BEAM this wallet received in one transaction.
+@immutable
+class BuyBeamReceipt {
+  const BuyBeamReceipt({required this.groth, required this.address});
+
+  /// BEAM (asset 0) received, in groth.
+  final BigInt groth;
+
+  /// The wallet's own address it was received at.
+  final String address;
+
+  /// What [tx], this wallet's record of a BEAM transaction, says it
+  /// received: BEAM (not another asset), a payment (not a contract's
+  /// payout), completed and in a block, at one of the wallet's own
+  /// addresses; null otherwise.
+  static BuyBeamReceipt? of(TransactionV2? tx) {
+    if (tx == null || !tx.isBeamTransaction) return null;
+    if (tx.type != TransactionType.incoming || tx.height == null) return null;
+    if ((tx.beamAssetId ?? 0) != 0 || tx.contractAddress != null) return null;
+    final mine = [
+      for (final o in tx.outputs)
+        if (o.walletOwns) o,
+    ];
+    if (mine.length != 1) return null;
+    final address = mine.single.addresses.firstOrNull ?? '';
+    final groth = BigInt.tryParse(mine.single.valueStringSats);
+    if (address.isEmpty || groth == null || groth <= BigInt.zero) return null;
+    return BuyBeamReceipt(groth: groth, address: address);
+  }
+
+  /// Received at [beamAddress] (an order's), and something was.
+  bool isFor(String beamAddress) =>
+      groth > BigInt.zero &&
+      address.trim().toLowerCase() == beamAddress.trim().toLowerCase();
+}
 
 class BuyBeamDeps implements DexLayout {
   BuyBeamDeps({
@@ -56,10 +95,12 @@ class BuyBeamDeps implements DexLayout {
   /// under what this opens.
   final void Function(BuildContext context, WidgetRef ref)? onWantWbeam;
 
-  /// Whether this wallet has the BEAM transaction [txId], received and
-  /// confirmed (buybeam.my having sent it is not the same: a regular
-  /// address receives only while Campfire is open and accepts it).
-  final Future<bool> Function(String txId)? receivedInWallet;
+  /// What this wallet received in the BEAM transaction [txId], once it is
+  /// received and confirmed; null until then (buybeam.my having sent it is
+  /// not the same: a regular address receives only while Campfire is open
+  /// and accepts it). The screen says "arrived" only for BEAM received at
+  /// the buy's own address, and shows that amount.
+  final Future<BuyBeamReceipt?> Function(String txId)? receivedInWallet;
 
   /// Shows the BEAM transaction [txId] in this wallet (or the wallet's
   /// history while Campfire has not seen it yet).

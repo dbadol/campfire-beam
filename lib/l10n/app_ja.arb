@@ -820,7 +820,6 @@
   "buyAmountUseDot": "小数点にはドットを使ってください。例：0.5",
   "buyArrived": "BEAMが届きました",
   "buyArrivedDetail": "{amount}が{wallet}に入りました。",
-  "buyArrivedDetailNoAmount": "BEAMが{wallet}に入りました。",
   "buyArrivesIn": "{wallet}に届きます",
   "buyArrivesInLabel": "到着まで",
   "buyAskingDeposit": "buybeam.myに入金アドレスを問い合わせています…",

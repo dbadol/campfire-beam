@@ -820,7 +820,6 @@
   "buyAmountUseDot": "Используйте точку для дробной части, например 0.5",
   "buyArrived": "Ваши BEAM пришли",
   "buyArrivedDetail": "{amount} уже в кошельке «{wallet}».",
-  "buyArrivedDetailNoAmount": "Ваши BEAM уже в кошельке «{wallet}».",
   "buyArrivesIn": "Придёт в кошелёк «{wallet}»",
   "buyArrivesInLabel": "Куда придёт",
   "buyAskingDeposit": "Запрос адреса для депозита у buybeam.my…",

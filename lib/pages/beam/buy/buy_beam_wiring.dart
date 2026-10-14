@@ -34,8 +34,6 @@ import '../../../app_config.dart';
 import '../../../db/isar/main_db.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/add_wallet_list_entity/sub_classes/coin_entity.dart';
-import '../../../models/isar/models/blockchain_data/transaction.dart'
-    show TransactionType;
 import '../../../models/isar/models/blockchain_data/v2/transaction_v2.dart';
 import '../../../themes/stack_colors.dart';
 import '../../../utilities/prefs.dart';
@@ -159,13 +157,10 @@ BuyBeamDeps buyBeamDepsFor(
         return null;
       }
     },
-    receivedInWallet: (txId) async {
-      final tx = await _walletTx(wallet, txId);
-      // Received and confirmed (a pending one has no height yet).
-      return tx != null &&
-          tx.type == TransactionType.incoming &&
-          tx.height != null;
-    },
+    // Received and confirmed (a pending one has no height yet), with the
+    // address and the amount: the screen checks they are the buy's.
+    receivedInWallet: (txId) async =>
+        BuyBeamReceipt.of(await _walletTx(wallet, txId)),
     onWantWbeam: (context, ref) =>
         unawaited(openWbeamBuy(context, ref, closeFirst: desktop)),
     onOpenTransaction: (context, txId) =>
