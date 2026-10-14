@@ -10241,7 +10241,7 @@
       "screens/airdrop_codes.js"
     ]
   },
-  "Your funds are safe: nothing more was locked, and make new codes.": {
+  "Your funds are safe: nothing was locked. Make new codes.": {
     "where": [
       "screens/airdrop_codes.js"
     ]
@@ -11258,8 +11258,7 @@
   },
   "Your move": {
     "where": [
-      "screens/bridge_crossing.js",
-      "screens/fuddle.js"
+      "screens/bridge_crossing.js"
     ]
   },
   "No moves yet": {
@@ -12480,7 +12479,8 @@
   },
   "Your turn": {
     "where": [
-      "screens/bridge_words.js"
+      "screens/bridge_words.js",
+      "screens/fuddle.js"
     ]
   },
   "Sent to the bridge on Ethereum": {

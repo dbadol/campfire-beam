@@ -1950,7 +1950,7 @@
   "Every code checked": "Все коды проверены",
   "A code did not check out.": "Один из кодов не прошёл проверку.",
   "Your funds are safe: take this batch back in My batches to get them back, and make new codes.": "Ваши средства в безопасности: верните эту партию в разделе «Мои партии», чтобы получить их обратно, и создайте новые коды.",
-  "Your funds are safe: nothing more was locked, and make new codes.": "Ваши средства в безопасности: больше ничего не было заблокировано. Создайте новые коды.",
+  "Your funds are safe: nothing was locked. Make new codes.": "Ваши средства в безопасности: ничего не было заблокировано. Создайте новые коды.",
   "Do not share these codes.": "Не делитесь этими кодами.",
   "Someone may have copied this batch while it was on its way, so the codes could point to empty vouchers.": "Возможно, кто-то скопировал эту партию, пока она была в пути, и коды могут указывать на пустые ваучеры.",
   "Make new codes": "Создать новые коды",

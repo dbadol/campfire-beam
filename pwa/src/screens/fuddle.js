@@ -622,7 +622,7 @@ export function fuddleTournament(app, { tid }) {
 function outcomeWords(o, g) {
   switch (o.outcome) {
     case 'playing':
-      return g.phase === 'waiting_hint' ? t('Waiting for the hint') : g.phase === 'your_move' ? t('Your move') : t('In play');
+      return g.phase === 'waiting_hint' ? t('Waiting for the hint') : g.phase === 'your_move' ? t('Your turn') : t('In play');
     case 'checking':
       return t('Game over · the word is being revealed');
     case 'solved':

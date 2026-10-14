@@ -1737,7 +1737,7 @@
   "Every code checked": "所有领取码均已检查",
   "A code did not check out.": "有一个领取码未通过检查。",
   "Your funds are safe: take this batch back in My batches to get them back, and make new codes.": "你的资金是安全的：在“我的批次”中收回此批次即可取回资金，然后生成新的领取码。",
-  "Your funds are safe: nothing more was locked, and make new codes.": "你的资金是安全的：没有再锁定任何资金。请生成新的领取码。",
+  "Your funds are safe: nothing was locked. Make new codes.": "你的资金是安全的：没有锁定任何资金。请生成新的领取码。",
   "Do not share these codes.": "请勿分享这些领取码。",
   "Someone may have copied this batch while it was on its way, so the codes could point to empty vouchers.": "此批次在传送途中可能被人复制，因此这些领取码可能指向空的空投券。",
   "Make new codes": "生成新的领取码",
