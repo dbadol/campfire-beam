@@ -23,9 +23,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:stackwallet/models/exchange/response_objects/trade.dart';
 import 'package:stackwallet/models/isar/stack_theme.dart';
 import 'package:stackwallet/pages/token_view/sub_widgets/beam_asset_layout.dart';
+import 'package:stackwallet/providers/global/locale_provider.dart';
 import 'package:stackwallet/providers/global/prefs_provider.dart';
 import 'package:stackwallet/providers/global/trades_service_provider.dart';
 import 'package:stackwallet/providers/global/wallets_provider.dart';
+import 'package:stackwallet/services/locale_service.dart';
 import 'package:stackwallet/services/trade_service.dart';
 import 'package:stackwallet/services/wallets.dart';
 import 'package:stackwallet/themes/stack_colors.dart';
@@ -125,6 +127,17 @@ class NoTrades extends TradesService {
   List<Trade> get trades => const [];
 }
 
+/// A device whose region is [locale] ("ru_RU", "de_DE"), as Campfire's
+/// LocaleService reports it.
+class FixedDeviceLocale extends LocaleService {
+  FixedDeviceLocale(this._fixed);
+
+  final String _fixed;
+
+  @override
+  String get locale => _fixed;
+}
+
 /// A 375 × 667 phone, rendered at 2×.
 const phone = Size(375, 667);
 
@@ -152,7 +165,8 @@ Future<void> loadFonts(WidgetTester tester) async {
 /// screens find for its id, [market] what the DEX answers (null: prices not
 /// loaded), [assetWallet] the asset being viewed, and [totals] replaces the
 /// wallet's cached per-asset totals when given. [coinScan] is a restore
-/// scan still looking for the wallet's coins.
+/// scan still looking for the wallet's coins. [deviceLocale] is the
+/// device's region ("ru_RU"); unset, Campfire's default (en_US).
 Future<void> pumpAssets(
   WidgetTester tester,
   Widget home, {
@@ -163,6 +177,7 @@ Future<void> pumpAssets(
   Map<int, BeamCachedAssetTotals>? totals,
   Set<int>? hidden,
   BeamCoinScan? coinScan,
+  String? deviceLocale,
 }) async {
   await loadFonts(tester);
   final size = desktop ? desktopWindow : phone;
@@ -176,6 +191,10 @@ Future<void> pumpAssets(
       prefsChangeNotifierProvider.overrideWithValue(TestPrefs()),
       tradesServiceProvider.overrideWithValue(NoTrades()),
       pWallets.overrideWithValue(Wallets.sharedInstance),
+      if (deviceLocale != null)
+        localeServiceChangeNotifierProvider.overrideWithValue(
+          FixedDeviceLocale(deviceLocale),
+        ),
       themeProvider.overrideWithProvider(
         StateProvider<StackTheme>((ref) => campfireLight),
       ),

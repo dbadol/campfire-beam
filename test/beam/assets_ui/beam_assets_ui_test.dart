@@ -24,6 +24,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
+import 'package:stackwallet/l10n/l10n.dart';
 import 'package:stackwallet/models/isar/models/beam/beam_asset_contract.dart';
 import 'package:stackwallet/models/isar/models/blockchain_data/address.dart';
 import 'package:stackwallet/pages/bridge/bridge_wiring.dart';
@@ -48,6 +49,7 @@ import 'package:stackwallet/wallets/wallet/impl/sub_wallets/beam_asset_wallet.da
 import 'package:stackwallet/wallets/wallet/supporting/beam_wallet_info_extension.dart';
 import 'package:stackwallet/widgets/beam/assets/beam_asset_logo.dart';
 import 'package:stackwallet/widgets/beam/stickers/beam_sticker.dart';
+import 'package:stackwallet/widgets/desktop/primary_button.dart';
 
 import '../asset_wallet/asset_test_support.dart';
 import 'assets_ui_harness.dart';
@@ -574,6 +576,115 @@ void main() {
         scrollable: find.byType(Scrollable).last,
       );
       await _golden('asset_send_no_beam_phone');
+    });
+
+    // The amount is read the app's way on every device (release audit
+    // 1.3.0), as BEAM Send reads it: on a Russian, German or French region
+    // the device's decimal comma made a pasted "1,000" one token, refused
+    // "0.5", and "Send all" wrote "1000,5", while "Available" and the
+    // confirm screen write "1,000.5".
+    Map<int, BeamCachedAssetTotals> fomoHolds(BigInt available) =>
+        Map.of(wallet.info.beamAssetTotals)
+          ..[174] = BeamCachedAssetTotals(
+            assetId: 174,
+            available: available,
+            receiving: BigInt.zero,
+            sending: BigInt.zero,
+            maturing: BigInt.zero,
+            change: BigInt.zero,
+          );
+    const amountKey = Key('beamAssetSendAmount');
+    String amountText(WidgetTester tester) =>
+        tester.widget<TextField>(find.byKey(amountKey)).controller!.text;
+    Future<void> type(WidgetTester tester, String text) async {
+      await tester.enterText(find.byKey(amountKey), text);
+      await tester.pump();
+    }
+
+    for (final device in ['ru_RU', 'de_DE', 'fr_FR']) {
+      testWidgets('a $device device: "." is the decimal point and a comma '
+          'never is; "Send all" writes 1000.5', (tester) async {
+        await pumpAssets(
+          tester,
+          BeamAssetSendView(walletId: wallet.walletId),
+          wallet: wallet,
+          desktop: false,
+          market: market,
+          assetWallet: assetWallet(174),
+          totals: fomoHolds(g(1000.5)),
+          deviceLocale: device,
+        );
+        await tester.enterText(
+          find.byKey(const Key('beamAssetSendAddress')),
+          vectorAddress('regular'),
+        );
+        // "0", the keypad's decimal key (only "," there), "5".
+        await type(tester, '0');
+        await type(tester, '0,');
+        expect(amountText(tester), '0.');
+        await type(tester, '0.5');
+        expect(amountText(tester), '0.5');
+        expect(find.textContaining('More than you have'), findsNothing);
+        expect(find.textContaining('Available: 1,000.5'), findsOneWidget);
+
+        // Read as a thousand and more, never as 1.
+        await type(tester, '1000.6');
+        expect(find.textContaining('More than you have'), findsOneWidget);
+        await type(tester, '1000.5');
+        expect(find.textContaining('More than you have'), findsNothing);
+
+        // Pasted with a comma: kept out, the field keeps what it had.
+        await type(tester, '');
+        await type(tester, '1,000');
+        expect(amountText(tester), '');
+        await type(tester, '0,5');
+        expect(amountText(tester), '');
+
+        await tester.tap(find.byKey(const Key('beamAssetSendAll')));
+        await tester.pump();
+        expect(amountText(tester), '1000.5');
+        expect(find.textContaining('More than you have'), findsNothing);
+      });
+    }
+
+    testWidgets('the app in Russian on a Russian device: the same "." '
+        'amounts; "Available" groups with a narrow space', (tester) async {
+      debugSetAppL10n(lookupAppLocalizations(const Locale('ru')));
+      addTearDown(debugResetAppL10n);
+      await pumpAssets(
+        tester,
+        BeamAssetSendView(walletId: wallet.walletId),
+        wallet: wallet,
+        desktop: false,
+        market: market,
+        assetWallet: assetWallet(174),
+        totals: fomoHolds(g(1000.5)),
+        deviceLocale: 'ru_RU',
+      );
+      final available = find.byKey(const Key('beamAssetSendAvailable'));
+      String availableText() => tester.widget<Text>(available).data!;
+      expect(availableText(), contains('1\u202F000.5'));
+      final plain = availableText();
+      await type(tester, '0');
+      await type(tester, '0,');
+      expect(amountText(tester), '0.');
+      await type(tester, '1000.6');
+      expect(availableText(), isNot(plain), reason: 'more than it holds');
+      await type(tester, '1000.5');
+      expect(availableText(), plain);
+      await type(tester, '');
+      await type(tester, '1,000');
+      expect(amountText(tester), '');
+      await tester.tap(find.byKey(const Key('beamAssetSendAll')));
+      await tester.pump();
+      expect(amountText(tester), '1000.5');
+      expect(
+        tester
+            .widget<PrimaryButton>(find.byKey(const Key('beamAssetSendReview')))
+            .enabled,
+        isFalse,
+        reason: 'no address yet',
+      );
     });
 
     testWidgets('phone confirm: asset, amount, BEAM fee, destination, how '
