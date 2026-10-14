@@ -239,14 +239,22 @@ class UniswapQuoter {
             if (live(p)) UniHop(p, a, m),
     ];
     // A first pool into a base token that has no live pool on to the token
-    // wanted leads nowhere: that is no route, not an amount too small.
-    bool leadsOn(UniHop h) =>
-        mids.contains(h.currencyOut) &&
-        outs.any(
-          (b) => (found[(h.currencyOut, b)] ?? const <UniPool>[]).any(
-            (p) => live(p) && p.id != h.pool.id,
-          ),
-        );
+    // wanted leads nowhere: that is no route, not an amount too small. ETH
+    // and WETH count as one, as they do for the routes built in step 2: a
+    // v4 pool into native ETH leads on through a pool from WETH.
+    bool leadsOn(UniHop h) {
+      final asset = _assetKey(h.currencyOut);
+      return mids.any(
+        (m) =>
+            _assetKey(m) == asset &&
+            outs.any(
+              (b) => (found[(m, b)] ?? const <UniPool>[]).any(
+                (p) => live(p) && p.id != h.pool.id,
+              ),
+            ),
+      );
+    }
+
     if (direct.isEmpty && !firstToMid.any(leadsOn)) {
       throw const UniswapNoRoute('noPool');
     }
