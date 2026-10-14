@@ -20,6 +20,8 @@ test('a plain address, a beam: link with an amount, the first line only', () => 
   assert.deepEqual(parseScanned(`BEAM://${ADDR}?amount=0.00000001&label=x`), { address: ADDR, amount: 1n });
   assert.deepEqual(parseScanned(`beam:${ADDR}?amount=-3`), { address: ADDR }, 'a bad amount is left out, the address kept');
   assert.deepEqual(parseScanned(`beam:${ADDR}?amount=1.123456789`), { address: ADDR });
+  // A comma could be a thousands or a decimal mark: refused, never read as 1 or 1.25 (audit 1.3.0).
+  for (const a of ['1,000', '1,25', '%2C5', '1%2C000', ' 1,5', '１.5']) assert.deepEqual(parseScanned(`beam:${ADDR}?amount=${a}`), { address: ADDR }, a);
   assert.deepEqual(parseScanned(`${ADDR}\nsecond line`), { address: ADDR });
   assert.deepEqual(parseScanned('alice.beam'), { address: 'alice.beam' }, 'a name goes to the field like a typed one');
   assert.equal(parseScanned('https://example.com/pay'), null, 'a web link is not an address');

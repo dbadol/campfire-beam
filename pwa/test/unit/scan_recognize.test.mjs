@@ -20,3 +20,14 @@ test('wei: whole numbers only, scientific notation as EIP-681 writes it', () => 
   assert.equal(weiOf('0'), null);
   assert.equal(weiOf('-1'), null);
 });
+
+test('a beam: link amount with a comma is refused, the address kept', () => {
+  const A = '3f25d94eac4a95f4ff2b764f844aa588254982c6bcc83e02f157218d698c9df9477';
+  assert.equal(recognize(`beam:${A}?amount=1.5`).amount, '1.5');
+  for (const a of ['1,000', '1,25', '%2C5', '1%2C000']) {
+    const r = recognize(`beam:${A}?amount=${a}`);
+    assert.equal(r.kind, 'beam', a);
+    assert.equal(r.address, A, a);
+    assert.equal(r.amount, undefined, a);
+  }
+});

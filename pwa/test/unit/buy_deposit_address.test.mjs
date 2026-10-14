@@ -88,3 +88,11 @@ test('a payment link is never a deposit address, on any chain; BCH\'s own prefix
   assert.equal(isDepositAddressOf('bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a', 'bch'), true);
   assert.equal(isDepositAddressOf(`0x${'1'.repeat(200)}`, 'kaia'), false, 'longer than any address');
 });
+
+test('a chain id that names an inherited property finds no rule of its own', () => {
+  for (const id of ['toString', 'constructor', '__proto__', 'hasOwnProperty', 'valueOf']) {
+    // Before the fix RULES[id] was an inherited method, and its truthy answer accepted any short text.
+    assert.equal(isDepositAddressOf('abcdefgh', id), false, `${id}: no rule of its own, too short for an unknown chain`);
+    assert.equal(isDepositAddressOf('bitcoin:bc1qxyz', id), false, `${id}: a link is never an address`);
+  }
+});
