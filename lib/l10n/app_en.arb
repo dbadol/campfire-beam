@@ -736,7 +736,7 @@
   "@airdropCodesCheckErrorTitle": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': title when asking the network about a new batch failed (the node did not answer or refused); the message under it gives the reason. (glossary: code, node)"
   },
-  "airdropCodesCheckFailedNothingLocked": "Someone may have copied this batch while it was on its way, so the codes could point to empty vouchers. Your funds are safe: nothing more was locked, and make new codes.",
+  "airdropCodesCheckFailedNothingLocked": "Someone may have copied this batch while it was on its way, so the codes could point to empty vouchers. Your funds are safe: nothing was locked. Make new codes.",
   "@airdropCodesCheckFailedNothingLocked": {
     "description": "Airdrop (BEAM wallet → Airdrop): an asset is locked into one-time voucher codes; whoever has a code can claim its amount once. Screen 'Your airdrop codes': message under 'Do not share these codes' when this wallet's own batch transaction did not go into a block, so none of its funds were locked; it follows the sentence that says why the check failed. (glossary: batch, code, block)"
   },
