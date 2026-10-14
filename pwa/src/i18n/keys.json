@@ -156,6 +156,199 @@
       "day"
     ]
   },
+  "The airdrop answered something this wallet cannot check ({what}). Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ],
+    "placeholders": [
+      "what"
+    ]
+  },
+  "A code has letters and digits, like ABCD-EFGH-JKLM-NPQR.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "No voucher has this code. Check it letter by letter; codes never contain I, O, 0 or 1.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "This code was already claimed. Ask whoever gave it to you for a new one.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "This wallet has no batch with codes left under that number. Refresh the list.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "This batch was made by another wallet, so this wallet cannot cancel it.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "Every code of this batch was already claimed, so there is nothing to take back.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "The airdrop contract did not answer. Check your connection and try again.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "The airdrop built a different transaction than requested, so it was not sent. Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "The airdrop could not do that ({reason}). Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "The saved airdrop codes on this device could not be opened with this wallet, so they were left untouched.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "This wallet has nowhere safe to keep codes right now. Unlock it and try again.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "Saved airdrop codes on this device belong to another wallet, so they were left untouched.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "The saved airdrop codes could not be re-sealed on this device. They were kept as they were.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "The saved airdrop codes are unreadable, so they were left untouched.": {
+    "where": [
+      "lib/airdrop.js"
+    ]
+  },
+  "Another airdrop transaction is in progress. Finish or cancel it first.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "The wallet built something other than what this screen shows. Nothing was sent.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/bans.js",
+      "lib/dex_liquidity.js"
+    ]
+  },
+  "The network fee is not the one this screen expected. Nothing was sent.": {
+    "where": [
+      "lib/airdrop.js",
+      "lib/bans.js",
+      "lib/dex_liquidity.js"
+    ]
+  },
+  "The codes could not be saved on this device, so nothing was sent. ({reason})": {
+    "where": [
+      "lib/airdrop.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "This batch was made by another wallet, so this wallet cannot take it back.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "Every code of this batch was already claimed or taken back, so there is nothing to take back.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "New codes cannot be made right now: the airdrop contract is paused. Claims and take-backs still work. Try again later.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "The airdrop contract could not be checked on the network. Check your connection and try again.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "A code is not on the network.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "A code points somewhere other than where this wallet put it.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "A code holds a different amount than this batch locked.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "A code belongs to a batch other than the one this wallet made.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "The codes belong to a batch another wallet made.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "The network answered for a different voucher than this code. Nothing was sent. Try again; if it keeps happening, report it.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
+  "This code brings {amount} BEAM that pays the network fee, so no BEAM leaves your wallet.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "{amount} BEAM of this pays the claim fee of each code, so people with an empty wallet can claim. Whoever claims keeps what is left of it.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "This batch is not among the codes saved on this device.": {
+    "where": [
+      "lib/airdrop_v3.js",
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Some codes were claimed while this was being prepared. Nothing was sent. Look at the batch again, then take back what is left.": {
+    "where": [
+      "lib/airdrop_v3.js"
+    ]
+  },
   "Enter an amount.": {
     "where": [
       "lib/amount.js",
@@ -452,18 +645,6 @@
       "lib/bans.js"
     ]
   },
-  "The wallet built something other than what this screen shows. Nothing was sent.": {
-    "where": [
-      "lib/bans.js",
-      "lib/dex_liquidity.js"
-    ]
-  },
-  "The network fee is not the one this screen expected. Nothing was sent.": {
-    "where": [
-      "lib/bans.js",
-      "lib/dex_liquidity.js"
-    ]
-  },
   "{name} expired more than 90 days ago, so it cannot be transferred. Register it again first.": {
     "where": [
       "lib/bans.js"
@@ -637,6 +818,7 @@
   "Claim {amount}": {
     "where": [
       "lib/bans_inbox.js",
+      "screens/airdrop.js",
       "screens/consent.js",
       "screens/names.js"
     ],
@@ -1477,6 +1659,7 @@
       "lib/export.js",
       "lib/session.js",
       "lib/wallet_scope.js",
+      "screens/airdrop.js",
       "screens/bridge_ui.js"
     ]
   },
@@ -1740,6 +1923,9 @@
       "lib/buy/words.js",
       "lib/intents/words.js",
       "screens/addresses.js",
+      "screens/airdrop.js",
+      "screens/airdrop_batches.js",
+      "screens/airdrop_codes.js",
       "screens/bridge_move.js",
       "screens/bridge_ui.js",
       "screens/buy_beam.js",
@@ -2627,6 +2813,7 @@
   "Cancelled. Nothing was sent.": {
     "where": [
       "lib/contracts.js",
+      "screens/airdrop.js",
       "screens/names.js",
       "screens/pool_parts.js"
     ]
@@ -3273,6 +3460,11 @@
   "the prediction burns another amount": {
     "where": [
       "lib/dex_liquidity.js"
+    ]
+  },
+  "BEAM's exchange sent no prices yet. Try again in a moment": {
+    "where": [
+      "lib/dex_pools.js"
     ]
   },
   "Today, {time}": {
@@ -4922,6 +5114,7 @@
   "unknown error": {
     "where": [
       "lib/loader_words.js",
+      "screens/airdrop.js",
       "screens/names.js"
     ]
   },
@@ -5446,6 +5639,88 @@
       "amount"
     ]
   },
+  "{n} ms": {
+    "where": [
+      "lib/node_rows.js"
+    ],
+    "placeholders": [
+      "n"
+    ]
+  },
+  "{n} s": {
+    "where": [
+      "lib/node_rows.js"
+    ],
+    "placeholders": [
+      "n"
+    ]
+  },
+  "Block {height}": {
+    "where": [
+      "lib/node_rows.js"
+    ],
+    "placeholders": [
+      "height"
+    ]
+  },
+  "Connected": {
+    "where": [
+      "lib/node_rows.js"
+    ]
+  },
+  "Connecting…": {
+    "where": [
+      "lib/node_rows.js",
+      "lib/sync.js",
+      "screens/wallets.js"
+    ]
+  },
+  "Not checked: you use your own node": {
+    "where": [
+      "lib/node_rows.js"
+    ]
+  },
+  "Not checked yet": {
+    "where": [
+      "lib/node_rows.js",
+      "screens/eth_home.js"
+    ]
+  },
+  "Checking…": {
+    "where": [
+      "lib/node_rows.js",
+      "screens/backup.js",
+      "screens/check_proof.js",
+      "screens/eth_send.js",
+      "screens/names.js",
+      "screens/node.js",
+      "screens/owner_key.js",
+      "screens/unlock.js"
+    ]
+  },
+  "Not answering": {
+    "where": [
+      "lib/node_rows.js"
+    ]
+  },
+  "Behind: block {height} · {time}": {
+    "where": [
+      "lib/node_rows.js"
+    ],
+    "placeholders": [
+      "height",
+      "time"
+    ]
+  },
+  "Block {height} · {time}": {
+    "where": [
+      "lib/node_rows.js"
+    ],
+    "placeholders": [
+      "height",
+      "time"
+    ]
+  },
   "It arrived privately: you can spend it within {hours} hours.": {
     "where": [
       "lib/notify.js"
@@ -5850,6 +6125,12 @@
       "lib/own_node.js"
     ]
   },
+  "That is not one of BEAM's public nodes.": {
+    "where": [
+      "lib/own_node.js",
+      "lib/wallet.js"
+    ]
+  },
   "Owner key": {
     "where": [
       "lib/owner_key.js",
@@ -5931,6 +6212,7 @@
     "where": [
       "lib/owner_key.js",
       "lib/wallet.js",
+      "screens/airdrop.js",
       "screens/backup.js",
       "screens/bridge_crossing.js",
       "screens/burn.js",
@@ -6565,6 +6847,16 @@
       "lib/sync.js"
     ]
   },
+  "You're offline": {
+    "where": [
+      "lib/sync.js"
+    ]
+  },
+  "This device has no internet connection. The app reconnects by itself when it is back. Sending is paused until then.": {
+    "where": [
+      "lib/sync.js"
+    ]
+  },
   "Can't reach your node": {
     "where": [
       "lib/sync.js"
@@ -6588,20 +6880,9 @@
       "lib/sync.js"
     ]
   },
-  "Can't reach the BEAM network": {
+  "BEAM's public nodes aren't letting this browser in right now. If other websites open, the problem is on BEAM's side and your coins are safe on the blockchain. The app keeps trying by itself. Sending is paused until a node answers.": {
     "where": [
       "lib/sync.js"
-    ]
-  },
-  "Check your internet connection. The app tries the other BEAM nodes by itself. Sending is paused until it is back.": {
-    "where": [
-      "lib/sync.js"
-    ]
-  },
-  "Connecting…": {
-    "where": [
-      "lib/sync.js",
-      "screens/wallets.js"
     ]
   },
   "Reaching your node, {node}.": {
@@ -6757,11 +7038,6 @@
     ]
   },
   "Campfire red": {
-    "where": [
-      "lib/theme.js"
-    ]
-  },
-  "BEAM blue": {
     "where": [
       "lib/theme.js"
     ]
@@ -7570,6 +7846,21 @@
     ]
   },
   "The wallet is already open.": {
+    "where": [
+      "lib/wallet.js"
+    ]
+  },
+  "The wallet is not running on BEAM's public nodes.": {
+    "where": [
+      "lib/wallet.js"
+    ]
+  },
+  "The wallet is still getting ready. Try again when it is done.": {
+    "where": [
+      "lib/wallet.js"
+    ]
+  },
+  "The wallet is moving to another node right now. Try again in a moment.": {
     "where": [
       "lib/wallet.js"
     ]
@@ -8383,6 +8674,9 @@
   "Receive BEAM": {
     "where": [
       "screens/activity.js",
+      "screens/airdrop.js",
+      "screens/airdrop_batches.js",
+      "screens/airdrop_create.js",
       "screens/bridge_move.js",
       "screens/burn.js",
       "screens/coins.js",
@@ -8440,6 +8734,8 @@
   "Network fee": {
     "where": [
       "screens/activity.js",
+      "screens/airdrop.js",
+      "screens/airdrop_create.js",
       "screens/burn.js",
       "screens/coins.js",
       "screens/coins_ui.js",
@@ -8876,6 +9172,1123 @@
       "other": "Extend {n} days"
     }
   },
+  "Codes work like cash": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Anyone who has a code can claim it. Claiming also shows the code to the network before it is confirmed, so someone watching could claim it first. Use codes for small amounts, and give each one to one person.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Claiming shows this code to the network before it is confirmed, so someone watching could claim it first. That is how this airdrop contract works; codes are meant for small amounts.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Anyone who has a code can claim it, so give each code only to its person. Claiming never shows the code to the network, so nobody watching can take it. Codes nobody has claimed can be taken back.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "The network never sees this code, so nobody watching can take your claim. Until the claim is confirmed, anyone else who has the code could still claim it first, and whoever made it could still take it back.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "The claim was not sent: {reason} Nothing left your wallet.": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/names.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "The batch was not sent: {reason} Nothing left your wallet.": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "The take-back was not sent: {reason} Nothing left your wallet.": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "The transaction was not sent: {reason} Nothing left your wallet.": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/names.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "The wallet did not answer in time. Check Activity before trying again.": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/names.js",
+      "screens/pool_parts.js",
+      "screens/review.js",
+      "screens/swap.js"
+    ]
+  },
+  "Another airdrop transaction is still in progress. Wait for it to finish, then try again.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Code": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Paste": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/buy_beam.js",
+      "screens/check_proof.js",
+      "screens/contacts.js",
+      "screens/eth_import.js",
+      "screens/eth_send.js",
+      "screens/name_transfer.js",
+      "screens/near_intents.js",
+      "screens/send.js"
+    ]
+  },
+  "Scan a QR code": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/eth_send.js",
+      "screens/home.js",
+      "screens/scan_go.js",
+      "screens/scan_sheet.js",
+      "screens/send_extras.js"
+    ]
+  },
+  "Scan": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/contacts.js",
+      "screens/eth_send.js",
+      "screens/send_extras.js"
+    ]
+  },
+  "Claim": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/names_claim.js"
+    ]
+  },
+  "Create codes": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/airdrop_create.js"
+    ]
+  },
+  "My batches": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/airdrop_batches.js",
+      "screens/airdrop_codes.js",
+      "screens/delete_wallet.js"
+    ]
+  },
+  "Building your claim…": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Paste the code you were given above.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Check code": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Checking the code…": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Check again": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/airdrop_codes.js",
+      "screens/bridge_list.js",
+      "screens/node.js",
+      "screens/pool.js"
+    ]
+  },
+  "Check the code above, or paste another one.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Claiming is paused: {reason}.": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Claiming needs {need} BEAM for the network fee and this wallet has {have} BEAM. Add BEAM, then claim.": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "have",
+      "need"
+    ]
+  },
+  "Claim anyway": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "No voucher has this code.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Check it letter by letter; codes never contain I, O, 0 or 1. If it still does not work, ask whoever gave it to you.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "This code was already claimed.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Each code works once. Ask whoever gave it to you for a new one.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "The code could not be checked: {reason}": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "No BEAM needed.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Whoever made this code paid its network fee, so you can claim it even with an empty wallet.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "You get": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/buy_beam.js",
+      "screens/buy_order.js",
+      "screens/consent.js",
+      "screens/pool.js",
+      "screens/pool_status.js",
+      "screens/swap.js",
+      "screens/tx_status.js"
+    ]
+  },
+  "Paid by the code": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Balance change": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "{symbol} is asset #{id}: not on BEAM Campfire's list of known assets.": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "id",
+      "symbol"
+    ]
+  },
+  "This code gives {amount} and claiming it costs {fee} BEAM, so your balance goes down. Claim only if you want it anyway.": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "amount",
+      "fee"
+    ]
+  },
+  "Codes look like ABCD-EFGH-JKLM-NPQR. Dashes and spaces do not matter.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "{n} of {total} letters and digits (longer codes are fine if that is what you were given)": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "n",
+      "total"
+    ]
+  },
+  "{n} of {total} letters and digits": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "n",
+      "total"
+    ]
+  },
+  "Claim another code": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "{amount} received": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "The network confirmed your claim. It is in your balance now.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "The claim did not go through": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Nothing left your wallet. Someone else may have claimed the code first, or whoever made it took it back. Check the code again to see.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Check the code again": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Claim sent": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "{amount} is yours once the network confirms the claim, usually within 2 minutes. You can leave this screen; it shows in your balance then.": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Press and hold in the box, then tap Paste.": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/buy_beam.js",
+      "screens/contacts.js",
+      "screens/eth_import.js",
+      "screens/eth_send.js",
+      "screens/near_intents.js",
+      "screens/send.js"
+    ]
+  },
+  "Got a code? Paste it to see what it gives, then claim it into this wallet.": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Give tokens away": {
+    "where": [
+      "screens/airdrop.js"
+    ]
+  },
+  "Lock tokens into one-time codes and hand them out. Creating costs a 1% airdrop fee and a network fee that grows with the number of codes ({fee} BEAM for 10).": {
+    "where": [
+      "screens/airdrop.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "Airdrop codes": {
+    "where": [
+      "screens/airdrop.js",
+      "screens/airdrop_codes.js",
+      "screens/home.js"
+    ]
+  },
+  "Taken back: {amount} is back in your wallet.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "The take-back did not go through, so nothing changed and nothing left your wallet. If a code was claimed in the meantime, take back what is left now.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Show codes": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Preparing…": {
+    "where": [
+      "screens/airdrop_batches.js",
+      "screens/backup.js",
+      "screens/minter_create.js",
+      "screens/name_detail.js",
+      "screens/name_sell.js",
+      "screens/name_transfer.js",
+      "screens/names.js",
+      "screens/names_claim.js"
+    ]
+  },
+  "Taking back…": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Take back {amount}": {
+    "where": [
+      "screens/airdrop_batches.js",
+      "screens/consent.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Taking back needs {need} BEAM for the network fee; this wallet has {have} BEAM.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "have",
+      "need"
+    ]
+  },
+  "Taking back is paused: {reason}.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Network fee {fee} BEAM": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "Batch {id}": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "id"
+    ]
+  },
+  "Claim fees paid: people with an empty wallet can claim.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Its codes are not on this device, but you can still take back what nobody claimed.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Nothing is left to claim.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Earlier batch {id}": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "id"
+    ]
+  },
+  "Every code was claimed.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Waiting for the network. The codes start working once it is confirmed.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Every code was claimed or taken back.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "These codes did not pass the check: do not share them. Show codes says what to do.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Checked and ready to share.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Being confirmed and checked before you share the codes. Show codes to see how far it is.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Checking your codes on the network…": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Your batches could not be read: {reason} Your saved codes are safe on this device.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "No airdrop codes yet.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Create codes to give tokens to people. Each code can be claimed once.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Taking a batch back stops its unclaimed codes and returns their value, with any claim fees paid ahead.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "Some batches could not be read just now: {reason}": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "The codes saved on this device could not be opened: {reason}": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Create new codes": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ]
+  },
+  "{n} claimed": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} claimed",
+      "other": "{n} claimed"
+    }
+  },
+  "{n} not claimed": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} not claimed",
+      "other": "{n} not claimed"
+    }
+  },
+  "Take-back sent. The {n} unclaimed codes stop working and {amount} comes back once the network confirms it, usually within 2 minutes.": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "amount",
+      "n"
+    ],
+    "count": {
+      "one": "Take-back sent. The {n} unclaimed code stops working and {amount} comes back once the network confirms it, usually within 2 minutes.",
+      "other": "Take-back sent. The {n} unclaimed codes stop working and {amount} comes back once the network confirms it, usually within 2 minutes."
+    }
+  },
+  "{n} codes × {amount}": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "amount",
+      "n"
+    ],
+    "count": {
+      "one": "{n} code × {amount}",
+      "other": "{n} codes × {amount}"
+    }
+  },
+  "{n} codes": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} code",
+      "other": "{n} codes"
+    }
+  },
+  "{n} taken back": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} taken back",
+      "other": "{n} taken back"
+    }
+  },
+  "{n} codes · {amount}": {
+    "where": [
+      "screens/airdrop_batches.js"
+    ],
+    "placeholders": [
+      "amount",
+      "n"
+    ],
+    "count": {
+      "one": "{n} code · {amount}",
+      "other": "{n} codes · {amount}"
+    }
+  },
+  "Not claimed": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Claimed": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Not on the network": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Batch sent": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Confirmed by the network": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "waiting": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "{n} of {total}": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "n",
+      "total"
+    ]
+  },
+  "Every code checked": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "A code did not check out.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Your funds are safe: take this batch back in My batches to get them back, and make new codes.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Your funds are safe: nothing more was locked, and make new codes.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Do not share these codes.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Someone may have copied this batch while it was on its way, so the codes could point to empty vouchers.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Make new codes": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Take the batch back": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "This batch did not go through.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "The network turned it down, so nothing was locked and these codes hold nothing. Do not use them: make new codes.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "It was never sent, so nothing was locked and these codes hold nothing. They stay saved here anyway.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Batch sent.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Wait a few minutes before sharing the codes.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Before you share them, BEAM Campfire makes sure every code points to the batch you made, so nobody can swap them for empty ones. The codes appear here once that is done. You can leave this screen and come back.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "The codes could not be checked: {reason} They are saved on this device.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Codes hidden while BEAM Campfire is in the background.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "The saved codes could not be opened: {reason} They stay saved on this device.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Opening your saved codes…": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Code copied": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Ready to share.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Every code is on the network in your batch, with its claim fee paid.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Every code is on the network in your batch.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "The codes start working once the network confirms it, usually within 2 minutes.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "This batch is waiting for the network. The codes start working once it is confirmed.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "This batch was never sent, so these codes hold nothing. They stay saved here anyway.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "These codes are the only key to the locked funds.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Anyone who has a code can claim it, so send each one only to its person. They are kept only on this device, in this wallet: copy them or save the file somewhere safe.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Share": {
+    "where": [
+      "screens/airdrop_codes.js",
+      "screens/payment_extras.js",
+      "screens/receive_more.js"
+    ]
+  },
+  "Save as CSV file": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Copy code {n}": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "n"
+    ]
+  },
+  "Shared {file}. Anyone who opens it can claim the codes: keep it private.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "file"
+    ]
+  },
+  "Saved {file}. Anyone who opens it can claim the codes: keep it private.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "file"
+    ]
+  },
+  "Couldn't save the file. Try Copy all codes instead.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Your airdrop codes": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "{n} codes · {amount} each": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "amount",
+      "n"
+    ],
+    "count": {
+      "one": "{n} code · {amount} each",
+      "other": "{n} codes · {amount} each"
+    }
+  },
+  "{n} codes · {amount} in total": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "amount",
+      "n"
+    ],
+    "count": {
+      "one": "{n} code · {amount} in total",
+      "other": "{n} codes · {amount} in total"
+    }
+  },
+  "{n} codes copied": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} code copied",
+      "other": "{n} codes copied"
+    }
+  },
+  "Copy all {n} codes": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "Copy all {n} code",
+      "other": "Copy all {n} codes"
+    }
+  },
+  "Asset": {
+    "where": [
+      "screens/airdrop_create.js",
+      "screens/name_sell.js",
+      "screens/send.js"
+    ]
+  },
+  "What to give away": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Each code gives": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Number of codes": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Pay the claim fee for each code ({fee} BEAM per code), so people with an empty wallet can claim": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "{unit} ({amount} available)": {
+    "where": [
+      "screens/airdrop_create.js",
+      "screens/burn.js",
+      "screens/send.js"
+    ],
+    "placeholders": [
+      "amount",
+      "unit"
+    ]
+  },
+  "Each code must give more than zero.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Choose 1 to {max} codes.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "max"
+    ]
+  },
+  "That is more than one batch can hold. Lower the amount or the number of codes.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Saving your codes and building the batch…": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Enter how much {unit} each code gives.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "unit"
+    ]
+  },
+  "Enter how many codes to create.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Creating codes is paused: {reason}.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Not enough BEAM. This needs {need} BEAM, fees included. You have {have} BEAM.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "have",
+      "need"
+    ]
+  },
+  "Not enough {unit}. This needs {need} {unit} with the 1% fee. You have {have} {unit}.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "have",
+      "need",
+      "unit"
+    ]
+  },
+  "The claim fees and the network fee are paid in BEAM: {amount} BEAM. You have {have} BEAM.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "amount",
+      "have"
+    ]
+  },
+  "The network fee is paid in BEAM: {amount} BEAM. You have {have} BEAM.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "amount",
+      "have"
+    ]
+  },
+  "Available: {amount}": {
+    "where": [
+      "screens/airdrop_create.js",
+      "screens/bridge_move.js",
+      "screens/eth_send.js"
+    ],
+    "placeholders": [
+      "amount"
+    ]
+  },
+  "Locked for the codes": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Airdrop fee (1%)": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Kept by the airdrop contract": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Claim fees paid ahead": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Leaves your wallet": {
+    "where": [
+      "screens/airdrop_create.js",
+      "screens/minter_create.js",
+      "screens/split_review.js"
+    ]
+  },
+  "Share the codes once BEAM Campfire has checked them: it waits for the network to confirm the batch, then checks every code. This takes a few minutes.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "The codes are kept only on this device, in this wallet, and saved before anything is sent: copy them somewhere safe.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Codes nobody claims can be taken back later, with their claim fees (network fee from {fee} BEAM).": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "Codes nobody claims can be taken back later (network fee from {fee} BEAM).": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "fee"
+    ]
+  },
+  "Cancelled. Nothing was sent; the codes made for it will never hold funds.": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Codes": {
+    "where": [
+      "screens/airdrop_create.js"
+    ]
+  },
+  "Create {n} codes": {
+    "where": [
+      "screens/airdrop_create.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "Create {n} code",
+      "other": "Create {n} codes"
+    }
+  },
   "Tap to show the words": {
     "where": [
       "screens/backup.js"
@@ -9187,16 +10600,6 @@
       "screens/backup.js"
     ]
   },
-  "Checking…": {
-    "where": [
-      "screens/backup.js",
-      "screens/check_proof.js",
-      "screens/eth_send.js",
-      "screens/names.js",
-      "screens/owner_key.js",
-      "screens/unlock.js"
-    ]
-  },
   "Continue": {
     "where": [
       "screens/backup.js"
@@ -9210,17 +10613,6 @@
   "Again": {
     "where": [
       "screens/backup.js"
-    ]
-  },
-  "Preparing…": {
-    "where": [
-      "screens/backup.js",
-      "screens/minter_create.js",
-      "screens/name_detail.js",
-      "screens/name_sell.js",
-      "screens/name_transfer.js",
-      "screens/names.js",
-      "screens/names_claim.js"
     ]
   },
   "Prepare the copy": {
@@ -9479,12 +10871,6 @@
       "screens/bridge_list.js"
     ]
   },
-  "Check again": {
-    "where": [
-      "screens/bridge_list.js",
-      "screens/pool.js"
-    ]
-  },
   "BEAM did not answer for one coin.": {
     "where": [
       "screens/bridge_list.js"
@@ -9652,15 +11038,6 @@
   "Available: …": {
     "where": [
       "screens/bridge_move.js"
-    ]
-  },
-  "Available: {amount}": {
-    "where": [
-      "screens/bridge_move.js",
-      "screens/eth_send.js"
-    ],
-    "placeholders": [
-      "amount"
     ]
   },
   "Max": {
@@ -10873,16 +12250,6 @@
       "screens/burn.js"
     ]
   },
-  "{unit} ({amount} available)": {
-    "where": [
-      "screens/burn.js",
-      "screens/send.js"
-    ],
-    "placeholders": [
-      "amount",
-      "unit"
-    ]
-  },
   "Burn {amount}": {
     "where": [
       "screens/burn.js"
@@ -10973,18 +12340,6 @@
     "where": [
       "screens/buy_beam.js",
       "screens/near_intents.js"
-    ]
-  },
-  "Paste": {
-    "where": [
-      "screens/buy_beam.js",
-      "screens/check_proof.js",
-      "screens/contacts.js",
-      "screens/eth_import.js",
-      "screens/eth_send.js",
-      "screens/name_transfer.js",
-      "screens/near_intents.js",
-      "screens/send.js"
     ]
   },
   "Get a deposit address": {
@@ -11211,17 +12566,6 @@
       "screens/buy_beam.js"
     ]
   },
-  "You get": {
-    "where": [
-      "screens/buy_beam.js",
-      "screens/buy_order.js",
-      "screens/consent.js",
-      "screens/pool.js",
-      "screens/pool_status.js",
-      "screens/swap.js",
-      "screens/tx_status.js"
-    ]
-  },
   "About {amount}": {
     "where": [
       "screens/buy_beam.js"
@@ -11237,16 +12581,6 @@
     ],
     "placeholders": [
       "symbol"
-    ]
-  },
-  "Press and hold in the box, then tap Paste.": {
-    "where": [
-      "screens/buy_beam.js",
-      "screens/contacts.js",
-      "screens/eth_import.js",
-      "screens/eth_send.js",
-      "screens/near_intents.js",
-      "screens/send.js"
     ]
   },
   "Want WBEAM on Ethereum instead?": {
@@ -11932,14 +13266,6 @@
       "name"
     ]
   },
-  "Take back {amount}": {
-    "where": [
-      "screens/consent.js"
-    ],
-    "placeholders": [
-      "amount"
-    ]
-  },
   "Add {amount} to the pool": {
     "where": [
       "screens/consent.js"
@@ -12553,13 +13879,6 @@
   "Save contact": {
     "where": [
       "screens/contacts.js"
-    ]
-  },
-  "Scan": {
-    "where": [
-      "screens/contacts.js",
-      "screens/eth_send.js",
-      "screens/send_extras.js"
     ]
   },
   "The address changes.": {
@@ -13797,11 +15116,6 @@
       "screens/delete_wallet.js"
     ]
   },
-  "My batches": {
-    "where": [
-      "screens/delete_wallet.js"
-    ]
-  },
   "Purchases": {
     "where": [
       "screens/delete_wallet.js"
@@ -14041,11 +15355,6 @@
     "placeholders": [
       "block",
       "server"
-    ]
-  },
-  "Not checked yet": {
-    "where": [
-      "screens/eth_home.js"
     ]
   },
   "Ethereum · available": {
@@ -14532,15 +15841,6 @@
   "Ethereum address": {
     "where": [
       "screens/eth_send.js"
-    ]
-  },
-  "Scan a QR code": {
-    "where": [
-      "screens/eth_send.js",
-      "screens/home.js",
-      "screens/scan_go.js",
-      "screens/scan_sheet.js",
-      "screens/send_extras.js"
     ]
   },
   "What to send": {
@@ -16570,6 +17870,14 @@
       "screens/hidden_tokens.js"
     ]
   },
+  "{status}. BEAM node": {
+    "where": [
+      "screens/home.js"
+    ],
+    "placeholders": [
+      "status"
+    ]
+  },
   "+{amount} incoming": {
     "where": [
       "screens/home.js",
@@ -16588,10 +17896,15 @@
       "amount"
     ]
   },
-  "Use random nodes": {
+  "Use BEAM's public nodes": {
     "where": [
       "screens/home.js",
       "screens/node.js"
+    ]
+  },
+  "Choose another BEAM node": {
+    "where": [
+      "screens/home.js"
     ]
   },
   "Recent payments": {
@@ -16679,11 +17992,6 @@
     "where": [
       "screens/home.js",
       "screens/names.js"
-    ]
-  },
-  "Airdrop codes": {
-    "where": [
-      "screens/home.js"
     ]
   },
   "Tokens: create your own, mint more, burn": {
@@ -17238,12 +18546,6 @@
     "where": [
       "screens/minter_create.js",
       "screens/minter_token.js"
-    ]
-  },
-  "Leaves your wallet": {
-    "where": [
-      "screens/minter_create.js",
-      "screens/split_review.js"
     ]
   },
   "These {amount} do not come back.": {
@@ -17969,12 +19271,6 @@
       "other": "Expires in {n} days"
     }
   },
-  "Asset": {
-    "where": [
-      "screens/name_sell.js",
-      "screens/send.js"
-    ]
-  },
   "The price must be more than zero.": {
     "where": [
       "screens/name_sell.js"
@@ -18230,14 +19526,6 @@
       "reason"
     ]
   },
-  "The claim was not sent: {reason} Nothing left your wallet.": {
-    "where": [
-      "screens/names.js"
-    ],
-    "placeholders": [
-      "reason"
-    ]
-  },
   "The payment was not sent: {reason} Nothing left your wallet.": {
     "where": [
       "screens/names.js",
@@ -18245,22 +19533,6 @@
     ],
     "placeholders": [
       "reason"
-    ]
-  },
-  "The transaction was not sent: {reason} Nothing left your wallet.": {
-    "where": [
-      "screens/names.js"
-    ],
-    "placeholders": [
-      "reason"
-    ]
-  },
-  "The wallet did not answer in time. Check Activity before trying again.": {
-    "where": [
-      "screens/names.js",
-      "screens/pool_parts.js",
-      "screens/review.js",
-      "screens/swap.js"
     ]
   },
   "One year less": {
@@ -18918,11 +20190,6 @@
       "amounts"
     ]
   },
-  "Claim": {
-    "where": [
-      "screens/names_claim.js"
-    ]
-  },
   "Amount you send": {
     "where": [
       "screens/near_intents.js"
@@ -19315,6 +20582,11 @@
       "screens/node.js"
     ]
   },
+  "Checking connects to each node from this device, so they see your IP address.": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
   "It has this wallet's owner key: online, offline and max-privacy payments can be received.": {
     "where": [
       "screens/node.js"
@@ -19335,22 +20607,46 @@
       "screens/node.js"
     ]
   },
-  "Use random nodes?": {
+  "Use {node}?": {
+    "where": [
+      "screens/node.js"
+    ],
+    "placeholders": [
+      "node"
+    ]
+  },
+  "Use BEAM's public nodes?": {
     "where": [
       "screens/node.js"
     ]
   },
-  "Your wallet connects through BEAM's own nodes again. They can see your IP address.": {
+  "Your wallet connects through BEAM's public nodes again, starting with {node}. They can see your IP address.": {
+    "where": [
+      "screens/node.js"
+    ],
+    "placeholders": [
+      "node"
+    ]
+  },
+  "Your wallet connects through BEAM's public nodes again. They can see your IP address.": {
     "where": [
       "screens/node.js"
     ]
   },
-  "Connecting through random BEAM nodes…": {
+  "Use {node}": {
+    "where": [
+      "screens/node.js"
+    ],
+    "placeholders": [
+      "node"
+    ]
+  },
+  "Connecting through BEAM's public nodes…": {
     "where": [
       "screens/node.js"
     ]
   },
-  "Connected through random BEAM nodes": {
+  "Connected through BEAM's public nodes": {
     "where": [
       "screens/node.js"
     ]
@@ -19364,7 +20660,7 @@
       "reason"
     ]
   },
-  "In use": {
+  "Newest block": {
     "where": [
       "screens/node.js"
     ]
@@ -19394,11 +20690,6 @@
       "screens/node.js"
     ]
   },
-  "Change address": {
-    "where": [
-      "screens/node.js"
-    ]
-  },
   "Connected to": {
     "where": [
       "screens/node.js"
@@ -19414,23 +20705,64 @@
       "screens/node.js"
     ]
   },
-  "BEAM node": {
+  "In use": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "Use this one": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "BEAM's public nodes": {
     "where": [
       "screens/node.js",
       "screens/settings.js"
     ]
   },
-  "How this wallet reaches the BEAM network.": {
+  "Not in use: your wallet talks to your own node only.": {
     "where": [
       "screens/node.js"
     ]
   },
-  "Random node": {
+  "The wallet talks to one of these and moves to the next by itself when one stops answering.": {
     "where": [
       "screens/node.js"
     ]
   },
-  "BEAM's own nodes. If one stops answering, the app moves to another by itself. Receives online payments.": {
+  "None of BEAM's public nodes is answering this browser right now.": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "Your coins are safe on the blockchain, and the wallet keeps trying by itself. If you run a BEAM node, you can {own}.": {
+    "where": [
+      "screens/node.js"
+    ],
+    "placeholders": [
+      "own"
+    ]
+  },
+  "use your own node": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "It starts on {node} each time it opens.": {
+    "where": [
+      "screens/node.js"
+    ],
+    "placeholders": [
+      "node"
+    ]
+  },
+  "Start on any node": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "Check BEAM's public nodes": {
     "where": [
       "screens/node.js"
     ]
@@ -19442,6 +20774,52 @@
     ]
   },
   "A BEAM node you run, and only that one. With this wallet's owner key it also receives offline and max-privacy payments.": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "Change address": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "Connecting to {node}…": {
+    "where": [
+      "screens/node.js",
+      "screens/own_node.js"
+    ],
+    "placeholders": [
+      "node"
+    ]
+  },
+  "Using {node}": {
+    "where": [
+      "screens/node.js"
+    ],
+    "placeholders": [
+      "node"
+    ]
+  },
+  "It did not switch: {reason}": {
+    "where": [
+      "screens/node.js"
+    ],
+    "placeholders": [
+      "reason"
+    ]
+  },
+  "Starts on any of the nodes from now on": {
+    "where": [
+      "screens/node.js"
+    ]
+  },
+  "BEAM node": {
+    "where": [
+      "screens/node.js",
+      "screens/settings.js"
+    ]
+  },
+  "How this wallet reaches the BEAM network.": {
     "where": [
       "screens/node.js"
     ]
@@ -19748,14 +21126,6 @@
       "screens/own_node.js"
     ]
   },
-  "Connecting to {node}…": {
-    "where": [
-      "screens/own_node.js"
-    ],
-    "placeholders": [
-      "node"
-    ]
-  },
   "It did not answer.": {
     "where": [
       "screens/own_node.js"
@@ -19938,12 +21308,6 @@
   "Proof copied": {
     "where": [
       "screens/payment_extras.js"
-    ]
-  },
-  "Share": {
-    "where": [
-      "screens/payment_extras.js",
-      "screens/receive_more.js"
     ]
   },
   "It wasn't removed: {reason}": {
@@ -21752,9 +23116,12 @@
       "node"
     ]
   },
-  "Random BEAM nodes": {
+  "BEAM's public nodes, {node} first": {
     "where": [
       "screens/settings.js"
+    ],
+    "placeholders": [
+      "node"
     ]
   },
   "Who can see your IP address": {
@@ -21777,7 +23144,7 @@
       "screens/settings.js"
     ]
   },
-  "Red or blue": {
+  "Campfire or BEAM": {
     "where": [
       "screens/settings.js"
     ]
@@ -21949,12 +23316,12 @@
       "screens/storage_warning.js"
     ]
   },
-  " Safari can delete them after 7 days without a visit.": {
+  "Safari can delete them after 7 days without a visit.": {
     "where": [
       "screens/storage_warning.js"
     ]
   },
-  " This browser may clear them when space runs low.": {
+  "This browser may clear them when space runs low.": {
     "where": [
       "screens/storage_warning.js"
     ]
