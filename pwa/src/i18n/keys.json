@@ -8198,6 +8198,7 @@
   "Fuddle": {
     "where": [
       "lib/wallet.js",
+      "screens/dapps.js",
       "screens/fuddle.js",
       "screens/fuddle_screens.js"
     ]

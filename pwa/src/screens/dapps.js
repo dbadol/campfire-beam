@@ -154,7 +154,7 @@ export default function dapps(app, params = {}) {
       h(
         'span',
         { class: 'main' },
-        h('div', { class: 't', text: 'Fuddle' }), // i18n-ignore: the game's name
+        h('div', { class: 't', text: t('Fuddle') }), // the game's name, from the catalog like its screen title (equal in every language)
         h('div', { class: 's wrap', text: t('Guess the hidden word in six tries, win a share of the prize pool') }),
         h('div', { class: 's meta', 'data-testid': 'dapp-fuddle-state', text: fuddleLive() ? t('Built into BEAM Campfire · tournaments on BEAM') : t('Opens soon') }),
       ),
