@@ -30,7 +30,8 @@ class _BytesSource implements ShaderSource {
   }
 }
 
-/// Any shader file's bytes, whatever its name: a stand-in for a tampered bundle.
+/// Any shader file's bytes, whatever its name: a stand-in for a tampered
+/// bundle.
 class _AnyBytes implements ShaderSource {
   _AnyBytes(this._bytes);
 
@@ -118,7 +119,8 @@ FakeHandler _invoker(Map<String, Object?> overrides) => (params) {
   final contract = params['contract'];
   expect(contract, isA<List<int>>());
   final action = _action(params);
-  // A payment to a name is built by BEAM's Anon-Vault shader (audit D-1); the rest by BANS's.
+  // A payment to a name is built by BEAM's Anon-Vault shader (audit D-1);
+  // the rest by BANS's.
   expect(
     (contract! as List<int>).length,
     action == 'send_anon' ? kVaultAnonShaderSize : kBansShaderSize,
@@ -178,14 +180,15 @@ void main() {
       // (4918184 - tip) minutes after the tip block
       expect(
         r.expiresAt,
-        DateTime.utc(2026, 10, 6, 8, 45).add(
-          const Duration(minutes: 4918184 - _tip),
-        ),
+        DateTime.utc(
+          2026,
+          10,
+          6,
+          8,
+          45,
+        ).add(const Duration(minutes: 4918184 - _tip)),
       );
-      expect(
-        _argOf(t.lastParams('invoke_contract'), 'role'),
-        'manager',
-      );
+      expect(_argOf(t.lastParams('invoke_contract'), 'role'), 'manager');
     });
 
     test('resolve a free name, a listed one and one on hold', () async {
@@ -199,10 +202,7 @@ void main() {
       );
       final hold = await svc.resolve(BansName('beamer'));
       expect(hold.status, BansNameStatus.onHold);
-      expect(
-        hold.holdEndsAt,
-        hold.clock.dateOf(3998572 + kBansHoldBlocks),
-      );
+      expect(hold.holdEndsAt, hold.clock.dateOf(3998572 + kBansHoldBlocks));
     });
 
     test('my names: my_key once, then view_domain filtered by it', () async {
@@ -335,10 +335,7 @@ void main() {
     test('a register built for another key is refused', () async {
       setUpService({
         'view_params': 'view_params',
-        'my_key': {
-          'output': '{"res": {"key": "$beamOwnerKey"}}',
-          'txid': '',
-        },
+        'my_key': {'output': '{"res": {"key": "$beamOwnerKey"}}', 'txid': ''},
         'domain_register': 'register5',
       });
       await expectLater(
@@ -383,34 +380,37 @@ void main() {
       expect(actions, ['view_params', 'view_name', 'send_anon', 'view_name']);
     });
 
-    test('pay (audit D-1): built by BEAM\'s Anon-Vault shader for exactly the '
-        'owner key shown, the name as its message; BANS\'s pay is never run', () async {
-      setUpService({
-        'view_params': 'view_params',
-        'view_name': 'view_name_beam',
-        'send_anon': 'pay_beam',
-      });
-      await svc.preparePay(
-        BansName('beam'),
-        0,
-        BigInt.from(12345),
-        expectedOwnerKey: beamOwnerKey,
-      );
-      final calls = t.callsTo('invoke_contract').toList();
-      expect(calls.map((c) => _action(c.params)), isNot(contains('pay')));
-      final send = calls.singleWhere((c) => _action(c.params) == 'send_anon');
-      expect(_argOf(send.params, 'role'), 'user');
-      expect(_argOf(send.params, 'cid'), vaultCid);
-      expect(_argOf(send.params, 'pkOwner'), beamOwnerKey);
-      expect(_argOf(send.params, 'aid'), '0');
-      expect(_argOf(send.params, 'amount'), '12345');
-      expect(_argOf(send.params, 'msg'), '6265616d${'00' * 60}');
-      expect(
-        (send.params['contract']! as List<int>).length,
-        kVaultAnonShaderSize,
-        reason: 'the Anon-Vault app shader, not BANS\'s',
-      );
-    });
+    test(
+      'pay (audit D-1): built by BEAM\'s Anon-Vault shader for exactly the '
+      'owner key shown, the name as its message; BANS\'s pay is never run',
+      () async {
+        setUpService({
+          'view_params': 'view_params',
+          'view_name': 'view_name_beam',
+          'send_anon': 'pay_beam',
+        });
+        await svc.preparePay(
+          BansName('beam'),
+          0,
+          BigInt.from(12345),
+          expectedOwnerKey: beamOwnerKey,
+        );
+        final calls = t.callsTo('invoke_contract').toList();
+        expect(calls.map((c) => _action(c.params)), isNot(contains('pay')));
+        final send = calls.singleWhere((c) => _action(c.params) == 'send_anon');
+        expect(_argOf(send.params, 'role'), 'user');
+        expect(_argOf(send.params, 'cid'), vaultCid);
+        expect(_argOf(send.params, 'pkOwner'), beamOwnerKey);
+        expect(_argOf(send.params, 'aid'), '0');
+        expect(_argOf(send.params, 'amount'), '12345');
+        expect(_argOf(send.params, 'msg'), '6265616d${'00' * 60}');
+        expect(
+          (send.params['contract']! as List<int>).length,
+          kVaultAnonShaderSize,
+          reason: 'the Anon-Vault app shader, not BANS\'s',
+        );
+      },
+    );
 
     test('pay (audit D-1): a node naming a vault that is not BEAM\'s own is '
         'refused before anything is built', () async {
@@ -422,7 +422,10 @@ void main() {
       );
       expect(output, isNot(contains(vaultCid)));
       setUpService({
-        'view_params': {...real, 'result': {...result, 'output': output}},
+        'view_params': {
+          ...real,
+          'result': {...result, 'output': output},
+        },
         'view_name': 'view_name_beam',
         'send_anon': 'pay_beam',
       });
@@ -444,7 +447,9 @@ void main() {
           'view_name': 'view_name_beam',
           'send_anon': 'pay_beam',
         },
-        vaultShader: vaultAnonAppShader(_AnyBytes(() => List.filled(kVaultAnonShaderSize, 7))),
+        vaultShader: vaultAnonAppShader(
+          _AnyBytes(() => List.filled(kVaultAnonShaderSize, 7)),
+        ),
       );
       await expectLater(
         svc.preparePay(BansName('beam'), 0, BigInt.from(12345)),
@@ -456,58 +461,61 @@ void main() {
       );
     });
 
-    test('pay (audit D-1): a name this wallet paid before to another owner is '
-        'refused before anything is built, unless the person chose that owner', () async {
-      setUpService({
-        'view_params': 'view_params',
-        'view_name': 'view_name_beam',
-        'send_anon': 'pay_beam',
-      });
-      await expectLater(
-        svc.preparePay(
+    test(
+      'pay (audit D-1): a name this wallet paid before to another owner is '
+      'refused before anything is built, unless the person chose that owner',
+      () async {
+        setUpService({
+          'view_params': 'view_params',
+          'view_name': 'view_name_beam',
+          'send_anon': 'pay_beam',
+        });
+        await expectLater(
+          svc.preparePay(
+            BansName('beam'),
+            0,
+            BigInt.from(12345),
+            expectedOwnerKey: beamOwnerKey,
+            pinnedOwnerKey: fakeMyKey,
+          ),
+          throwsA(
+            isA<BansOwnerChangedSincePaid>()
+                .having((e) => e.paidKey, 'paid', fakeMyKey)
+                .having((e) => e.currentKey, 'now', beamOwnerKey),
+          ),
+        );
+        expect(
+          t.callsTo('invoke_contract').map((c) => _action(c.params)),
+          isNot(contains('send_anon')),
+        );
+        // The same owner as before, or the new one the person chose: built.
+        final same = await svc.preparePay(
           BansName('beam'),
           0,
           BigInt.from(12345),
-          expectedOwnerKey: beamOwnerKey,
+          pinnedOwnerKey: beamOwnerKey,
+        );
+        expect(same.summary.ownerKey, beamOwnerKey);
+        final chosen = await svc.preparePay(
+          BansName('beam'),
+          0,
+          BigInt.from(12345),
           pinnedOwnerKey: fakeMyKey,
-        ),
-        throwsA(
-          isA<BansOwnerChangedSincePaid>()
-              .having((e) => e.paidKey, 'paid', fakeMyKey)
-              .having((e) => e.currentKey, 'now', beamOwnerKey),
-        ),
-      );
-      expect(
-        t.callsTo('invoke_contract').map((c) => _action(c.params)),
-        isNot(contains('send_anon')),
-      );
-      // The same owner as before, or the new one the person chose: built.
-      final same = await svc.preparePay(
-        BansName('beam'),
-        0,
-        BigInt.from(12345),
-        pinnedOwnerKey: beamOwnerKey,
-      );
-      expect(same.summary.ownerKey, beamOwnerKey);
-      final chosen = await svc.preparePay(
-        BansName('beam'),
-        0,
-        BigInt.from(12345),
-        pinnedOwnerKey: fakeMyKey,
-        acceptedOwnerKey: beamOwnerKey,
-      );
-      expect(chosen.summary.ownerKey, beamOwnerKey);
-      // The key read at prepare travels with the payment: its owner is
-      // recorded only over that key (release audit 1.3.0).
-      expect(same.pinnedOwnerKey, beamOwnerKey);
-      expect(chosen.pinnedOwnerKey, fakeMyKey);
-      final first = await svc.preparePay(
-        BansName('beam'),
-        0,
-        BigInt.from(12345),
-      );
-      expect(first.pinnedOwnerKey, isNull);
-    });
+          acceptedOwnerKey: beamOwnerKey,
+        );
+        expect(chosen.summary.ownerKey, beamOwnerKey);
+        // The key read at prepare travels with the payment: its owner is
+        // recorded only over that key (release audit 1.3.0).
+        expect(same.pinnedOwnerKey, beamOwnerKey);
+        expect(chosen.pinnedOwnerKey, fakeMyKey);
+        final first = await svc.preparePay(
+          BansName('beam'),
+          0,
+          BigInt.from(12345),
+        );
+        expect(first.pinnedOwnerKey, isNull);
+      },
+    );
 
     test('pay: an amount other than the request is refused', () async {
       setUpService({
@@ -565,24 +573,26 @@ void main() {
       );
     });
 
-    test('pay to an unregistered or expired name is the shader\'s refusal',
-        () async {
-      setUpService({
-        'view_params': 'view_params',
-        'view_name': 'view_name_free',
-        'send_anon': 'pay_unreg',
-      });
-      await expectLater(
-        svc.preparePay(BansName('zzzzz'), 0, BigInt.one),
-        throwsA(
-          isA<BansShaderRefused>().having(
-            (e) => e.refusal,
-            'refusal',
-            BansRefusal.notRegistered,
+    test(
+      'pay to an unregistered or expired name is the shader\'s refusal',
+      () async {
+        setUpService({
+          'view_params': 'view_params',
+          'view_name': 'view_name_free',
+          'send_anon': 'pay_unreg',
+        });
+        await expectLater(
+          svc.preparePay(BansName('zzzzz'), 0, BigInt.one),
+          throwsA(
+            isA<BansShaderRefused>().having(
+              (e) => e.refusal,
+              'refusal',
+              BansRefusal.notRegistered,
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test('claim all on stock wallet-api is BansClaimUnsupported', () async {
       setUpService({
@@ -595,29 +605,27 @@ void main() {
       );
     });
 
-    test('claim all: advanced vault receives, fee fixed in the kernel',
-        () async {
-      final raw = _advancedClaim(amount: 480000000000, fee: 1100000);
-      setUpService({
-        'view_params': 'view_params',
-        'receive_all': {
-          'output': '{}',
-          'raw_data': raw,
-          'txid': '0' * 32,
-        },
-      });
-      final p = await svc.prepareClaimAll();
-      final s = p.summary;
-      expect(p.action, BansAction.claimAll);
-      expect(s.youPay, isEmpty);
-      expect(s.youReceive, [BansAmount(0, BigInt.from(480000000000))]);
-      expect(s.fee, BigInt.from(1100000));
-      expect(s.contractId, vaultCid);
-      expect(s.comments, [BansKernelComment.receiveAnon]);
-      expect(p.invokeData.entries.single.isAdvanced, isTrue);
-      expect(p.invokeData.entries.single.maxHeight, BigInt.from(_tip + 15));
-      expect(t.callsTo('process_invoke_data'), isEmpty);
-    });
+    test(
+      'claim all: advanced vault receives, fee fixed in the kernel',
+      () async {
+        final raw = _advancedClaim(amount: 480000000000, fee: 1100000);
+        setUpService({
+          'view_params': 'view_params',
+          'receive_all': {'output': '{}', 'raw_data': raw, 'txid': '0' * 32},
+        });
+        final p = await svc.prepareClaimAll();
+        final s = p.summary;
+        expect(p.action, BansAction.claimAll);
+        expect(s.youPay, isEmpty);
+        expect(s.youReceive, [BansAmount(0, BigInt.from(480000000000))]);
+        expect(s.fee, BigInt.from(1100000));
+        expect(s.contractId, vaultCid);
+        expect(s.comments, [BansKernelComment.receiveAnon]);
+        expect(p.invokeData.entries.single.isAdvanced, isTrue);
+        expect(p.invokeData.entries.single.maxHeight, BigInt.from(_tip + 15));
+        expect(t.callsTo('process_invoke_data'), isEmpty);
+      },
+    );
 
     test('an advanced kernel anywhere but a claim is refused', () async {
       setUpService({
@@ -641,10 +649,7 @@ void main() {
     });
 
     test('claim sale proceeds with nothing waiting', () async {
-      setUpService({
-        'view_params': 'view_params',
-        'receive': 'receive_raw',
-      });
+      setUpService({'view_params': 'view_params', 'receive': 'receive_raw'});
       await expectLater(
         svc.prepareClaimSaleProceeds(0),
         throwsA(
@@ -655,10 +660,7 @@ void main() {
           ),
         ),
       );
-      expect(
-        _argOf(t.lastParams('invoke_contract'), 'pkOwner'),
-        BansKey.zero,
-      );
+      expect(_argOf(t.lastParams('invoke_contract'), 'pkOwner'), BansKey.zero);
     });
   });
 
@@ -675,22 +677,24 @@ void main() {
       expect(t.lastParams('process_invoke_data')['data'], bansRaw('register5'));
     });
 
-    test('pay: checks the owner once more and sends nothing if it changed',
-        () async {
-      var owner = 'view_name_beam';
-      setUpService({});
-      t.reply('invoke_contract', (Map<String, Object?> params) {
-        final a = _action(params);
-        if (a == 'view_name') return bansEnvelope(owner);
-        return bansEnvelope(a == 'send_anon' ? 'pay_beam' : 'view_params');
-      });
-      final p = await svc.preparePay(BansName('beam'), 0, BigInt.from(12345));
-      owner = 'view_name_listed';
-      await expectLater(svc.execute(p), throwsA(isA<BansOwnerChanged>()));
-      expect(t.callsTo('process_invoke_data'), isEmpty);
-      owner = 'view_name_beam';
-      expect(await svc.execute(p), 'ee' * 16);
-    });
+    test(
+      'pay: checks the owner once more and sends nothing if it changed',
+      () async {
+        var owner = 'view_name_beam';
+        setUpService({});
+        t.reply('invoke_contract', (Map<String, Object?> params) {
+          final a = _action(params);
+          if (a == 'view_name') return bansEnvelope(owner);
+          return bansEnvelope(a == 'send_anon' ? 'pay_beam' : 'view_params');
+        });
+        final p = await svc.preparePay(BansName('beam'), 0, BigInt.from(12345));
+        owner = 'view_name_listed';
+        await expectLater(svc.execute(p), throwsA(isA<BansOwnerChanged>()));
+        expect(t.callsTo('process_invoke_data'), isEmpty);
+        owner = 'view_name_beam';
+        expect(await svc.execute(p), 'ee' * 16);
+      },
+    );
   });
 
   group('shader pin', () {
@@ -698,10 +702,9 @@ void main() {
       final bad = Uint8List.fromList(
         File('assets/beam/shaders/bans_app.wasm').readAsBytesSync(),
       )..[100] ^= 1;
-      setUpService(
-        {'view_name': 'view_name_beam'},
-        shader: bansAppShader(_BytesSource(() => bad)),
-      );
+      setUpService({
+        'view_name': 'view_name_beam',
+      }, shader: bansAppShader(_BytesSource(() => bad)));
       await expectLater(
         svc.resolve(BansName('beam')),
         throwsA(

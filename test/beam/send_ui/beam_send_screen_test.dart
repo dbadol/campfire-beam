@@ -48,7 +48,8 @@ final _collider = '72e3${'ab' * 28}51ef01';
 /// A pin store whose record cannot be read.
 class _UnreadablePins implements BansOwnerPins {
   @override
-  Future<String?> pinned(BansName name) async => throw const BansPinsUnreadable();
+  Future<String?> pinned(BansName name) async =>
+      throw const BansPinsUnreadable();
 
   @override
   Future<bool> pin(
@@ -345,7 +346,11 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(_sendEnabled(tester), isFalse, reason: 'not before the person chooses');
+      expect(
+        _sendEnabled(tester),
+        isFalse,
+        reason: 'not before the person chooses',
+      );
       await _golden(tester, 'phone_09b_name_new_owner');
       await tester.tap(find.byKey(const Key('beamNameAcceptNewOwner')));
       await tester.pump();
@@ -390,8 +395,10 @@ void main() {
       await tester.pump();
       expect(find.text('Check the owner before paying'), findsOneWidget);
       expect(
-        find.textContaining('Compare the owner key '
-            '${BansKey.checkCode(beamOwnerKey)} with the person'),
+        find.textContaining(
+          'Compare the owner key '
+          '${BansKey.checkCode(beamOwnerKey)} with the person',
+        ),
         findsOneWidget,
       );
       expect(_sendEnabled(tester), isFalse);

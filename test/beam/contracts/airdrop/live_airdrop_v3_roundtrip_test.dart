@@ -47,11 +47,9 @@ String _short(String s) => s.length <= 12 ? s : s.substring(0, 12);
 
 Future<(BeamApi, TcpLineTransport)> _open(String label) async {
   final home = Platform.environment['HOME']!;
-  final state =
-      jsonDecode(
-            File('$home/beam-campfire-test/run/$label.json').readAsStringSync(),
-          )
-          as Map<String, Object?>;
+  final state = jsonDecode(
+    File('$home/beam-campfire-test/run/$label.json').readAsStringSync(),
+  ) as Map<String, Object?>;
   final t = TcpLineTransport(
     port: state['port']! as int,
     aclKey: state['key']! as String,
@@ -84,124 +82,129 @@ Future<BeamTransaction> _waitDone(BeamApi api, String txId) async {
 void main() {
   final enabled = Platform.environment['BEAM_LIVE_AIRDROP_V3'] == '1';
 
-  test(
-    'create two prepaid codes, check them, claim one from an empty wallet, '
-    'take the rest back',
-    () async {
-      final env = Platform.environment;
-      final (creatorApi, creatorT) = await _open(
-        env['BEAM_LIVE_CREATOR'] ?? 'lwtest',
-      );
-      final (claimerApi, claimerT) = await _open(
-        env['BEAM_LIVE_CLAIMER'] ?? 'v3claim',
-      );
-      final shader = airdropV3AppShader(
-        const FileShaderSource('assets/beam/shaders'),
-      );
-      final store = MemoryCodeStore();
-      final creator = BeamAirdropV3Service(creatorApi, shader, store: store);
-      final claimer = BeamAirdropV3Service(claimerApi, shader);
+  test('create two prepaid codes, check them, claim one from an empty wallet, '
+      'take the rest back', () async {
+    final env = Platform.environment;
+    final (creatorApi, creatorT) = await _open(
+      env['BEAM_LIVE_CREATOR'] ?? 'lwtest',
+    );
+    final (claimerApi, claimerT) = await _open(
+      env['BEAM_LIVE_CLAIMER'] ?? 'v3claim',
+    );
+    final shader = airdropV3AppShader(
+      const FileShaderSource('assets/beam/shaders'),
+    );
+    final store = MemoryCodeStore();
+    final creator = BeamAirdropV3Service(creatorApi, shader, store: store);
+    final claimer = BeamAirdropV3Service(claimerApi, shader);
 
-      for (final api in [creatorApi, claimerApi]) {
-        final s = await api.walletStatus();
-        expect(s.isInSync, isTrue, reason: 'never call contracts out of sync');
+    for (final api in [creatorApi, claimerApi]) {
+      final s = await api.walletStatus();
+      expect(s.isInSync, isTrue, reason: 'never call contracts out of sync');
+    }
+    final empty = await claimerApi.walletStatus();
+    print(
+      '[evidence] claimer starts with '
+      '${_b(empty.available ?? BigInt.zero)} BEAM',
+    );
+
+    // --- 1. create ---
+    final create = await creator.prepareCreateBatch(
+      assetId: 0,
+      values: [_value, _value],
+    );
+    final codes = create.saved!.codes.map((c) => c.code).toList();
+    final dir = Directory('${env['HOME']}/beam-campfire-test/airdrop_codes')
+      ..createSync(recursive: true);
+    final keep = File(
+      '${dir.path}/v3-${DateTime.now().toUtc().millisecondsSinceEpoch}.txt',
+    )..writeAsStringSync('${codes.join('\n')}\n');
+    await Process.run('chmod', ['600', keep.path]);
+    final c = create.summary;
+    print(
+      '[evidence] create built: pays '
+      '${c.pays.map((k, v) => MapEntry(k, _b(v)))}, creation fee '
+      '${_b(c.creationFee!)}, claim fees ${_b(c.claimFees)}, network fee '
+      '${_b(c.networkFee)} BEAM',
+    );
+    expect(c.pays[0], _value * BigInt.two + c.creationFee! + c.claimFees);
+    expect(c.networkFee, AirdropV3Fee.create(2));
+    expect(c.networkFee <= _maxFee, isTrue);
+    final createTx = await creator.execute(create);
+    final created = await _waitDone(creatorApi, createTx);
+    expect(created.status, BeamTxStatus.completed);
+
+    // --- 2. checked on the network before the codes are shared ---
+    final localId = create.saved!.localId;
+    final sw = Stopwatch()..start();
+    AirdropV3Verdict v;
+    while (true) {
+      v = await creator.verifyBatch(localId);
+      print(
+        '[evidence] check after ${sw.elapsed.inSeconds} s: ${v.state.name}'
+        ', confirmations ${v.confirmations}',
+      );
+      if (v.state == AirdropV3BatchState.ready ||
+          v.state == AirdropV3BatchState.failed) {
+        break;
       }
-      final empty = await claimerApi.walletStatus();
-      print('[evidence] claimer starts with ${_b(empty.available ?? BigInt.zero)} BEAM');
-
-      // --- 1. create ---
-      final create = await creator.prepareCreateBatch(
-        assetId: 0,
-        values: [_value, _value],
-      );
-      final codes = create.saved!.codes.map((c) => c.code).toList();
-      final dir = Directory('${env['HOME']}/beam-campfire-test/airdrop_codes')
-        ..createSync(recursive: true);
-      final keep = File(
-        '${dir.path}/v3-${DateTime.now().toUtc().millisecondsSinceEpoch}.txt',
-      )..writeAsStringSync('${codes.join('\n')}\n');
-      await Process.run('chmod', ['600', keep.path]);
-      final c = create.summary;
-      print(
-        '[evidence] create built: pays '
-        '${c.pays.map((k, v) => MapEntry(k, _b(v)))}, creation fee '
-        '${_b(c.creationFee!)}, claim fees ${_b(c.claimFees!)}, network fee '
-        '${_b(c.networkFee)} BEAM',
-      );
-      expect(c.pays[0], _value * BigInt.two + c.creationFee! + c.claimFees!);
-      expect(c.networkFee, AirdropV3Fee.create(2));
-      expect(c.networkFee <= _maxFee, isTrue);
-      final createTx = await creator.execute(create);
-      final created = await _waitDone(creatorApi, createTx);
-      expect(created.status, BeamTxStatus.completed);
-
-      // --- 2. checked on the network before the codes are shared ---
-      final localId = create.saved!.localId;
-      final sw = Stopwatch()..start();
-      AirdropV3Verdict v;
-      while (true) {
-        v = await creator.verifyBatch(localId);
-        print(
-          '[evidence] check after ${sw.elapsed.inSeconds} s: ${v.state.name}'
-          ', confirmations ${v.confirmations}',
-        );
-        if (v.state == AirdropV3BatchState.ready ||
-            v.state == AirdropV3BatchState.failed) {
-          break;
-        }
-        if (sw.elapsed > const Duration(minutes: 20)) {
-          fail('the batch was not checked within 20 min: ${v.state.name}');
-        }
-        await Future<void>.delayed(const Duration(seconds: 20));
+      if (sw.elapsed > const Duration(minutes: 20)) {
+        fail('the batch was not checked within 20 min: ${v.state.name}');
       }
-      expect(v.state, AirdropV3BatchState.ready, reason: '${v.problem}');
-      final batchId = v.batch.batchId!;
+      await Future<void>.delayed(const Duration(seconds: 20));
+    }
+    expect(v.state, AirdropV3BatchState.ready, reason: '${v.problem}');
+    final batchId = v.batch.batchId!;
 
-      // --- 3. claim from a wallet holding no BEAM ---
-      final info = await claimer.checkVoucher(codes.first);
-      expect(info, isNotNull);
-      expect(info!.value, _value);
-      expect(info.redeemed, isFalse);
-      expect(info.gas > BigInt.zero, isTrue, reason: 'its claim fee is paid');
-      final redeem = await claimer.prepareRedeem(codes.first);
-      final r = redeem.summary;
-      print(
-        '[evidence] claim built: receives '
-        '${r.receives.map((k, v) => MapEntry(k, _b(v)))}, network fee '
-        '${_b(r.networkFee)} BEAM (paid by the code)',
-      );
-      final claimTx = await claimer.execute(redeem);
-      final claimed = await _waitDone(claimerApi, claimTx);
-      expect(claimed.status, BeamTxStatus.completed);
-      final after = await claimer.checkVoucher(codes.first);
-      expect(after!.redeemed, isTrue);
-      final s2 = await claimerApi.walletStatus();
-      print('[evidence] claimer now has ${_b(s2.available ?? BigInt.zero)} BEAM (was ${_b(empty.available ?? BigInt.zero)})');
-      await expectLater(
-        claimer.prepareRedeem(codes.first),
-        throwsA(isA<BeamAirdropException>()),
-        reason: 'a code works once',
-      );
-      print('[evidence] a second claim of the same code is refused');
+    // --- 3. claim from a wallet holding no BEAM ---
+    final info = await claimer.checkVoucher(codes.first);
+    expect(info, isNotNull);
+    expect(info!.value, _value);
+    expect(info.redeemed, isFalse);
+    expect(info.gas > BigInt.zero, isTrue, reason: 'its claim fee is paid');
+    final redeem = await claimer.prepareRedeem(codes.first);
+    final r = redeem.summary;
+    print(
+      '[evidence] claim built: receives '
+      '${r.receives.map((k, v) => MapEntry(k, _b(v)))}, network fee '
+      '${_b(r.networkFee)} BEAM (paid by the code)',
+    );
+    final claimTx = await claimer.execute(redeem);
+    final claimed = await _waitDone(claimerApi, claimTx);
+    expect(claimed.status, BeamTxStatus.completed);
+    final after = await claimer.checkVoucher(codes.first);
+    expect(after!.redeemed, isTrue);
+    final s2 = await claimerApi.walletStatus();
+    print(
+      '[evidence] claimer now has ${_b(s2.available ?? BigInt.zero)} BEAM '
+      '(was ${_b(empty.available ?? BigInt.zero)})',
+    );
+    await expectLater(
+      claimer.prepareRedeem(codes.first),
+      throwsA(isA<BeamAirdropException>()),
+      reason: 'a code works once',
+    );
+    print('[evidence] a second claim of the same code is refused');
 
-      // --- 4. take the rest back ---
-      final cancel = await creator.prepareCancelBatch(batchId);
-      final k = cancel.summary;
-      print(
-        '[evidence] take-back built: receives '
-        '${k.receives.map((key, val) => MapEntry(key, _b(val)))}, network fee '
-        '${_b(k.networkFee)} BEAM',
-      );
-      final cancelTx = await creator.execute(cancel);
-      final cancelled = await _waitDone(creatorApi, cancelTx);
-      expect(cancelled.status, BeamTxStatus.completed);
-      final left = await claimer.checkVoucher(codes.last);
-      print('[evidence] the unclaimed code now reads: ${left == null ? 'gone' : (left.redeemed ? 'taken' : 'open')}');
-      expect(left == null || left.redeemed, isTrue);
-      keep.deleteSync();
-      await creatorT.close();
-      await claimerT.close();
-    },
-    skip: enabled ? null : 'set BEAM_LIVE_AIRDROP_V3=1 to run',
-  );
+    // --- 4. take the rest back ---
+    final cancel = await creator.prepareCancelBatch(batchId);
+    final k = cancel.summary;
+    print(
+      '[evidence] take-back built: receives '
+      '${k.receives.map((key, val) => MapEntry(key, _b(val)))}, network fee '
+      '${_b(k.networkFee)} BEAM',
+    );
+    final cancelTx = await creator.execute(cancel);
+    final cancelled = await _waitDone(creatorApi, cancelTx);
+    expect(cancelled.status, BeamTxStatus.completed);
+    final left = await claimer.checkVoucher(codes.last);
+    print(
+      '[evidence] the unclaimed code now reads: '
+      '${left == null ? 'gone' : (left.redeemed ? 'taken' : 'open')}',
+    );
+    expect(left == null || left.redeemed, isTrue);
+    keep.deleteSync();
+    await creatorT.close();
+    await claimerT.close();
+  }, skip: enabled ? null : 'set BEAM_LIVE_AIRDROP_V3=1 to run');
 }

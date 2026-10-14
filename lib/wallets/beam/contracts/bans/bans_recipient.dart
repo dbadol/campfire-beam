@@ -124,6 +124,8 @@ class BansRecipientResolver {
     this._resolve, {
     this.debounce = const Duration(milliseconds: 400),
     Future<String?> Function(BansName name)? paidOwner,
+    // A named parameter cannot be private, so it cannot be `this._paidOwner`.
+    // ignore: prefer_initializing_formals
   }) : _paidOwner = paidOwner;
 
   /// Normally `BeamBansService.resolve`.

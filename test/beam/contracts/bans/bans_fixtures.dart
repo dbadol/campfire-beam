@@ -36,14 +36,9 @@ const daoVaultCid =
 const quotedName5 = 'cfbac2de77099';
 const quotedName4 = 'cf70';
 
-Map<String, Object?> bansEnvelope(String name) =>
-    (jsonDecode(
-              File(
-                'test/beam/contracts/bans/fixtures/$name.json',
-              ).readAsStringSync(),
-            )
-            as Map)
-        .cast<String, Object?>();
+Map<String, Object?> bansEnvelope(String name) => (jsonDecode(
+  File('test/beam/contracts/bans/fixtures/$name.json').readAsStringSync(),
+) as Map).cast<String, Object?>();
 
 Map<String, Object?> bansResult(String name) =>
     (bansEnvelope(name)['result']! as Map).cast<String, Object?>();
@@ -58,6 +53,7 @@ List<int> bansRaw(String name) => [
 PinnedShader repoShader() =>
     bansAppShader(const FileShaderSource('assets/beam/shaders'));
 
-/// The bundled Anon-Vault app shader, which builds payments to a name (audit D-1).
+/// The bundled Anon-Vault app shader, which builds payments to a name
+/// (audit D-1).
 PinnedShader repoVaultShader() =>
     vaultAnonAppShader(const FileShaderSource('assets/beam/shaders'));

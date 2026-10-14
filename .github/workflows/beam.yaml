@@ -91,6 +91,11 @@ jobs:
         run: bash prebuild.sh
         working-directory: scripts
 
+      # The app's translations (lib/l10n/generated/, not committed): the
+      # analyzer reads them before any test or build would generate them.
+      - name: Generate translations
+        run: flutter gen-l10n
+
       - name: Analyze BEAM code
         run: flutter analyze lib/wallets/beam test/beam
 

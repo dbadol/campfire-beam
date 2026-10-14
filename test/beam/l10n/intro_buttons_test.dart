@@ -25,7 +25,8 @@ import 'package:stackwallet/themes/theme_providers.dart';
 import 'package:stackwallet/widgets/desktop/secondary_button.dart';
 
 import '../airdrop_ui/beam_ui_harness.dart';
-import '../assets_ui/assets_ui_harness.dart' as assets
+import '../assets_ui/assets_ui_harness.dart'
+    as assets
     show campfireLight, installCampfireTheme;
 
 Future<void> _pumpIntro(WidgetTester tester, Locale locale) async {
@@ -63,7 +64,9 @@ void _inside(WidgetTester tester, Finder button, String label) {
   expect(
     t.left >= b.left - 0.5 && t.right <= b.right + 0.5,
     isTrue,
-    reason: '"$label" spans ${t.left}..${t.right}, its button ${b.left}..${b.right}',
+    reason:
+        '"$label" spans ${t.left}..${t.right}, '
+        'its button ${b.left}..${b.right}',
   );
 }
 

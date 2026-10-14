@@ -224,7 +224,8 @@ class ScriptedBackend implements BeamSendBackend {
 
   final BansCore core;
 
-  /// Owners this wallet paid, by name (audit D-1), as the real backend keeps them.
+  /// Owners this wallet paid, by name (audit D-1), as the real backend keeps
+  /// them.
   BansOwnerPins pins = MemoryBansOwnerPins();
   late final BeamBansService bans;
   Map<int, BigInt> balances;
