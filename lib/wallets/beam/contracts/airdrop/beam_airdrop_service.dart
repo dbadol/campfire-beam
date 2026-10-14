@@ -86,6 +86,11 @@ enum AirdropErrorCode {
   /// A saved batch can still hold funds, so it cannot be forgotten.
   stillHoldsFunds,
 
+  /// A claim on the old contract was sent through [BeamAirdrops.execute]
+  /// without `acknowledgedCodeShown: true`: claiming there shows the code
+  /// to the network, and the person has to agree to that first.
+  notAcknowledged,
+
   /// The wallet is behind the network, so the chain cannot be trusted to
   /// say whether codes still hold funds.
   walletNotSynced,

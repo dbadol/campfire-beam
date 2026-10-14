@@ -303,7 +303,8 @@ class _BeamClaimVoucherViewState extends State<BeamClaimVoucherView>
     final tx = await runSend(
       authorize: widget.authorize,
       reason: context.l10n.airdropClaimAuthReason(gets),
-      send: () => widget.service.execute(p),
+      // Only reached past the stop for an old-contract code.
+      send: () => widget.service.execute(p, acknowledgedCodeShown: true),
       explain: airdropProblem,
     );
     if (!mounted) return;

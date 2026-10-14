@@ -816,7 +816,18 @@ void main() {
       // Claims go where the code is.
       final p = await both.prepareRedeem(oldCode);
       expect(p.contract, AirdropContract.v2);
-      both.discard(p);
+      // The old contract's claim shows the code: never sent unless the
+      // person agreed to that (release audit 1.3.0). Refused, nothing
+      // sent, and still sendable once they did.
+      await expectLater(
+        both.execute(p),
+        _code(AirdropErrorCode.notAcknowledged),
+      );
+      expect(t.callsTo('process_invoke_data'), isEmpty);
+      expect(p.isExecuted, isFalse);
+      expect(both.isBusy, isTrue);
+      expect(await both.execute(p, acknowledgedCodeShown: true), 'cd' * 16);
+      expect(t.callsTo('process_invoke_data'), hasLength(1));
       final q = await both.prepareRedeem(v3Code);
       expect(q.contract, AirdropContract.v3);
       both.discard(q);
