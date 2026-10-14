@@ -14,6 +14,8 @@ import 'package:flutter_svg/svg.dart';
 
 import '../../app_config.dart';
 import '../../l10n/l10n.dart';
+import '../../pages/beam/colours/beam_colours_view.dart';
+import '../../themes/beam/beam_themes.dart';
 import '../../themes/stack_colors.dart';
 import '../../utilities/assets.dart';
 import '../../utilities/constants.dart';
@@ -42,6 +44,7 @@ class _SettingsMenuState extends ConsumerState<SettingsMenu> {
       context.l10n.desktopSettingsMenuNodes,
       context.l10n.desktopSettingsMenuSyncing,
       if (AppConfig.hasFeature(AppFeature.themeSelection)) "Appearance",
+      if (BeamThemes.offered) BeamColoursText.title,
       context.l10n.desktopSettingsMenuAdvanced,
       if (Constants.enableExchange && AppConfig.hasFeature(.shopinBit))
         "ShopinBit",

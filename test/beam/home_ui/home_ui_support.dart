@@ -447,9 +447,10 @@ List<Override> homeOverrides({
   Map<int, BeamCachedAssetTotals> totals = const {},
   BeamHomeFormat? format,
   FakeAuth? auth,
+  Color? coinColor,
 }) {
   final icon = beamIconPath();
-  final color = beamCoinColor();
+  final color = coinColor ?? beamCoinColor();
   return [
     pBeamHomeSource.overrideWithProvider((_) => Provider((_) => source)),
     pWalletCoin.overrideWithProvider((_) => Provider((_) => kBeam)),
@@ -657,14 +658,17 @@ class DesktopHomeFrame extends StatelessWidget {
 /// Named routes the home opened (e.g. network settings).
 final List<String?> pushedRoutes = [];
 
-/// Pumps [frame] under Campfire's light theme with [overrides].
+/// Pumps [frame] under Campfire's light theme (or [theme]) with [overrides].
 Future<void> pumpHome(
   WidgetTester tester, {
   required Widget frame,
   required List<Override> overrides,
   Key boundaryKey = const ValueKey('beam-home-golden'),
+  StackTheme? theme,
 }) async {
-  final colors = StackColors.fromStackColorTheme(campfireLightTheme());
+  final colors = StackColors.fromStackColorTheme(
+    theme ?? campfireLightTheme(),
+  );
   await tester.pumpWidget(
     ProviderScope(
       overrides: overrides,

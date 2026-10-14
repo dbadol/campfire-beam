@@ -25,6 +25,7 @@ import '../services/tor_service.dart';
 import '../utilities/logger.dart';
 import '../utilities/prefs.dart';
 import '../utilities/stack_file_system.dart';
+import 'beam/beam_themes.dart';
 
 final pThemeService = Provider<ThemeService>((ref) {
   return ThemeService.instance;
@@ -122,6 +123,15 @@ class ThemeService {
       final theme = ThemeService.instance.getTheme(themeId: "light");
       if ((theme?.version ?? 1) < _currentDefaultThemeVersion) {
         await _updateDefaultTheme("light");
+      }
+    }
+    // BEAM's colours (lib/themes/beam/beam_themes.dart): Campfire's optional pair.
+    if (BeamThemes.offered) {
+      for (final id in BeamThemes.ids) {
+        if (!(await verifyInstalled(themeId: id)) ||
+            (getTheme(themeId: id)?.version ?? 0) < BeamThemes.version) {
+          await _updateDefaultTheme(id);
+        }
       }
     }
     if (AppConfig.hasFeature(AppFeature.themeSelection)) {
