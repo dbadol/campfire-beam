@@ -1867,6 +1867,7 @@
   "Not claimed": "Не забран",
   "Claimed": "Забран",
   "Not on the network": "Не найден в сети",
+  "Taken back": "Возвращён",
   "Batch sent": "Партия отправлена",
   "Confirmed by the network": "Подтверждено сетью",
   "waiting": "ожидание",
@@ -1890,9 +1891,11 @@
   "The saved codes could not be opened: {reason} They stay saved on this device.": "Не удалось открыть сохранённые коды: {reason} Они остаются сохранёнными на этом устройстве.",
   "Opening your saved codes…": "Открываем сохранённые коды…",
   "Code copied": "Код скопирован",
-  "Ready to share.": "Можно делиться.",
   "Every code is on the network in your batch, with its claim fee paid.": "Каждый код есть в сети в вашей партии, и его комиссия за получение оплачена.",
   "Every code is on the network in your batch.": "Каждый код есть в сети в вашей партии.",
+  "Ready to share.": "Можно делиться.",
+  "Nothing left to share.": "Делиться больше нечем.",
+  "Every code of this batch was claimed or taken back.": "Все коды этой партии уже забраны или возвращены.",
   "The codes start working once the network confirms it, usually within 2 minutes.": "Коды заработают, когда сеть подтвердит партию, обычно в течение 2 минут.",
   "This batch is waiting for the network. The codes start working once it is confirmed.": "Эта партия ждёт сеть. Коды заработают, когда она будет подтверждена.",
   "This batch was never sent, so these codes hold nothing. They stay saved here anyway.": "Эта партия так и не была отправлена, поэтому на этих кодах ничего нет. Они всё равно остаются сохранёнными здесь.",
@@ -1928,6 +1931,18 @@
     "few": "Копировать все {n} кода",
     "many": "Копировать все {n} кодов",
     "other": "Копировать все {n} кода"
+  },
+  "{n} codes are still on the network in your batch, with their claim fees paid.": {
+    "one": "{n} код ещё есть в сети в вашей партии, и его комиссия за получение оплачена.",
+    "few": "{n} кода ещё есть в сети в вашей партии, и их комиссия за получение оплачена.",
+    "many": "{n} кодов ещё есть в сети в вашей партии, и их комиссия за получение оплачена.",
+    "other": "{n} кода ещё есть в сети в вашей партии, и их комиссия за получение оплачена."
+  },
+  "{n} codes are still on the network in your batch.": {
+    "one": "{n} код ещё есть в сети в вашей партии.",
+    "few": "{n} кода ещё есть в сети в вашей партии.",
+    "many": "{n} кодов ещё есть в сети в вашей партии.",
+    "other": "{n} кода ещё есть в сети в вашей партии."
   },
   "Asset": "Актив",
   "What to give away": "Что раздать",

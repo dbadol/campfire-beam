@@ -1663,6 +1663,7 @@
   "Not claimed": "未领取",
   "Claimed": "已领取",
   "Not on the network": "不在链上",
+  "Taken back": "已收回",
   "Batch sent": "批次已发送",
   "Confirmed by the network": "已被网络确认",
   "waiting": "等待中",
@@ -1686,9 +1687,11 @@
   "The saved codes could not be opened: {reason} They stay saved on this device.": "无法打开保存的领取码：{reason} 它们仍保存在本设备上。",
   "Opening your saved codes…": "正在打开你保存的领取码…",
   "Code copied": "领取码已复制",
-  "Ready to share.": "可以分享了。",
   "Every code is on the network in your batch, with its claim fee paid.": "每个领取码都已在链上，属于你的批次，且已预付领取手续费。",
   "Every code is on the network in your batch.": "每个领取码都已在链上，属于你的批次。",
+  "Ready to share.": "可以分享了。",
+  "Nothing left to share.": "没有可分享的了。",
+  "Every code of this batch was claimed or taken back.": "这个批次的每个领取码都已被领取或收回。",
   "The codes start working once the network confirms it, usually within 2 minutes.": "网络确认后（通常在 2 分钟内），领取码即可使用。",
   "This batch is waiting for the network. The codes start working once it is confirmed.": "此批次正在等待网络。确认后，领取码即可使用。",
   "This batch was never sent, so these codes hold nothing. They stay saved here anyway.": "此批次从未被发送，因此这些领取码里什么都没有。但它们仍会保存在这里。",
@@ -1712,6 +1715,12 @@
   },
   "Copy all {n} codes": {
     "other": "复制全部 {n} 个领取码"
+  },
+  "{n} codes are still on the network in your batch, with their claim fees paid.": {
+    "other": "还有 {n} 个领取码在链上，属于你的批次，且已预付领取手续费。"
+  },
+  "{n} codes are still on the network in your batch.": {
+    "other": "还有 {n} 个领取码在链上，属于你的批次。"
   },
   "Asset": "资产",
   "What to give away": "要赠送什么",

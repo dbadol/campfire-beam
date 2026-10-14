@@ -35,7 +35,7 @@ export async function cryptoReady() {
   hashLib = h.sha256;
 }
 const loaded = (lib) => {
-  if (!lib) throw new Error('airdrop: the curve code is not loaded yet (await cryptoReady())');
+  if (!lib) throw new Error('airdrop: the curve code is not loaded yet (await cryptoReady())'); // i18n-ignore: a programming error, never shown
   return lib;
 };
 const sha256 = (data) => loaded(hashLib)(data);

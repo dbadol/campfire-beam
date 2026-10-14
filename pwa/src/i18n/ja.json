@@ -1663,6 +1663,7 @@
   "Not claimed": "未受け取り",
   "Claimed": "受け取り済み",
   "Not on the network": "ネットワーク上にありません",
+  "Taken back": "取り戻し済み",
   "Batch sent": "バッチを送信済み",
   "Confirmed by the network": "ネットワークで確認済み",
   "waiting": "待機中",
@@ -1686,9 +1687,11 @@
   "The saved codes could not be opened: {reason} They stay saved on this device.": "保存済みのコードを開けませんでした：{reason}コードはこの端末に保存されたままです。",
   "Opening your saved codes…": "保存済みのコードを開いています…",
   "Code copied": "コードをコピーしました",
-  "Ready to share.": "共有できます。",
   "Every code is on the network in your batch, with its claim fee paid.": "すべてのコードが、受け取り手数料支払い済みで、ネットワーク上のバッチに入っています。",
   "Every code is on the network in your batch.": "すべてのコードが、ネットワーク上のバッチに入っています。",
+  "Ready to share.": "共有できます。",
+  "Nothing left to share.": "共有できるものは残っていません。",
+  "Every code of this batch was claimed or taken back.": "このバッチのコードはすべて受け取られたか、取り戻されました。",
   "The codes start working once the network confirms it, usually within 2 minutes.": "ネットワークが確認すると、コードが使えるようになります。通常は2分以内です。",
   "This batch is waiting for the network. The codes start working once it is confirmed.": "このバッチはネットワークを待っています。確認されると、コードが使えるようになります。",
   "This batch was never sent, so these codes hold nothing. They stay saved here anyway.": "このバッチは送信されなかったため、これらのコードには何も入っていません。それでもここに保存されたままです。",
@@ -1712,6 +1715,12 @@
   },
   "Copy all {n} codes": {
     "other": "{n}個のコードをすべてコピー"
+  },
+  "{n} codes are still on the network in your batch, with their claim fees paid.": {
+    "other": "{n}個のコードが、受け取り手数料支払い済みで、まだネットワーク上のバッチに入っています。"
+  },
+  "{n} codes are still on the network in your batch.": {
+    "other": "{n}個のコードが、まだネットワーク上のバッチに入っています。"
   },
   "Asset": "アセット",
   "What to give away": "配るもの",

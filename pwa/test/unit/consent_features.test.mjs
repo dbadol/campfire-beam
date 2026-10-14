@@ -58,5 +58,5 @@ test('the approve sheet title never calls a function that does not exist (nameTi
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('../../src/screens/consent.js', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /\bnameTitle\(/, 'a native request with an intent outside TITLES would have thrown');
-  assert.match(src, /return 'Approve this request';\n\}/, 'the generic title stays the fallback');
+  assert.match(src, /return (?:t\()?'Approve this request'\)?;\n\}/, 'the generic title stays the fallback');
 });

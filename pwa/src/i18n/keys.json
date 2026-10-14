@@ -9815,6 +9815,11 @@
       "screens/airdrop_codes.js"
     ]
   },
+  "Taken back": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
   "Batch sent": {
     "where": [
       "screens/airdrop_codes.js"
@@ -9940,17 +9945,27 @@
       "screens/airdrop_codes.js"
     ]
   },
-  "Ready to share.": {
-    "where": [
-      "screens/airdrop_codes.js"
-    ]
-  },
   "Every code is on the network in your batch, with its claim fee paid.": {
     "where": [
       "screens/airdrop_codes.js"
     ]
   },
   "Every code is on the network in your batch.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Ready to share.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Nothing left to share.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ]
+  },
+  "Every code of this batch was claimed or taken back.": {
     "where": [
       "screens/airdrop_codes.js"
     ]
@@ -10074,6 +10089,30 @@
     "count": {
       "one": "Copy all {n} code",
       "other": "Copy all {n} codes"
+    }
+  },
+  "{n} codes are still on the network in your batch, with their claim fees paid.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} code is still on the network in your batch, with its claim fee paid.",
+      "other": "{n} codes are still on the network in your batch, with their claim fees paid."
+    }
+  },
+  "{n} codes are still on the network in your batch.": {
+    "where": [
+      "screens/airdrop_codes.js"
+    ],
+    "placeholders": [
+      "n"
+    ],
+    "count": {
+      "one": "{n} code is still on the network in your batch.",
+      "other": "{n} codes are still on the network in your batch."
     }
   },
   "Asset": {
