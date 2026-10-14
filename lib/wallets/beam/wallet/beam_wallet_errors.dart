@@ -162,6 +162,14 @@ abstract final class BeamWalletMessages {
   static String rpcRefused(String reason) => appL10n.walletRpcRefused(reason);
 }
 
+/// Whether [error], thrown while sending, leaves it open whether the
+/// payment went out: the connection dropped or the call timed out.
+bool beamSendOutcomeUnknown(Object error) =>
+    (error is BeamWalletException &&
+        error.problem == BeamWalletProblem.sendOutcomeUnknown) ||
+    error is BeamConnectionException ||
+    error is TimeoutException;
+
 /// Maps a failure from the host, transport or core to a
 /// [BeamWalletException]. A [BeamWalletException] passes through unchanged.
 BeamWalletException beamWalletExceptionFrom(Object error, {String? node}) {

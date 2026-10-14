@@ -219,18 +219,28 @@ class BeamWalletSendBackend implements BeamSendBackend {
     final String txId;
     try {
       txId = await _bans.execute(prepared);
+    } catch (e) {
+      // The connection dropped while sending: it may have gone out, so it
+      // counts as paid to this owner, and the next payment to this name
+      // still stops if the owner changed (release audit 1.3.0).
+      if (beamSendOutcomeUnknown(e)) await _pinOwner(prepared);
+      rethrow;
     } finally {
       lease.release();
     }
-    // Sent: this is now the owner this wallet paid. A failure to write it
-    // never turns a sent payment into an error.
+    await _pinOwner(prepared);
+    return txId;
+  }
+
+  /// Records the owner [prepared] pays as the one this wallet paid. A
+  /// failure to write it never turns a sent payment into an error.
+  Future<void> _pinOwner(BansPrepared prepared) async {
     final s = prepared.summary;
     if (s.name != null && s.ownerKey != null) {
       try {
         await _pins.pin(s.name!, s.ownerKey!);
       } catch (_) {}
     }
-    return txId;
   }
 
   @override

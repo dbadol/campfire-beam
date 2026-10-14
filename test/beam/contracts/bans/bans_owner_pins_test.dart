@@ -61,7 +61,7 @@ void main() {
   });
 
   test('an unreadable record is never "never paid" and is never overwritten '
-      '(audit D-1 review L-1); bad entries are ignored', () async {
+      '(audit D-1 review L-1)', () async {
     final s = FakeSecureStorage();
     await s.write(key: 'BEAM_BANS_PINS:$_wallet', value: 'not json');
     final broken = SecureBansOwnerPins(s, _wallet);
@@ -79,13 +79,43 @@ void main() {
       'not json',
       reason: 'left as it was',
     );
-    await s.write(
-      key: 'BEAM_BANS_PINS:$_wallet',
-      value: '{"beam": "${'00' * 33}", "Bad Name": "$beamOwnerKey", "alice": "$_newKey"}',
-    );
-    final pins = SecureBansOwnerPins(s, _wallet);
-    expect(await pins.pinned(BansName('beam')), isNull, reason: 'the all-zero key is no owner');
-    expect(await pins.pinned(BansName('alice')), _newKey);
+  });
+
+  test('one malformed entry makes the whole record unreadable: every name is '
+      'compared first, none counts as never paid (release audit 1.3.0)',
+      () async {
+    for (final bad in [
+      '"beam": "${'00' * 33}"', // the all-zero key is no owner
+      '"beam": "not a key"',
+      '"beam": 7',
+      '"Bad Name": "$beamOwnerKey"',
+    ]) {
+      final s = FakeSecureStorage();
+      final raw = '{$bad, "alice": "$_newKey"}';
+      await s.write(key: 'BEAM_BANS_PINS:$_wallet', value: raw);
+      final pins = SecureBansOwnerPins(s, _wallet);
+      for (final name in ['beam', 'alice', 'bob']) {
+        await expectLater(
+          pins.pinned(BansName(name)),
+          throwsA(isA<BansPinsUnreadable>()),
+          reason: '$bad: $name',
+        );
+        expect(
+          await bansPaidOwner(pins, BansName(name)),
+          kBansPaidOwnerUnknown,
+          reason: '$bad: $name',
+        );
+      }
+      await expectLater(
+        pins.pin(BansName('bob'), beamOwnerKey),
+        throwsA(isA<BansPinsUnreadable>()),
+      );
+      expect(
+        await s.read(key: 'BEAM_BANS_PINS:$_wallet'),
+        raw,
+        reason: 'left as it was',
+      );
+    }
   });
 
   test('only a real owner key is pinned; deleteAll forgets the wallet', () async {
