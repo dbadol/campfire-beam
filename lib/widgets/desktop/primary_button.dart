@@ -161,7 +161,9 @@ class PrimaryButton extends StatelessWidget {
           // icons, to fit on its one line instead of running past the edge;
           // content that fits is laid out as before. Works with or without a
           // width: a button with none sizes to its content.
+          // heightFactor 1: as tall as the content, as the Row it replaces was.
           child: Center(
+            heightFactor: 1,
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
