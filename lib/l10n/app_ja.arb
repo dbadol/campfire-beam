@@ -121,7 +121,7 @@
   "airdropClaimNoBeamNeededTitle": "BEAMは不要です",
   "airdropClaimOldContractGo": "それでも受け取る",
   "airdropClaimOldContractKeep": "受け取らない",
-  "airdropClaimOldContractMessage": "受け取る際にこのコードがネットワークに公開されるため、監視している人が先に受け取ってしまう可能性があります。2026年10月13日以降に作成されたコードでは、このような受け取りは必要ありません。コードが新しいものなら、ここで中止して、コードをくれた人に確認してください。",
+  "airdropClaimOldContractMessage": "受け取る際にこのコードがネットワークに公開されるため、監視している人が先に受け取ってしまう可能性があります。Campfire 1.3.0以降、またはウェブウォレット0.2.16以降で作成されたコードでは、このような受け取りは必要ありません。コードが新しいものなら、ここで中止して、コードをくれた人に確認してください。",
   "airdropClaimOldContractTitle": "このコードは旧エアドロップのコントラクトのものです",
   "airdropClaimPaidByCode": "コードから支払い",
   "airdropClaimPaidFromBeam": "BEAMから支払い",

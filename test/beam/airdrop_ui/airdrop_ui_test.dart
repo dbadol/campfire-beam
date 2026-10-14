@@ -325,8 +325,8 @@ void main() {
       );
       expect(
         find.textContaining(
-          'Codes made since 13 October 2026 never need '
-          'this.',
+          'Codes made with Campfire 1.3.0 or the web wallet 0.2.16 or later '
+          'never need this.',
         ),
         findsOneWidget,
       );

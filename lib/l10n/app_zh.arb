@@ -121,7 +121,7 @@
   "airdropClaimNoBeamNeededTitle": "无需 BEAM",
   "airdropClaimOldContractGo": "仍然领取",
   "airdropClaimOldContractKeep": "不领取",
-  "airdropClaimOldContractMessage": "领取时，这个领取码会暴露给网络，因此监视网络的人可能抢先领取。2026年10月13日以来创建的领取码从不需要这样领取。如果你的领取码是新的，请就此停下，并询问给你领取码的人。",
+  "airdropClaimOldContractMessage": "领取时，这个领取码会暴露给网络，因此监视网络的人可能抢先领取。用 Campfire 1.3.0 或网页钱包 0.2.16 及以上版本创建的领取码从不需要这样领取。如果你的领取码是新的，请就此停下，并询问给你领取码的人。",
   "airdropClaimOldContractTitle": "这个领取码来自旧的空投合约",
   "airdropClaimPaidByCode": "由领取码支付",
   "airdropClaimPaidFromBeam": "从你的 BEAM 中支付",
