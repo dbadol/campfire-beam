@@ -529,11 +529,16 @@ test("airdrop codes: Save as CSV gives the desktop's columns, to the share sheet
   await readSheet();
   await page.click(tid('consent-cancel'));
   await page.waitForSelector(tid('drop-result'), { timeout: 30000 });
+  // Airdrop v3 shows a batch's codes only once its check has passed (codes of a batch never sent hold
+  // nothing): the check is answered "ready" here, as the network would for a confirmed batch.
   const batch = await page.evaluate(async () => {
     const { app } = await import('./app.js');
     const { airdrop } = await import('./screens/airdrop.js');
-    const b = (await airdrop(app).savedBatches())[0];
-    return { localId: b.localId, createdAt: b.createdAt, codes: b.codes.map((c) => ({ code: c.code, value: c.value, status: c.status })) };
+    const svc = airdrop(app);
+    const b = (await svc.savedBatches())[0];
+    const ready = { ...b, codes: b.codes.map((c) => ({ ...c, status: 'available' })) };
+    svc.verifyBatch = async () => ({ state: 'ready', batch: ready });
+    return { localId: b.localId, createdAt: b.createdAt, codes: ready.codes.map((c) => ({ code: c.code, value: c.value, status: c.status })) };
   });
   await page.evaluate((id) => window.__campfire.go('airdropCodes', { localId: id }), batch.localId);
   await page.waitForSelector(tid('codes-csv'));
