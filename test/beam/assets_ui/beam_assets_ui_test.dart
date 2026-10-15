@@ -306,14 +306,13 @@ void main() {
       );
       expect(pepeOpacity().opacity, 0.5);
       await tester.tap(find.byKey(const Key('beamAssetRow_$pepeId')));
-      // The write and the wallet-info watcher run on real I/O.
-      for (var i = 0; i < 80 && pepeOpacity().opacity != 1; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 25)),
-        );
-        await tester.pump();
-      }
-      for (var i = 0; i < 4; i++) {
+      // The write and the wallet-info watcher run on real I/O: wait for both
+      // the screen and the saved choice (up to 10 s; a full test run on a
+      // busy machine took longer than the 2 s this waited before).
+      bool settled() =>
+          pepeOpacity().opacity == 1 &&
+          BeamHiddenAssets.read(wallet.info).length == 1;
+      for (var i = 0; i < 400 && !settled(); i++) {
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 25)),
         );
