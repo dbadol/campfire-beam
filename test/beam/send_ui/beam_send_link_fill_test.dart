@@ -323,6 +323,25 @@ void main() {
     expect((f.assetId, f.amount), (0, '0.25'));
   });
 
+  testWidgets('"Send all" is all of one asset: another asset never takes '
+      'its number', (tester) async {
+    final f = await _open(tester);
+    await f.tap(find.byKey(const Key('beamSendAllButton')));
+    expect(f.amount, isNotEmpty);
+    expect(f.state.model.sendAll, isTrue);
+    await f.pickAsset(_bEth);
+    expect(f.assetId, _bEth);
+    expect(f.amount, '', reason: 'all of the BEAM is never that many bETH');
+    expect(f.state.model.amount, isNull);
+    expect(f.state.model.sendAll, isFalse);
+
+    // Picking the same asset again changes nothing.
+    await f.tap(find.byKey(const Key('beamSendAllButton')));
+    final all = f.amount;
+    await f.pickAsset(_bEth);
+    expect((f.assetId, f.amount), (_bEth, all));
+  });
+
   testWidgets("the home's Scan (fill) is a link too: its amount is that "
       "recipient's", (tester) async {
     final f = await _open(tester, desktop: true);

@@ -650,10 +650,17 @@ class BeamSendFormState extends State<BeamSendForm> {
       );
     }
     if (picked == null || !mounted) return;
+    final changed = picked != _m.assetId;
+    // "Send all" was all of the asset it was tapped on: the same number of
+    // another asset is not what the person asked for (release audit 1.3.0).
+    final wasAll = changed && _m.sendAll;
     // A link's amount is BEAM: it never becomes an amount of another asset.
-    if (picked != _m.assetId) _dropLinkAmount();
+    if (changed) _dropLinkAmount();
     _m.setAsset(picked);
-    if (_amount.text.isNotEmpty) {
+    if (wasAll) {
+      _amount.clear();
+      _m.setAmountText('');
+    } else if (_amount.text.isNotEmpty) {
       _m.setAmountText(_amount.text);
     }
     setState(() {});
