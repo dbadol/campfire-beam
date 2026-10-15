@@ -207,7 +207,9 @@ class PrivacyAndTOSText extends StatelessWidget {
             text: "${context.l10n.introOpenSource(BeamAppIdentity.displayName)} ",
           ),
           TextSpan(
-            text: context.l10n.introSourceCode,
+            // One unit on one line: "源代码" and "Исходный код" were split
+            // across two (no-break spaces, and word joiners between letters).
+            text: _unbroken(context.l10n.introSourceCode),
             style: STextStyles.richLink(context).copyWith(fontSize: fontSize),
             recognizer: TapGestureRecognizer()
               ..onTap = () {
@@ -222,6 +224,13 @@ class PrivacyAndTOSText extends StatelessWidget {
     );
   }
 }
+
+/// [text] laid out as one unit: spaces become no-break spaces and the
+/// characters are joined by U+2060 (word joiner), so a line never breaks
+/// inside it, Chinese and Japanese included.
+String _unbroken(String text) => text.runes
+    .map((r) => r == 0x20 ? '\u00A0' : String.fromCharCode(r))
+    .join('\u2060');
 
 class GetStartedButton extends StatelessWidget {
   const GetStartedButton({super.key, required this.isDesktop});
