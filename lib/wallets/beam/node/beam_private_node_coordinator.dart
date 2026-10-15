@@ -935,8 +935,12 @@ class BeamPrivateNodeCoordinator {
     final waiting = _status.phase == _Phase.fellBehind
         ? _Phase.fellBehind
         : null;
+    // Waiting after a failover, the reason it happened stays on screen
+    // ("isn't ready yet, tries again in a few minutes" is not "fell behind,
+    // switches back when caught up"); a routine check never wipes it.
+    final kept = waiting != null ? _status.issue : null;
     if (!p.txReplicationOn) {
-      _set(waiting ?? _phaseFromNode(p), issue: null);
+      _set(waiting ?? _phaseFromNode(p), issue: kept);
       return;
     }
     // Routine checks use the explorer client's short cache; the decision
@@ -955,7 +959,7 @@ class BeamPrivateNodeCoordinator {
             await _handover(tip, network);
             return;
           }
-          _set(waiting ?? _Phase.catchingUp, issue: null, network: network);
+          _set(waiting ?? _Phase.catchingUp, issue: kept, network: network);
           return;
         }
       }
@@ -969,7 +973,7 @@ class BeamPrivateNodeCoordinator {
       return;
     }
     if (tip == null) {
-      _set(waiting ?? _Phase.catchingUp, issue: null, network: network);
+      _set(waiting ?? _Phase.catchingUp, issue: kept, network: network);
       return;
     }
     final behind = network - tip;
@@ -998,7 +1002,7 @@ class BeamPrivateNodeCoordinator {
       );
       return;
     }
-    _set(waiting ?? _Phase.catchingUp, issue: null, network: network);
+    _set(waiting ?? _Phase.catchingUp, issue: kept, network: network);
   }
 
   Future<void> _checkActive(BeamNodeProgress p) async {

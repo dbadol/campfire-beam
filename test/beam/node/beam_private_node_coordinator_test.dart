@@ -818,6 +818,28 @@ void main() {
       await h.dispose();
     });
 
+    test("waiting after 'not serving the wallet', the node's next report "
+        'keeps that reason on screen', () async {
+      final h = Harness(
+        walletReadyTimeout: const Duration(milliseconds: 300),
+        retryAfterNotServing: const Duration(minutes: 10),
+        walletCanSend: () => false,
+      );
+      await h.startDownloading();
+      h.node.ready(behind: 3);
+      await h.phase(Phase.active);
+      await until(
+        () => h.status.issue == BeamPrivateNodeIssue.notServingWallet,
+        reason: 'the failover',
+      );
+      // The node reports again (a new block): still waiting, same reason.
+      h.node.ready(behind: 1);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(h.status.phase, Phase.fellBehind);
+      expect(h.status.issue, BeamPrivateNodeIssue.notServingWallet);
+      await h.dispose();
+    });
+
     test('a wallet that can send stays on the node', () async {
       final h = Harness(
         walletReadyTimeout: const Duration(milliseconds: 200),
