@@ -16,11 +16,16 @@ class SendViewAutoFillData {
   final Decimal? amount;
   final String note;
 
+  /// BEAM: a scanned link asked for an amount that could not be read; the
+  /// Send form says so. Not part of toJson.
+  final bool amountUnread;
+
   SendViewAutoFillData({
     required this.address,
     required this.contactLabel,
     this.amount,
     this.note = "",
+    this.amountUnread = false,
   });
 
   Map<String, dynamic> toJson() {

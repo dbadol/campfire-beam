@@ -20,14 +20,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// same code apart.
 @immutable
 class BeamSendFill {
-  const BeamSendFill(this.recipient, {this.amount, required this.serial});
+  const BeamSendFill(
+    this.recipient, {
+    this.amount,
+    this.amountUnread = false,
+    required this.serial,
+  });
 
   /// A new fill, told apart from every earlier one.
-  factory BeamSendFill.next(String recipient, {String? amount}) =>
-      BeamSendFill(recipient, amount: amount, serial: ++_serial);
+  factory BeamSendFill.next(
+    String recipient, {
+    String? amount,
+    bool amountUnread = false,
+  }) => BeamSendFill(
+    recipient,
+    amount: amount,
+    amountUnread: amountUnread,
+    serial: ++_serial,
+  );
 
   final String recipient;
   final String? amount;
+
+  /// The code was a link asking for an amount that could not be read
+  /// (ScanToBeamSend.amountUnread): Send says so under the amount.
+  final bool amountUnread;
   final int serial;
 }
 

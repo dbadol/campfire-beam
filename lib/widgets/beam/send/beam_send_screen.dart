@@ -201,7 +201,11 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
     ref.listen(pWalletInfo(widget.walletId), (_, _) => _balances.tick());
     ref.listen<BeamSendFill?>(pBeamSendFill(widget.walletId), (_, fill) {
       if (fill == null) return;
-      _page.currentState?.fill(fill.recipient, amount: fill.amount);
+      _page.currentState?.fill(
+        fill.recipient,
+        amount: fill.amount,
+        amountUnread: fill.amountUnread,
+      );
       _taken(fill);
     });
     final auto = widget.autoFillData;
@@ -221,6 +225,7 @@ class _BeamSendScreenState extends ConsumerState<BeamSendScreen> {
           unawaited(openBeamSplit(context, _wallet, assetId: assetId)),
       initialRecipient: fill?.recipient ?? auto?.address,
       initialAmount: _initialAmount(),
+      initialAmountUnread: fill?.amountUnread ?? auto?.amountUnread ?? false,
     );
   }
 
@@ -265,6 +270,7 @@ class BeamSendPage extends StatefulWidget {
     this.assetWorth,
     this.initialRecipient,
     this.initialAmount,
+    this.initialAmountUnread = false,
     this.nameDebounce = const Duration(milliseconds: 400),
     this.minimumBuildTime = const Duration(milliseconds: 2500),
     this.routeOnSuccessName,
@@ -284,6 +290,9 @@ class BeamSendPage extends StatefulWidget {
   final String? Function(int assetId, BigInt amount)? assetWorth;
   final String? initialRecipient;
   final BigInt? initialAmount;
+
+  /// The scanned link asked for an amount that could not be read.
+  final bool initialAmountUnread;
   final Duration nameDebounce;
 
   /// Campfire keeps its "Generating transaction" dialog up at least this
@@ -320,9 +329,14 @@ class BeamSendPageState extends State<BeamSendPage> {
 
   bool _desktop(BuildContext context) => BeamSendLayout.isDesktop(context);
 
-  /// Puts [recipient] (and [amount] in BEAM) into the form.
-  void fill(String recipient, {String? amount}) =>
-      _form.currentState?.fill(recipient, amount: amount);
+  /// Puts [recipient] (and [amount] in BEAM) into the form; [amountUnread]:
+  /// the link's amount could not be read, said under the amount.
+  void fill(String recipient, {String? amount, bool amountUnread = false}) =>
+      _form.currentState?.fill(
+        recipient,
+        amount: amount,
+        amountUnread: amountUnread,
+      );
 
   /// Set synchronously by the first tap and cleared when the confirmation
   /// closes: a second activation that lands first (same frame, a held key)
@@ -498,6 +512,7 @@ class BeamSendPageState extends State<BeamSendPage> {
       assetWorth: widget.assetWorth,
       initialRecipient: widget.initialRecipient,
       initialAmount: widget.initialAmount,
+      initialAmountUnread: widget.initialAmountUnread,
       onSplitCoins: widget.onSplitCoins == null
           ? null
           : (assetId) => widget.onSplitCoins!(context, assetId),

@@ -46,8 +46,18 @@ void main() {
         _go('beam:$_hex?amount=1.5'),
         const ScanToBeamSend(_hex, amount: '1.5'),
       );
-      // A bad amount is dropped, the address is still filled in.
-      expect(_go('beam:$_hex?amount=-1'), const ScanToBeamSend(_hex));
+      // A bad amount is dropped, the address is still filled in, and Send
+      // says the link's amount could not be read (release audit 1.3.0).
+      expect(
+        _go('beam:$_hex?amount=-1'),
+        const ScanToBeamSend(_hex, amountUnread: true),
+      );
+      expect(
+        _go('beam:$_hex?amount=1,000'),
+        const ScanToBeamSend(_hex, amountUnread: true),
+      );
+      expect(_go('beam:$_hex?amount='), const ScanToBeamSend(_hex));
+      expect(_go('beam:$_hex'), const ScanToBeamSend(_hex));
     });
 
     test('a BEAM name: BEAM Send with "name.beam", looked up there', () {

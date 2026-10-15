@@ -154,13 +154,14 @@ Future<void> beamScanOpen(
   required bool desktop,
 }) async {
   switch (destination) {
-    case ScanToBeamSend(:final recipient, :final amount):
+    case ScanToBeamSend(:final recipient, :final amount, :final amountUnread):
       await _openBeamSend(
         context,
         ref,
         wallet,
         recipient,
         amount,
+        amountUnread: amountUnread,
         desktop: desktop,
       );
     case final ScanToEthereumSend d:
@@ -205,12 +206,14 @@ Future<void> _openBeamSend(
   BeamWallet wallet,
   String recipient,
   String? amount, {
+  bool amountUnread = false,
   required bool desktop,
 }) async {
   if (desktop) {
     ref.read(pBeamSendFill(wallet.walletId).notifier).state = BeamSendFill.next(
       recipient,
       amount: amount,
+      amountUnread: amountUnread,
     );
     return;
   }
@@ -223,6 +226,7 @@ Future<void> _openBeamSend(
         address: recipient,
         contactLabel: recipient,
         amount: amount == null ? null : Decimal.parse(amount),
+        amountUnread: amountUnread,
       ),
     ),
   );

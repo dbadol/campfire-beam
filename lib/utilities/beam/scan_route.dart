@@ -84,24 +84,33 @@ sealed class ScanDestination {
 }
 
 /// BEAM Send with [recipient] (an address, or a name as "alice.beam") and,
-/// when the code carried one, [amount] in BEAM ("1.5").
+/// when the code carried one, [amount] in BEAM ("1.5"). [amountUnread]: the
+/// code was a `beam:` link asking for an amount that could not be read
+/// ("1,000", too many decimals): Send says so instead of staying silent.
 final class ScanToBeamSend extends ScanDestination {
-  const ScanToBeamSend(this.recipient, {this.amount});
+  const ScanToBeamSend(
+    this.recipient, {
+    this.amount,
+    this.amountUnread = false,
+  });
 
   final String recipient;
   final String? amount;
+  final bool amountUnread;
 
   @override
   bool operator ==(Object other) =>
       other is ScanToBeamSend &&
       other.recipient == recipient &&
-      other.amount == amount;
+      other.amount == amount &&
+      other.amountUnread == amountUnread;
 
   @override
-  int get hashCode => Object.hash(recipient, amount);
+  int get hashCode => Object.hash(recipient, amount, amountUnread);
 
   @override
-  String toString() => 'ScanToBeamSend($recipient, $amount)';
+  String toString() => 'ScanToBeamSend($recipient, $amount'
+      '${amountUnread ? ', amount unread' : ''})';
 }
 
 /// The Send screen of Ethereum wallet [walletId], paying [to] and, when the
@@ -239,7 +248,15 @@ ScanDestination scanDestination(
   final home = from == ScanFrom.home;
   switch (scanned.kind) {
     case ScanKind.beam:
-      return ScanToBeamSend(scanned.address!, amount: scanned.amount);
+      final asked = scanIsBeamLink(text)
+          ? scanBeamLinkAmountText(text)?.trim()
+          : null;
+      return ScanToBeamSend(
+        scanned.address!,
+        amount: scanned.amount,
+        amountUnread:
+            scanned.amount == null && asked != null && asked.isNotEmpty,
+      );
     case ScanKind.name:
       return ScanToBeamSend('${scanned.name}.beam');
     case ScanKind.eth:

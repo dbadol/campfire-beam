@@ -55,6 +55,7 @@ class BeamSendForm extends StatefulWidget {
     this.assetWorth,
     this.initialRecipient,
     this.initialAmount,
+    this.initialAmountUnread = false,
     this.onSplitCoins,
   });
 
@@ -72,6 +73,9 @@ class BeamSendForm extends StatefulWidget {
   final String? Function(int assetId, BigInt amount)? assetWorth;
   final String? initialRecipient;
   final BigInt? initialAmount;
+
+  /// The scanned link asked for an amount that could not be read.
+  final bool initialAmountUnread;
 
   /// Opens Split coins for an asset whose coins are tied up in a payment
   /// that has not finished; null hides the link.
@@ -118,6 +122,8 @@ class BeamSendFormState extends State<BeamSendForm> {
     if (_to.text.isNotEmpty) _m.setRecipient(_to.text);
     if (_amount.text.isNotEmpty) _m.setAmountText(_amount.text);
     if (widget.initialAmount != null) _linkAmountFor = _to.text;
+    _linkAmountUnread =
+        widget.initialAmountUnread && widget.initialAmount == null;
   }
 
   @override
@@ -203,9 +209,11 @@ class BeamSendFormState extends State<BeamSendForm> {
   /// payment: what an earlier one left in an open Send tab (its amount, its
   /// comment, another asset) is cleared first, so the link's amount, or
   /// none, is what goes, never the old one.
-  void fill(String recipient, {String? amount}) {
+  void fill(String recipient, {String? amount, bool amountUnread = false}) {
     clear();
-    _setRecipient(recipient, amount: amount);
+    final read = _setRecipient(recipient, amount: amount);
+    // Set after the recipient, whose change clears the note.
+    _linkAmountUnread = amountUnread && !read;
     setState(() {});
   }
 

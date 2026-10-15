@@ -124,7 +124,12 @@ class _Form {
   }
 }
 
-Future<_Form> _open(WidgetTester tester, {bool desktop = false}) async {
+Future<_Form> _open(
+  WidgetTester tester, {
+  bool desktop = false,
+  String? initialRecipient,
+  bool initialAmountUnread = false,
+}) async {
   await setScreen(tester, desktop: desktop);
   final page = GlobalKey<BeamSendPageState>();
   final clipboard = FakeClipboard();
@@ -143,6 +148,8 @@ Future<_Form> _open(WidgetTester tester, {bool desktop = false}) async {
       nameDebounce: const Duration(milliseconds: 50),
       onScanQr: (_) async => form.scanned,
       onAddressBook: (_) async => form.picked,
+      initialRecipient: initialRecipient,
+      initialAmountUnread: initialAmountUnread,
     ),
     desktop: desktop,
   );
@@ -340,6 +347,36 @@ void main() {
     final all = f.amount;
     await f.pickAsset(_bEth);
     expect((f.assetId, f.amount), (_bEth, all));
+  });
+
+  testWidgets("the home's Scan of a link whose amount can't be read says so "
+      '(desktop fill)', (tester) async {
+    final f = await _open(tester, desktop: true);
+    f.state.fill(address, amountUnread: true);
+    await tester.pump();
+    expect((f.assetId, f.amount), (0, ''));
+    expect(find.text(_unreadText), findsOneWidget);
+    expect(find.byKey(_unread), findsOneWidget);
+    // Typing an amount makes it the person's: the note goes.
+    await f.type(_amount, '0.5');
+    expect(find.byKey(_unread), findsNothing);
+    // A readable amount never shows the note.
+    f.state.fill(address, amount: '1.5', amountUnread: true);
+    await tester.pump();
+    expect(f.amount, '1.5');
+    expect(find.byKey(_unread), findsNothing);
+  });
+
+  testWidgets("a phone's Send opened by a Scan whose link amount can't be "
+      'read says so', (tester) async {
+    final f = await _open(
+      tester,
+      initialRecipient: address,
+      initialAmountUnread: true,
+    );
+    expect(_text(tester, _to), address);
+    expect(f.amount, '');
+    expect(find.byKey(_unread), findsOneWidget);
   });
 
   testWidgets("the home's Scan (fill) is a link too: its amount is that "
