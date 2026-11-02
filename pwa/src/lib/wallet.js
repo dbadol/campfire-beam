@@ -244,6 +244,7 @@ export class Wallet {
     this.state = this.emptyState();
     this.assetMeta = new Map([[0, assetLabel(0)]]);
     this.assetNamed = new Set([0]);
+    this.assetLoading = new Map();
     this.assetTried = new Map();
     this.allAssets = null;
     this.unsubGuard = null;
@@ -700,19 +701,45 @@ export class Wallet {
     }
   }
 
-  async loadAsset(id) {
+  /**
+   * Reads an asset's metadata: its name, and its decimals, which every amount of it is typed and
+   * shown with. True once it has them. get_asset_info knows only assets this wallet's database has
+   * seen; any other (a token it never held, or one created minutes ago) is asked of the node with
+   * tx_asset_info, which writes it there in a moment, and failing that comes from the node's full
+   * list (asked again when the last one is older than a minute). One read per id at a time.
+   */
+  loadAsset(id) {
+    const key = Number(id);
+    if (!this.assetLoading.has(key)) this.assetLoading.set(key, this.readAsset(key).finally(() => this.assetLoading.delete(key)));
+    return this.assetLoading.get(key);
+  }
+
+  async readAsset(id) {
     this.assetTried.set(id, Date.now());
     if (!this.assetMeta.has(id)) this.assetMeta.set(id, assetLabel(id)); // placeholder until the metadata arrives
+    const session = this.session;
+    const fromDb = async () => {
+      const info = await session.call('get_asset_info', { asset_id: id }, { timeoutMs: 20000 }).catch(() => null);
+      // An asset created with no metadata at all is read too (""): its decimals are then known (8).
+      if (!info || typeof info.metadata !== 'string' || this.session !== session) return false;
+      this.assetMeta.set(id, assetLabel(id, info.metadata));
+      this.assetNamed.add(id);
+      this.emit();
+      return true;
+    };
+    if (!session) return false;
+    if (await fromDb()) return true;
     try {
-      const info = await this.session.call('get_asset_info', { asset_id: id }, { timeoutMs: 20000 });
-      if (info && info.metadata) {
-        this.assetMeta.set(id, assetLabel(id, info.metadata));
-        this.assetNamed.add(id);
-        this.emit();
+      await session.call('tx_asset_info', { asset_id: id }, { timeoutMs: 15000 });
+      for (let i = 0; i < 16 && this.session === session; i++) {
+        await new Promise((r) => setTimeout(r, 250 + 100 * i));
+        if (await fromDb()) return true;
       }
     } catch {
-      /* placeholder stays; retried later */
+      /* the node's full list below */
     }
+    if (this.session !== session || !(await this.loadAllAssets({ again: true }))) return false;
+    return this.assetNamed.has(id);
   }
 
   async refreshTxs() {
@@ -736,8 +763,9 @@ export class Wallet {
    * once; ~200 assets). Once per session, on demand: the swap screen needs names
    * for assets this wallet has never held. Also lets get_asset_info answer for them.
    */
-  loadAllAssets() {
-    if (this.allAssets) return this.allAssets;
+  loadAllAssets({ again = false } = {}) {
+    if (this.allAssets && !(again && this.allAssetsAt && Date.now() - this.allAssetsAt > 60000)) return this.allAssets;
+    this.allAssetsAt = 0;
     const session = this.session;
     if (!session) return Promise.resolve(false);
     this.allAssets = session
@@ -750,6 +778,7 @@ export class Wallet {
           this.assetMeta.set(id, assetLabel(id, a.metadata));
           this.assetNamed.add(id);
         }
+        this.allAssetsAt = Date.now();
         this.emit();
         return true;
       })
